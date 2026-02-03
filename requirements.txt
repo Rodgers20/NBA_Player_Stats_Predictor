@@ -1,0 +1,10 @@
+pandas
+requests
+matplotlib
+seaborn
+plotly
+ipywidgets
+scikit-learn
+xgboost
+tensorflow    # Or `pytorch`, depending on model preference
+
