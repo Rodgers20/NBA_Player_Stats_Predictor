@@ -1,0 +1,76 @@
+/* Custom CSS for NBA Props Dashboard */
+
+/* Dark theme for dropdown */
+.Select-control {
+    background-color: #0d0d0d !important;
+    border-color: #1b1b1b !important;
+    color: white !important;
+}
+
+.Select-menu-outer {
+    background-color: #0d0d0d !important;
+    border-color: #1b1b1b !important;
+}
+
+.Select-option {
+    background-color: #0d0d0d !important;
+    color: white !important;
+}
+
+.Select-option:hover,
+.Select-option.is-focused {
+    background-color: #1a1a1a !important;
+}
+
+.Select-value-label,
+.Select-placeholder {
+    color: white !important;
+}
+
+.Select-input input {
+    color: white !important;
+}
+
+/* Dash dropdown specific */
+.dash-dropdown .Select-control {
+    background-color: #0d0d0d !important;
+    border: 1px solid #1b1b1b !important;
+}
+
+.dash-dropdown .Select-menu {
+    background-color: #0d0d0d !important;
+}
+
+.dash-dropdown .VirtualizedSelectOption {
+    background-color: #0d0d0d !important;
+    color: white !important;
+}
+
+.dash-dropdown .VirtualizedSelectFocusedOption {
+    background-color: #1a1a1a !important;
+}
+
+/* Remove default blue focus outline */
+.Select.is-focused:not(.is-open) > .Select-control {
+    border-color: #9d8ec9 !important;
+    box-shadow: none !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0d0d0d;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #444;
+}
