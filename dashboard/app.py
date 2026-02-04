@@ -182,8 +182,7 @@ app.layout = html.Div([
                     options=[{"label": p, "value": p} for p in PLAYERS],
                     value=PLAYERS[0] if PLAYERS else None,
                     placeholder="Search player...",
-                    style={"backgroundColor": COLORS["bg_card"]},
-                    className="dark-dropdown"
+                    style={"backgroundColor": COLORS["bg_card"]}
                 )
             ], style=CARD_STYLE),
 
@@ -217,28 +216,6 @@ app.layout = html.Div([
         "maxWidth": "1400px",
         "margin": "0 auto",
     }),
-
-    # Custom CSS for dark dropdown
-    html.Style("""
-        .dark-dropdown .Select-control {
-            background-color: #0d0d0d !important;
-            border-color: #1b1b1b !important;
-        }
-        .dark-dropdown .Select-menu-outer {
-            background-color: #0d0d0d !important;
-            border-color: #1b1b1b !important;
-        }
-        .dark-dropdown .Select-option {
-            background-color: #0d0d0d !important;
-            color: white !important;
-        }
-        .dark-dropdown .Select-option:hover {
-            background-color: #1a1a1a !important;
-        }
-        .Select-value-label, .Select-placeholder {
-            color: white !important;
-        }
-    """)
 
 ], style={
     "backgroundColor": COLORS["bg_primary"],
