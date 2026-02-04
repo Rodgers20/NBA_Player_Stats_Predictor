@@ -5,17 +5,6 @@ NBA Player Stats Dashboard
 An interactive dashboard for analyzing NBA player performance
 and making stat predictions.
 
-HOW DASH WORKS:
----------------
-Dash is a Python framework for building web dashboards. It combines:
-1. Plotly - for interactive charts
-2. HTML/CSS - for layout (but written in Python!)
-3. Callbacks - for interactivity (when user does X, do Y)
-
-STRUCTURE:
-- app.layout = The HTML structure (what users see)
-- @app.callback = Functions that update the page when users interact
-
 TO RUN:
     python dashboard/app.py
     Then open http://127.0.0.1:8050 in your browser
@@ -88,8 +77,6 @@ print(f"Loaded {len(DF)} game records for {len(PLAYERS)} players")
 # DASH APP SETUP
 # =============================================================================
 
-# Create the Dash app
-# external_stylesheets adds Bootstrap-like styling for nicer appearance
 app = Dash(
     __name__,
     external_stylesheets=[
@@ -98,7 +85,6 @@ app = Dash(
     suppress_callback_exceptions=True
 )
 
-# For deployment
 server = app.server
 
 # =============================================================================
@@ -113,6 +99,17 @@ COLORS = {
     "secondary": "#3498db",  # Blue
     "warning": "#f39c12",  # Orange
     "danger": "#e74c3c",  # Red
+    "purple": "#9b59b6",  # Purple for combos
+}
+
+# Stat color mapping
+STAT_COLORS = {
+    "PTS": COLORS["accent"],
+    "AST": COLORS["secondary"],
+    "REB": COLORS["warning"],
+    "PTS+AST": COLORS["purple"],
+    "PTS+REB": "#e67e22",
+    "PTS+AST+REB": "#1abc9c",
 }
 
 # =============================================================================
@@ -138,7 +135,7 @@ def create_player_selector():
             options=[{"label": p, "value": p} for p in PLAYERS],
             value=PLAYERS[0] if PLAYERS else None,
             placeholder="Search for a player...",
-            style={"color": "#000"},  # Dark text for dropdown
+            style={"color": "#000"},
             searchable=True,
             clearable=False
         )
@@ -149,26 +146,34 @@ def create_player_selector():
     })
 
 
-def create_stats_cards():
-    """Create the summary stat cards."""
-    return html.Div([
-        html.Div(id="stats-cards", children=[
-            # Cards will be populated by callback
-        ])
-    ], style={"padding": "10px"})
-
-
 def create_main_content():
     """Create the main dashboard content area."""
     return html.Div([
         # Row 1: Stats cards
         html.Div(id="stats-cards-container", style={"marginBottom": "20px"}),
 
-        # Row 2: Charts
+        # Row 2: Season Trend (Bar Chart) with stat selector
         html.Div([
-            # Left: Season Trend Chart
             html.Div([
-                html.H4("Season Performance Trend", style={"color": COLORS["text"]}),
+                html.Div([
+                    html.H4("Game-by-Game Performance", style={"color": COLORS["text"], "display": "inline-block"}),
+                    html.Div([
+                        dcc.Dropdown(
+                            id="trend-stat-dropdown",
+                            options=[
+                                {"label": "Points", "value": "PTS"},
+                                {"label": "Assists", "value": "AST"},
+                                {"label": "Rebounds", "value": "REB"},
+                                {"label": "Points + Assists", "value": "PTS+AST"},
+                                {"label": "Points + Rebounds", "value": "PTS+REB"},
+                                {"label": "PTS + AST + REB", "value": "PTS+AST+REB"},
+                            ],
+                            value="PTS",
+                            style={"width": "180px", "color": "#000"},
+                            clearable=False
+                        )
+                    ], style={"display": "inline-block", "marginLeft": "20px", "verticalAlign": "middle"})
+                ], style={"marginBottom": "10px"}),
                 dcc.Graph(id="season-trend-chart")
             ], style={
                 "flex": "2",
@@ -180,7 +185,7 @@ def create_main_content():
 
             # Right: Prediction Panel
             html.Div([
-                html.H4("Prediction", style={"color": COLORS["text"]}),
+                html.H4("Next Game Prediction", style={"color": COLORS["text"]}),
                 html.Div(id="prediction-panel")
             ], style={
                 "flex": "1",
@@ -204,9 +209,27 @@ def create_main_content():
                 "marginRight": "10px"
             }),
 
-            # Right: Performance by Opponent
+            # Right: Performance by Opponent with stat selector
             html.Div([
-                html.H4("Performance by Opponent", style={"color": COLORS["text"]}),
+                html.Div([
+                    html.H4("Performance by Opponent", style={"color": COLORS["text"], "display": "inline-block"}),
+                    html.Div([
+                        dcc.Dropdown(
+                            id="opponent-stat-dropdown",
+                            options=[
+                                {"label": "Points", "value": "PTS"},
+                                {"label": "Assists", "value": "AST"},
+                                {"label": "Rebounds", "value": "REB"},
+                                {"label": "PTS + AST", "value": "PTS+AST"},
+                                {"label": "PTS + REB", "value": "PTS+REB"},
+                                {"label": "PTS + AST + REB", "value": "PTS+AST+REB"},
+                            ],
+                            value="PTS",
+                            style={"width": "150px", "color": "#000"},
+                            clearable=False
+                        )
+                    ], style={"display": "inline-block", "marginLeft": "15px", "verticalAlign": "middle"})
+                ], style={"marginBottom": "10px"}),
                 dcc.Graph(id="opponent-chart")
             ], style={
                 "flex": "1",
@@ -216,9 +239,9 @@ def create_main_content():
             })
         ], style={"display": "flex", "marginBottom": "20px"}),
 
-        # Row 4: Injury/News Status
+        # Row 4: Player Status
         html.Div([
-            html.H4("Latest News & Injury Status", style={"color": COLORS["text"]}),
+            html.H4("Player Status", style={"color": COLORS["text"]}),
             html.Div(id="injury-status-panel")
         ], style={
             "backgroundColor": COLORS["card_bg"],
@@ -244,7 +267,32 @@ app.layout = html.Div([
 
 
 # =============================================================================
-# CALLBACKS (Interactivity)
+# HELPER FUNCTIONS
+# =============================================================================
+
+def calculate_stat(df, stat_name):
+    """Calculate a stat value, supporting combo stats like PTS+AST."""
+    if "+" in stat_name:
+        parts = stat_name.split("+")
+        return sum(df[p] for p in parts)
+    return df[stat_name]
+
+
+def get_stat_label(stat_name):
+    """Get human-readable label for a stat."""
+    labels = {
+        "PTS": "Points",
+        "AST": "Assists",
+        "REB": "Rebounds",
+        "PTS+AST": "Points + Assists",
+        "PTS+REB": "Points + Rebounds",
+        "PTS+AST+REB": "PTS + AST + REB",
+    }
+    return labels.get(stat_name, stat_name)
+
+
+# =============================================================================
+# CALLBACKS
 # =============================================================================
 
 @callback(
@@ -252,24 +300,16 @@ app.layout = html.Div([
     Input("player-dropdown", "value")
 )
 def update_stats_cards(player_name):
-    """
-    Update the summary stats cards when a player is selected.
-
-    WHAT IS A CALLBACK?
-    A callback is a function that runs automatically when something changes.
-    - Input: What triggers the callback (player dropdown value)
-    - Output: What gets updated (stats cards)
-    """
+    """Update the summary stats cards when a player is selected."""
     if not player_name:
         return html.Div("Select a player to view stats")
 
-    # Filter data for this player
     player_df = DF[DF["PLAYER_NAME"] == player_name]
 
     if player_df.empty:
         return html.Div("No data available for this player")
 
-    # Calculate averages
+    # Get current season or all data
     current_season = player_df[player_df["SEASON"] == "2024-25"]
     if current_season.empty:
         current_season = player_df
@@ -279,7 +319,6 @@ def update_stats_cards(player_name):
     avg_reb = current_season["REB"].mean()
     games_played = len(current_season)
 
-    # Create stat cards
     card_style = {
         "backgroundColor": COLORS["card_bg"],
         "borderRadius": "10px",
@@ -292,7 +331,6 @@ def update_stats_cards(player_name):
     value_style = {
         "fontSize": "36px",
         "fontWeight": "bold",
-        "color": COLORS["accent"]
     }
 
     label_style = {
@@ -302,19 +340,19 @@ def update_stats_cards(player_name):
 
     return html.Div([
         html.Div([
-            html.Div(f"{avg_pts:.1f}", style=value_style),
+            html.Div(f"{avg_pts:.1f}", style={**value_style, "color": STAT_COLORS["PTS"]}),
             html.Div("PPG", style=label_style)
         ], style=card_style),
         html.Div([
-            html.Div(f"{avg_ast:.1f}", style=value_style),
+            html.Div(f"{avg_ast:.1f}", style={**value_style, "color": STAT_COLORS["AST"]}),
             html.Div("APG", style=label_style)
         ], style=card_style),
         html.Div([
-            html.Div(f"{avg_reb:.1f}", style=value_style),
+            html.Div(f"{avg_reb:.1f}", style={**value_style, "color": STAT_COLORS["REB"]}),
             html.Div("RPG", style=label_style)
         ], style=card_style),
         html.Div([
-            html.Div(f"{games_played}", style={**value_style, "color": COLORS["secondary"]}),
+            html.Div(f"{games_played}", style={**value_style, "color": "#888"}),
             html.Div("Games", style=label_style)
         ], style=card_style),
     ], style={"display": "flex", "justifyContent": "center"})
@@ -322,62 +360,73 @@ def update_stats_cards(player_name):
 
 @callback(
     Output("season-trend-chart", "figure"),
-    Input("player-dropdown", "value")
+    [Input("player-dropdown", "value"),
+     Input("trend-stat-dropdown", "value")]
 )
-def update_season_trend(player_name):
-    """Create the season performance trend line chart."""
+def update_season_trend(player_name, stat_name):
+    """Create a bar chart showing game-by-game performance."""
     if not player_name:
         return go.Figure()
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].copy()
     player_df = player_df.sort_values("_date")
 
-    # Create figure with secondary y-axis
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    # Get last 25 games for cleaner visualization
+    player_df = player_df.tail(25)
 
-    # Points trend
-    fig.add_trace(
-        go.Scatter(
-            x=player_df["_date"],
-            y=player_df["PTS"],
-            name="Points",
-            line=dict(color=COLORS["accent"], width=2),
-            mode="lines+markers",
-            marker=dict(size=4)
-        ),
-        secondary_y=False
-    )
+    # Calculate the stat value
+    stat_values = calculate_stat(player_df, stat_name)
+    avg_value = stat_values.mean()
 
-    # Rolling average
-    if "rolling_avg_pts_10" in player_df.columns:
-        fig.add_trace(
-            go.Scatter(
-                x=player_df["_date"],
-                y=player_df["rolling_avg_pts_10"],
-                name="10-Game Avg",
-                line=dict(color=COLORS["warning"], width=2, dash="dash"),
-                mode="lines"
-            ),
-            secondary_y=False
+    # Get color for this stat
+    bar_color = STAT_COLORS.get(stat_name, COLORS["accent"])
+
+    # Create bar chart
+    fig = go.Figure()
+
+    # Add bars for each game
+    fig.add_trace(go.Bar(
+        x=player_df["_date"],
+        y=stat_values,
+        marker_color=bar_color,
+        name=get_stat_label(stat_name),
+        text=[f"{v:.0f}" for v in stat_values],
+        textposition="outside",
+        textfont=dict(size=10),
+        hovertemplate=(
+            "<b>%{x|%b %d}</b><br>" +
+            f"{get_stat_label(stat_name)}: " + "%{y:.0f}<br>" +
+            "<extra></extra>"
         )
+    ))
+
+    # Add average line
+    fig.add_hline(
+        y=avg_value,
+        line_dash="dash",
+        line_color="#ffffff",
+        line_width=2,
+        annotation_text=f"Avg: {avg_value:.1f}",
+        annotation_position="right",
+        annotation_font_color="#ffffff"
+    )
 
     # Style the chart
     fig.update_layout(
         template="plotly_dark",
         paper_bgcolor=COLORS["card_bg"],
         plot_bgcolor=COLORS["card_bg"],
-        margin=dict(l=20, r=20, t=30, b=20),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        ),
-        hovermode="x unified"
+        margin=dict(l=40, r=40, t=40, b=40),
+        showlegend=False,
+        xaxis_title="",
+        yaxis_title=get_stat_label(stat_name),
+        bargap=0.3,
     )
 
-    fig.update_yaxes(title_text="Points", secondary_y=False)
+    fig.update_xaxes(
+        tickformat="%b %d",
+        tickangle=-45
+    )
 
     return fig
 
@@ -409,7 +458,6 @@ def update_prediction(player_name):
     if not predictions:
         return html.Div("No predictions available")
 
-    # Confidence color mapping
     conf_colors = {
         "high": COLORS["accent"],
         "medium": COLORS["warning"],
@@ -423,20 +471,18 @@ def update_prediction(player_name):
 
         conf = data.get("confidence", "unknown")
         conf_color = conf_colors.get(conf, "#888")
+        stat_color = STAT_COLORS.get(stat, COLORS["accent"])
 
         pred_items.append(html.Div([
             html.Div([
-                html.Span(stat, style={"fontWeight": "bold", "marginRight": "10px"}),
-                html.Span(
-                    f"●",
-                    style={"color": conf_color, "marginRight": "5px"}
-                ),
+                html.Span(stat, style={"fontWeight": "bold", "marginRight": "10px", "color": stat_color}),
+                html.Span("●", style={"color": conf_color, "marginRight": "5px"}),
                 html.Span(conf.upper(), style={"fontSize": "10px", "color": conf_color})
             ]),
             html.Div([
                 html.Span(
                     f"{data['predicted']}",
-                    style={"fontSize": "28px", "fontWeight": "bold", "color": COLORS["accent"]}
+                    style={"fontSize": "32px", "fontWeight": "bold", "color": stat_color}
                 ),
                 html.Span(
                     f" (avg: {data['recent_avg']})",
@@ -462,41 +508,55 @@ def update_home_away_chart(player_name):
 
     player_df = DF[DF["PLAYER_NAME"] == player_name]
 
-    home_stats = player_df[player_df["is_home"] == 1][["PTS", "AST", "REB"]].mean()
-    away_stats = player_df[player_df["is_home"] == 0][["PTS", "AST", "REB"]].mean()
+    home_df = player_df[player_df["is_home"] == 1]
+    away_df = player_df[player_df["is_home"] == 0]
+
+    home_stats = {
+        "PTS": home_df["PTS"].mean() if len(home_df) > 0 else 0,
+        "AST": home_df["AST"].mean() if len(home_df) > 0 else 0,
+        "REB": home_df["REB"].mean() if len(home_df) > 0 else 0,
+    }
+
+    away_stats = {
+        "PTS": away_df["PTS"].mean() if len(away_df) > 0 else 0,
+        "AST": away_df["AST"].mean() if len(away_df) > 0 else 0,
+        "REB": away_df["REB"].mean() if len(away_df) > 0 else 0,
+    }
 
     fig = go.Figure()
 
     stats = ["PTS", "AST", "REB"]
-    x = np.arange(len(stats))
-    width = 0.35
 
     fig.add_trace(go.Bar(
-        name="Home",
+        name=f"Home ({len(home_df)} games)",
         x=stats,
-        y=[home_stats.get(s, 0) for s in stats],
-        marker_color=COLORS["accent"]
+        y=[home_stats[s] for s in stats],
+        marker_color=COLORS["accent"],
+        text=[f"{home_stats[s]:.1f}" for s in stats],
+        textposition="outside"
     ))
 
     fig.add_trace(go.Bar(
-        name="Away",
+        name=f"Away ({len(away_df)} games)",
         x=stats,
-        y=[away_stats.get(s, 0) for s in stats],
-        marker_color=COLORS["secondary"]
+        y=[away_stats[s] for s in stats],
+        marker_color=COLORS["secondary"],
+        text=[f"{away_stats[s]:.1f}" for s in stats],
+        textposition="outside"
     ))
 
     fig.update_layout(
         template="plotly_dark",
         paper_bgcolor=COLORS["card_bg"],
         plot_bgcolor=COLORS["card_bg"],
-        margin=dict(l=20, r=20, t=30, b=20),
+        margin=dict(l=20, r=20, t=40, b=20),
         barmode="group",
         legend=dict(
             orientation="h",
             yanchor="bottom",
             y=1.02,
-            xanchor="right",
-            x=1
+            xanchor="center",
+            x=0.5
         )
     )
 
@@ -505,42 +565,59 @@ def update_home_away_chart(player_name):
 
 @callback(
     Output("opponent-chart", "figure"),
-    Input("player-dropdown", "value")
+    [Input("player-dropdown", "value"),
+     Input("opponent-stat-dropdown", "value")]
 )
-def update_opponent_chart(player_name):
-    """Create performance by opponent chart."""
+def update_opponent_chart(player_name, stat_name):
+    """Create performance by opponent chart with selectable stat."""
     if not player_name:
         return go.Figure()
 
     player_df = DF[DF["PLAYER_NAME"] == player_name]
 
-    # Get average points by opponent
-    if "opponent" in player_df.columns:
-        opp_stats = player_df.groupby("opponent")["PTS"].agg(["mean", "count"])
-        opp_stats = opp_stats[opp_stats["count"] >= 2]  # At least 2 games
-        opp_stats = opp_stats.sort_values("mean", ascending=True).tail(10)
+    if "opponent" not in player_df.columns:
+        return go.Figure()
 
-        fig = go.Figure(go.Bar(
-            x=opp_stats["mean"],
-            y=opp_stats.index,
-            orientation="h",
-            marker_color=COLORS["accent"],
-            text=[f"{v:.1f}" for v in opp_stats["mean"]],
-            textposition="outside"
-        ))
+    # Calculate the stat for each game
+    player_df = player_df.copy()
+    player_df["_stat_value"] = calculate_stat(player_df, stat_name)
 
-        fig.update_layout(
-            template="plotly_dark",
-            paper_bgcolor=COLORS["card_bg"],
-            plot_bgcolor=COLORS["card_bg"],
-            margin=dict(l=50, r=50, t=30, b=20),
-            xaxis_title="Avg Points",
-            yaxis_title=""
+    # Group by opponent
+    opp_stats = player_df.groupby("opponent").agg(
+        avg=("_stat_value", "mean"),
+        games=("_stat_value", "count")
+    ).reset_index()
+
+    # Filter to opponents with at least 1 game, show top 10
+    opp_stats = opp_stats[opp_stats["games"] >= 1]
+    opp_stats = opp_stats.sort_values("avg", ascending=True).tail(10)
+
+    bar_color = STAT_COLORS.get(stat_name, COLORS["accent"])
+
+    fig = go.Figure(go.Bar(
+        x=opp_stats["avg"],
+        y=opp_stats["opponent"],
+        orientation="h",
+        marker_color=bar_color,
+        text=[f"{v:.1f} ({g}g)" for v, g in zip(opp_stats["avg"], opp_stats["games"])],
+        textposition="outside",
+        hovertemplate=(
+            "<b>vs %{y}</b><br>" +
+            f"Avg {get_stat_label(stat_name)}: " + "%{x:.1f}<br>" +
+            "<extra></extra>"
         )
+    ))
 
-        return fig
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor=COLORS["card_bg"],
+        plot_bgcolor=COLORS["card_bg"],
+        margin=dict(l=60, r=80, t=20, b=20),
+        xaxis_title=f"Avg {get_stat_label(stat_name)}",
+        yaxis_title=""
+    )
 
-    return go.Figure()
+    return fig
 
 
 @callback(
@@ -548,62 +625,102 @@ def update_opponent_chart(player_name):
     Input("player-dropdown", "value")
 )
 def update_injury_status(player_name):
-    """Fetch and display injury/news status."""
+    """Display player status - ACTIVE by default unless injury news found."""
     if not player_name:
         return html.Div("Select a player")
 
     try:
         status = get_player_injury_status(player_name)
 
+        # Map status to display text
+        status_text = status.get("status", "UNKNOWN")
+
+        # If UNKNOWN or HEALTHY, show as ACTIVE (more user-friendly)
+        if status_text in ["UNKNOWN", "HEALTHY"]:
+            status_text = "ACTIVE"
+
+        # Status colors
         status_colors = {
+            "ACTIVE": COLORS["accent"],
             "OUT": COLORS["danger"],
             "QUESTIONABLE": COLORS["warning"],
-            "HEALTHY": COLORS["accent"],
-            "UNKNOWN": "#888"
+            "DOUBTFUL": COLORS["warning"],
         }
 
-        status_text = status.get("status", "UNKNOWN")
-        status_color = status_colors.get(status_text, "#888")
+        status_color = status_colors.get(status_text, COLORS["accent"])
 
+        # Get game count from our data
+        player_df = DF[DF["PLAYER_NAME"] == player_name]
+        current_season = player_df[player_df["SEASON"] == "2024-25"]
+        games_this_season = len(current_season) if not current_season.empty else len(player_df)
+
+        # Build the content
         content = [
+            # Status badge
             html.Div([
-                html.Span("Status: ", style={"color": "#888"}),
                 html.Span(
                     status_text,
                     style={
-                        "color": status_color,
+                        "color": "#fff",
                         "fontWeight": "bold",
-                        "padding": "5px 10px",
-                        "borderRadius": "5px",
-                        "backgroundColor": f"{status_color}22"
+                        "padding": "8px 20px",
+                        "borderRadius": "20px",
+                        "backgroundColor": status_color,
+                        "fontSize": "16px"
                     }
                 )
-            ], style={"marginBottom": "15px"})
+            ], style={"marginBottom": "20px"}),
+
+            # Quick stats row
+            html.Div([
+                html.Div([
+                    html.Span(f"{games_this_season}", style={"fontSize": "24px", "fontWeight": "bold", "color": COLORS["text"]}),
+                    html.Span(" games played this season", style={"color": "#888", "marginLeft": "5px"})
+                ]),
+            ], style={"marginBottom": "15px"}),
         ]
 
-        # Show news if available
+        # Show news only if we found relevant articles
         news = status.get("news", [])
         if news:
-            content.append(html.Div("Recent News:", style={"color": "#888", "marginBottom": "10px"}))
+            content.append(html.Div([
+                html.Div("Recent News:", style={"color": "#888", "marginBottom": "10px", "fontWeight": "bold"}),
+            ]))
             for item in news[:3]:
-                content.append(html.Div([
-                    html.A(
-                        item.get("title", ""),
-                        href=item.get("link", "#"),
-                        target="_blank",
-                        style={"color": COLORS["secondary"]}
-                    )
-                ], style={"marginBottom": "5px", "fontSize": "14px"}))
+                title = item.get("title", "").strip()
+                if title:
+                    content.append(html.Div([
+                        html.A(
+                            title[:100] + "..." if len(title) > 100 else title,
+                            href=item.get("link", "#"),
+                            target="_blank",
+                            style={"color": COLORS["secondary"], "textDecoration": "none"}
+                        )
+                    ], style={"marginBottom": "8px", "fontSize": "14px", "paddingLeft": "10px"}))
         else:
             content.append(html.Div(
-                "No recent news found",
-                style={"color": "#666", "fontStyle": "italic"}
+                "No injury reports - player appears healthy",
+                style={"color": COLORS["accent"], "fontStyle": "italic"}
             ))
 
         return html.Div(content)
 
     except Exception as e:
-        return html.Div(f"Unable to fetch news: {str(e)}", style={"color": "#888"})
+        # Default to ACTIVE if we can't fetch news
+        return html.Div([
+            html.Span(
+                "ACTIVE",
+                style={
+                    "color": "#fff",
+                    "fontWeight": "bold",
+                    "padding": "8px 20px",
+                    "borderRadius": "20px",
+                    "backgroundColor": COLORS["accent"],
+                    "fontSize": "16px"
+                }
+            ),
+            html.P("No injury reports found", style={"color": "#888", "marginTop": "15px"})
+        ])
 
 
 # =============================================================================
