@@ -25,6 +25,38 @@ from utils.data_fetch import (
     get_team_defensive_stats,
 )
 
+
+def get_current_nba_season():
+    """
+    Get the current NBA season string (e.g., '2025-26').
+    NBA season starts in October.
+    """
+    today = datetime.now()
+    year = today.year
+    month = today.month
+
+    if month >= 10:  # October or later
+        start_year = year
+    else:  # January - September
+        start_year = year - 1
+
+    end_year = start_year + 1
+    return f"{start_year}-{str(end_year)[-2:]}"
+
+
+def get_seasons_to_collect(num_seasons=2):
+    """Get list of seasons to collect (current + previous)."""
+    current = get_current_nba_season()
+    start_year = int(current.split("-")[0])
+
+    seasons = []
+    for i in range(num_seasons):
+        year = start_year - i
+        seasons.append(f"{year}-{str(year + 1)[-2:]}")
+
+    return seasons
+
+
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
@@ -57,7 +89,9 @@ SAMPLE_PLAYERS = [
     "Chet Holmgren",
 ]
 
-SEASONS = ["2024-25", "2023-24", "2022-23"]
+# Dynamically get current and previous season
+SEASONS = get_seasons_to_collect(num_seasons=2)
+print(f"Collecting seasons: {SEASONS}")
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 API_DELAY = 0.6
 
