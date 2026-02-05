@@ -11,8 +11,45 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
 import numpy as np
+from datetime import datetime
 from dash import Dash, html, dcc, Input, Output, callback
 import plotly.graph_objects as go
+
+
+def get_current_nba_season():
+    """
+    Get the current NBA season string (e.g., '2025-26').
+    NBA season starts in October, so:
+    - Oct-Dec 2025 = 2025-26 season
+    - Jan-Sep 2026 = still 2025-26 season
+    """
+    today = datetime.now()
+    year = today.year
+    month = today.month
+
+    # If we're in Oct-Dec, season started this year
+    # If we're in Jan-Sep, season started last year
+    if month >= 10:  # October or later
+        start_year = year
+    else:  # January - September
+        start_year = year - 1
+
+    end_year = start_year + 1
+    return f"{start_year}-{str(end_year)[-2:]}"
+
+
+def get_previous_nba_season():
+    """Get the previous NBA season string."""
+    current = get_current_nba_season()
+    start_year = int(current.split("-")[0]) - 1
+    end_year = start_year + 1
+    return f"{start_year}-{str(end_year)[-2:]}"
+
+
+# Get dynamic season values
+CURRENT_SEASON = get_current_nba_season()
+PREVIOUS_SEASON = get_previous_nba_season()
+print(f"Current season: {CURRENT_SEASON}, Previous season: {PREVIOUS_SEASON}")
 
 from utils.feature_engineering import engineer_features
 from utils.injury_news import get_player_injury_status
@@ -242,17 +279,20 @@ app.layout = html.Div([
             # Store for selected stat
             dcc.Store(id="selected-stat", data="REB+AST"),
 
-            # Time period tabs
+            # Time period tabs (with dynamic seasons)
             html.Div([
                 html.Button("L5", id="period-l5", n_clicks=0, style=TAB_STYLE),
                 html.Button("L10", id="period-l10", n_clicks=0, style=TAB_ACTIVE),
                 html.Button("L20", id="period-l20", n_clicks=0, style=TAB_STYLE),
-                html.Button("2024", id="period-2024", n_clicks=0, style=TAB_STYLE),
-                html.Button("2023", id="period-2023", n_clicks=0, style=TAB_STYLE),
+                html.Button(CURRENT_SEASON.split("-")[0], id="period-current", n_clicks=0, style=TAB_STYLE),
+                html.Button(PREVIOUS_SEASON.split("-")[0], id="period-previous", n_clicks=0, style=TAB_STYLE),
             ], style={"display": "flex", "marginBottom": "20px"}),
 
             dcc.Store(id="selected-period", data=10),
             dcc.Store(id="selected-season", data=None),
+            # Store the season values for use in callbacks
+            dcc.Store(id="current-season-store", data=CURRENT_SEASON),
+            dcc.Store(id="previous-season-store", data=PREVIOUS_SEASON),
 
             # Hit rate header with avg/median
             html.Div(id="hit-rate-header", style={"marginBottom": "20px"}),
@@ -392,15 +432,15 @@ def update_stat_tab_styles(selected):
      Output("period-l5", "style"),
      Output("period-l10", "style"),
      Output("period-l20", "style"),
-     Output("period-2024", "style"),
-     Output("period-2023", "style")],
+     Output("period-current", "style"),
+     Output("period-previous", "style")],
     [Input("period-l5", "n_clicks"),
      Input("period-l10", "n_clicks"),
      Input("period-l20", "n_clicks"),
-     Input("period-2024", "n_clicks"),
-     Input("period-2023", "n_clicks")]
+     Input("period-current", "n_clicks"),
+     Input("period-previous", "n_clicks")]
 )
-def update_period_tabs(l5, l10, l20, y2024, y2023):
+def update_period_tabs(l5, l10, l20, current, previous):
     from dash import ctx
     triggered = ctx.triggered_id
 
@@ -414,10 +454,10 @@ def update_period_tabs(l5, l10, l20, y2024, y2023):
         period, styles[1] = 10, TAB_ACTIVE
     elif triggered == "period-l20":
         period, styles[2] = 20, TAB_ACTIVE
-    elif triggered == "period-2024":
-        period, season, styles[3] = 100, "2024-25", TAB_ACTIVE
-    elif triggered == "period-2023":
-        period, season, styles[4] = 100, "2023-24", TAB_ACTIVE
+    elif triggered == "period-current":
+        period, season, styles[3] = 100, CURRENT_SEASON, TAB_ACTIVE
+    elif triggered == "period-previous":
+        period, season, styles[4] = 100, PREVIOUS_SEASON, TAB_ACTIVE
 
     return [period, season] + styles
 
@@ -478,7 +518,7 @@ def update_player_header(player_name):
         return None
 
     player_df = DF[DF["PLAYER_NAME"] == player_name]
-    current = player_df[player_df["SEASON"] == "2024-25"]
+    current = player_df[player_df["SEASON"] == CURRENT_SEASON]
     if current.empty:
         current = player_df
 
@@ -580,11 +620,11 @@ def update_hit_rate_header(player_name, stat, period, threshold):
     l5_pct, _ = calc_hit(player_df, 5)
     l20_pct, _ = calc_hit(player_df, 20)
 
-    # Season hit rates by year
-    df_2024 = player_df[player_df["SEASON"] == "2024-25"]
-    df_2023 = player_df[player_df["SEASON"] == "2023-24"]
-    pct_2024, _ = calc_hit(df_2024, len(df_2024)) if len(df_2024) > 0 else (0, 0)
-    pct_2023, _ = calc_hit(df_2023, len(df_2023)) if len(df_2023) > 0 else (0, 0)
+    # Season hit rates (dynamic)
+    df_current = player_df[player_df["SEASON"] == CURRENT_SEASON]
+    df_previous = player_df[player_df["SEASON"] == PREVIOUS_SEASON]
+    pct_current, _ = calc_hit(df_current, len(df_current)) if len(df_current) > 0 else (0, 0)
+    pct_previous, _ = calc_hit(df_previous, len(df_previous)) if len(df_previous) > 0 else (0, 0)
 
     # Get display name for stat
     stat_display = stat.replace("+", " + ")
@@ -629,13 +669,13 @@ def update_hit_rate_header(player_name, stat, period, threshold):
             ], style={"textAlign": "center", "marginRight": "16px"}),
 
             html.Div([
-                html.Div("2024", style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
-                html.Div(f"{pct_2024:.0f}%", style={"color": get_hit_color(pct_2024), "fontWeight": "600"})
+                html.Div(CURRENT_SEASON.split("-")[0], style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
+                html.Div(f"{pct_current:.0f}%", style={"color": get_hit_color(pct_current), "fontWeight": "600"})
             ], style={"textAlign": "center", "marginRight": "16px"}),
 
             html.Div([
-                html.Div("2023", style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
-                html.Div(f"{pct_2023:.0f}%", style={"color": get_hit_color(pct_2023), "fontWeight": "600"})
+                html.Div(PREVIOUS_SEASON.split("-")[0], style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
+                html.Div(f"{pct_previous:.0f}%", style={"color": get_hit_color(pct_previous), "fontWeight": "600"})
             ], style={"textAlign": "center"}),
 
         ], style={"display": "flex", "alignItems": "flex-end"}),
@@ -964,7 +1004,7 @@ def create_injuries_content(player_name):
     }.get(status_text, COLORS["hit_high"])
 
     player_df = DF[DF["PLAYER_NAME"] == player_name]
-    games_24 = len(player_df[player_df["SEASON"] == "2024-25"])
+    games_current = len(player_df[player_df["SEASON"] == CURRENT_SEASON])
 
     return html.Div([
         html.Div([
@@ -984,7 +1024,7 @@ def create_injuries_content(player_name):
                 "fontSize": "13px",
                 "marginTop": "8px"
             }) if reason else None,
-            html.Div(f"{games_24} games played in 2024-25", style={
+            html.Div(f"{games_current} games played in {CURRENT_SEASON}", style={
                 "color": COLORS["text_muted"],
                 "fontSize": "12px",
                 "marginTop": "12px"
