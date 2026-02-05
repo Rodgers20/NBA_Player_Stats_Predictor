@@ -443,9 +443,7 @@ def update_player_photo(player_name):
             "width": "100%",
             "height": "100%",
             "objectFit": "cover",
-        },
-        # Fallback to initials if image fails
-        **{"onerror": "this.style.display='none'"}
+        }
     )
 
 
