@@ -262,17 +262,27 @@ app.layout = html.Div([
                 html.Div("Threshold:", style={
                     "color": COLORS["text_secondary"],
                     "fontSize": "12px",
-                    "marginRight": "12px"
+                    "marginRight": "12px",
+                    "minWidth": "70px"
                 }),
-                dcc.Slider(
-                    id="threshold-slider",
-                    min=0,
-                    max=50,
-                    step=0.5,
-                    value=10,
-                    marks=None,
-                    tooltip={"placement": "bottom", "always_visible": True},
-                ),
+                html.Div([
+                    dcc.Slider(
+                        id="threshold-slider",
+                        min=0,
+                        max=50,
+                        step=0.5,
+                        value=10,
+                        marks={0: "0", 10: "10", 20: "20", 30: "30", 40: "40", 50: "50"},
+                        tooltip={"placement": "bottom", "always_visible": False},
+                    ),
+                ], style={"flex": "1", "marginRight": "16px"}),
+                html.Div(id="threshold-display", style={
+                    "color": COLORS["accent"],
+                    "fontSize": "16px",
+                    "fontWeight": "600",
+                    "minWidth": "50px",
+                    "textAlign": "right"
+                }),
             ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
 
             # Main chart
@@ -515,6 +525,15 @@ def update_threshold_default(player_name, stat):
 
     avg = vals.head(20).mean()
     return round(avg * 2) / 2  # Round to nearest 0.5
+
+
+@callback(
+    Output("threshold-display", "children"),
+    Input("threshold-slider", "value")
+)
+def update_threshold_display(value):
+    """Display the current threshold value"""
+    return f"{value}"
 
 
 @callback(

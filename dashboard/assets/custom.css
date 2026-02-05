@@ -74,3 +74,58 @@
 ::-webkit-scrollbar-thumb:hover {
     background: #444;
 }
+
+/* Slider styling for dark theme */
+.rc-slider {
+    background-color: transparent !important;
+}
+
+.rc-slider-rail {
+    background-color: #333 !important;
+    height: 6px !important;
+}
+
+.rc-slider-track {
+    background-color: #14b8a6 !important;
+    height: 6px !important;
+}
+
+.rc-slider-handle {
+    background-color: #14b8a6 !important;
+    border-color: #14b8a6 !important;
+    width: 18px !important;
+    height: 18px !important;
+    margin-top: -6px !important;
+}
+
+.rc-slider-handle:hover,
+.rc-slider-handle:active,
+.rc-slider-handle:focus {
+    border-color: #0d9488 !important;
+    box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.2) !important;
+}
+
+.rc-slider-mark-text {
+    color: #8888aa !important;
+    font-size: 11px !important;
+}
+
+.rc-slider-tooltip {
+    background-color: #1e1e2e !important;
+    border: 1px solid #333 !important;
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+}
+
+.rc-slider-tooltip-inner {
+    background-color: transparent !important;
+    color: white !important;
+    font-size: 12px !important;
+    box-shadow: none !important;
+    min-height: auto !important;
+    padding: 0 !important;
+}
+
+.rc-slider-tooltip-arrow {
+    display: none !important;
+}
