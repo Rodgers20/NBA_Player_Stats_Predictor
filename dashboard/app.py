@@ -84,15 +84,18 @@ DF, TEAM_DEF = load_data()
 PREDICTORS = load_models()
 PLAYERS = sorted(DF["PLAYER_NAME"].unique().tolist())
 
-# Build player ID mapping from the data
+# Build player ID mapping from the data (column is "Player_ID" from NBA API)
 PLAYER_IDS = {}
-if "PLAYER_ID" in DF.columns:
+if "Player_ID" in DF.columns:
     for name in PLAYERS:
-        pid = DF[DF["PLAYER_NAME"] == name]["PLAYER_ID"].iloc[0] if len(DF[DF["PLAYER_NAME"] == name]) > 0 else None
-        if pid:
-            PLAYER_IDS[name] = int(pid)
+        player_rows = DF[DF["PLAYER_NAME"] == name]
+        if len(player_rows) > 0:
+            pid = player_rows["Player_ID"].iloc[0]
+            if pid:
+                PLAYER_IDS[name] = int(pid)
 
 print(f"Loaded {len(DF)} game records for {len(PLAYERS)} players")
+print(f"Player photos available: {len(PLAYER_IDS)}")
 
 # =============================================================================
 # COLOR SCHEME (Outlier Style)
@@ -136,19 +139,22 @@ def get_hit_color(pct):
     else:
         return COLORS["hit_low"]
 
-# Stat type configurations
+# Stat type configurations (organized: main stats, combos, then other)
 STAT_TYPES = [
-    {"id": "REB+AST", "label": "REB+AST"},
+    # Main stats first
     {"id": "PTS", "label": "PTS"},
     {"id": "AST", "label": "AST"},
+    {"id": "REB", "label": "REB"},
+    # Combos
     {"id": "PTS+AST", "label": "PTS+AST"},
-    {"id": "FG3M", "label": "3PTM"},
+    {"id": "PTS+REB", "label": "PTS+REB"},
+    {"id": "AST+REB", "label": "AST+REB"},
+    {"id": "PTS+AST+REB", "label": "PRA"},
+    # Other stats
+    {"id": "FG3M", "label": "3PM"},
     {"id": "BLK", "label": "BLK"},
     {"id": "STL", "label": "STL"},
     {"id": "STL+BLK", "label": "STL+BLK"},
-    {"id": "REB", "label": "REB"},
-    {"id": "PTS+REB", "label": "PTS+REB"},
-    {"id": "PTS+AST+REB", "label": "PRA"},
 ]
 
 # =============================================================================
@@ -267,7 +273,7 @@ app.layout = html.Div([
                         s["label"],
                         id=f"tab-{s['id'].lower().replace('+', '-')}",
                         n_clicks=0,
-                        style=TAB_ACTIVE if s["id"] == "REB+AST" else TAB_STYLE
+                        style=TAB_ACTIVE if s["id"] == "PTS" else TAB_STYLE
                     ) for s in STAT_TYPES
                 ], style={"display": "flex", "flexWrap": "nowrap"})
             ], style={
@@ -277,7 +283,7 @@ app.layout = html.Div([
             }),
 
             # Store for selected stat
-            dcc.Store(id="selected-stat", data="REB+AST"),
+            dcc.Store(id="selected-stat", data="PTS"),
 
             # Time period tabs (with dynamic seasons)
             html.Div([
@@ -400,14 +406,14 @@ def update_stat_selection(*clicks):
     triggered = ctx.triggered_id
 
     if triggered is None:
-        return "REB+AST"
+        return "PTS"
 
     for s in STAT_TYPES:
         tab_id = f"tab-{s['id'].lower().replace('+', '-')}"
         if triggered == tab_id:
             return s["id"]
 
-    return "REB+AST"
+    return "PTS"
 
 
 # Update tab styles based on selection
