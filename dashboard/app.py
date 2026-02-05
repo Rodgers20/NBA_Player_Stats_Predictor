@@ -29,7 +29,7 @@ def load_data():
     df = engineer_features(game_logs, team_def)
     df["_date"] = pd.to_datetime(df["GAME_DATE"], format="%b %d, %Y", errors="coerce")
     df = df.sort_values(["PLAYER_NAME", "_date"])
-    return df
+    return df, team_def
 
 
 def load_models():
@@ -43,9 +43,18 @@ def load_models():
 
 
 print("Loading data...")
-DF = load_data()
+DF, TEAM_DEF = load_data()
 PREDICTORS = load_models()
 PLAYERS = sorted(DF["PLAYER_NAME"].unique().tolist())
+
+# Build player ID mapping from the data
+PLAYER_IDS = {}
+if "PLAYER_ID" in DF.columns:
+    for name in PLAYERS:
+        pid = DF[DF["PLAYER_NAME"] == name]["PLAYER_ID"].iloc[0] if len(DF[DF["PLAYER_NAME"] == name]) > 0 else None
+        if pid:
+            PLAYER_IDS[name] = int(pid)
+
 print(f"Loaded {len(DF)} game records for {len(PLAYERS)} players")
 
 # =============================================================================
@@ -62,8 +71,15 @@ COLORS = {
 
     # Stat colors (from the screenshot)
     "pts": "#14b8a6",       # Teal for points
-    "ast": "#f97066",       # Coral/salmon for assists
+    "ast": "#f97066",       # Coral/orange for assists
     "reb": "#a78bfa",       # Purple for rebounds
+    "blk": "#60a5fa",       # Blue for blocks
+    "stl": "#fbbf24",       # Yellow/gold for steals
+    "fg3m": "#ec4899",      # Pink for 3-pointers
+
+    # Hit/miss colors for bars
+    "hit": "#22c55e",       # Green for above threshold
+    "miss": "#ef4444",      # Red for below threshold
 
     # Hit rate colors
     "hit_high": "#22c55e",   # Green 66%+
@@ -82,6 +98,21 @@ def get_hit_color(pct):
         return COLORS["hit_mid"]
     else:
         return COLORS["hit_low"]
+
+# Stat type configurations
+STAT_TYPES = [
+    {"id": "REB+AST", "label": "REB+AST"},
+    {"id": "PTS", "label": "PTS"},
+    {"id": "AST", "label": "AST"},
+    {"id": "PTS+AST", "label": "PTS+AST"},
+    {"id": "FG3M", "label": "3PTM"},
+    {"id": "BLK", "label": "BLK"},
+    {"id": "STL", "label": "STL"},
+    {"id": "STL+BLK", "label": "STL+BLK"},
+    {"id": "REB", "label": "REB"},
+    {"id": "PTS+REB", "label": "PTS+REB"},
+    {"id": "PTS+AST+REB", "label": "PRA"},
+]
 
 # =============================================================================
 # DASH APP
@@ -103,7 +134,7 @@ CARD = {
 }
 
 TAB_STYLE = {
-    "padding": "8px 16px",
+    "padding": "8px 14px",
     "borderRadius": "6px",
     "cursor": "pointer",
     "fontSize": "13px",
@@ -112,6 +143,7 @@ TAB_STYLE = {
     "backgroundColor": "transparent",
     "border": "none",
     "marginRight": "4px",
+    "whiteSpace": "nowrap",
 }
 
 TAB_ACTIVE = {
@@ -121,23 +153,66 @@ TAB_ACTIVE = {
 }
 
 # =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+def get_player_headshot_url(player_name):
+    """Get NBA CDN headshot URL for a player"""
+    player_id = PLAYER_IDS.get(player_name)
+    if player_id:
+        return f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_id}.png"
+    return "https://cdn.nba.com/headshots/nba/latest/1040x760/fallback.png"
+
+def get_stat_value(row, stat):
+    """Calculate stat value for a row, handling combo stats"""
+    if "+" in stat:
+        parts = stat.split("+")
+        return sum(row.get(p, 0) for p in parts)
+    return row.get(stat, 0)
+
+def get_stat_color(stat):
+    """Get the color for a stat type"""
+    colors = {
+        "PTS": COLORS["pts"],
+        "AST": COLORS["ast"],
+        "REB": COLORS["reb"],
+        "BLK": COLORS["blk"],
+        "STL": COLORS["stl"],
+        "FG3M": COLORS["fg3m"],
+    }
+    return colors.get(stat, COLORS["accent"])
+
+# =============================================================================
 # LAYOUT
 # =============================================================================
 
 app.layout = html.Div([
-    # Header with player info
+    # Header with player photo and info
     html.Div([
         html.Div([
-            dcc.Dropdown(
-                id="player-dropdown",
-                options=[{"label": p, "value": p} for p in PLAYERS],
-                value=PLAYERS[0] if PLAYERS else None,
-                placeholder="Search player...",
-                style={"width": "300px", "backgroundColor": COLORS["card"]}
-            ),
-        ], style={"display": "flex", "alignItems": "center", "gap": "20px"}),
+            # Player photo
+            html.Div(id="player-photo", style={
+                "width": "80px",
+                "height": "80px",
+                "borderRadius": "50%",
+                "overflow": "hidden",
+                "marginRight": "20px",
+                "backgroundColor": COLORS["border"],
+                "flexShrink": "0"
+            }),
 
-        html.Div(id="player-header", style={"marginTop": "16px"}),
+            # Player info and dropdown
+            html.Div([
+                dcc.Dropdown(
+                    id="player-dropdown",
+                    options=[{"label": p, "value": p} for p in PLAYERS],
+                    value=PLAYERS[0] if PLAYERS else None,
+                    placeholder="Search player...",
+                    style={"width": "300px", "backgroundColor": COLORS["card"]}
+                ),
+                html.Div(id="player-header", style={"marginTop": "8px"}),
+            ]),
+        ], style={"display": "flex", "alignItems": "center"}),
     ], style={
         "padding": "20px 24px",
         "backgroundColor": COLORS["card"],
@@ -148,57 +223,91 @@ app.layout = html.Div([
     html.Div([
         # Left panel - Main chart area
         html.Div([
-            # Stat type tabs
+            # Stat type tabs (scrollable)
             html.Div([
-                html.Button("PTS", id="tab-pts", n_clicks=0, style=TAB_ACTIVE),
-                html.Button("AST", id="tab-ast", n_clicks=0, style=TAB_STYLE),
-                html.Button("REB", id="tab-reb", n_clicks=0, style=TAB_STYLE),
-                html.Button("PTS+AST", id="tab-pts-ast", n_clicks=0, style=TAB_STYLE),
-                html.Button("PTS+REB", id="tab-pts-reb", n_clicks=0, style=TAB_STYLE),
-                html.Button("PTS+AST+REB", id="tab-all", n_clicks=0, style=TAB_STYLE),
-            ], style={"display": "flex", "marginBottom": "16px", "flexWrap": "wrap"}),
+                html.Div([
+                    html.Button(
+                        s["label"],
+                        id=f"tab-{s['id'].lower().replace('+', '-')}",
+                        n_clicks=0,
+                        style=TAB_ACTIVE if s["id"] == "REB+AST" else TAB_STYLE
+                    ) for s in STAT_TYPES
+                ], style={"display": "flex", "flexWrap": "nowrap"})
+            ], style={
+                "overflowX": "auto",
+                "marginBottom": "16px",
+                "paddingBottom": "8px",
+            }),
 
             # Store for selected stat
-            dcc.Store(id="selected-stat", data="PTS"),
+            dcc.Store(id="selected-stat", data="REB+AST"),
 
             # Time period tabs
             html.Div([
                 html.Button("L5", id="period-l5", n_clicks=0, style=TAB_STYLE),
                 html.Button("L10", id="period-l10", n_clicks=0, style=TAB_ACTIVE),
                 html.Button("L20", id="period-l20", n_clicks=0, style=TAB_STYLE),
-                html.Button("Season", id="period-season", n_clicks=0, style=TAB_STYLE),
+                html.Button("2024", id="period-2024", n_clicks=0, style=TAB_STYLE),
+                html.Button("2023", id="period-2023", n_clicks=0, style=TAB_STYLE),
             ], style={"display": "flex", "marginBottom": "20px"}),
 
             dcc.Store(id="selected-period", data=10),
+            dcc.Store(id="selected-season", data=None),
 
-            # Hit rate header
+            # Hit rate header with avg/median
             html.Div(id="hit-rate-header", style={"marginBottom": "20px"}),
+
+            # Threshold slider
+            html.Div([
+                html.Div("Threshold:", style={
+                    "color": COLORS["text_secondary"],
+                    "fontSize": "12px",
+                    "marginRight": "12px"
+                }),
+                dcc.Slider(
+                    id="threshold-slider",
+                    min=0,
+                    max=50,
+                    step=0.5,
+                    value=10,
+                    marks=None,
+                    tooltip={"placement": "bottom", "always_visible": True},
+                ),
+            ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
 
             # Main chart
             html.Div([
                 dcc.Graph(id="main-chart", config={"displayModeBar": False})
             ], style=CARD),
 
-            # Supporting stats
-            html.Div(id="supporting-stats", style=CARD),
+            # Average/Median footer
+            html.Div(id="avg-median-footer", style={
+                "display": "flex",
+                "justifyContent": "center",
+                "gap": "40px",
+                "padding": "12px",
+                "backgroundColor": COLORS["card"],
+                "borderRadius": "8px",
+                "marginBottom": "16px"
+            }),
 
         ], style={"flex": "2", "marginRight": "20px"}),
 
         # Right panel - Sidebar
         html.Div([
-            # Prediction card
-            html.Div(id="prediction-card", style=CARD),
+            # Tabs for sidebar sections
+            html.Div([
+                html.Button("Matchup", id="sidebar-matchup", n_clicks=1, style=TAB_ACTIVE),
+                html.Button("Injuries", id="sidebar-injuries", n_clicks=0, style=TAB_STYLE),
+                html.Button("Insights", id="sidebar-insights", n_clicks=0, style=TAB_STYLE),
+            ], style={"display": "flex", "marginBottom": "16px"}),
 
-            # Status card
-            html.Div(id="status-card", style=CARD),
+            dcc.Store(id="sidebar-tab", data="matchup"),
 
-            # Hit rates table
-            html.Div(id="hit-rates-table", style=CARD),
+            # Dynamic sidebar content
+            html.Div(id="sidebar-content"),
 
-            # Splits
-            html.Div(id="splits-card", style=CARD),
-
-        ], style={"width": "350px", "flexShrink": "0"}),
+        ], style={"width": "380px", "flexShrink": "0"}),
 
     ], style={
         "display": "flex",
@@ -221,61 +330,61 @@ app.layout = html.Div([
 
 # Tab click handlers for stat type
 @callback(
-    [Output("selected-stat", "data"),
-     Output("tab-pts", "style"),
-     Output("tab-ast", "style"),
-     Output("tab-reb", "style"),
-     Output("tab-pts-ast", "style"),
-     Output("tab-pts-reb", "style"),
-     Output("tab-all", "style")],
-    [Input("tab-pts", "n_clicks"),
-     Input("tab-ast", "n_clicks"),
-     Input("tab-reb", "n_clicks"),
-     Input("tab-pts-ast", "n_clicks"),
-     Input("tab-pts-reb", "n_clicks"),
-     Input("tab-all", "n_clicks")]
+    Output("selected-stat", "data"),
+    [Input(f"tab-{s['id'].lower().replace('+', '-')}", "n_clicks") for s in STAT_TYPES]
 )
-def update_stat_tabs(pts, ast, reb, pts_ast, pts_reb, all_stats):
+def update_stat_selection(*clicks):
     from dash import ctx
     triggered = ctx.triggered_id
 
-    styles = [TAB_STYLE] * 6
-    stat = "PTS"
+    if triggered is None:
+        return "REB+AST"
 
-    if triggered == "tab-pts" or triggered is None:
-        stat, styles[0] = "PTS", TAB_ACTIVE
-    elif triggered == "tab-ast":
-        stat, styles[1] = "AST", TAB_ACTIVE
-    elif triggered == "tab-reb":
-        stat, styles[2] = "REB", TAB_ACTIVE
-    elif triggered == "tab-pts-ast":
-        stat, styles[3] = "PTS+AST", TAB_ACTIVE
-    elif triggered == "tab-pts-reb":
-        stat, styles[4] = "PTS+REB", TAB_ACTIVE
-    elif triggered == "tab-all":
-        stat, styles[5] = "PTS+AST+REB", TAB_ACTIVE
+    for s in STAT_TYPES:
+        tab_id = f"tab-{s['id'].lower().replace('+', '-')}"
+        if triggered == tab_id:
+            return s["id"]
 
-    return [stat] + styles
+    return "REB+AST"
+
+
+# Update tab styles based on selection
+@callback(
+    [Output(f"tab-{s['id'].lower().replace('+', '-')}", "style") for s in STAT_TYPES],
+    Input("selected-stat", "data")
+)
+def update_stat_tab_styles(selected):
+    styles = []
+    for s in STAT_TYPES:
+        if s["id"] == selected:
+            styles.append(TAB_ACTIVE)
+        else:
+            styles.append(TAB_STYLE)
+    return styles
 
 
 # Tab click handlers for period
 @callback(
     [Output("selected-period", "data"),
+     Output("selected-season", "data"),
      Output("period-l5", "style"),
      Output("period-l10", "style"),
      Output("period-l20", "style"),
-     Output("period-season", "style")],
+     Output("period-2024", "style"),
+     Output("period-2023", "style")],
     [Input("period-l5", "n_clicks"),
      Input("period-l10", "n_clicks"),
      Input("period-l20", "n_clicks"),
-     Input("period-season", "n_clicks")]
+     Input("period-2024", "n_clicks"),
+     Input("period-2023", "n_clicks")]
 )
-def update_period_tabs(l5, l10, l20, season):
+def update_period_tabs(l5, l10, l20, y2024, y2023):
     from dash import ctx
     triggered = ctx.triggered_id
 
-    styles = [TAB_STYLE] * 4
+    styles = [TAB_STYLE] * 5
     period = 10
+    season = None
 
     if triggered == "period-l5":
         period, styles[0] = 5, TAB_ACTIVE
@@ -283,10 +392,61 @@ def update_period_tabs(l5, l10, l20, season):
         period, styles[1] = 10, TAB_ACTIVE
     elif triggered == "period-l20":
         period, styles[2] = 20, TAB_ACTIVE
-    elif triggered == "period-season":
-        period, styles[3] = 100, TAB_ACTIVE
+    elif triggered == "period-2024":
+        period, season, styles[3] = 100, "2024-25", TAB_ACTIVE
+    elif triggered == "period-2023":
+        period, season, styles[4] = 100, "2023-24", TAB_ACTIVE
 
-    return [period] + styles
+    return [period, season] + styles
+
+
+# Sidebar tab handler
+@callback(
+    [Output("sidebar-tab", "data"),
+     Output("sidebar-matchup", "style"),
+     Output("sidebar-injuries", "style"),
+     Output("sidebar-insights", "style")],
+    [Input("sidebar-matchup", "n_clicks"),
+     Input("sidebar-injuries", "n_clicks"),
+     Input("sidebar-insights", "n_clicks")]
+)
+def update_sidebar_tabs(matchup, injuries, insights):
+    from dash import ctx
+    triggered = ctx.triggered_id
+
+    styles = [TAB_STYLE] * 3
+    tab = "matchup"
+
+    if triggered == "sidebar-matchup" or triggered is None:
+        tab, styles[0] = "matchup", TAB_ACTIVE
+    elif triggered == "sidebar-injuries":
+        tab, styles[1] = "injuries", TAB_ACTIVE
+    elif triggered == "sidebar-insights":
+        tab, styles[2] = "insights", TAB_ACTIVE
+
+    return [tab] + styles
+
+
+@callback(
+    Output("player-photo", "children"),
+    Input("player-dropdown", "value")
+)
+def update_player_photo(player_name):
+    if not player_name:
+        return None
+
+    headshot_url = get_player_headshot_url(player_name)
+
+    return html.Img(
+        src=headshot_url,
+        style={
+            "width": "100%",
+            "height": "100%",
+            "objectFit": "cover",
+        },
+        # Fallback to initials if image fails
+        **{"onerror": "this.style.display='none'"}
+    )
 
 
 @callback(
@@ -302,31 +462,71 @@ def update_player_header(player_name):
     if current.empty:
         current = player_df
 
+    # Get team from matchup
+    last_game = player_df.iloc[-1] if len(player_df) > 0 else None
+    team = ""
+    if last_game is not None and "MATCHUP" in player_df.columns:
+        matchup = last_game.get("MATCHUP", "")
+        if isinstance(matchup, str):
+            team = matchup.split()[0] if matchup else ""
+
     avg_pts = current["PTS"].mean()
     avg_ast = current["AST"].mean()
     avg_reb = current["REB"].mean()
 
     return html.Div([
-        html.H1(player_name, style={
-            "fontSize": "24px",
-            "fontWeight": "600",
-            "margin": "0 0 8px 0"
-        }),
         html.Div([
-            html.Span(f"{avg_pts:.1f} PTS", style={"color": COLORS["pts"], "marginRight": "16px", "fontWeight": "500"}),
-            html.Span(f"{avg_ast:.1f} AST", style={"color": COLORS["ast"], "marginRight": "16px", "fontWeight": "500"}),
-            html.Span(f"{avg_reb:.1f} REB", style={"color": COLORS["reb"], "fontWeight": "500"}),
-        ])
+            html.Span(player_name, style={
+                "fontSize": "20px",
+                "fontWeight": "600",
+                "marginRight": "12px"
+            }),
+            html.Span(team, style={
+                "fontSize": "14px",
+                "color": COLORS["text_secondary"],
+                "backgroundColor": COLORS["border"],
+                "padding": "2px 8px",
+                "borderRadius": "4px"
+            }) if team else None,
+        ]),
+        html.Div([
+            html.Span(f"{avg_pts:.1f} PTS", style={"color": COLORS["pts"], "marginRight": "16px", "fontWeight": "500", "fontSize": "13px"}),
+            html.Span(f"{avg_ast:.1f} AST", style={"color": COLORS["ast"], "marginRight": "16px", "fontWeight": "500", "fontSize": "13px"}),
+            html.Span(f"{avg_reb:.1f} REB", style={"color": COLORS["reb"], "fontWeight": "500", "fontSize": "13px"}),
+        ], style={"marginTop": "4px"})
     ])
+
+
+@callback(
+    Output("threshold-slider", "value"),
+    [Input("player-dropdown", "value"),
+     Input("selected-stat", "data")]
+)
+def update_threshold_default(player_name, stat):
+    """Set default threshold based on player's average"""
+    if not player_name:
+        return 10
+
+    player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+
+    if "+" in stat:
+        parts = stat.split("+")
+        vals = sum(player_df[p] for p in parts if p in player_df.columns)
+    else:
+        vals = player_df[stat] if stat in player_df.columns else pd.Series([0])
+
+    avg = vals.head(20).mean()
+    return round(avg * 2) / 2  # Round to nearest 0.5
 
 
 @callback(
     Output("hit-rate-header", "children"),
     [Input("player-dropdown", "value"),
      Input("selected-stat", "data"),
-     Input("selected-period", "data")]
+     Input("selected-period", "data"),
+     Input("threshold-slider", "value")]
 )
-def update_hit_rate_header(player_name, stat, period):
+def update_hit_rate_header(player_name, stat, period, threshold):
     if not player_name:
         return None
 
@@ -335,12 +535,9 @@ def update_hit_rate_header(player_name, stat, period):
     # Calculate stat values
     if "+" in stat:
         parts = stat.split("+")
-        player_df["_stat"] = sum(player_df[p] for p in parts)
+        player_df["_stat"] = sum(player_df[p] for p in parts if p in player_df.columns)
     else:
-        player_df["_stat"] = player_df[stat]
-
-    avg = player_df["_stat"].head(period).mean()
-    threshold = round(avg - 0.5) + 0.5  # Round to .5
+        player_df["_stat"] = player_df[stat] if stat in player_df.columns else 0
 
     # Calculate hit rates for different periods
     def calc_hit(df, n):
@@ -353,18 +550,30 @@ def update_hit_rate_header(player_name, stat, period):
     hit_pct, hits = calc_hit(player_df, period)
     l5_pct, _ = calc_hit(player_df, 5)
     l20_pct, _ = calc_hit(player_df, 20)
-    season_pct, _ = calc_hit(player_df, len(player_df))
+
+    # Season hit rates by year
+    df_2024 = player_df[player_df["SEASON"] == "2024-25"]
+    df_2023 = player_df[player_df["SEASON"] == "2023-24"]
+    pct_2024, _ = calc_hit(df_2024, len(df_2024)) if len(df_2024) > 0 else (0, 0)
+    pct_2023, _ = calc_hit(df_2023, len(df_2023)) if len(df_2023) > 0 else (0, 0)
+
+    # Get display name for stat
+    stat_display = stat.replace("+", " + ")
+    for s in STAT_TYPES:
+        if s["id"] == stat:
+            stat_display = s["label"]
+            break
 
     return html.Div([
         html.Div([
             html.Span("% ", style={"color": COLORS["accent"], "fontSize": "18px"}),
-            html.Span(f"{player_name} - {stat} ", style={"fontSize": "16px", "fontWeight": "500"}),
+            html.Span(f"{player_name} - {stat_display}", style={"fontSize": "16px", "fontWeight": "500"}),
         ], style={"marginBottom": "12px"}),
 
         html.Div([
             # Main hit rate
             html.Div([
-                html.Div(f"Last {period}", style={"color": COLORS["text_secondary"], "fontSize": "12px"}),
+                html.Div(f"Last {min(period, len(player_df))}", style={"color": COLORS["text_secondary"], "fontSize": "12px"}),
                 html.Div([
                     html.Span(f"{hit_pct:.0f}%", style={
                         "color": get_hit_color(hit_pct),
@@ -383,16 +592,21 @@ def update_hit_rate_header(player_name, stat, period):
             html.Div([
                 html.Div("L5", style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
                 html.Div(f"{l5_pct:.0f}%", style={"color": get_hit_color(l5_pct), "fontWeight": "600"})
-            ], style={"textAlign": "center", "marginRight": "20px"}),
+            ], style={"textAlign": "center", "marginRight": "16px"}),
 
             html.Div([
                 html.Div("L20", style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
                 html.Div(f"{l20_pct:.0f}%", style={"color": get_hit_color(l20_pct), "fontWeight": "600"})
-            ], style={"textAlign": "center", "marginRight": "20px"}),
+            ], style={"textAlign": "center", "marginRight": "16px"}),
 
             html.Div([
-                html.Div("Season", style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
-                html.Div(f"{season_pct:.0f}%", style={"color": get_hit_color(season_pct), "fontWeight": "600"})
+                html.Div("2024", style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
+                html.Div(f"{pct_2024:.0f}%", style={"color": get_hit_color(pct_2024), "fontWeight": "600"})
+            ], style={"textAlign": "center", "marginRight": "16px"}),
+
+            html.Div([
+                html.Div("2023", style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
+                html.Div(f"{pct_2023:.0f}%", style={"color": get_hit_color(pct_2023), "fontWeight": "600"})
             ], style={"textAlign": "center"}),
 
         ], style={"display": "flex", "alignItems": "flex-end"}),
@@ -400,16 +614,57 @@ def update_hit_rate_header(player_name, stat, period):
 
 
 @callback(
-    Output("main-chart", "figure"),
+    Output("avg-median-footer", "children"),
     [Input("player-dropdown", "value"),
      Input("selected-stat", "data"),
      Input("selected-period", "data")]
 )
-def update_main_chart(player_name, stat, period):
+def update_avg_median(player_name, stat, period):
+    if not player_name:
+        return None
+
+    player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False).head(period)
+
+    if "+" in stat:
+        parts = stat.split("+")
+        vals = sum(player_df[p] for p in parts if p in player_df.columns)
+    else:
+        vals = player_df[stat] if stat in player_df.columns else pd.Series([0])
+
+    avg = vals.mean()
+    median = vals.median()
+
+    return [
+        html.Div([
+            html.Span("Average", style={"color": COLORS["text_secondary"], "marginRight": "8px"}),
+            html.Span(f"{avg:.1f}", style={"fontWeight": "600"})
+        ]),
+        html.Div([
+            html.Span("Median", style={"color": COLORS["text_secondary"], "marginRight": "8px"}),
+            html.Span(f"{median:.1f}", style={"fontWeight": "600"})
+        ])
+    ]
+
+
+@callback(
+    Output("main-chart", "figure"),
+    [Input("player-dropdown", "value"),
+     Input("selected-stat", "data"),
+     Input("selected-period", "data"),
+     Input("selected-season", "data"),
+     Input("threshold-slider", "value")]
+)
+def update_main_chart(player_name, stat, period, season, threshold):
     if not player_name:
         return go.Figure()
 
-    player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False).head(period)
+    player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+
+    # Filter by season if specified
+    if season:
+        player_df = player_df[player_df["SEASON"] == season]
+
+    player_df = player_df.head(period)
     player_df = player_df.iloc[::-1]  # Reverse for chronological order
 
     fig = go.Figure()
@@ -419,61 +674,77 @@ def update_main_chart(player_name, stat, period):
 
     if is_stacked:
         parts = stat.split("+")
-        colors = {
-            "PTS": COLORS["pts"],
-            "AST": COLORS["ast"],
-            "REB": COLORS["reb"]
-        }
 
-        # Calculate total for threshold
-        totals = sum(player_df[p] for p in parts)
-        threshold = round(totals.mean() - 0.5) + 0.5
+        # Calculate totals to determine hit/miss colors
+        totals = []
+        for _, row in player_df.iterrows():
+            total = sum(row.get(p, 0) for p in parts)
+            totals.append(total)
 
-        # Add stacked bars
+        # Add stacked bars with hit/miss coloring
         for i, part in enumerate(parts):
-            fig.add_trace(go.Bar(
-                x=list(range(len(player_df))),
-                y=player_df[part],
-                name=part,
-                marker_color=colors.get(part, COLORS["accent"]),
-                text=[f"{int(v)}<br>{part}" for v in player_df[part]],
-                textposition="inside",
-                textfont=dict(size=10, color="white"),
-                hovertemplate=f"{part}: %{{y}}<extra></extra>"
-            ))
+            part_color = get_stat_color(part)
+
+            # Create colors based on whether total hits threshold
+            bar_colors = []
+            for total in totals:
+                if total >= threshold:
+                    bar_colors.append(part_color)  # Use stat color for hits
+                else:
+                    bar_colors.append(COLORS["miss"])  # Red for misses
+
+            # For stacked bars, only color the top bar red/green to indicate hit/miss
+            if i == len(parts) - 1:  # Last (top) segment
+                fig.add_trace(go.Bar(
+                    x=list(range(len(player_df))),
+                    y=player_df[part],
+                    name=part,
+                    marker_color=bar_colors,
+                    text=[f"{int(row[part])}<br><span style='font-size:9px'>{part}</span>" for _, row in player_df.iterrows()],
+                    textposition="inside",
+                    textfont=dict(size=11, color="white"),
+                    hovertemplate=f"{part}: %{{y}}<extra></extra>"
+                ))
+            else:
+                fig.add_trace(go.Bar(
+                    x=list(range(len(player_df))),
+                    y=player_df[part],
+                    name=part,
+                    marker_color=part_color,
+                    text=[f"{int(row[part])}<br><span style='font-size:9px'>{part}</span>" for _, row in player_df.iterrows()],
+                    textposition="inside",
+                    textfont=dict(size=11, color="white"),
+                    hovertemplate=f"{part}: %{{y}}<extra></extra>"
+                ))
 
         # Add total labels on top
-        cumsum = sum(player_df[p] for p in parts)
         fig.add_trace(go.Scatter(
             x=list(range(len(player_df))),
-            y=cumsum + 2,
+            y=[t + 1.5 for t in totals],
             mode="text",
-            text=[f"{int(v)}" for v in cumsum],
+            text=[f"{int(v)}" for v in totals],
             textposition="top center",
-            textfont=dict(size=12, color=COLORS["text"], weight="bold" if hasattr(dict, 'weight') else None),
+            textfont=dict(size=12, color=COLORS["text"]),
             showlegend=False,
             hoverinfo="skip"
         ))
 
     else:
-        # Single stat bars
-        values = player_df[stat]
-        threshold = round(values.mean() - 0.5) + 0.5
+        # Single stat bars with hit/miss coloring
+        values = player_df[stat].tolist() if stat in player_df.columns else [0] * len(player_df)
 
-        colors_map = {"PTS": COLORS["pts"], "AST": COLORS["ast"], "REB": COLORS["reb"]}
-        bar_color = colors_map.get(stat, COLORS["accent"])
+        stat_color = get_stat_color(stat)
+        bar_colors = [stat_color if v >= threshold else COLORS["miss"] for v in values]
 
         fig.add_trace(go.Bar(
             x=list(range(len(player_df))),
             y=values,
-            marker_color=bar_color,
+            marker_color=bar_colors,
             text=[f"{int(v)}" for v in values],
             textposition="outside",
             textfont=dict(size=11, color=COLORS["text"]),
             hovertemplate=f"{stat}: %{{y}}<extra></extra>"
         ))
-
-        threshold = round(values.mean() - 0.5) + 0.5
 
     # Add threshold line
     fig.add_hline(
@@ -527,209 +798,280 @@ def update_main_chart(player_name, stat, period):
 
 
 @callback(
-    Output("supporting-stats", "children"),
-    Input("player-dropdown", "value")
+    Output("sidebar-content", "children"),
+    [Input("sidebar-tab", "data"),
+     Input("player-dropdown", "value"),
+     Input("selected-stat", "data")]
 )
-def update_supporting_stats(player_name):
+def update_sidebar_content(tab, player_name, stat):
     if not player_name:
         return None
 
-    player_df = DF[DF["PLAYER_NAME"] == player_name]
-    current = player_df[player_df["SEASON"] == "2024-25"]
-    if current.empty:
-        current = player_df
+    if tab == "matchup":
+        return create_matchup_content(player_name, stat)
+    elif tab == "injuries":
+        return create_injuries_content(player_name)
+    else:
+        return create_insights_content(player_name, stat)
 
-    stats = [
-        ("Minutes", current["MIN"].mean() if "MIN" in current.columns else 0),
-        ("FG", f"{current['FGM'].mean():.1f}/{current['FGA'].mean():.1f}" if "FGM" in current.columns else "0/0"),
-        ("3PT", f"{current['FG3M'].mean():.1f}/{current['FG3A'].mean():.1f}" if "FG3M" in current.columns else "0/0"),
-        ("FT", f"{current['FTM'].mean():.1f}/{current['FTA'].mean():.1f}" if "FTM" in current.columns else "0/0"),
-    ]
+
+def create_matchup_content(player_name, stat):
+    """Create the matchup analysis sidebar content"""
+    player_df = DF[DF["PLAYER_NAME"] == player_name]
+
+    # Get stat display name
+    stat_display = stat.replace("+", " + ")
+
+    # Get unique opponents and their defensive stats
+    if "MATCHUP" in player_df.columns:
+        opponents = []
+        for matchup in player_df["MATCHUP"].unique():
+            if isinstance(matchup, str):
+                if "@" in matchup:
+                    opp = matchup.split("@")[-1].strip()[:3]
+                elif "vs." in matchup:
+                    opp = matchup.split("vs.")[-1].strip()[:3]
+                else:
+                    continue
+                opponents.append(opp)
+        opponents = list(set(opponents))[:10]
+    else:
+        opponents = []
+
+    # Get team defensive stats
+    def_stats = []
+    for _, row in TEAM_DEF.iterrows():
+        team = row.get("TEAM_ABBREVIATION", "")
+        pts_allowed = row.get("PTS", 0)
+        ast_allowed = row.get("AST", 0)
+        reb_allowed = row.get("REB", 0)
+        def_stats.append({
+            "team": team,
+            "pts": pts_allowed,
+            "ast": ast_allowed,
+            "reb": reb_allowed,
+            "rank": row.get("RANK", 0) if "RANK" in row else 0
+        })
+
+    # Sort by relevant stat
+    primary_stat = stat.split("+")[0] if "+" in stat else stat
+    def_stats.sort(key=lambda x: x.get(primary_stat.lower(), 0), reverse=True)
 
     return html.Div([
-        html.Div("Supporting Stats", style={
-            "color": COLORS["text_secondary"],
-            "fontSize": "12px",
-            "fontWeight": "600",
-            "marginBottom": "12px",
-            "textTransform": "uppercase",
-            "letterSpacing": "1px"
-        }),
+        # Defense section
         html.Div([
-            html.Div([
-                html.Div(label, style={"color": COLORS["text_secondary"], "fontSize": "11px", "marginBottom": "4px"}),
-                html.Div(f"{val:.1f}" if isinstance(val, float) else val, style={"fontWeight": "600", "fontSize": "14px"})
-            ], style={"marginRight": "32px"}) for label, val in stats
-        ], style={"display": "flex"})
+            html.Div(f"League Defense vs {stat_display}", style={
+                "color": COLORS["text"],
+                "fontSize": "14px",
+                "fontWeight": "600",
+                "marginBottom": "16px"
+            }),
+
+            # Team defensive rankings table
+            html.Table([
+                html.Thead([
+                    html.Tr([
+                        html.Th("Team", style={"textAlign": "left", "color": COLORS["text_muted"], "fontSize": "11px", "padding": "8px 0"}),
+                        html.Th("Rank", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
+                        html.Th("Allowed", style={"textAlign": "right", "color": COLORS["text_muted"], "fontSize": "11px"}),
+                    ])
+                ]),
+                html.Tbody([
+                    html.Tr([
+                        html.Td(d["team"], style={"padding": "6px 0", "fontSize": "12px"}),
+                        html.Td(f"{i+1}", style={"textAlign": "center", "color": COLORS["hit_low"], "fontSize": "12px"}),
+                        html.Td(f"{d.get(primary_stat.lower(), 0):.1f}", style={"textAlign": "right", "fontSize": "12px"}),
+                    ]) for i, d in enumerate(def_stats[:10])
+                ])
+            ], style={"width": "100%", "borderCollapse": "collapse"})
+        ], style=CARD),
+
+        # Splits section
+        html.Div([
+            html.Div("SPLITS", style={
+                "color": COLORS["text_secondary"],
+                "fontSize": "11px",
+                "fontWeight": "600",
+                "letterSpacing": "1px",
+                "marginBottom": "12px"
+            }),
+            create_splits_table(player_name)
+        ], style=CARD),
+
+        # Hit rates table
+        html.Div([
+            html.Div("HIT RATES", style={
+                "color": COLORS["text_secondary"],
+                "fontSize": "11px",
+                "fontWeight": "600",
+                "letterSpacing": "1px",
+                "marginBottom": "12px"
+            }),
+            create_hit_rates_table(player_name)
+        ], style=CARD),
     ])
 
 
-@callback(
-    Output("prediction-card", "children"),
-    Input("player-dropdown", "value")
-)
-def update_prediction_card(player_name):
-    if not player_name:
-        return None
+def create_injuries_content(player_name):
+    """Create the injuries tab content"""
+    try:
+        status = get_player_injury_status(player_name)
+        status_text = status.get("status", "ACTIVE")
+        reason = status.get("reason", "")
+        news = status.get("news", [])
 
+        if status_text in ["UNKNOWN", "HEALTHY"]:
+            status_text = "ACTIVE"
+    except:
+        status_text = "ACTIVE"
+        reason = ""
+        news = []
+
+    status_color = {
+        "ACTIVE": COLORS["hit_high"],
+        "QUESTIONABLE": COLORS["hit_mid"],
+        "OUT": COLORS["hit_low"],
+        "DOUBTFUL": COLORS["hit_low"],
+    }.get(status_text, COLORS["hit_high"])
+
+    player_df = DF[DF["PLAYER_NAME"] == player_name]
+    games_24 = len(player_df[player_df["SEASON"] == "2024-25"])
+
+    return html.Div([
+        html.Div([
+            html.Div("INJURY STATUS", style={
+                "color": COLORS["text_secondary"],
+                "fontSize": "11px",
+                "fontWeight": "600",
+                "letterSpacing": "1px",
+                "marginBottom": "16px"
+            }),
+            html.Div([
+                html.Span("●", style={"color": status_color, "marginRight": "8px", "fontSize": "16px"}),
+                html.Span(status_text, style={"color": status_color, "fontWeight": "600", "fontSize": "18px"})
+            ]),
+            html.Div(reason, style={
+                "color": COLORS["text_secondary"],
+                "fontSize": "13px",
+                "marginTop": "8px"
+            }) if reason else None,
+            html.Div(f"{games_24} games played in 2024-25", style={
+                "color": COLORS["text_muted"],
+                "fontSize": "12px",
+                "marginTop": "12px"
+            }),
+        ], style=CARD),
+
+        # Recent news
+        html.Div([
+            html.Div("RECENT NEWS", style={
+                "color": COLORS["text_secondary"],
+                "fontSize": "11px",
+                "fontWeight": "600",
+                "letterSpacing": "1px",
+                "marginBottom": "12px"
+            }),
+            html.Div([
+                html.Div([
+                    html.Div(n.get("title", "No recent news"), style={
+                        "fontSize": "13px",
+                        "marginBottom": "4px"
+                    }),
+                    html.Div(n.get("date", ""), style={
+                        "fontSize": "11px",
+                        "color": COLORS["text_muted"]
+                    })
+                ], style={"marginBottom": "12px", "paddingBottom": "12px", "borderBottom": f"1px solid {COLORS['border']}"})
+                for n in (news[:3] if news else [{"title": "No recent news available"}])
+            ])
+        ], style=CARD),
+    ])
+
+
+def create_insights_content(player_name, stat):
+    """Create the insights tab content"""
+    player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+
+    # Calculate trends
+    l5_avg = player_df.head(5)["PTS"].mean() if len(player_df) >= 5 else 0
+    l20_avg = player_df.head(20)["PTS"].mean() if len(player_df) >= 20 else 0
+    season_avg = player_df["PTS"].mean()
+
+    trend = "up" if l5_avg > season_avg else "down" if l5_avg < season_avg else "flat"
+    trend_color = COLORS["hit_high"] if trend == "up" else COLORS["hit_low"] if trend == "down" else COLORS["text_secondary"]
+    trend_icon = "↑" if trend == "up" else "↓" if trend == "down" else "→"
+
+    # Get predictions
     predictions = []
-    for stat, predictor in PREDICTORS.items():
+    for stat_key, predictor in PREDICTORS.items():
         try:
             result = predictor.predict_player_game(player_name, DF)
             if "error" not in result:
-                pred_key = f"predicted_{stat.lower()}"
+                pred_key = f"predicted_{stat_key.lower()}"
                 predictions.append({
-                    "stat": stat,
+                    "stat": stat_key,
                     "predicted": result.get(pred_key, 0),
                     "avg": result.get("recent_avg", 0)
                 })
         except:
             pass
 
-    colors = {"PTS": COLORS["pts"], "AST": COLORS["ast"], "REB": COLORS["reb"]}
-
     return html.Div([
-        html.Div("PROJECTION", style={
-            "color": COLORS["text_secondary"],
-            "fontSize": "11px",
-            "fontWeight": "600",
-            "letterSpacing": "1px",
-            "marginBottom": "16px"
-        }),
+        # Trend card
         html.Div([
+            html.Div("RECENT TREND", style={
+                "color": COLORS["text_secondary"],
+                "fontSize": "11px",
+                "fontWeight": "600",
+                "letterSpacing": "1px",
+                "marginBottom": "12px"
+            }),
             html.Div([
-                html.Div(pred["stat"], style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
-                html.Div(f"{pred['predicted']}", style={
-                    "color": colors.get(pred["stat"], COLORS["accent"]),
-                    "fontSize": "28px",
+                html.Span(trend_icon, style={"color": trend_color, "fontSize": "24px", "marginRight": "12px"}),
+                html.Span(f"{'Trending up' if trend == 'up' else 'Trending down' if trend == 'down' else 'Consistent'}", style={
+                    "color": trend_color,
                     "fontWeight": "600"
-                }),
-                html.Div(f"avg {pred['avg']}", style={"color": COLORS["text_muted"], "fontSize": "11px"})
-            ], style={
-                "textAlign": "center",
-                "padding": "12px",
-                "backgroundColor": COLORS["bg"],
-                "borderRadius": "8px",
-                "flex": "1",
-                "margin": "0 4px"
-            }) for pred in predictions
-        ], style={"display": "flex"})
-    ])
-
-
-@callback(
-    Output("status-card", "children"),
-    Input("player-dropdown", "value")
-)
-def update_status_card(player_name):
-    if not player_name:
-        return None
-
-    try:
-        status = get_player_injury_status(player_name)
-        status_text = status.get("status", "ACTIVE")
-        if status_text in ["UNKNOWN", "HEALTHY"]:
-            status_text = "ACTIVE"
-    except:
-        status_text = "ACTIVE"
-
-    status_color = {
-        "ACTIVE": COLORS["hit_high"],
-        "QUESTIONABLE": COLORS["hit_mid"],
-        "OUT": COLORS["hit_low"]
-    }.get(status_text, COLORS["hit_high"])
-
-    player_df = DF[DF["PLAYER_NAME"] == player_name]
-    games = len(player_df[player_df["SEASON"] == "2024-25"])
-
-    return html.Div([
-        html.Div("STATUS", style={
-            "color": COLORS["text_secondary"],
-            "fontSize": "11px",
-            "fontWeight": "600",
-            "letterSpacing": "1px",
-            "marginBottom": "12px"
-        }),
-        html.Div([
-            html.Span("●", style={"color": status_color, "marginRight": "8px", "fontSize": "12px"}),
-            html.Span(status_text, style={"color": status_color, "fontWeight": "600"})
-        ]),
-        html.Div(f"{games} games played", style={"color": COLORS["text_muted"], "fontSize": "12px", "marginTop": "4px"})
-    ])
-
-
-@callback(
-    Output("hit-rates-table", "children"),
-    Input("player-dropdown", "value")
-)
-def update_hit_rates_table(player_name):
-    if not player_name:
-        return None
-
-    player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
-
-    def calc_hit(stat, line, n):
-        recent = player_df.head(n)
-        if len(recent) == 0:
-            return 0
-        if "+" in stat:
-            parts = stat.split("+")
-            vals = sum(recent[p] for p in parts)
-        else:
-            vals = recent[stat]
-        return (vals >= line).sum() / len(recent) * 100
-
-    # Calculate averages
-    avgs = {
-        "PTS": player_df["PTS"].mean(),
-        "AST": player_df["AST"].mean(),
-        "REB": player_df["REB"].mean(),
-    }
-
-    rows = []
-    for stat, avg in avgs.items():
-        line = round(avg - 0.5) + 0.5
-        l5 = calc_hit(stat, line, 5)
-        l10 = calc_hit(stat, line, 10)
-        season = calc_hit(stat, line, len(player_df))
-
-        rows.append(html.Tr([
-            html.Td(f"{stat} O{line}", style={"padding": "8px 0", "fontSize": "13px"}),
-            html.Td(f"{l5:.0f}%", style={"color": get_hit_color(l5), "textAlign": "center", "fontWeight": "500"}),
-            html.Td(f"{l10:.0f}%", style={"color": get_hit_color(l10), "textAlign": "center", "fontWeight": "500"}),
-            html.Td(f"{season:.0f}%", style={"color": get_hit_color(season), "textAlign": "center", "fontWeight": "500"}),
-        ]))
-
-    return html.Div([
-        html.Div("HIT RATES", style={
-            "color": COLORS["text_secondary"],
-            "fontSize": "11px",
-            "fontWeight": "600",
-            "letterSpacing": "1px",
-            "marginBottom": "12px"
-        }),
-        html.Table([
-            html.Thead([
-                html.Tr([
-                    html.Th("Line", style={"textAlign": "left", "color": COLORS["text_muted"], "fontSize": "11px", "padding": "8px 0"}),
-                    html.Th("L5", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
-                    html.Th("L10", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
-                    html.Th("Season", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
-                ])
+                })
             ]),
-            html.Tbody(rows)
-        ], style={"width": "100%", "borderCollapse": "collapse"})
+            html.Div([
+                html.Div(f"L5 Avg: {l5_avg:.1f}", style={"fontSize": "13px"}),
+                html.Div(f"Season Avg: {season_avg:.1f}", style={"fontSize": "13px", "color": COLORS["text_secondary"]}),
+            ], style={"marginTop": "12px"})
+        ], style=CARD),
+
+        # Predictions card
+        html.Div([
+            html.Div("ML PROJECTIONS", style={
+                "color": COLORS["text_secondary"],
+                "fontSize": "11px",
+                "fontWeight": "600",
+                "letterSpacing": "1px",
+                "marginBottom": "16px"
+            }),
+            html.Div([
+                html.Div([
+                    html.Div(pred["stat"], style={"color": COLORS["text_secondary"], "fontSize": "11px", "marginBottom": "4px"}),
+                    html.Div(f"{pred['predicted']:.1f}", style={
+                        "color": get_stat_color(pred["stat"]),
+                        "fontSize": "24px",
+                        "fontWeight": "600"
+                    }),
+                    html.Div(f"avg {pred['avg']:.1f}", style={"color": COLORS["text_muted"], "fontSize": "11px"})
+                ], style={
+                    "textAlign": "center",
+                    "padding": "12px",
+                    "backgroundColor": COLORS["bg"],
+                    "borderRadius": "8px",
+                    "flex": "1",
+                    "margin": "0 4px"
+                }) for pred in predictions
+            ], style={"display": "flex"})
+        ], style=CARD),
     ])
 
 
-@callback(
-    Output("splits-card", "children"),
-    Input("player-dropdown", "value")
-)
-def update_splits_card(player_name):
-    if not player_name:
-        return None
-
+def create_splits_table(player_name):
+    """Create home/away splits table"""
     player_df = DF[DF["PLAYER_NAME"] == player_name]
 
     home = player_df[player_df["is_home"] == 1]
@@ -743,39 +1085,79 @@ def update_splits_card(player_name):
     home_pts, home_ast, home_reb = get_avgs(home)
     away_pts, away_ast, away_reb = get_avgs(away)
 
-    return html.Div([
-        html.Div("SPLITS", style={
-            "color": COLORS["text_secondary"],
-            "fontSize": "11px",
-            "fontWeight": "600",
-            "letterSpacing": "1px",
-            "marginBottom": "12px"
-        }),
-        html.Table([
-            html.Thead([
-                html.Tr([
-                    html.Th("", style={"textAlign": "left"}),
-                    html.Th("PTS", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
-                    html.Th("AST", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
-                    html.Th("REB", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
-                ])
-            ]),
-            html.Tbody([
-                html.Tr([
-                    html.Td("Home", style={"padding": "8px 0", "fontSize": "13px"}),
-                    html.Td(f"{home_pts:.1f}", style={"textAlign": "center", "color": COLORS["pts"], "fontWeight": "500"}),
-                    html.Td(f"{home_ast:.1f}", style={"textAlign": "center", "color": COLORS["ast"], "fontWeight": "500"}),
-                    html.Td(f"{home_reb:.1f}", style={"textAlign": "center", "color": COLORS["reb"], "fontWeight": "500"}),
-                ]),
-                html.Tr([
-                    html.Td("Away", style={"padding": "8px 0", "fontSize": "13px"}),
-                    html.Td(f"{away_pts:.1f}", style={"textAlign": "center", "color": COLORS["pts"], "fontWeight": "500"}),
-                    html.Td(f"{away_ast:.1f}", style={"textAlign": "center", "color": COLORS["ast"], "fontWeight": "500"}),
-                    html.Td(f"{away_reb:.1f}", style={"textAlign": "center", "color": COLORS["reb"], "fontWeight": "500"}),
-                ]),
+    return html.Table([
+        html.Thead([
+            html.Tr([
+                html.Th("", style={"textAlign": "left"}),
+                html.Th("PTS", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
+                html.Th("AST", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
+                html.Th("REB", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
             ])
-        ], style={"width": "100%", "borderCollapse": "collapse"})
-    ])
+        ]),
+        html.Tbody([
+            html.Tr([
+                html.Td("Home", style={"padding": "6px 0", "fontSize": "12px"}),
+                html.Td(f"{home_pts:.1f}", style={"textAlign": "center", "color": COLORS["pts"], "fontWeight": "500", "fontSize": "12px"}),
+                html.Td(f"{home_ast:.1f}", style={"textAlign": "center", "color": COLORS["ast"], "fontWeight": "500", "fontSize": "12px"}),
+                html.Td(f"{home_reb:.1f}", style={"textAlign": "center", "color": COLORS["reb"], "fontWeight": "500", "fontSize": "12px"}),
+            ]),
+            html.Tr([
+                html.Td("Away", style={"padding": "6px 0", "fontSize": "12px"}),
+                html.Td(f"{away_pts:.1f}", style={"textAlign": "center", "color": COLORS["pts"], "fontWeight": "500", "fontSize": "12px"}),
+                html.Td(f"{away_ast:.1f}", style={"textAlign": "center", "color": COLORS["ast"], "fontWeight": "500", "fontSize": "12px"}),
+                html.Td(f"{away_reb:.1f}", style={"textAlign": "center", "color": COLORS["reb"], "fontWeight": "500", "fontSize": "12px"}),
+            ]),
+        ])
+    ], style={"width": "100%", "borderCollapse": "collapse"})
+
+
+def create_hit_rates_table(player_name):
+    """Create hit rates table for different stat lines"""
+    player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+
+    def calc_hit(stat, line, n):
+        recent = player_df.head(n)
+        if len(recent) == 0:
+            return 0
+        if "+" in stat:
+            parts = stat.split("+")
+            vals = sum(recent[p] for p in parts if p in recent.columns)
+        else:
+            vals = recent[stat] if stat in recent.columns else pd.Series([0])
+        return ((vals >= line).sum() / len(recent)) * 100
+
+    # Calculate averages
+    avgs = {
+        "PTS": player_df["PTS"].mean(),
+        "AST": player_df["AST"].mean(),
+        "REB": player_df["REB"].mean(),
+    }
+
+    rows = []
+    for stat, avg in avgs.items():
+        line = round(avg * 2) / 2  # Round to nearest 0.5
+        l5 = calc_hit(stat, line, 5)
+        l10 = calc_hit(stat, line, 10)
+        season = calc_hit(stat, line, len(player_df))
+
+        rows.append(html.Tr([
+            html.Td(f"{stat} O{line}", style={"padding": "6px 0", "fontSize": "12px"}),
+            html.Td(f"{l5:.0f}%", style={"color": get_hit_color(l5), "textAlign": "center", "fontWeight": "500", "fontSize": "12px"}),
+            html.Td(f"{l10:.0f}%", style={"color": get_hit_color(l10), "textAlign": "center", "fontWeight": "500", "fontSize": "12px"}),
+            html.Td(f"{season:.0f}%", style={"color": get_hit_color(season), "textAlign": "center", "fontWeight": "500", "fontSize": "12px"}),
+        ]))
+
+    return html.Table([
+        html.Thead([
+            html.Tr([
+                html.Th("Line", style={"textAlign": "left", "color": COLORS["text_muted"], "fontSize": "11px", "padding": "6px 0"}),
+                html.Th("L5", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
+                html.Th("L10", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
+                html.Th("Season", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px"}),
+            ])
+        ]),
+        html.Tbody(rows)
+    ], style={"width": "100%", "borderCollapse": "collapse"})
 
 
 # =============================================================================
