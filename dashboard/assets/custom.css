@@ -117,8 +117,18 @@
 }
 
 /* Hide the tooltip completely since we show value separately */
-.rc-slider-tooltip {
+.rc-slider-tooltip,
+.rc-slider-tooltip-inner,
+.rc-slider-tooltip-content,
+.rc-slider-tooltip-arrow,
+.dash-slider .rc-slider-tooltip {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
 }
