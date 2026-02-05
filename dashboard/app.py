@@ -281,6 +281,7 @@ app.layout = html.Div([
                             50: {"label": "50", "style": {"color": "#fff"}},
                         },
                         included=True,
+                        tooltip=None,
                     ),
                 ], style={"flex": "1", "marginRight": "16px"}),
                 html.Div(id="threshold-display", style={
