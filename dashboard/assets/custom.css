@@ -81,7 +81,7 @@
 }
 
 .rc-slider-rail {
-    background-color: #333 !important;
+    background-color: #444 !important;
     height: 6px !important;
 }
 
@@ -105,27 +105,20 @@
     box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.2) !important;
 }
 
+/* Slider mark numbers - bright white for visibility */
 .rc-slider-mark-text {
-    color: #8888aa !important;
-    font-size: 11px !important;
-}
-
-.rc-slider-tooltip {
-    background-color: #1e1e2e !important;
-    border: 1px solid #333 !important;
-    border-radius: 4px !important;
-    padding: 4px 8px !important;
-}
-
-.rc-slider-tooltip-inner {
-    background-color: transparent !important;
-    color: white !important;
+    color: #ffffff !important;
     font-size: 12px !important;
-    box-shadow: none !important;
-    min-height: auto !important;
-    padding: 0 !important;
+    font-weight: 500 !important;
 }
 
-.rc-slider-tooltip-arrow {
+.rc-slider-mark-text-active {
+    color: #14b8a6 !important;
+}
+
+/* Hide the tooltip completely since we show value separately */
+.rc-slider-tooltip {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
 }

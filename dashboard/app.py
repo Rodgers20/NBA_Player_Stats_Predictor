@@ -272,8 +272,15 @@ app.layout = html.Div([
                         max=50,
                         step=0.5,
                         value=10,
-                        marks={0: "0", 10: "10", 20: "20", 30: "30", 40: "40", 50: "50"},
-                        tooltip={"placement": "bottom", "always_visible": False},
+                        marks={
+                            0: {"label": "0", "style": {"color": "#fff"}},
+                            10: {"label": "10", "style": {"color": "#fff"}},
+                            20: {"label": "20", "style": {"color": "#fff"}},
+                            30: {"label": "30", "style": {"color": "#fff"}},
+                            40: {"label": "40", "style": {"color": "#fff"}},
+                            50: {"label": "50", "style": {"color": "#fff"}},
+                        },
+                        included=True,
                     ),
                 ], style={"flex": "1", "marginRight": "16px"}),
                 html.Div(id="threshold-display", style={
