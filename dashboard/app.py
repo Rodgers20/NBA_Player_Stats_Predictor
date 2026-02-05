@@ -284,14 +284,15 @@ app.layout = html.Div([
                     ),
                 ], style={"flex": "1", "marginRight": "16px"}),
                 html.Div(id="threshold-display", style={
-                    "color": "#ffffff",
-                    "fontSize": "16px",
-                    "fontWeight": "600",
-                    "minWidth": "50px",
-                    "textAlign": "right",
-                    "backgroundColor": "#1e1e2e",
-                    "padding": "4px 10px",
-                    "borderRadius": "6px"
+                    "color": "#14b8a6",
+                    "fontSize": "18px",
+                    "fontWeight": "700",
+                    "minWidth": "60px",
+                    "textAlign": "center",
+                    "backgroundColor": "#000000",
+                    "padding": "6px 12px",
+                    "borderRadius": "6px",
+                    "border": "2px solid #14b8a6"
                 }),
             ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
 
