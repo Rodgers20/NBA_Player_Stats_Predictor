@@ -43,7 +43,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from typing import Optional, Tuple
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, r2_score
@@ -454,6 +454,195 @@ class NBAPredictor:
             importance = importances[idx]
             bar = "█" * int(importance * 50)
             print(f"  {i}. {feat_name}: {importance:.3f} {bar}")
+
+    def get_feature_importance_df(self) -> pd.DataFrame:
+        """
+        Return feature importance as a DataFrame for analysis.
+
+        Returns:
+            DataFrame with columns: feature, importance
+            Sorted by importance descending
+        """
+        if not hasattr(self.model, "feature_importances_"):
+            return pd.DataFrame()
+
+        importance_df = pd.DataFrame({
+            "feature": self.feature_columns,
+            "importance": self.model.feature_importances_
+        }).sort_values("importance", ascending=False)
+
+        return importance_df
+
+    def prune_weak_features(self, threshold: float = 0.01) -> list[str]:
+        """
+        Get list of features with importance above threshold.
+
+        WHY PRUNE:
+        Removing weak features can reduce overfitting and speed up predictions.
+        Features with <1% importance often add noise rather than signal.
+
+        Args:
+            threshold: Minimum importance to keep (default 0.01 = 1%)
+
+        Returns:
+            List of feature names that are above the threshold
+        """
+        importance_df = self.get_feature_importance_df()
+
+        if importance_df.empty:
+            return self.feature_columns
+
+        strong_features = importance_df[
+            importance_df["importance"] >= threshold
+        ]["feature"].tolist()
+
+        print(f"Pruned from {len(self.feature_columns)} to {len(strong_features)} features")
+        print(f"Removed: {set(self.feature_columns) - set(strong_features)}")
+
+        return strong_features
+
+    def tune_hyperparameters(
+        self,
+        df: pd.DataFrame,
+        target: str = None,
+        feature_columns: list[str] = None,
+        cv: int = 5
+    ) -> dict:
+        """
+        Use GridSearchCV to find optimal hyperparameters.
+
+        WHY TUNE:
+        Default hyperparameters work okay, but tuning can improve accuracy
+        by 5-15%. Takes longer but worth it for production models.
+
+        Args:
+            df: DataFrame with engineered features
+            target: Which stat to predict (uses self.target if not provided)
+            feature_columns: Which features to use
+            cv: Number of cross-validation folds
+
+        Returns:
+            Dictionary with best parameters found
+        """
+        if target is None:
+            target = self.target or "PTS"
+
+        if feature_columns is None:
+            feature_columns = self._get_default_features(df)
+
+        print(f"\n{'='*50}")
+        print(f"HYPERPARAMETER TUNING FOR {target}")
+        print(f"{'='*50}")
+
+        # Prepare data
+        df_clean = df.dropna(subset=feature_columns + [target])
+        X = df_clean[feature_columns].values
+        y = df_clean[target].values
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
+        X_train_scaled = self.scaler.fit_transform(X_train)
+
+        # Define parameter grids based on model type
+        if self.model_type == "xgboost" and XGBOOST_AVAILABLE:
+            param_grid = {
+                "n_estimators": [100, 200],
+                "max_depth": [4, 6, 8],
+                "learning_rate": [0.05, 0.1, 0.15],
+                "subsample": [0.8, 1.0],
+            }
+            base_model = xgb.XGBRegressor(random_state=42, n_jobs=-1)
+        else:
+            param_grid = {
+                "n_estimators": [100, 200, 300],
+                "max_depth": [6, 10, 15],
+                "min_samples_split": [2, 5, 10],
+            }
+            base_model = RandomForestRegressor(random_state=42, n_jobs=-1)
+
+        print(f"Testing {sum(len(v) for v in param_grid.values())} parameter combinations...")
+        print("This may take several minutes...")
+
+        # Grid search with cross-validation
+        grid_search = GridSearchCV(
+            base_model,
+            param_grid,
+            cv=cv,
+            scoring="neg_mean_absolute_error",
+            n_jobs=-1,
+            verbose=1
+        )
+
+        grid_search.fit(X_train_scaled, y_train)
+
+        print(f"\n{'='*50}")
+        print("TUNING COMPLETE!")
+        print(f"{'='*50}")
+        print(f"Best parameters: {grid_search.best_params_}")
+        print(f"Best CV MAE: {-grid_search.best_score_:.2f}")
+
+        # Update model with best estimator
+        self.model = grid_search.best_estimator_
+        self.feature_columns = feature_columns
+        self.target = target
+
+        # Evaluate on test set
+        X_test_scaled = self.scaler.transform(X_test)
+        y_pred = self.model.predict(X_test_scaled)
+        test_mae = mean_absolute_error(y_test, y_pred)
+        test_r2 = r2_score(y_test, y_pred)
+
+        print(f"Test MAE: {test_mae:.2f}")
+        print(f"Test R²: {test_r2:.3f}")
+
+        self.is_trained = True
+        self.metrics = {
+            "mae": round(test_mae, 2),
+            "r2": round(test_r2, 3),
+            "best_params": grid_search.best_params_
+        }
+
+        return grid_search.best_params_
+
+    def predict_batch(
+        self,
+        players: list[str],
+        features_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Make predictions for multiple players at once.
+
+        Useful for "Best Props" feature where we need to predict
+        all players playing today and rank them.
+
+        Args:
+            players: List of player names
+            features_df: DataFrame with all player features
+
+        Returns:
+            DataFrame with predictions and confidence for each player
+        """
+        if not self.is_trained:
+            raise ValueError("Model not trained! Call train() first.")
+
+        results = []
+
+        for player in players:
+            try:
+                pred = self.predict_player_game(player, features_df)
+                if "error" not in pred:
+                    results.append({
+                        "player": player,
+                        f"pred_{self.target.lower()}": pred[f"predicted_{self.target.lower()}"],
+                        "recent_avg": pred["recent_avg"],
+                        "season_avg": pred["season_avg"],
+                        "confidence": pred["confidence"]
+                    })
+            except Exception:
+                continue
+
+        return pd.DataFrame(results)
 
     def save(self, filepath: str = None):
         """

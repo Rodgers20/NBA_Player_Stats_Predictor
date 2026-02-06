@@ -366,12 +366,226 @@ def add_season_averages(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # =============================================================================
+# POSITION FEATURES
+# =============================================================================
+
+def add_position_features(
+    df: pd.DataFrame,
+    positions_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Add player position as one-hot encoded features.
+
+    WHY POSITION MATTERS:
+    - Centers: Higher rebounds, lower assists
+    - Guards: Higher assists, lower rebounds
+    - The model learns position-specific expectations
+
+    Args:
+        df: Game logs DataFrame
+        positions_df: DataFrame with PLAYER_ID and POSITION columns
+
+    Returns:
+        DataFrame with position features (is_g, is_f, is_c)
+    """
+    df = df.copy()
+
+    # Merge position info
+    df = df.merge(
+        positions_df[["PLAYER_ID", "POSITION"]],
+        left_on="Player_ID",
+        right_on="PLAYER_ID",
+        how="left",
+        suffixes=("", "_pos")
+    )
+
+    # Fill missing with most common (Forward)
+    df["POSITION"] = df["POSITION"].fillna("F")
+
+    # One-hot encode positions
+    df["is_guard"] = (df["POSITION"] == "G").astype(int)
+    df["is_forward"] = (df["POSITION"] == "F").astype(int)
+    df["is_center"] = (df["POSITION"] == "C").astype(int)
+
+    # Clean up duplicate column if exists
+    if "PLAYER_ID_pos" in df.columns:
+        df = df.drop("PLAYER_ID_pos", axis=1)
+
+    return df
+
+
+# =============================================================================
+# PACE FEATURES
+# =============================================================================
+
+def add_pace_features(
+    df: pd.DataFrame,
+    team_stats_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Add team pace (possessions per game) as a feature.
+
+    WHY PACE MATTERS:
+    - Fast-paced teams (IND, ATL) have more possessions = more counting stats
+    - Slow-paced teams (CLE, MEM) have fewer opportunities
+    - A 20 PPG scorer on a fast team might be equivalent to 25 PPG on slow team
+
+    Pace approximation: FGA + 0.44*FTA - OREB + TOV
+    """
+    df = df.copy()
+
+    if team_stats_df is None or team_stats_df.empty:
+        # Add default pace values
+        df["team_pace"] = 100.0
+        df["opp_pace"] = 100.0
+        df["game_pace"] = 100.0
+        return df
+
+    # Calculate pace if not already present
+    team_stats = team_stats_df.copy()
+    if "PACE" not in team_stats.columns:
+        if all(c in team_stats.columns for c in ["FGA", "FTA", "OREB", "TOV"]):
+            team_stats["PACE"] = (
+                team_stats["FGA"] +
+                0.44 * team_stats["FTA"] -
+                team_stats["OREB"] +
+                team_stats["TOV"]
+            )
+        else:
+            # Use a default pace if can't calculate
+            team_stats["PACE"] = 100.0
+
+    # Check if we have TEAM_ABBREVIATION to merge on
+    # If not, we can't do the merge - use defaults
+    if "TEAM_ABBREVIATION" not in team_stats.columns:
+        print("    Note: TEAM_ABBREVIATION not in team stats, using default pace values")
+        df["team_pace"] = 100.0
+        df["opp_pace"] = 100.0
+        df["game_pace"] = 100.0
+        return df
+
+    # Extract player's team from matchup (first part before vs. or @)
+    df["player_team"] = df["MATCHUP"].str.split().str[0]
+
+    # Merge player's team pace
+    pace_lookup = team_stats[["TEAM_ABBREVIATION", "SEASON", "PACE"]].copy()
+
+    df = df.merge(
+        pace_lookup.rename(columns={"PACE": "team_pace"}),
+        left_on=["player_team", "SEASON"],
+        right_on=["TEAM_ABBREVIATION", "SEASON"],
+        how="left"
+    )
+
+    if "TEAM_ABBREVIATION" in df.columns:
+        df = df.drop("TEAM_ABBREVIATION", axis=1)
+
+    # Merge opponent team pace
+    df = df.merge(
+        pace_lookup.rename(columns={"PACE": "opp_pace", "TEAM_ABBREVIATION": "_opp_team"}),
+        left_on=["opponent", "SEASON"],
+        right_on=["_opp_team", "SEASON"],
+        how="left"
+    )
+
+    if "_opp_team" in df.columns:
+        df = df.drop("_opp_team", axis=1)
+
+    # Game pace is average of both teams
+    df["team_pace"] = df["team_pace"].fillna(100.0)
+    df["opp_pace"] = df["opp_pace"].fillna(100.0)
+    df["game_pace"] = (df["team_pace"] + df["opp_pace"]) / 2
+
+    # Clean up
+    if "player_team" in df.columns:
+        df = df.drop("player_team", axis=1)
+
+    return df
+
+
+# =============================================================================
+# MATCHUP DIFFICULTY FEATURES
+# =============================================================================
+
+def add_matchup_difficulty(
+    df: pd.DataFrame,
+    defense_vs_pos_df: pd.DataFrame = None
+) -> pd.DataFrame:
+    """
+    Add matchup difficulty tiers based on opponent defense.
+
+    WHY THIS MATTERS:
+    - Elite defense (rank 1-6): Expect significantly lower stats
+    - Average defense (rank 7-20): Normal expectations
+    - Poor defense (rank 21-30): Expect higher stats
+
+    Creates binary features for each tier that the model can learn from.
+
+    Args:
+        df: Game logs with opponent and position columns
+        defense_vs_pos_df: Position-specific defensive rankings
+                          If None, uses overall defensive ranking
+    """
+    df = df.copy()
+
+    if defense_vs_pos_df is not None and not defense_vs_pos_df.empty:
+        # Use position-specific rankings
+        if "POSITION" in df.columns:
+            df = df.merge(
+                defense_vs_pos_df[["TEAM_ABBREVIATION", "POSITION", "SEASON", "PTS_RANK", "AST_RANK", "REB_RANK"]],
+                left_on=["opponent", "POSITION", "SEASON"],
+                right_on=["TEAM_ABBREVIATION", "POSITION", "SEASON"],
+                how="left",
+                suffixes=("", "_def")
+            )
+
+            if "TEAM_ABBREVIATION_def" in df.columns:
+                df = df.drop("TEAM_ABBREVIATION_def", axis=1)
+            if "TEAM_ABBREVIATION" in df.columns and "opponent" in df.columns:
+                # Only drop if it's a duplicate from merge
+                pass
+
+            df["opp_pts_def_rank"] = df["PTS_RANK"].fillna(15)
+            df["opp_ast_def_rank"] = df["AST_RANK"].fillna(15)
+            df["opp_reb_def_rank"] = df["REB_RANK"].fillna(15)
+
+            # Clean up merged columns
+            for col in ["PTS_RANK", "AST_RANK", "REB_RANK"]:
+                if col in df.columns:
+                    df = df.drop(col, axis=1)
+    else:
+        # Fall back to overall defensive ranking from opp_def_pts_allowed
+        if "opp_def_pts_allowed" in df.columns:
+            # Higher pts allowed = worse defense = higher rank (easier matchup)
+            df["opp_pts_def_rank"] = df.groupby("SEASON")["opp_def_pts_allowed"].rank(
+                ascending=False, method="min"
+            ).fillna(15)
+        else:
+            df["opp_pts_def_rank"] = 15  # Default to average
+        df["opp_ast_def_rank"] = 15
+        df["opp_reb_def_rank"] = 15
+
+    # Create matchup difficulty tiers
+    # Elite defense = rank 1-6 (harder to score against)
+    # Good defense = rank 7-15
+    # Poor defense = rank 16-30 (easier matchup)
+    df["opp_elite_defense"] = (df["opp_pts_def_rank"] <= 6).astype(int)
+    df["opp_good_defense"] = ((df["opp_pts_def_rank"] > 6) & (df["opp_pts_def_rank"] <= 15)).astype(int)
+    df["opp_poor_defense"] = (df["opp_pts_def_rank"] > 15).astype(int)
+
+    return df
+
+
+# =============================================================================
 # MAIN FEATURE ENGINEERING FUNCTION
 # =============================================================================
 
 def engineer_features(
     game_logs: pd.DataFrame,
-    team_defensive_stats: pd.DataFrame = None
+    team_defensive_stats: pd.DataFrame = None,
+    team_stats: pd.DataFrame = None,
+    player_positions: pd.DataFrame = None,
+    defense_vs_position: pd.DataFrame = None
 ) -> pd.DataFrame:
     """
     Apply all feature engineering steps to create ML-ready data.
@@ -383,10 +597,16 @@ def engineer_features(
     4. Opponent defensive features (if team stats provided)
     5. Minutes trend
     6. Season averages
+    7. Position features (if positions provided)
+    8. Pace features (if team stats provided)
+    9. Matchup difficulty (if defense vs position provided)
 
     Args:
         game_logs: DataFrame with raw game logs
         team_defensive_stats: Optional DataFrame with team defensive stats
+        team_stats: Optional DataFrame with team offensive/pace stats
+        player_positions: Optional DataFrame with player positions
+        defense_vs_position: Optional DataFrame with position-specific defense
 
     Returns:
         DataFrame with all features added, ready for ML
@@ -426,6 +646,20 @@ def engineer_features(
     # Step 6: Season averages
     print("  - Adding season averages...")
     df = add_season_averages(df)
+
+    # Step 7: Position features (if positions provided)
+    if player_positions is not None and not player_positions.empty:
+        print("  - Adding position features...")
+        df = add_position_features(df, player_positions)
+
+    # Step 8: Pace features (if team stats provided)
+    if team_stats is not None and not team_stats.empty:
+        print("  - Adding pace features...")
+        df = add_pace_features(df, team_stats)
+
+    # Step 9: Matchup difficulty (position-specific or general)
+    print("  - Adding matchup difficulty features...")
+    df = add_matchup_difficulty(df, defense_vs_position)
 
     print(f"  ✓ Created {len(df.columns)} total columns")
 
