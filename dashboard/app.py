@@ -2823,7 +2823,7 @@ def create_insights_content(player_name, _stat=None):
     if player_team in teams_today:
         # Find opponent from today's games
         today_games = get_todays_games()
-        for game in today_games:
+        for _, game in today_games.iterrows():
             home = game.get("HOME_TEAM", "")
             away = game.get("AWAY_TEAM", "")
             if player_team == home:
