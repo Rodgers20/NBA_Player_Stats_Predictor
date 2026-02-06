@@ -556,6 +556,8 @@ def create_player_analysis_page():
                     options=[{"label": p, "value": p} for p in PLAYERS],
                     value=PLAYERS[0] if PLAYERS else None,
                     placeholder="Search player...",
+                    searchable=True,
+                    clearable=False,
                     style={"width": "300px", "backgroundColor": COLORS["card"], "minWidth": "200px"}
                 ),
                 html.Div(id="player-header", style={"marginTop": "8px"}),
