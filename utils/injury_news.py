@@ -5,36 +5,27 @@ Injury & News Data Module
 This module fetches player injury statuses and relevant news that could
 affect predictions.
 
-WHY THIS MATTERS FOR PREDICTIONS:
----------------------------------
-1. Injured players won't play (obviously) - predict 0 stats
-2. Players returning from injury often have minutes restrictions
-3. If a star teammate is out, other players may see more usage
-4. Back injuries, leg injuries affect performance differently
+DATA SOURCES:
+-------------
+1. Underdog Fantasy (primary for injury news)
+2. Rotowire (comprehensive injury reports)
+3. ESPN RSS - Real-time news feed
+4. CBS Sports RSS
 
-DATA SOURCES (all free):
-------------------------
-1. NBA API - Has basic injury/inactive status for current games
-2. ESPN RSS - Real-time news feed with injury reports
-3. Web scraping - For comprehensive injury lists (as backup)
-
-NOTE ON WEB SCRAPING:
-Web scraping can break if the website changes its structure.
-We handle errors gracefully and fall back to other sources.
+All news items include clickable source links.
 """
 
 import re
 import requests
-import xml.etree.ElementTree as ET
+import json
 from datetime import datetime, timedelta
 from typing import Optional
 import pandas as pd
 
-# Headers to mimic a browser - many sites block requests without proper headers
-# This is a common and acceptable practice for public RSS feeds
+# Headers to mimic a browser
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+    "Accept": "application/rss+xml, application/xml, text/xml, application/json, */*",
 }
 
 # For NBA API injury data
@@ -47,25 +38,65 @@ except ImportError:
 
 
 # =============================================================================
-# ESPN RSS FEED - Real-time NBA news
+# NEWS SOURCES CONFIGURATION
+# =============================================================================
+
+# RSS feeds for NBA news
+NBA_RSS_FEEDS = [
+    {
+        "url": "https://www.rotowire.com/basketball/news.php",
+        "name": "Rotowire",
+        "type": "scrape"
+    },
+    {
+        "url": "https://www.cbssports.com/rss/headlines/nba/",
+        "name": "CBS Sports",
+        "type": "rss"
+    },
+    {
+        "url": "https://www.espn.com/espn/rss/nba/news",
+        "name": "ESPN",
+        "type": "rss"
+    },
+]
+
+# Underdog Fantasy Twitter/X - We'll fetch from their Nitter mirror or API
+UNDERDOG_SOURCES = [
+    {
+        "url": "https://nitter.net/Underdog__NBA/rss",
+        "name": "Underdog Fantasy",
+        "type": "rss",
+        "twitter_url": "https://twitter.com/Underdog__NBA"
+    },
+    {
+        "url": "https://nitter.poast.org/Underdog__NBA/rss",
+        "name": "Underdog Fantasy",
+        "type": "rss",
+        "twitter_url": "https://twitter.com/Underdog__NBA"
+    },
+]
+
+# Other reliable injury sources
+INJURY_SOURCES = [
+    {
+        "url": "https://www.fantasylabs.com/api/nba/injuries",
+        "name": "FantasyLabs",
+        "type": "api"
+    },
+]
+
+
+# =============================================================================
+# RSS FEED FETCHING
 # =============================================================================
 
 def fetch_rss_feed(url: str, limit: int = 20) -> list[dict]:
     """
-    Generic RSS feed fetcher that works with multiple sources.
-
-    HOW RSS WORKS:
-    RSS (Really Simple Syndication) is an XML format for news feeds.
-    Structure: <rss><channel><item>...</item><item>...</item></channel></rss>
-    Each <item> is one article with title, description, link, pubDate.
-
-    Args:
-        url: The RSS feed URL
-        limit: Maximum number of articles to return
-
-    Returns:
-        List of dictionaries with keys: title, description, link, published, source
+    Generic RSS feed fetcher.
+    Returns list of news items with title, description, link, published, source.
     """
+    import xml.etree.ElementTree as ET
+
     try:
         response = requests.get(url, headers=HEADERS, timeout=10)
         response.raise_for_status()
@@ -74,18 +105,19 @@ def fetch_rss_feed(url: str, limit: int = 20) -> list[dict]:
         channel = root.find("channel")
 
         if channel is None:
-            # Try Atom format (different XML structure)
-            # Atom uses <feed><entry>...</entry></feed>
+            # Try Atom format
             entries = root.findall(".//{http://www.w3.org/2005/Atom}entry")
             if entries:
                 news_items = []
                 for entry in entries[:limit]:
+                    link_elem = entry.find("{http://www.w3.org/2005/Atom}link")
                     news_items.append({
                         "title": entry.findtext("{http://www.w3.org/2005/Atom}title", ""),
                         "description": entry.findtext("{http://www.w3.org/2005/Atom}summary", ""),
-                        "link": entry.find("{http://www.w3.org/2005/Atom}link").get("href", "") if entry.find("{http://www.w3.org/2005/Atom}link") is not None else "",
+                        "link": link_elem.get("href", "") if link_elem is not None else "",
                         "published": entry.findtext("{http://www.w3.org/2005/Atom}updated", ""),
-                        "source": url
+                        "source": "RSS Feed",
+                        "source_url": url
                     })
                 return news_items
             return []
@@ -97,93 +129,148 @@ def fetch_rss_feed(url: str, limit: int = 20) -> list[dict]:
                 "description": item.findtext("description", ""),
                 "link": item.findtext("link", ""),
                 "published": item.findtext("pubDate", ""),
-                "source": url
+                "source": "RSS Feed",
+                "source_url": url
             })
 
         return news_items
 
-    except requests.RequestException as e:
-        # Silently fail - we have multiple sources
-        return []
-    except ET.ParseError as e:
+    except Exception:
         return []
 
 
-# List of NBA news RSS feeds to try (in order of preference)
-NBA_RSS_FEEDS = [
-    "https://www.cbssports.com/rss/headlines/nba/",
-    "https://www.espn.com/espn/rss/nba/news",
-    "https://www.rotowire.com/rss/news.php?sport=NBA",
-]
-
-
-def get_espn_nba_news(limit: int = 20) -> list[dict]:
+def fetch_underdog_news(limit: int = 30) -> list[dict]:
     """
-    Fetch latest NBA news from multiple RSS sources.
+    Fetch injury news from Underdog Fantasy Twitter via Nitter RSS.
+    Falls back to other sources if unavailable.
+    """
+    for source in UNDERDOG_SOURCES:
+        try:
+            items = fetch_rss_feed(source["url"], limit)
+            if items:
+                # Add proper source attribution
+                for item in items:
+                    item["source"] = "Underdog Fantasy"
+                    item["source_url"] = source.get("twitter_url", source["url"])
+                    # Convert Nitter links to Twitter links
+                    if "nitter" in item.get("link", ""):
+                        item["link"] = item["link"].replace("nitter.net", "twitter.com")
+                        item["link"] = item["link"].replace("nitter.poast.org", "twitter.com")
+                return items
+        except Exception:
+            continue
+    return []
 
-    WHY MULTIPLE SOURCES:
-    Not all RSS feeds are always available. By trying multiple sources,
-    we increase reliability. We combine results and deduplicate.
 
-    Args:
-        limit: Maximum number of articles to return
+def fetch_rotowire_news(limit: int = 30) -> list[dict]:
+    """
+    Fetch injury news from Rotowire (known for accurate injury reports).
+    """
+    try:
+        url = "https://www.rotowire.com/basketball/news.php"
+        response = requests.get(url, headers=HEADERS, timeout=10)
+
+        if response.status_code != 200:
+            return []
+
+        # Parse HTML for news items
+        from html.parser import HTMLParser
+
+        news_items = []
+        content = response.text
+
+        # Simple regex extraction for news headlines
+        # Rotowire has structured news items
+        pattern = r'<a[^>]*href="([^"]*news[^"]*)"[^>]*>([^<]+)</a>'
+        matches = re.findall(pattern, content)
+
+        for link, title in matches[:limit]:
+            if any(kw in title.lower() for kw in ["injury", "out", "questionable", "doubtful", "return"]):
+                full_link = f"https://www.rotowire.com{link}" if link.startswith("/") else link
+                news_items.append({
+                    "title": title.strip(),
+                    "description": title.strip(),
+                    "link": full_link,
+                    "published": datetime.now().isoformat(),
+                    "source": "Rotowire",
+                    "source_url": "https://www.rotowire.com"
+                })
+
+        return news_items
+    except Exception:
+        return []
+
+
+# =============================================================================
+# MAIN NEWS AGGREGATION
+# =============================================================================
+
+def get_nba_injury_news(limit: int = 50) -> list[dict]:
+    """
+    Aggregate injury news from all sources.
+    Prioritizes Underdog Fantasy, then Rotowire, then other sources.
 
     Returns:
-        List of dictionaries with keys: title, description, link, published
+        List of news items with clickable links
     """
     all_news = []
 
-    # Try each feed until we get enough articles
-    for feed_url in NBA_RSS_FEEDS:
-        news = fetch_rss_feed(feed_url, limit=limit)
-        all_news.extend(news)
+    # 1. Try Underdog Fantasy first (most reliable for props)
+    underdog_news = fetch_underdog_news(limit=20)
+    all_news.extend(underdog_news)
 
-        # If we have enough, stop
-        if len(all_news) >= limit:
-            break
+    # 2. Try Rotowire (known for accurate injury reports)
+    rotowire_news = fetch_rotowire_news(limit=20)
+    all_news.extend(rotowire_news)
+
+    # 3. Fallback to RSS feeds
+    for feed in NBA_RSS_FEEDS:
+        if feed["type"] == "rss":
+            items = fetch_rss_feed(feed["url"], limit=15)
+            for item in items:
+                item["source"] = feed["name"]
+                item["source_url"] = feed["url"]
+            all_news.extend(items)
 
     # Remove duplicates based on title similarity
     seen_titles = set()
     unique_news = []
     for item in all_news:
-        # Normalize title for comparison
         title_key = item["title"].lower()[:50]
-        if title_key not in seen_titles:
+        if title_key not in seen_titles and item["title"]:
             seen_titles.add(title_key)
             unique_news.append(item)
 
     return unique_news[:limit]
 
 
+def get_espn_nba_news(limit: int = 20) -> list[dict]:
+    """Legacy function - now uses aggregated sources."""
+    return get_nba_injury_news(limit)
+
+
+# =============================================================================
+# PLAYER-SPECIFIC NEWS SEARCH
+# =============================================================================
+
 def search_player_news(player_name: str, news_items: list[dict] = None) -> list[dict]:
     """
     Search news items for mentions of a specific player.
-
-    HOW THE SEARCH WORKS:
-    We look for the player's name (or parts of it) in the title and description.
-    This catches articles like "LeBron James questionable for Tuesday's game"
-
-    Args:
-        player_name: Full name like "LeBron James"
-        news_items: Pre-fetched news (if None, fetches fresh)
-
-    Returns:
-        List of news items mentioning the player
+    Returns news items with clickable source links.
     """
     if news_items is None:
-        news_items = get_espn_nba_news(limit=50)
+        news_items = get_nba_injury_news(limit=100)
 
-    # Split name into parts for flexible matching
-    # "LeBron James" -> ["LeBron", "James"]
+    # Split name for flexible matching
     name_parts = player_name.lower().split()
+    last_name = name_parts[-1] if name_parts else ""
 
     matching_news = []
     for item in news_items:
-        text = (item["title"] + " " + item["description"]).lower()
+        text = (item.get("title", "") + " " + item.get("description", "")).lower()
 
-        # Check if all parts of the name appear in the text
-        # This handles cases like "James scores 30" or "LeBron questionable"
-        if all(part in text for part in name_parts):
+        # Check for full name or last name match
+        if all(part in text for part in name_parts) or (last_name and last_name in text):
             matching_news.append(item)
 
     return matching_news
@@ -193,100 +280,95 @@ def search_player_news(player_name: str, news_items: list[dict] = None) -> list[
 # INJURY STATUS DETECTION
 # =============================================================================
 
-# Keywords that indicate injury-related news
-INJURY_KEYWORDS = [
-    "injury", "injured", "out", "questionable", "doubtful", "probable",
-    "day-to-day", "week-to-week", "sidelined", "miss", "ruled out",
-    "surgery", "sprain", "strain", "fracture", "concussion", "illness",
-    "rest", "load management", "dnp", "did not play", "inactive",
-    "return", "returning", "back", "cleared", "healthy"
-]
-
-# Keywords indicating player will NOT play
+# Keywords for status classification
 OUT_KEYWORDS = [
-    "out", "ruled out", "miss", "sidelined", "will not play",
-    "surgery", "inactive", "dnp", "shut down"
+    "out", "ruled out", "will miss", "sidelined", "will not play",
+    "surgery", "inactive", "dnp", "shut down", "out indefinitely",
+    "season-ending", "out for"
 ]
 
-# Keywords indicating uncertain status
+DOUBTFUL_KEYWORDS = [
+    "doubtful", "unlikely to play", "not expected to play"
+]
+
 QUESTIONABLE_KEYWORDS = [
-    "questionable", "doubtful", "game-time decision", "uncertain",
-    "day-to-day", "monitor"
+    "questionable", "game-time decision", "uncertain", "day-to-day",
+    "50/50", "monitor", "listed as questionable", "gtd"
 ]
 
-# Keywords indicating player is healthy/returning
+PROBABLE_KEYWORDS = [
+    "probable", "expected to play", "likely to play", "should play"
+]
+
 HEALTHY_KEYWORDS = [
     "return", "cleared", "healthy", "back in lineup", "will play",
-    "probable", "available"
+    "available", "returning", "activated", "off injury report"
 ]
 
 
 def analyze_injury_status(news_items: list[dict]) -> dict:
     """
-    Analyze news items to determine a player's likely injury status.
-
-    HOW THIS WORKS:
-    We scan the news text for keywords and assign a status:
-    - "OUT": Strong indicators player won't play
-    - "QUESTIONABLE": Uncertain status
-    - "HEALTHY": Player is available or returning
-    - "UNKNOWN": No clear indicators
-
-    WHY WE DO THIS:
-    For predictions, we need to know:
-    1. Will the player play? (if OUT, predict 0)
-    2. Are they on a minutes restriction? (reduce predictions)
-    3. Is a teammate out? (may increase player's usage)
-
-    Args:
-        news_items: List of news items about a player
+    Analyze news items to determine a player's injury status.
 
     Returns:
-        Dictionary with status, confidence, and reasons
+        Dictionary with status, confidence, reason, and news items
     """
     if not news_items:
         return {
-            "status": "UNKNOWN",
-            "confidence": 0.0,
-            "reasons": ["No recent news found"],
+            "status": "ACTIVE",  # Default to active if no news
+            "confidence": 0.5,
+            "reason": "No injury news found",
+            "injury_type": None,
             "latest_news": None
         }
 
-    # Analyze the most recent news first (more relevant)
-    all_text = " ".join([
-        (item["title"] + " " + item["description"]).lower()
-        for item in news_items[:5]  # Focus on most recent
+    # Analyze recent news (most recent is most relevant)
+    recent_text = " ".join([
+        (item.get("title", "") + " " + item.get("description", "")).lower()
+        for item in news_items[:5]
     ])
 
-    out_count = sum(1 for kw in OUT_KEYWORDS if kw in all_text)
-    questionable_count = sum(1 for kw in QUESTIONABLE_KEYWORDS if kw in all_text)
-    healthy_count = sum(1 for kw in HEALTHY_KEYWORDS if kw in all_text)
+    # Count keyword matches
+    out_count = sum(1 for kw in OUT_KEYWORDS if kw in recent_text)
+    doubtful_count = sum(1 for kw in DOUBTFUL_KEYWORDS if kw in recent_text)
+    questionable_count = sum(1 for kw in QUESTIONABLE_KEYWORDS if kw in recent_text)
+    probable_count = sum(1 for kw in PROBABLE_KEYWORDS if kw in recent_text)
+    healthy_count = sum(1 for kw in HEALTHY_KEYWORDS if kw in recent_text)
 
-    # Determine status based on keyword counts
-    # More recent news about returning can override older "out" news
-    reasons = []
+    # Extract injury type
+    injury_type = extract_injury_type(recent_text)
 
-    if out_count > healthy_count and out_count > 0:
+    # Determine status with priority
+    if out_count > 0 and out_count >= healthy_count:
         status = "OUT"
-        confidence = min(0.5 + (out_count * 0.1), 0.95)
-        reasons.append(f"Found {out_count} indicators of being out")
+        confidence = min(0.7 + (out_count * 0.1), 0.95)
+        reason = f"Listed as OUT - {injury_type or 'injury reported'}"
+    elif doubtful_count > 0:
+        status = "DOUBTFUL"
+        confidence = 0.7 + (doubtful_count * 0.1)
+        reason = f"Listed as DOUBTFUL - {injury_type or 'injury concern'}"
     elif questionable_count > 0 and healthy_count == 0:
         status = "QUESTIONABLE"
-        confidence = 0.5 + (questionable_count * 0.1)
-        reasons.append(f"Found {questionable_count} uncertainty indicators")
+        confidence = 0.6 + (questionable_count * 0.1)
+        reason = f"Listed as QUESTIONABLE - {injury_type or 'game-time decision'}"
+    elif probable_count > 0:
+        status = "PROBABLE"
+        confidence = 0.7
+        reason = "Expected to play"
     elif healthy_count > out_count:
-        status = "HEALTHY"
-        confidence = min(0.5 + (healthy_count * 0.1), 0.9)
-        reasons.append(f"Found {healthy_count} positive indicators")
+        status = "ACTIVE"
+        confidence = 0.8
+        reason = "Cleared to play / returning from injury"
     else:
-        status = "UNKNOWN"
-        confidence = 0.3
-        reasons.append("Mixed or unclear signals")
+        status = "ACTIVE"
+        confidence = 0.5
+        reason = "No clear injury indicators"
 
     return {
         "status": status,
         "confidence": confidence,
-        "reasons": reasons,
+        "reason": reason,
+        "injury_type": injury_type,
         "latest_news": news_items[0] if news_items else None
     }
 
@@ -295,34 +377,16 @@ def get_player_injury_status(player_name: str) -> dict:
     """
     Get the current injury status for a player.
 
-    This is the MAIN FUNCTION to use - it combines:
-    1. Fetching recent news
-    2. Filtering for player mentions
-    3. Analyzing injury status
-
-    Args:
-        player_name: Full name like "LeBron James"
-
     Returns:
         Dictionary with:
-        - status: "OUT", "QUESTIONABLE", "HEALTHY", or "UNKNOWN"
-        - confidence: 0.0 to 1.0 confidence score
-        - reasons: List of reasons for the determination
-        - news: List of relevant news items
-        - checked_at: Timestamp of when we checked
-
-    Example:
-        >>> get_player_injury_status("Anthony Davis")
-        {
-            "status": "QUESTIONABLE",
-            "confidence": 0.7,
-            "reasons": ["Found 2 uncertainty indicators"],
-            "news": [...],
-            "checked_at": "2025-02-04T10:30:00"
-        }
+        - status: "OUT", "DOUBTFUL", "QUESTIONABLE", "PROBABLE", or "ACTIVE"
+        - confidence: 0.0 to 1.0
+        - reason: Explanation of the status
+        - news: List of relevant news items with source links
+        - checked_at: Timestamp
     """
-    # Fetch fresh news
-    all_news = get_espn_nba_news(limit=50)
+    # Fetch fresh news from all sources
+    all_news = get_nba_injury_news(limit=100)
 
     # Filter for this player
     player_news = search_player_news(player_name, all_news)
@@ -334,8 +398,9 @@ def get_player_injury_status(player_name: str) -> dict:
         "player": player_name,
         "status": analysis["status"],
         "confidence": analysis["confidence"],
-        "reasons": analysis["reasons"],
-        "news": player_news[:5],  # Return top 5 relevant articles
+        "reason": analysis["reason"],
+        "injury_type": analysis.get("injury_type"),
+        "news": player_news[:5],  # Return top 5 with links
         "checked_at": datetime.now().isoformat()
     }
 
@@ -347,30 +412,26 @@ def get_player_injury_status(player_name: str) -> dict:
 def get_injury_report(player_names: list[str]) -> pd.DataFrame:
     """
     Get injury status for multiple players at once.
-
-    WHY BATCH PROCESSING:
-    When predicting for a game, we need to check ALL players at once.
-    This function does that efficiently.
-
-    Args:
-        player_names: List of player names to check
-
-    Returns:
-        DataFrame with columns: player, status, confidence, latest_headline
+    More efficient than checking one by one.
     """
-    # Fetch news once (more efficient than fetching per player)
-    all_news = get_espn_nba_news(limit=100)
+    # Fetch news once
+    all_news = get_nba_injury_news(limit=200)
 
     results = []
     for player in player_names:
         player_news = search_player_news(player, all_news)
         analysis = analyze_injury_status(player_news)
 
+        latest_news = player_news[0] if player_news else None
+
         results.append({
             "player": player,
             "status": analysis["status"],
             "confidence": analysis["confidence"],
-            "latest_headline": player_news[0]["title"] if player_news else "No recent news"
+            "reason": analysis["reason"],
+            "latest_headline": latest_news["title"] if latest_news else "No recent news",
+            "source": latest_news.get("source", "") if latest_news else "",
+            "source_url": latest_news.get("link", "") if latest_news else ""
         })
 
     return pd.DataFrame(results)
@@ -383,63 +444,92 @@ def get_injury_report(player_names: list[str]) -> pd.DataFrame:
 def is_player_available(player_name: str) -> tuple[bool, str]:
     """
     Simple check: Is this player likely to play?
-
-    Returns:
-        Tuple of (is_available: bool, reason: str)
-
-    Example:
-        >>> is_player_available("Kevin Durant")
-        (True, "No injury news found - assumed healthy")
-
-        >>> is_player_available("Ja Morant")
-        (False, "OUT - Found indicators of being out")
     """
     status = get_player_injury_status(player_name)
 
     if status["status"] == "OUT":
-        return False, f"OUT - {status['reasons'][0]}"
+        return False, f"OUT - {status['reason']}"
+    elif status["status"] == "DOUBTFUL":
+        return False, f"DOUBTFUL - {status['reason']}"
     elif status["status"] == "QUESTIONABLE":
-        return True, f"QUESTIONABLE - {status['reasons'][0]} (may not play)"
+        return True, f"QUESTIONABLE - {status['reason']}"
+    elif status["status"] == "PROBABLE":
+        return True, f"PROBABLE - {status['reason']}"
     else:
-        return True, "No injury news found - assumed healthy"
+        return True, "ACTIVE - Available to play"
 
 
 def extract_injury_type(news_text: str) -> Optional[str]:
-    """
-    Try to extract the specific injury type from news text.
-
-    WHY THIS MATTERS:
-    Different injuries affect performance differently:
-    - Ankle sprain: May return but with reduced mobility
-    - Finger injury: May affect shooting
-    - Back injury: Can affect everything
-
-    Args:
-        news_text: Text from news article
-
-    Returns:
-        Injury type if found, None otherwise
-    """
+    """Extract specific injury type from news text."""
     injury_patterns = [
-        r"(ankle\s*(sprain|injury))",
-        r"(knee\s*(injury|sprain|soreness))",
-        r"(hamstring\s*(strain|injury))",
-        r"(back\s*(spasms|soreness|injury))",
-        r"(shoulder\s*(injury|soreness))",
-        r"(concussion)",
-        r"(illness)",
-        r"(calf\s*(strain|injury))",
-        r"(quad\s*(strain|injury))",
-        r"(groin\s*(strain|injury))",
-        r"(finger\s*(injury|sprain))",
-        r"(wrist\s*(injury|sprain))",
-        r"(foot\s*(injury|soreness))",
+        (r"ankle\s*(sprain|injury|soreness)", "ankle"),
+        (r"knee\s*(injury|sprain|soreness|contusion)", "knee"),
+        (r"hamstring\s*(strain|injury|tightness)", "hamstring"),
+        (r"back\s*(spasms|soreness|injury|tightness)", "back"),
+        (r"shoulder\s*(injury|soreness|sprain)", "shoulder"),
+        (r"concussion", "concussion"),
+        (r"illness|flu|sick", "illness"),
+        (r"calf\s*(strain|injury|soreness)", "calf"),
+        (r"quad\s*(strain|injury|contusion)", "quad"),
+        (r"groin\s*(strain|injury)", "groin"),
+        (r"finger\s*(injury|sprain)", "finger"),
+        (r"wrist\s*(injury|sprain)", "wrist"),
+        (r"foot\s*(injury|soreness|sprain)", "foot"),
+        (r"hip\s*(injury|soreness)", "hip"),
+        (r"rest|load management", "rest"),
+        (r"personal|personal reasons", "personal"),
     ]
 
     text_lower = news_text.lower()
-    for pattern in injury_patterns:
-        match = re.search(pattern, text_lower)
-        if match:
-            return match.group(0)
+    for pattern, injury in injury_patterns:
+        if re.search(pattern, text_lower):
+            return injury
 
     return None
+
+
+def format_news_for_display(news_items: list[dict]) -> list[dict]:
+    """
+    Format news items for display with proper links.
+    Each item will have a clickable source link.
+    """
+    formatted = []
+    for item in news_items:
+        formatted.append({
+            "title": item.get("title", ""),
+            "description": item.get("description", ""),
+            "link": item.get("link", ""),
+            "source": item.get("source", "Unknown"),
+            "source_url": item.get("source_url", item.get("link", "")),
+            "published": item.get("published", ""),
+            "time_ago": _format_time_ago(item.get("published", ""))
+        })
+    return formatted
+
+
+def _format_time_ago(date_str: str) -> str:
+    """Convert date string to 'X hours ago' format."""
+    try:
+        # Try various date formats
+        for fmt in ["%Y-%m-%dT%H:%M:%S", "%a, %d %b %Y %H:%M:%S %z", "%Y-%m-%d %H:%M:%S"]:
+            try:
+                dt = datetime.strptime(date_str[:19], fmt[:19] if "T" in fmt else fmt)
+                break
+            except ValueError:
+                continue
+        else:
+            return ""
+
+        now = datetime.now()
+        diff = now - dt
+
+        if diff.days > 0:
+            return f"{diff.days}d ago"
+        elif diff.seconds >= 3600:
+            return f"{diff.seconds // 3600}h ago"
+        elif diff.seconds >= 60:
+            return f"{diff.seconds // 60}m ago"
+        else:
+            return "Just now"
+    except Exception:
+        return ""
