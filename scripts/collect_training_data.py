@@ -41,17 +41,41 @@ from utils.data_fetch import (
     get_all_players_season_stats,
     get_team_data,
     get_team_defensive_stats,
+    get_all_players_with_positions,
+    calculate_defense_vs_position,
 )
 
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
 
-# Seasons to collect (most recent first)
-SEASONS = ["2024-25", "2023-24", "2022-23"]
+def get_current_season():
+    """Get current NBA season (e.g., '2025-26')."""
+    today = datetime.now()
+    year = today.year
+    month = today.month
+    if month >= 10:
+        start_year = year
+    else:
+        start_year = year - 1
+    return f"{start_year}-{str(start_year + 1)[-2:]}"
+
+def get_seasons_to_collect(num_seasons=3):
+    """Get list of seasons to collect dynamically."""
+    current = get_current_season()
+    start_year = int(current.split("-")[0])
+    seasons = []
+    for i in range(num_seasons):
+        year = start_year - i
+        seasons.append(f"{year}-{str(year + 1)[-2:]}")
+    return seasons
+
+# Seasons to collect (dynamically calculated)
+SEASONS = get_seasons_to_collect(3)
+print(f"Will collect seasons: {SEASONS}")
 
 # Minimum games played to include a player (filters out bench warmers)
-MIN_GAMES = 20
+MIN_GAMES = 10  # Lowered to get more players
 
 # Where to save the data
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
@@ -140,6 +164,65 @@ def collect_team_data():
     if all_defensive_stats:
         combined_defense = pd.concat(all_defensive_stats, ignore_index=True)
         save_dataframe(combined_defense, "team_defensive_stats.csv")
+
+
+def collect_player_positions():
+    """
+    Collect player position data for all seasons.
+
+    WHY: Position affects stat expectations:
+    - Centers get more rebounds
+    - Guards get more assists
+    - Matchup analysis needs position info
+    """
+    print("\n" + "=" * 60)
+    print("COLLECTING PLAYER POSITIONS")
+    print("=" * 60)
+
+    all_positions = []
+
+    for season in SEASONS:
+        print(f"\nFetching player positions for {season}...")
+
+        pos_df = get_all_players_with_positions(season)
+        if not pos_df.empty:
+            pos_df["SEASON"] = season
+            all_positions.append(pos_df)
+            print(f"  Found {len(pos_df)} players")
+        time.sleep(API_DELAY)
+
+    if all_positions:
+        combined = pd.concat(all_positions, ignore_index=True)
+        # Keep most recent position for each player
+        combined = combined.drop_duplicates(subset=["PLAYER_ID"], keep="first")
+        save_dataframe(combined, "player_positions.csv")
+        return combined
+
+    return pd.DataFrame()
+
+
+def collect_defense_vs_position(game_logs_df: pd.DataFrame, positions_df: pd.DataFrame):
+    """
+    Calculate and save defense vs position stats.
+
+    WHY: Shows how each team defends different positions.
+    Some teams are great vs guards but weak vs centers.
+    """
+    print("\n" + "=" * 60)
+    print("CALCULATING DEFENSE VS POSITION")
+    print("=" * 60)
+
+    if game_logs_df.empty or positions_df.empty:
+        print("Missing data - skipping defense vs position calculation")
+        return
+
+    defense_vs_pos = calculate_defense_vs_position(game_logs_df, positions_df)
+
+    if not defense_vs_pos.empty:
+        save_dataframe(defense_vs_pos, "defense_vs_position.csv")
+        print(f"\nDefense vs Position Stats:")
+        print(f"  Teams: {defense_vs_pos['TEAM_ABBREVIATION'].nunique()}")
+        print(f"  Positions: {defense_vs_pos['POSITION'].unique().tolist()}")
 
 
 def get_players_to_collect() -> list[str]:
@@ -281,8 +364,10 @@ def main():
 
     EXECUTION ORDER:
     1. Team data first (fast, few API calls)
-    2. Player list (1 API call)
-    3. Player game logs (slow, many API calls)
+    2. Player positions (few API calls)
+    3. Player list (1 API call)
+    4. Player game logs (slow, many API calls)
+    5. Defense vs position (calculated from collected data)
     """
     print("=" * 60)
     print("NBA TRAINING DATA COLLECTION")
@@ -296,14 +381,17 @@ def main():
     # Step 1: Team data
     collect_team_data()
 
-    # Step 2: Get player list
+    # Step 2: Player positions
+    positions_df = collect_player_positions()
+
+    # Step 3: Get player list
     player_names = get_players_to_collect()
 
     if not player_names:
         print("\nNo players to collect. Exiting.")
         return
 
-    # Step 3: Collect player game logs
+    # Step 4: Collect player game logs
     # NOTE: This can take 30+ minutes for 300 players
     print(f"\nThis will fetch data for {len(player_names)} players across {len(SEASONS)} seasons.")
     print(f"Estimated time: {len(player_names) * len(SEASONS) * API_DELAY / 60:.1f} minutes")
@@ -314,6 +402,10 @@ def main():
         return
 
     game_logs = collect_player_game_logs(player_names)
+
+    # Step 5: Calculate defense vs position
+    if not game_logs.empty and not positions_df.empty:
+        collect_defense_vs_position(game_logs, positions_df)
 
     # Summary
     print_summary(game_logs)
