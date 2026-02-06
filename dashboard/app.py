@@ -162,6 +162,51 @@ def get_hit_color(pct):
     else:
         return COLORS["hit_low"]
 
+
+def get_h2h_opponent(player_team):
+    """Get today's opponent for a given team (for H2H mode)."""
+    if not player_team:
+        return ""
+
+    teams_today = get_teams_playing_today()
+    if player_team not in teams_today:
+        return ""
+
+    today_games = get_todays_games()
+    if today_games.empty:
+        return ""
+
+    for _, game in today_games.iterrows():
+        home = game.get("HOME_TEAM", "")
+        away = game.get("AWAY_TEAM", "")
+        if player_team == home:
+            return away
+        elif player_team == away:
+            return home
+
+    return ""
+
+
+def filter_h2h_games(player_df, h2h_mode):
+    """Filter player games by H2H opponent if in H2H mode. Returns (filtered_df, opponent_name)."""
+    if h2h_mode != "h2h" or len(player_df) == 0:
+        return player_df, ""
+
+    player_team = player_df.iloc[0].get("TEAM_ABBREVIATION", "")
+    opponent = get_h2h_opponent(player_team)
+
+    if not opponent:
+        return player_df.head(0), ""  # Return empty df
+
+    def is_vs_opponent(matchup):
+        if not isinstance(matchup, str):
+            return False
+        return opponent in matchup
+
+    filtered_df = player_df[player_df["MATCHUP"].apply(is_vs_opponent)]
+    return filtered_df, opponent
+
+
 # Stat type configurations (organized: main stats, combos, then other)
 STAT_TYPES = [
     # Main stats first
@@ -531,12 +576,14 @@ def create_player_analysis_page():
                 html.Button("L5", id="period-l5", n_clicks=0, style=TAB_STYLE),
                 html.Button("L10", id="period-l10", n_clicks=0, style=TAB_ACTIVE),
                 html.Button("L20", id="period-l20", n_clicks=0, style=TAB_STYLE),
+                html.Button("H2H", id="period-h2h", n_clicks=0, style=TAB_STYLE),
                 html.Button(CURRENT_SEASON.split("-")[0], id="period-current", n_clicks=0, style=TAB_STYLE),
                 html.Button(PREVIOUS_SEASON.split("-")[0], id="period-previous", n_clicks=0, style=TAB_STYLE),
             ], style={"display": "flex", "marginBottom": "20px", "flexWrap": "wrap", "gap": "6px"}, className="period-tabs"),
 
             dcc.Store(id="selected-period", data=10),
             dcc.Store(id="selected-season", data=None),
+            dcc.Store(id="selected-h2h", data=None),  # Store for H2H opponent
             # Store the season values for use in callbacks
             dcc.Store(id="current-season-store", data=CURRENT_SEASON),
             dcc.Store(id="previous-season-store", data=PREVIOUS_SEASON),
@@ -676,6 +723,23 @@ def create_player_analysis_page():
                         "borderLeft": f"4px solid {COLORS['accent']}"
                     })
                 ])
+            ], style={**CARD, "marginTop": "16px"}),
+
+            # Best Props for Today section
+            html.Div([
+                html.Div([
+                    html.Span("🔥", style={"marginRight": "10px", "fontSize": "20px"}),
+                    html.Span("BEST PROPS FOR TODAY", style={
+                        "color": COLORS["text"],
+                        "fontSize": "18px",
+                        "fontWeight": "700",
+                        "letterSpacing": "-0.02em"
+                    })
+                ], style={"marginBottom": "16px", "display": "flex", "alignItems": "center"}),
+                html.Div(id="best-props-main", style={
+                    "maxHeight": "400px",
+                    "overflowY": "auto"
+                })
             ], style={**CARD, "marginTop": "16px"}),
 
         ], style={"flex": "2", "marginRight": "20px"}, className="main-content"),
@@ -1084,24 +1148,28 @@ def update_stat_tab_styles(selected):
 @callback(
     [Output("selected-period", "data"),
      Output("selected-season", "data"),
+     Output("selected-h2h", "data"),
      Output("period-l5", "style"),
      Output("period-l10", "style"),
      Output("period-l20", "style"),
+     Output("period-h2h", "style"),
      Output("period-current", "style"),
      Output("period-previous", "style")],
     [Input("period-l5", "n_clicks"),
      Input("period-l10", "n_clicks"),
      Input("period-l20", "n_clicks"),
+     Input("period-h2h", "n_clicks"),
      Input("period-current", "n_clicks"),
      Input("period-previous", "n_clicks")]
 )
-def update_period_tabs(l5, l10, l20, current, previous):
+def update_period_tabs(l5, l10, l20, h2h, current, previous):
     from dash import ctx
     triggered = ctx.triggered_id
 
-    styles = [TAB_STYLE] * 5
+    styles = [TAB_STYLE] * 6
     period = 10
     season = None
+    h2h_mode = None  # Will be set to "h2h" when H2H is selected
 
     if triggered == "period-l5":
         period, styles[0] = 5, TAB_ACTIVE
@@ -1109,12 +1177,14 @@ def update_period_tabs(l5, l10, l20, current, previous):
         period, styles[1] = 10, TAB_ACTIVE
     elif triggered == "period-l20":
         period, styles[2] = 20, TAB_ACTIVE
+    elif triggered == "period-h2h":
+        period, h2h_mode, styles[3] = 100, "h2h", TAB_ACTIVE  # Use large period, filter by opponent
     elif triggered == "period-current":
-        period, season, styles[3] = 100, CURRENT_SEASON, TAB_ACTIVE
+        period, season, styles[4] = 100, CURRENT_SEASON, TAB_ACTIVE
     elif triggered == "period-previous":
-        period, season, styles[4] = 100, PREVIOUS_SEASON, TAB_ACTIVE
+        period, season, styles[5] = 100, PREVIOUS_SEASON, TAB_ACTIVE
 
-    return [period, season] + styles
+    return [period, season, h2h_mode] + styles
 
 
 # Sidebar tab handler
@@ -1252,13 +1322,19 @@ def update_threshold_display(value):
     [Input("player-dropdown", "value"),
      Input("selected-stat", "data"),
      Input("selected-period", "data"),
+     Input("selected-h2h", "data"),
      Input("threshold-slider", "value")]
 )
-def update_hit_rate_header(player_name, stat, period, threshold):
+def update_hit_rate_header(player_name, stat, period, h2h_mode, threshold):
     if not player_name:
         return None
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+
+    # H2H mode: filter by today's opponent
+    h2h_opponent = ""
+    if h2h_mode == "h2h":
+        player_df, h2h_opponent = filter_h2h_games(player_df, h2h_mode)
 
     # Calculate stat values
     if "+" in stat:
@@ -1275,6 +1351,56 @@ def update_hit_rate_header(player_name, stat, period, threshold):
         hits = (recent["_stat"] >= threshold).sum()
         return (hits / len(recent)) * 100, hits
 
+    # Get display name for stat
+    stat_display = stat.replace("+", " + ")
+    for s in STAT_TYPES:
+        if s["id"] == stat:
+            stat_display = s["label"]
+            break
+
+    # H2H mode display
+    if h2h_mode == "h2h":
+        total_games = len(player_df)
+        if total_games == 0:
+            return html.Div([
+                html.Div([
+                    html.Span("% ", style={"color": COLORS["accent"], "fontSize": "18px"}),
+                    html.Span(f"{player_name} - {stat_display}", style={"fontSize": "16px", "fontWeight": "500"}),
+                ], style={"marginBottom": "12px"}),
+                html.Div(f"No games found vs {h2h_opponent}" if h2h_opponent else "Player not playing today",
+                         style={"color": COLORS["text_secondary"]})
+            ])
+
+        hit_pct, hits = calc_hit(player_df, total_games)
+
+        return html.Div([
+            html.Div([
+                html.Span("% ", style={"color": COLORS["accent"], "fontSize": "18px"}),
+                html.Span(f"{player_name} - {stat_display}", style={"fontSize": "16px", "fontWeight": "500"}),
+                html.Span(f" vs {h2h_opponent}", style={"color": COLORS["accent"], "fontSize": "14px", "marginLeft": "8px"}),
+            ], style={"marginBottom": "12px"}),
+
+            html.Div([
+                # Main hit rate
+                html.Div([
+                    html.Div(f"All {total_games} games vs {h2h_opponent}", style={"color": COLORS["text_secondary"], "fontSize": "12px"}),
+                    html.Div([
+                        html.Span(f"{hit_pct:.0f}%", style={
+                            "color": get_hit_color(hit_pct),
+                            "fontSize": "24px",
+                            "fontWeight": "600"
+                        }),
+                        html.Span(f" {hits} of {total_games}", style={
+                            "color": COLORS["text_secondary"],
+                            "fontSize": "14px",
+                            "marginLeft": "8px"
+                        })
+                    ])
+                ], style={"marginRight": "40px"}),
+            ], style={"display": "flex", "alignItems": "flex-end"}),
+        ])
+
+    # Normal mode display
     hit_pct, hits = calc_hit(player_df, period)
     l5_pct, _ = calc_hit(player_df, 5)
     l20_pct, _ = calc_hit(player_df, 20)
@@ -1284,13 +1410,6 @@ def update_hit_rate_header(player_name, stat, period, threshold):
     df_previous = player_df[player_df["SEASON"] == PREVIOUS_SEASON]
     pct_current, _ = calc_hit(df_current, len(df_current)) if len(df_current) > 0 else (0, 0)
     pct_previous, _ = calc_hit(df_previous, len(df_previous)) if len(df_previous) > 0 else (0, 0)
-
-    # Get display name for stat
-    stat_display = stat.replace("+", " + ")
-    for s in STAT_TYPES:
-        if s["id"] == stat:
-            stat_display = s["label"]
-            break
 
     return html.Div([
         html.Div([
@@ -1345,13 +1464,21 @@ def update_hit_rate_header(player_name, stat, period, threshold):
     Output("avg-median-footer", "children"),
     [Input("player-dropdown", "value"),
      Input("selected-stat", "data"),
-     Input("selected-period", "data")]
+     Input("selected-period", "data"),
+     Input("selected-h2h", "data")]
 )
-def update_avg_median(player_name, stat, period):
+def update_avg_median(player_name, stat, period, h2h_mode):
     if not player_name:
         return None
 
-    player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False).head(period)
+    player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+
+    # H2H mode: filter by today's opponent
+    h2h_opponent = ""
+    if h2h_mode == "h2h":
+        player_df, h2h_opponent = filter_h2h_games(player_df, h2h_mode)
+    else:
+        player_df = player_df.head(period)
 
     if "+" in stat:
         parts = stat.split("+")
@@ -1359,16 +1486,18 @@ def update_avg_median(player_name, stat, period):
     else:
         vals = player_df[stat] if stat in player_df.columns else pd.Series([0])
 
-    avg = vals.mean()
-    median = vals.median()
+    avg = vals.mean() if len(vals) > 0 else 0
+    median = vals.median() if len(vals) > 0 else 0
+
+    label = f"vs {h2h_opponent}" if h2h_mode == "h2h" and h2h_opponent else f"L{period}"
 
     return [
         html.Div([
-            html.Span("Average", style={"color": COLORS["text_secondary"], "marginRight": "8px"}),
+            html.Span(f"Average ({label})", style={"color": COLORS["text_secondary"], "marginRight": "8px"}),
             html.Span(f"{avg:.1f}", style={"fontWeight": "600"})
         ]),
         html.Div([
-            html.Span("Median", style={"color": COLORS["text_secondary"], "marginRight": "8px"}),
+            html.Span(f"Median ({label})", style={"color": COLORS["text_secondary"], "marginRight": "8px"}),
             html.Span(f"{median:.1f}", style={"fontWeight": "600"})
         ])
     ]
@@ -1380,19 +1509,24 @@ def update_avg_median(player_name, stat, period):
      Input("selected-stat", "data"),
      Input("selected-period", "data"),
      Input("selected-season", "data"),
+     Input("selected-h2h", "data"),
      Input("threshold-slider", "value")]
 )
-def update_main_chart(player_name, stat, period, season, threshold):
+def update_main_chart(player_name, stat, period, season, h2h_mode, threshold):
     if not player_name:
         return go.Figure()
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
+    # H2H mode: filter by today's opponent
+    if h2h_mode == "h2h":
+        player_df, _ = filter_h2h_games(player_df, h2h_mode)
     # Filter by season if specified
-    if season:
+    elif season:
         player_df = player_df[player_df["SEASON"] == season]
+    else:
+        player_df = player_df.head(period)
 
-    player_df = player_df.head(period)
     player_df = player_df.iloc[::-1]  # Reverse for chronological order
 
     fig = go.Figure()
@@ -1594,9 +1728,10 @@ def update_supporting_stat_mode(_avg_clicks, _median_clicks):
      Input("supporting-stat-mode", "data"),
      Input("selected-period", "data"),
      Input("selected-season", "data"),
+     Input("selected-h2h", "data"),
      Input("selected-shooting-stat", "data")]
 )
-def update_supporting_stats_cards(player_name, mode, period, season, current_selected):
+def update_supporting_stats_cards(player_name, mode, period, season, h2h_mode, current_selected):
     from dash import ctx
 
     if not player_name:
@@ -1611,7 +1746,10 @@ def update_supporting_stats_cards(player_name, mode, period, season, current_sel
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    if season:
+    # H2H mode: filter by today's opponent
+    if h2h_mode == "h2h":
+        player_df, _ = filter_h2h_games(player_df, h2h_mode)
+    elif season:
         player_df = player_df[player_df["SEASON"] == season]
     elif period:
         player_df = player_df.head(period)
@@ -1732,9 +1870,10 @@ def select_supporting_stat(clicks):
     [Input("player-dropdown", "value"),
      Input("selected-shooting-stat", "data"),
      Input("selected-period", "data"),
-     Input("selected-season", "data")]
+     Input("selected-season", "data"),
+     Input("selected-h2h", "data")]
 )
-def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
+def update_shooting_breakdown_chart(player_name, selected_stat, period, season, h2h_mode):
     """Create bar chart showing stats per game - stacked for shooting, simple for other stats"""
     fig = go.Figure()
 
@@ -1749,7 +1888,10 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    if season:
+    # H2H mode: filter by today's opponent
+    if h2h_mode == "h2h":
+        player_df, _ = filter_h2h_games(player_df, h2h_mode)
+    elif season:
         player_df = player_df[player_df["SEASON"] == season]
     elif period:
         player_df = player_df.head(period)
@@ -1910,16 +2052,23 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
     Output("player-insights", "children"),
     [Input("player-dropdown", "value"),
      Input("selected-period", "data"),
-     Input("selected-season", "data")]
+     Input("selected-season", "data"),
+     Input("selected-h2h", "data")]
 )
-def generate_player_insights(player_name, period, season):
+def generate_player_insights(player_name, period, season, h2h_mode):
     """Generate smart insights about player performance trends"""
     if not player_name:
         return "Select a player to see insights."
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    if season:
+    # H2H mode: filter by today's opponent
+    h2h_opponent = ""
+    if h2h_mode == "h2h":
+        player_df, h2h_opponent = filter_h2h_games(player_df, h2h_mode)
+        if len(player_df) < 2:
+            return f"Not enough H2H games vs {h2h_opponent if h2h_opponent else 'opponent'} to generate insights."
+    elif season:
         player_df = player_df[player_df["SEASON"] == season]
     elif period:
         player_df = player_df.head(period)
@@ -2055,6 +2204,186 @@ def generate_player_insights(player_name, period, season):
             insights.append(f"Over {line} points in {hits} of last {len(recent)} games ({pts_avg:.1f} PPG).")
 
     return " ".join(insights)
+
+
+@callback(
+    Output("best-props-main", "children"),
+    [Input("player-dropdown", "value")]
+)
+def update_best_props_main(selected_player):
+    """Generate best props for today's games - shown in main content area"""
+    teams_today = get_teams_playing_today()
+
+    if not teams_today:
+        return html.Div("No games scheduled today", style={
+            "color": COLORS["text_muted"],
+            "textAlign": "center",
+            "padding": "30px"
+        })
+
+    # Get players on teams playing today (exclude injured)
+    best_props = []
+
+    for player_name in PLAYERS[:60]:  # Check top 60 players
+        player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+        if len(player_df) < 5:
+            continue
+
+        last_game = player_df.iloc[0]
+        matchup = last_game.get("MATCHUP", "")
+        if not isinstance(matchup, str):
+            continue
+
+        team = matchup.split()[0] if matchup else ""
+        if team not in teams_today:
+            continue
+
+        # Check injury status
+        try:
+            injury_status = get_player_injury_status(player_name)
+            if injury_status.get("status") == "OUT":
+                continue
+        except:
+            pass
+
+        # Get opponent
+        opponent = ""
+        if "@" in matchup:
+            opponent = matchup.split("@")[-1].strip()[:3]
+        elif "vs." in matchup:
+            opponent = matchup.split("vs.")[-1].strip()[:3]
+
+        # Get player position
+        player_position = "G"
+        if not PLAYER_POSITIONS.empty:
+            pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
+            if len(pos_match) > 0:
+                pos = pos_match["POSITION"].iloc[0]
+                if "G" in str(pos):
+                    player_position = "G"
+                elif "F" in str(pos):
+                    player_position = "F"
+                elif "C" in str(pos):
+                    player_position = "C"
+
+        # Get defensive ranking
+        opp_def_rank = 15
+        if not DEFENSE_VS_POS.empty and opponent:
+            opp_def = DEFENSE_VS_POS[
+                (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) &
+                (DEFENSE_VS_POS["POSITION"] == player_position)
+            ]
+            if len(opp_def) > 0:
+                opp_def_rank = int(opp_def["PTS_RANK"].iloc[0])
+
+        # Calculate stats
+        l10 = player_df.head(10)
+        pts_avg = l10["PTS"].mean()
+        ast_avg = l10["AST"].mean() if "AST" in l10.columns else 0
+        reb_avg = l10["REB"].mean() if "REB" in l10.columns else 0
+
+        # Calculate hit rates
+        pts_line = round(pts_avg * 0.9, 1)
+        pts_hits = (l10["PTS"] > pts_line).sum()
+        pts_hit_pct = int(pts_hits / len(l10) * 100)
+
+        # Score based on hit rate and matchup
+        score = pts_hit_pct
+        if opp_def_rank >= 20:  # Weak defense
+            score += 15
+        elif opp_def_rank <= 6:  # Elite defense
+            score -= 10
+
+        # Determine confidence
+        if score >= 85:
+            confidence = "HIGH"
+            conf_color = COLORS["hit_high"]
+        elif score >= 70:
+            confidence = "MED"
+            conf_color = COLORS["hit_mid"]
+        else:
+            confidence = "LOW"
+            conf_color = COLORS["hit_low"]
+
+        # Only include if decent hit rate
+        if pts_hit_pct >= 60:
+            pos_name = {"G": "guards", "F": "forwards", "C": "centers"}.get(player_position, "players")
+            reason = f"vs {opponent} (#{opp_def_rank} vs {pos_name}) • {pts_hit_pct}% hit rate L10"
+
+            best_props.append({
+                "player": player_name,
+                "prop": f"Over {pts_line} PTS",
+                "projection": pts_avg,
+                "hit_rate": pts_hit_pct,
+                "confidence": confidence,
+                "conf_color": conf_color,
+                "reason": reason,
+                "score": score,
+                "opponent": opponent,
+                "def_rank": opp_def_rank
+            })
+
+    # Sort by score
+    best_props.sort(key=lambda x: x["score"], reverse=True)
+
+    if not best_props:
+        return html.Div("No strong props found for today", style={
+            "color": COLORS["text_muted"],
+            "textAlign": "center",
+            "padding": "30px"
+        })
+
+    # Build UI for top 5 props
+    prop_cards = []
+    for prop in best_props[:5]:
+        prop_cards.append(
+            html.Div([
+                # Header row
+                html.Div([
+                    html.Div([
+                        html.Span(prop["player"], style={
+                            "fontWeight": "600",
+                            "fontSize": "14px",
+                            "color": COLORS["text"]
+                        }),
+                        html.Span(f" vs {prop['opponent']}", style={
+                            "color": COLORS["text_muted"],
+                            "fontSize": "13px"
+                        })
+                    ]),
+                    html.Span(prop["confidence"], style={
+                        "backgroundColor": prop["conf_color"],
+                        "color": "#000" if prop["confidence"] == "MED" else "#fff",
+                        "padding": "2px 8px",
+                        "borderRadius": "4px",
+                        "fontSize": "11px",
+                        "fontWeight": "700"
+                    })
+                ], style={"display": "flex", "justifyContent": "space-between", "alignItems": "center", "marginBottom": "8px"}),
+
+                # Prop line
+                html.Div(prop["prop"], style={
+                    "color": COLORS["accent"],
+                    "fontSize": "16px",
+                    "fontWeight": "700",
+                    "marginBottom": "6px"
+                }),
+
+                # Reason
+                html.Div(prop["reason"], style={
+                    "color": COLORS["text_secondary"],
+                    "fontSize": "12px"
+                })
+            ], style={
+                "padding": "14px",
+                "backgroundColor": COLORS["bg"],
+                "borderRadius": "10px",
+                "marginBottom": "10px",
+                "borderLeft": f"3px solid {prop['conf_color']}"
+            })
+        )
+
+    return html.Div(prop_cards)
 
 
 def create_matchup_content(player_name, stat):
@@ -2439,7 +2768,7 @@ def create_injuries_content(player_name):
 
 
 def create_insights_content(player_name, _stat=None):
-    """Create the AI Expert Insight panel with deep analysis"""
+    """Create the AI Expert Insight panel with deep analysis including matchup data"""
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
     if len(player_df) < 5:
@@ -2453,13 +2782,144 @@ def create_insights_content(player_name, _stat=None):
     l5_reb = l5["REB"].mean() if "REB" in l5.columns else 0
     l5_ast = l5["AST"].mean() if "AST" in l5.columns else 0
 
-    # Get player's team
+    # Get player's team and position
     player_team = player_df.iloc[0].get("TEAM_ABBREVIATION", "his team")
+
+    # Get player position
+    player_position = "G"  # Default
+    if not PLAYER_POSITIONS.empty:
+        pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
+        if len(pos_match) > 0:
+            pos = pos_match["POSITION"].iloc[0]
+            if "G" in str(pos):
+                player_position = "G"
+            elif "F" in str(pos):
+                player_position = "F"
+            elif "C" in str(pos):
+                player_position = "C"
+
+    # Get today's opponent from teams playing today or last matchup
+    teams_today = get_teams_playing_today()
+    opponent = ""
+    opponent_full = ""
+
+    # Check if player's team is playing today
+    if player_team in teams_today:
+        # Find opponent from today's games
+        today_games = get_todays_games()
+        for game in today_games:
+            home = game.get("HOME_TEAM", "")
+            away = game.get("AWAY_TEAM", "")
+            if player_team == home:
+                opponent = away
+                break
+            elif player_team == away:
+                opponent = home
+                break
+
+    # If no game today, use most recent opponent
+    if not opponent:
+        last_matchup = player_df.iloc[0].get("MATCHUP", "")
+        if isinstance(last_matchup, str):
+            if "@" in last_matchup:
+                opponent = last_matchup.split("@")[-1].strip()[:3]
+            elif "vs." in last_matchup:
+                opponent = last_matchup.split("vs.")[-1].strip()[:3]
+
+    # Team name mapping for display
+    team_names = {
+        "ATL": "Atlanta Hawks", "BOS": "Boston Celtics", "BKN": "Brooklyn Nets",
+        "CHA": "Charlotte Hornets", "CHI": "Chicago Bulls", "CLE": "Cleveland Cavaliers",
+        "DAL": "Dallas Mavericks", "DEN": "Denver Nuggets", "DET": "Detroit Pistons",
+        "GSW": "Golden State Warriors", "HOU": "Houston Rockets", "IND": "Indiana Pacers",
+        "LAC": "LA Clippers", "LAL": "Los Angeles Lakers", "MEM": "Memphis Grizzlies",
+        "MIA": "Miami Heat", "MIL": "Milwaukee Bucks", "MIN": "Minnesota Timberwolves",
+        "NOP": "New Orleans Pelicans", "NYK": "New York Knicks", "OKC": "Oklahoma City Thunder",
+        "ORL": "Orlando Magic", "PHI": "Philadelphia 76ers", "PHX": "Phoenix Suns",
+        "POR": "Portland Trail Blazers", "SAC": "Sacramento Kings", "SAS": "San Antonio Spurs",
+        "TOR": "Toronto Raptors", "UTA": "Utah Jazz", "WAS": "Washington Wizards"
+    }
+    opponent_full = team_names.get(opponent, opponent)
+
+    # Get opponent's defensive ranking vs player's position
+    opp_def_rank_pts = 15  # Default middle
+    opp_def_rank_ast = 15
+    opp_def_rank_reb = 15
+    opp_pts_allowed = l5_avg  # Default
+    opp_ast_allowed = l5_ast
+    matchup_analysis = ""
+
+    if not DEFENSE_VS_POS.empty and opponent:
+        # Get current season defense data
+        opp_def = DEFENSE_VS_POS[
+            (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) &
+            (DEFENSE_VS_POS["POSITION"] == player_position) &
+            (DEFENSE_VS_POS["SEASON"] == CURRENT_SEASON)
+        ]
+        if len(opp_def) == 0:
+            # Try previous season
+            opp_def = DEFENSE_VS_POS[
+                (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) &
+                (DEFENSE_VS_POS["POSITION"] == player_position)
+            ].sort_values("SEASON", ascending=False).head(1)
+
+        if len(opp_def) > 0:
+            opp_def_rank_pts = int(opp_def["PTS_RANK"].iloc[0])
+            opp_def_rank_ast = int(opp_def["AST_RANK"].iloc[0])
+            opp_def_rank_reb = int(opp_def["REB_RANK"].iloc[0])
+            opp_pts_allowed = opp_def["AVG_PTS_ALLOWED"].iloc[0]
+            opp_ast_allowed = opp_def["AVG_AST_ALLOWED"].iloc[0]
+
+    # Categorize defense strength
+    def_strength_pts = "elite" if opp_def_rank_pts <= 6 else "good" if opp_def_rank_pts <= 15 else "weak"
+    def_strength_ast = "elite" if opp_def_rank_ast <= 6 else "good" if opp_def_rank_ast <= 15 else "weak"
+
+    pos_name = {"G": "guards", "F": "forwards", "C": "centers"}.get(player_position, "players")
+
+    # Calculate performance vs similar defenses
+    # Look at games vs teams with similar defensive rank
+    similar_def_games = []
+    for _, row in l10.iterrows():
+        matchup = row.get("MATCHUP", "")
+        if isinstance(matchup, str):
+            if "@" in matchup:
+                game_opp = matchup.split("@")[-1].strip()[:3]
+            elif "vs." in matchup:
+                game_opp = matchup.split("vs.")[-1].strip()[:3]
+            else:
+                continue
+
+            # Check this opponent's defensive rank
+            game_opp_def = DEFENSE_VS_POS[
+                (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == game_opp) &
+                (DEFENSE_VS_POS["POSITION"] == player_position)
+            ]
+            if len(game_opp_def) > 0:
+                game_opp_rank = game_opp_def["PTS_RANK"].iloc[0]
+                # Similar defense = within 5 ranks
+                if abs(game_opp_rank - opp_def_rank_pts) <= 8:
+                    similar_def_games.append(row)
+
+    # Calculate hit rate vs similar defenses
+    similar_hits = 0
+    similar_total = len(similar_def_games)
+    similar_avg_pts = l5_avg
+    similar_avg_ast = l5_ast
+
+    if similar_total >= 3:
+        similar_df = pd.DataFrame(similar_def_games)
+        similar_avg_pts = similar_df["PTS"].mean()
+        similar_avg_ast = similar_df["AST"].mean() if "AST" in similar_df.columns else 0
 
     # Determine the line (use ~85% of average as typical line)
     pts_line = round(l5_avg * 0.9, 1)
     hits_l5 = (l5["PTS"] > pts_line).sum()
     hit_pct = int(hits_l5 / 5 * 100)
+
+    # Calculate combo lines
+    pa_avg = l5_avg + l5_ast  # Points + Assists
+    pa_line = round(pa_avg * 0.9, 1)
+    pa_hits = ((l5["PTS"] + l5["AST"]) > pa_line).sum() if "AST" in l5.columns else 0
 
     # Find recent high games
     recent_highs = l5[l5["PTS"] >= 30]
@@ -2486,65 +2946,118 @@ def create_insights_content(player_name, _stat=None):
         elif "vs." in worst_matchup:
             worst_opp = worst_matchup.split("vs.")[-1].strip()[:3]
 
-    # Build bullish indicators
+    # Build bullish indicators with matchup context
     bullish = []
+
+    # Matchup-based bullish
+    if def_strength_pts == "weak":
+        bullish.append(f"Favorable matchup: {opponent_full} ranks #{opp_def_rank_pts} defending {pos_name} (bottom 10).")
+    if def_strength_ast == "weak" and l5_ast >= 4:
+        bullish.append(f"{opponent_full} allows {opp_ast_allowed:.1f} assists to {pos_name} (rank #{opp_def_rank_ast}).")
+
     if hit_pct >= 80:
         bullish.append(f"Hit the over in {hit_pct}% of the last five games.")
     elif hit_pct >= 60:
         bullish.append(f"Hit the over in {hit_pct}% of recent games.")
 
     if len(high_game_opponents) >= 2:
-        bullish.append(f"Showcased elite upside with back-to-back 30+ point performances against {' and '.join(high_game_opponents)}.")
+        bullish.append(f"Back-to-back 30+ point games against {' and '.join(high_game_opponents)}.")
     elif len(high_game_opponents) == 1:
         bullish.append(f"Recorded a 30+ point game against {high_game_opponents[0]} recently.")
 
-    # Check if primary scoring option (high usage)
     if l5_avg >= 20:
-        bullish.append(f"Maintains high offensive volume as a primary scoring option for the {player_team}.")
+        bullish.append(f"Primary scoring option for {player_team} ({l5_avg:.1f} PPG over L5).")
 
-    # Check assists trend
     if l5_ast >= 5:
-        bullish.append(f"Averaging {l5_ast:.1f} assists over last 5 games, contributing as a playmaker.")
+        bullish.append(f"Strong playmaking: {l5_ast:.1f} assists over last 5 games.")
 
-    # Check rebounds for bigs
     if l5_reb >= 8:
-        bullish.append(f"Pulling down {l5_reb:.1f} rebounds per game, dominating the glass.")
+        bullish.append(f"Dominant on the glass: {l5_reb:.1f} rebounds per game.")
 
-    # Build risk factors
+    # Build risk factors with matchup context
     risks = []
-    if worst_pts < pts_line * 0.7:
-        risks.append(f"Recorded a significant drop to {int(worst_pts)} points in the most recent matchup against {worst_opp}.")
 
-    # Check for variance
+    # Matchup-based risks
+    if def_strength_pts == "elite":
+        risks.append(f"Tough matchup: {opponent_full} ranks #{opp_def_rank_pts} defending {pos_name} (top 6).")
+
+    if worst_pts < pts_line * 0.7:
+        risks.append(f"Dropped to {int(worst_pts)} points against {worst_opp} recently.")
+
     pts_std = l5["PTS"].std()
     if pts_std > 8:
         risks.append("High game-to-game variance in scoring output.")
 
-    # Check minutes trend
     if "MIN" in l5.columns:
         min_trend = l5["MIN"].iloc[0] - l5["MIN"].mean()
         if min_trend < -3:
             risks.append("Recent decrease in playing time may impact production.")
 
-    # Check back-to-back (simplified)
-    if l5_avg > 28:
-        risks.append("Age and fatigue factors may lead to variance in shot attempts during back-to-back scenarios.")
-
-    # Add a generic risk if none found
     if not risks:
-        risks.append("No significant risk factors identified based on recent performance.")
+        risks.append("No significant risk factors identified.")
 
-    # Determine final recommendation
-    if hit_pct >= 80:
-        recommendation = f"Based on the {hit_pct}% hit rate and historical consistency, the 'Over' {pts_line} remains the statistically favored outcome"
-        if worst_pts < pts_line:
-            recommendation += f", provided the recent {int(worst_pts)}-point game is treated as an outlier."
-        else:
-            recommendation += "."
-    elif hit_pct >= 60:
-        recommendation = f"The 'Over' {pts_line} has a moderate edge with a {hit_pct}% hit rate. Consider the matchup before placing."
+    # Build matchup-aware recommendation
+    # Get model prediction
+    model_prediction = l5_avg
+    if "PTS" in PREDICTORS:
+        try:
+            result = PREDICTORS["PTS"].predict_player_game(player_name, DF)
+            if "error" not in result:
+                model_prediction = result.get("predicted_pts", l5_avg)
+        except:
+            pass
+
+    # Adjust prediction based on matchup
+    if def_strength_pts == "weak":
+        matchup_adj = 1.05  # 5% boost vs weak defense
+    elif def_strength_pts == "elite":
+        matchup_adj = 0.92  # 8% reduction vs elite defense
     else:
-        recommendation = f"Exercise caution on the 'Over' {pts_line}. Recent hit rate of {hit_pct}% suggests variance in outcomes."
+        matchup_adj = 1.0
+
+    adjusted_projection = model_prediction * matchup_adj
+
+    # Build deep intelligence text with matchup
+    if opponent:
+        if def_strength_pts == "weak":
+            matchup_text = (
+                f"He is facing the {opponent_full} defense which ranks #{opp_def_rank_pts} against {pos_name}. "
+                f"The model projects him to score {adjusted_projection:.1f} points. "
+            )
+            if similar_total >= 3:
+                matchup_text += f"Against teams with similar weak defenses, he averages {similar_avg_pts:.1f} points."
+        elif def_strength_pts == "elite":
+            matchup_text = (
+                f"Caution: He faces the {opponent_full} who rank #{opp_def_rank_pts} defending {pos_name}. "
+                f"The model projects {adjusted_projection:.1f} points with this tough matchup factored in."
+            )
+        else:
+            matchup_text = (
+                f"He faces {opponent_full} (#{opp_def_rank_pts} vs {pos_name}). "
+                f"Model projection: {adjusted_projection:.1f} points."
+            )
+    else:
+        matchup_text = f"Model projection: {adjusted_projection:.1f} points based on recent form."
+
+    # Final recommendation with matchup context
+    if def_strength_pts == "weak" and hit_pct >= 60:
+        recommendation = (
+            f"Strong play: Over {pts_line} points. Favorable matchup vs {opponent} (#{opp_def_rank_pts} defense) "
+            f"combined with {hit_pct}% hit rate makes this a high-confidence pick."
+        )
+        if l5_ast >= 4:
+            recommendation += f" Also consider Over {pa_line} P+A ({pa_hits}/5 recent hits)."
+    elif def_strength_pts == "elite":
+        recommendation = (
+            f"Proceed with caution on Over {pts_line}. The {opponent_full}'s elite defense (#{opp_def_rank_pts}) "
+            f"could limit scoring. Consider the under or a lower line."
+        )
+    elif hit_pct >= 80:
+        recommendation = f"Over {pts_line} points is statistically favored with {hit_pct}% hit rate."
+    elif hit_pct >= 60:
+        recommendation = f"Moderate edge on Over {pts_line} ({hit_pct}% hit rate). Matchup is neutral."
+    else:
+        recommendation = f"Exercise caution on Over {pts_line}. Recent hit rate of {hit_pct}% suggests variance."
 
     # Build the UI
     return html.Div([
@@ -2568,7 +3081,7 @@ def create_insights_content(player_name, _stat=None):
             })
         ]),
 
-        # Deep Intelligence Report
+        # Deep Intelligence Report with Matchup Analysis
         html.Div([
             html.Div([
                 html.Span("⚡", style={"color": COLORS["accent"], "marginRight": "10px", "fontSize": "16px"}),
@@ -2581,9 +3094,8 @@ def create_insights_content(player_name, _stat=None):
             ], style={"marginBottom": "18px"}),
 
             html.P(
-                f"{player_name} has demonstrated significant scoring efficiency recently, "
-                f"clearing the {pts_line} point line in {hits_l5} out of his last five contests "
-                f"with a five-game average of {l5_avg:.1f} points.",
+                f"{player_name} has a {l5_avg:.1f} point average over his last 5 games, "
+                f"clearing the {pts_line} line in {hits_l5} of 5 contests. {matchup_text}",
                 style={
                     "color": COLORS["text"],
                     "fontSize": "15px",
