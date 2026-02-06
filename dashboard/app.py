@@ -1747,10 +1747,10 @@ def update_supporting_stat_mode(_avg_clicks, _median_clicks):
      Input("supporting-stat-mode", "data"),
      Input("selected-period", "data"),
      Input("selected-season", "data"),
-     Input("selected-h2h", "data"),
      Input("selected-shooting-stat", "data")]
 )
-def update_supporting_stats_cards(player_name, mode, period, season, h2h_mode, current_selected):
+def update_supporting_stats_cards(player_name, mode, period, season, current_selected):
+    """Supporting stats should NOT change with H2H - always show period/season stats."""
     from dash import ctx
 
     if not player_name:
@@ -1765,10 +1765,8 @@ def update_supporting_stats_cards(player_name, mode, period, season, h2h_mode, c
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    # H2H mode: filter by today's opponent (last 10 games vs today's opponent)
-    if h2h_mode == "h2h":
-        player_df, _ = filter_h2h_games(player_df, h2h_mode, player_name)
-    elif season:
+    # Filter by season or period (H2H does NOT affect supporting stats)
+    if season:
         player_df = player_df[player_df["SEASON"] == season]
     elif period:
         player_df = player_df.head(period)
@@ -1889,11 +1887,10 @@ def select_supporting_stat(clicks):
     [Input("player-dropdown", "value"),
      Input("selected-shooting-stat", "data"),
      Input("selected-period", "data"),
-     Input("selected-season", "data"),
-     Input("selected-h2h", "data")]
+     Input("selected-season", "data")]
 )
-def update_shooting_breakdown_chart(player_name, selected_stat, period, season, h2h_mode):
-    """Create bar chart showing stats per game - stacked for shooting, simple for other stats"""
+def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
+    """Create bar chart showing stats per game. H2H does NOT affect this chart."""
     fig = go.Figure()
 
     if not player_name or not selected_stat:
@@ -1907,10 +1904,8 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season, 
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    # H2H mode: filter by today's opponent (last 10 games vs today's opponent)
-    if h2h_mode == "h2h":
-        player_df, _ = filter_h2h_games(player_df, h2h_mode, player_name)
-    elif season:
+    # Filter by season or period (H2H does NOT affect supporting stats)
+    if season:
         player_df = player_df[player_df["SEASON"] == season]
     elif period:
         player_df = player_df.head(period)
