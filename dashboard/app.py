@@ -163,37 +163,55 @@ def get_hit_color(pct):
         return COLORS["hit_low"]
 
 
-def get_h2h_opponent(player_team):
-    """Get today's opponent for a given team (for H2H mode)."""
-    if not player_team:
+def get_player_current_team(player_name):
+    """Get player's current team from PLAYER_POSITIONS."""
+    if PLAYER_POSITIONS.empty:
         return ""
+    pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
+    if len(pos_match) > 0:
+        return str(pos_match["TEAM_ABBREVIATION"].iloc[0])
+    return ""
+
+
+def get_h2h_opponent_for_player(player_name):
+    """Get today's opponent for a player (for H2H mode)."""
+    player_team = get_player_current_team(player_name)
+    if not player_team:
+        return "", ""
 
     teams_today = get_teams_playing_today()
     if player_team not in teams_today:
-        return ""
+        return "", ""
 
     today_games = get_todays_games()
     if today_games.empty:
-        return ""
+        return "", ""
 
     for _, game in today_games.iterrows():
         home = game.get("HOME_TEAM", "")
         away = game.get("AWAY_TEAM", "")
         if player_team == home:
-            return away
+            return away, player_team
         elif player_team == away:
-            return home
+            return home, player_team
 
-    return ""
+    return "", ""
 
 
-def filter_h2h_games(player_df, h2h_mode):
-    """Filter player games by H2H opponent if in H2H mode. Returns (filtered_df, opponent_name)."""
+def filter_h2h_games(player_df, h2h_mode, player_name=None):
+    """Filter player games by H2H opponent if in H2H mode. Returns (filtered_df, opponent_name).
+
+    Shows last 10 games against today's opponent.
+    """
     if h2h_mode != "h2h" or len(player_df) == 0:
         return player_df, ""
 
-    player_team = player_df.iloc[0].get("TEAM_ABBREVIATION", "")
-    opponent = get_h2h_opponent(player_team)
+    # Get player name from df if not provided
+    if not player_name and len(player_df) > 0:
+        player_name = player_df.iloc[0].get("PLAYER_NAME", "")
+
+    # Get today's opponent using PLAYER_POSITIONS for current team
+    opponent, _ = get_h2h_opponent_for_player(player_name)
 
     if not opponent:
         return player_df.head(0), ""  # Return empty df
@@ -203,7 +221,8 @@ def filter_h2h_games(player_df, h2h_mode):
             return False
         return opponent in matchup
 
-    filtered_df = player_df[player_df["MATCHUP"].apply(is_vs_opponent)]
+    # Filter to games vs this opponent, then take last 10
+    filtered_df = player_df[player_df["MATCHUP"].apply(is_vs_opponent)].head(10)
     return filtered_df, opponent
 
 
@@ -1331,10 +1350,10 @@ def update_hit_rate_header(player_name, stat, period, h2h_mode, threshold):
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    # H2H mode: filter by today's opponent
+    # H2H mode: filter by today's opponent (last 10 games vs today's opponent)
     h2h_opponent = ""
     if h2h_mode == "h2h":
-        player_df, h2h_opponent = filter_h2h_games(player_df, h2h_mode)
+        player_df, h2h_opponent = filter_h2h_games(player_df, h2h_mode, player_name)
 
     # Calculate stat values
     if "+" in stat:
@@ -1473,10 +1492,10 @@ def update_avg_median(player_name, stat, period, h2h_mode):
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    # H2H mode: filter by today's opponent
+    # H2H mode: filter by today's opponent (last 10 games vs today's opponent)
     h2h_opponent = ""
     if h2h_mode == "h2h":
-        player_df, h2h_opponent = filter_h2h_games(player_df, h2h_mode)
+        player_df, h2h_opponent = filter_h2h_games(player_df, h2h_mode, player_name)
     else:
         player_df = player_df.head(period)
 
@@ -1518,9 +1537,9 @@ def update_main_chart(player_name, stat, period, season, h2h_mode, threshold):
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    # H2H mode: filter by today's opponent
+    # H2H mode: filter by today's opponent (last 10 games vs today's opponent)
     if h2h_mode == "h2h":
-        player_df, _ = filter_h2h_games(player_df, h2h_mode)
+        player_df, _ = filter_h2h_games(player_df, h2h_mode, player_name)
     # Filter by season if specified
     elif season:
         player_df = player_df[player_df["SEASON"] == season]
@@ -1746,9 +1765,9 @@ def update_supporting_stats_cards(player_name, mode, period, season, h2h_mode, c
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    # H2H mode: filter by today's opponent
+    # H2H mode: filter by today's opponent (last 10 games vs today's opponent)
     if h2h_mode == "h2h":
-        player_df, _ = filter_h2h_games(player_df, h2h_mode)
+        player_df, _ = filter_h2h_games(player_df, h2h_mode, player_name)
     elif season:
         player_df = player_df[player_df["SEASON"] == season]
     elif period:
@@ -1888,9 +1907,9 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season, 
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    # H2H mode: filter by today's opponent
+    # H2H mode: filter by today's opponent (last 10 games vs today's opponent)
     if h2h_mode == "h2h":
-        player_df, _ = filter_h2h_games(player_df, h2h_mode)
+        player_df, _ = filter_h2h_games(player_df, h2h_mode, player_name)
     elif season:
         player_df = player_df[player_df["SEASON"] == season]
     elif period:
@@ -2062,10 +2081,10 @@ def generate_player_insights(player_name, period, season, h2h_mode):
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
 
-    # H2H mode: filter by today's opponent
+    # H2H mode: filter by today's opponent (last 10 games vs today's opponent)
     h2h_opponent = ""
     if h2h_mode == "h2h":
-        player_df, h2h_opponent = filter_h2h_games(player_df, h2h_mode)
+        player_df, h2h_opponent = filter_h2h_games(player_df, h2h_mode, player_name)
         if len(player_df) < 2:
             return f"Not enough H2H games vs {h2h_opponent if h2h_opponent else 'opponent'} to generate insights."
     elif season:
