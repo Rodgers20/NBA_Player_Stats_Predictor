@@ -2212,7 +2212,25 @@ def generate_player_insights(player_name, period, season, h2h_mode):
 )
 def update_best_props_main(selected_player):
     """Generate best props for today's games - shown in main content area"""
-    teams_today = get_teams_playing_today()
+    today_games = get_todays_games()
+
+    if today_games.empty:
+        return html.Div("No games scheduled today", style={
+            "color": COLORS["text_muted"],
+            "textAlign": "center",
+            "padding": "30px"
+        })
+
+    # Build a mapping of team -> opponent for today's games
+    team_to_opponent = {}
+    for _, game in today_games.iterrows():
+        home = game.get("HOME_TEAM", "")
+        away = game.get("AWAY_TEAM", "")
+        if home and away:
+            team_to_opponent[home] = away
+            team_to_opponent[away] = home
+
+    teams_today = set(team_to_opponent.keys())
 
     if not teams_today:
         return html.Div("No games scheduled today", style={
@@ -2224,18 +2242,28 @@ def update_best_props_main(selected_player):
     # Get players on teams playing today (exclude injured)
     best_props = []
 
-    for player_name in PLAYERS[:60]:  # Check top 60 players
+    for player_name in PLAYERS[:100]:  # Check top 100 players
         player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
         if len(player_df) < 5:
             continue
 
+        # Get player's current team from their most recent game
         last_game = player_df.iloc[0]
-        matchup = last_game.get("MATCHUP", "")
-        if not isinstance(matchup, str):
+        player_team = last_game.get("TEAM_ABBREVIATION", "")
+
+        # If TEAM_ABBREVIATION not available, try to parse from matchup
+        if not player_team:
+            matchup = last_game.get("MATCHUP", "")
+            if isinstance(matchup, str):
+                player_team = matchup.split()[0] if matchup else ""
+
+        # Skip if player's team isn't playing today
+        if player_team not in teams_today:
             continue
 
-        team = matchup.split()[0] if matchup else ""
-        if team not in teams_today:
+        # Get TODAY's actual opponent from today's schedule
+        opponent = team_to_opponent.get(player_team, "")
+        if not opponent:
             continue
 
         # Check injury status
@@ -2245,13 +2273,6 @@ def update_best_props_main(selected_player):
                 continue
         except:
             pass
-
-        # Get opponent
-        opponent = ""
-        if "@" in matchup:
-            opponent = matchup.split("@")[-1].strip()[:3]
-        elif "vs." in matchup:
-            opponent = matchup.split("vs.")[-1].strip()[:3]
 
         # Get player position
         player_position = "G"
@@ -2266,7 +2287,7 @@ def update_best_props_main(selected_player):
                 elif "C" in str(pos):
                     player_position = "C"
 
-        # Get defensive ranking
+        # Get defensive ranking for TODAY's opponent
         opp_def_rank = 15
         if not DEFENSE_VS_POS.empty and opponent:
             opp_def = DEFENSE_VS_POS[
@@ -2276,11 +2297,9 @@ def update_best_props_main(selected_player):
             if len(opp_def) > 0:
                 opp_def_rank = int(opp_def["PTS_RANK"].iloc[0])
 
-        # Calculate stats
+        # Calculate stats from last 10 games
         l10 = player_df.head(10)
         pts_avg = l10["PTS"].mean()
-        ast_avg = l10["AST"].mean() if "AST" in l10.columns else 0
-        reb_avg = l10["REB"].mean() if "REB" in l10.columns else 0
 
         # Calculate hit rates
         pts_line = round(pts_avg * 0.9, 1)
@@ -2312,6 +2331,7 @@ def update_best_props_main(selected_player):
 
             best_props.append({
                 "player": player_name,
+                "team": player_team,
                 "prop": f"Over {pts_line} PTS",
                 "projection": pts_avg,
                 "hit_rate": pts_hit_pct,
@@ -3212,8 +3232,41 @@ def create_best_props_content(_stat=None):
     Includes single stats (PTS, AST, REB) and combos (PTS+AST, PTS+REB, PRA).
     Shows WHY each prop was selected with matchup analysis.
     """
-    # Get teams playing today
-    teams_today = get_teams_playing_today()
+    # Get today's actual games
+    today_games = get_todays_games()
+
+    if today_games.empty:
+        return html.Div([
+            html.Div([
+                html.Div("BEST PROPS", style={
+                    "color": COLORS["text_secondary"],
+                    "fontSize": "11px",
+                    "fontWeight": "600",
+                    "letterSpacing": "1px",
+                    "marginBottom": "16px"
+                }),
+                html.Div("No games scheduled today", style={
+                    "color": COLORS["text_muted"],
+                    "fontSize": "14px",
+                    "textAlign": "center",
+                    "padding": "40px 0"
+                }),
+            ], style=CARD)
+        ])
+
+    # Build team -> opponent mapping from TODAY's games
+    team_to_opponent = {}
+    team_is_home = {}
+    for _, game in today_games.iterrows():
+        home = game.get("HOME_TEAM", "")
+        away = game.get("AWAY_TEAM", "")
+        if home and away:
+            team_to_opponent[home] = away
+            team_to_opponent[away] = home
+            team_is_home[home] = True
+            team_is_home[away] = False
+
+    teams_today = set(team_to_opponent.keys())
 
     if not teams_today:
         return html.Div([
@@ -3237,46 +3290,46 @@ def create_best_props_content(_stat=None):
     # Get players on teams playing today (skip injured players)
     players_today = []
     player_info = {}  # Store player info for analysis
-    injured_players = set()  # Track injured players to exclude
 
     for player_name in PLAYERS:
         player_df = DF[DF["PLAYER_NAME"] == player_name]
         if len(player_df) > 0:
             last_game = player_df.sort_values("_date", ascending=False).iloc[0]
-            matchup = last_game.get("MATCHUP", "")
-            if isinstance(matchup, str):
-                team = matchup.split()[0] if matchup else ""
-                if team in teams_today:
-                    # Check if player is injured (OUT status)
-                    try:
-                        injury_status = get_player_injury_status(player_name)
-                        if injury_status.get("status") == "OUT":
-                            injured_players.add(player_name)
-                            continue  # Skip injured players
-                    except Exception:
-                        pass  # If we can't check, include the player
 
-                    # Get opponent
-                    opponent = ""
-                    if "@" in matchup:
-                        opponent = matchup.split("@")[-1].strip()[:3]
-                    elif "vs." in matchup:
-                        opponent = matchup.split("vs.")[-1].strip()[:3]
+            # Get player's current team
+            player_team = last_game.get("TEAM_ABBREVIATION", "")
+            if not player_team:
+                matchup = last_game.get("MATCHUP", "")
+                if isinstance(matchup, str):
+                    player_team = matchup.split()[0] if matchup else ""
 
-                    # Get player position
-                    position = "F"
-                    if not PLAYER_POSITIONS.empty:
-                        pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
-                        if len(pos_match) > 0:
-                            position = pos_match["POSITION"].iloc[0]
+            # Check if player's team is playing today
+            if player_team in teams_today:
+                # Check if player is injured (OUT status)
+                try:
+                    injury_status = get_player_injury_status(player_name)
+                    if injury_status.get("status") == "OUT":
+                        continue  # Skip injured players
+                except Exception:
+                    pass  # If we can't check, include the player
 
-                    players_today.append(player_name)
-                    player_info[player_name] = {
-                        "team": team,
-                        "opponent": opponent,
-                        "position": position,
-                        "is_home": "vs." in matchup
-                    }
+                # Get TODAY's actual opponent
+                opponent = team_to_opponent.get(player_team, "")
+
+                # Get player position
+                position = "F"
+                if not PLAYER_POSITIONS.empty:
+                    pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
+                    if len(pos_match) > 0:
+                        position = pos_match["POSITION"].iloc[0]
+
+                players_today.append(player_name)
+                player_info[player_name] = {
+                    "team": player_team,
+                    "opponent": opponent,
+                    "position": position,
+                    "is_home": team_is_home.get(player_team, False)
+                }
 
     if not players_today:
         players_today = PLAYERS[:50]
