@@ -54,7 +54,7 @@ print(f"Current season: {CURRENT_SEASON}, Previous season: {PREVIOUS_SEASON}")
 from utils.feature_engineering import engineer_features
 from utils.injury_news import get_player_injury_status
 from utils.prop_calculator import generate_best_props, calculate_hit_probability
-from utils.data_fetch import get_todays_games, get_teams_playing_today
+from utils.data_fetch import get_todays_games, get_teams_playing_today, get_next_opponent_for_team
 from models.predictor import NBAPredictor
 
 # =============================================================================
@@ -174,26 +174,32 @@ def get_player_current_team(player_name):
 
 
 def get_h2h_opponent_for_player(player_name):
-    """Get today's opponent for a player (for H2H mode)."""
+    """Get opponent for a player (for H2H mode).
+
+    First checks if playing today, if not, finds next upcoming opponent.
+    Returns (opponent_abbrev, player_team)
+    """
     player_team = get_player_current_team(player_name)
     if not player_team:
         return "", ""
 
+    # First check if playing today
     teams_today = get_teams_playing_today()
-    if player_team not in teams_today:
-        return "", ""
+    if player_team in teams_today:
+        today_games = get_todays_games()
+        if not today_games.empty:
+            for _, game in today_games.iterrows():
+                home = game.get("HOME_TEAM", "")
+                away = game.get("AWAY_TEAM", "")
+                if player_team == home:
+                    return away, player_team
+                elif player_team == away:
+                    return home, player_team
 
-    today_games = get_todays_games()
-    if today_games.empty:
-        return "", ""
-
-    for _, game in today_games.iterrows():
-        home = game.get("HOME_TEAM", "")
-        away = game.get("AWAY_TEAM", "")
-        if player_team == home:
-            return away, player_team
-        elif player_team == away:
-            return home, player_team
+    # Not playing today - find next opponent
+    next_opponent, _ = get_next_opponent_for_team(player_team, max_days=7)
+    if next_opponent:
+        return next_opponent, player_team
 
     return "", ""
 
