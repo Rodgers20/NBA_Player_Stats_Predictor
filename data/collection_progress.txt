@@ -26,6 +26,7 @@ Anthony Black
 Anthony Davis
 Anthony Edwards
 Anthony Gill
+Antonio Reeves
 Ariel Hukporti
 Asa Newell
 Ausar Thompson
@@ -38,11 +39,15 @@ Ben Sheppard
 Bennedict Mathurin
 Bilal Coulibaly
 Bismack Biyombo
+Blake Wesley
 Bobby Portis
+Bobi Klintman
 Bogdan Bogdanović
 Bones Hyland
+Bradley Beal
 Branden Carlson
 Brandin Podziemski
+Brandon Clarke
 Brandon Ingram
 Brandon Miller
 Brice Sensabaugh
@@ -67,15 +72,22 @@ Caris LeVert
 Carter Bryant
 Cason Wallace
 Cedric Coward
+Charles Bassey
 Chaz Lanier
 Chet Holmgren
+Chris Boucher
+Chris Livingston
+Chris Mañon
 Chris Paul
 Chris Youngblood
 Christian Braun
 Christian Koloko
+Chucky Hepburn
 Clint Capela
 Coby White
+Cody Martin
 Cody Williams
+Colby Jones
 Cole Anthony
 Collin Gillespie
 Collin Murray-Boyles
@@ -83,13 +95,16 @@ Collin Sexton
 Cooper Flagg
 Corey Kispert
 Craig Porter Jr.
+Curtis Jones
 D'Angelo Russell
 DaRon Holmes II
+Daeqwon Plowden
 Dalen Terry
 Dalton Knecht
 Daniel Gafford
 Daniss Jenkins
 Danny Wolf
+Dario Šarić
 Darius Garland
 David Jones Garcia
 Davion Mitchell
@@ -97,11 +112,13 @@ Day'Ron Sharpe
 De'Aaron Fox
 De'Andre Hunter
 De'Anthony Melton
+DeAndre Jordan
 DeMar DeRozan
 Dean Wade
 Deandre Ayton
 Deni Avdija
 Dennis Schröder
+Dereck Lively II
 Derik Queen
 Derrick Jones Jr.
 Derrick White
@@ -110,15 +127,18 @@ Devin Booker
 Devin Carter
 Devin Vassell
 Dillon Brooks
+Dillon Jones
 Domantas Sabonis
 Dominick Barlow
 Donovan Clingan
 Donovan Mitchell
 Donte DiVincenzo
 Dorian Finney-Smith
+Doug McDermott
 Drake Powell
 Draymond Green
 Drew Eubanks
+Drew Peterson
 Drew Timme
 Dru Smith
 Duncan Robinson
@@ -129,6 +149,9 @@ Dylan Harper
 Dyson Daniels
 E.J. Liddell
 Egor Dëmin
+Elijah Harkless
+Emanuel Miller
+Eric Gordon
 Ethan Thompson
 Evan Mobley
 Franz Wagner
@@ -147,16 +170,22 @@ Grayson Allen
 Guerschon Yabusele
 Gui Santos
 Harrison Barnes
+Harrison Ingram
 Herbert Jones
 Hugo González
+Hunter Dickinson
+Hunter Sallis
 Hunter Tyson
 Immanuel Quickley
+Isaac Jones
 Isaac Okoro
 Isaiah Collier
+Isaiah Crawford
 Isaiah Hartenstein
 Isaiah Jackson
 Isaiah Joe
 Isaiah Livers
+Isaiah Stevens
 Isaiah Stewart
 Ivica Zubac
 JD Davison
@@ -164,15 +193,19 @@ Ja Morant
 Ja'Kobe Walter
 Jabari Smith Jr.
 Jabari Walker
+Jacob Toppin
 Jaden Hardy
 Jaden Ivey
 Jaden McDaniels
 Jae'Sean Tate
+Jahmir Young
+Jahmyl Telfort
 Jaime Jaquez Jr.
 Jake LaRavia
 Jakob Poeltl
 Jalen Brunson
 Jalen Duren
+Jalen Green
 Jalen Johnson
 Jalen Pickett
 Jalen Smith
@@ -184,6 +217,7 @@ Jamal Murray
 Jamal Shead
 Jamaree Bouyea
 James Harden
+James Wiseman
 Jamir Watkins
 Jamison Battle
 Jarace Walker
@@ -195,6 +229,13 @@ Jase Richardson
 Javon Small
 Javonte Cooke
 Javonte Green
+Jaxson Hayes
+Jay Huff
+Jaylen Brown
+Jaylen Clark
+Jaylen Wells
+Jaylin Williams
+Jaylon Tyson
 Jeff Green
 Jerami Grant
 Jeremiah Fears
@@ -210,6 +251,7 @@ Joe Ingles
 Joel Embiid
 John Collins
 John Konchar
+Johni Broome
 Johnny Furphy
 Johnny Juzang
 Jonas Valančiūnas
@@ -236,6 +278,7 @@ Julian Strawther
 Julius Randle
 Justin Champagnie
 Justin Edwards
+Jusuf Nurkić
 KJ Simpson
 Kam Jones
 Karl-Anthony Towns
@@ -263,7 +306,9 @@ Khaman Maluach
 Khris Middleton
 Klay Thompson
 Kobe Brown
+Kobe Bufkin
 Kobe Sanders
+Koby Brea
 Kon Knueppel
 Kris Dunn
 Kris Murray
@@ -271,6 +316,7 @@ Kristaps Porziņģis
 Kyle Anderson
 Kyle Filipowski
 Kyle Kuzma
+Kyle Lowry
 Kyshawn George
 LaMelo Ball
 Lachlan Olbrich
@@ -288,15 +334,20 @@ Luka Garza
 Luke Kennard
 Luke Kornet
 Luke Travers
+Mac McClung
 Malaki Branham
+Malevy Leons
 Malik Monk
 Marcus Sasser
 Marcus Smart
+Mark Sears
 Mark Williams
 Marvin Bagley III
 Mason Plumlee
 Matas Buzelis
+Matisse Thybulle
 Max Christie
+Max Shulga
 Maxi Kleber
 Maxime Raynaud
 Micah Peavy
@@ -308,13 +359,17 @@ Miles Bridges
 Miles Kelly
 Miles McBride
 Mitchell Robinson
+Mo Bamba
 Mohamed Diawara
+Monte Morris
+Moritz Wagner
 Moses Moody
 Mouhamed Gueye
 Moussa Cisse
 Moussa Diabaté
 Myles Turner
 Myron Gardner
+N'Faly Dante
 Nae'Qwan Tomlin
 Naji Marshall
 Naz Reid
@@ -329,14 +384,18 @@ Nikola Jokić
 Nikola Jović
 Nikola Vučević
 Nique Clifford
+Noa Essengue
 Noah Clowney
 Noah Penda
 Nolan Traore
 Norman Powell
 OG Anunoby
+Obi Toppin
 Ochai Agbaji
 Olivier-Maxence Prosper
 Onyeka Okongwu
+Orlando Robinson
+Oscar Tshiebwe
 Oso Ighodaro
 Ousmane Dieng
 P.J. Washington
@@ -346,6 +405,7 @@ Paolo Banchero
 Pascal Siakam
 Pat Connaughton
 Pat Spencer
+Patrick Baldwin Jr.
 Patrick Williams
 Paul George
 Paul Reed
@@ -362,8 +422,10 @@ Rasheer Fleming
 RayJ Dennis
 Rayan Rupert
 Reed Sheppard
+Riley Minix
 Rob Dillingham
 Robert Williams III
+Ron Harper Jr.
 Ronald Holland II
 Royce O'Neale
 Rudy Gobert
@@ -379,12 +441,16 @@ Sam Merrill
 Sandro Mamukelashvili
 Santi Aldama
 Scottie Barnes
+Seth Curry
 Shaedon Sharpe
 Shai Gilgeous-Alexander
+Sharife Cooper
 Sidy Cissoko
 Simone Fontecchio
 Sion James
+Skal Labissiere
 Spencer Jones
+Stanley Umude
 Stephen Curry
 Stephon Castle
 Steven Adams
@@ -392,6 +458,7 @@ Svi Mykhailiuk
 T.J. McConnell
 Taelon Peter
 Tari Eason
+Taurean Prince
 Taylor Hendricks
 Terance Mann
 Terrence Shannon Jr.
@@ -400,7 +467,9 @@ Thomas Bryant
 Tidjane Salaün
 Tim Hardaway Jr.
 Tobias Harris
+Tolu Smith
 Tony Bradley
+Tosan Evbuomwan
 Toumani Camara
 Trae Young
 Trayce Jackson-Davis
@@ -408,26 +477,36 @@ Tre Johnson
 Tre Jones
 Tre Mann
 Trendon Watford
+Trentyn Flowers
+Trey Alexander
+Trey Jemison III
 Trey Murphy III
 Tristan Vukcevic
 Tristan da Silva
+Ty Jerome
+TyTy Washington Jr.
 Tyler Herro
 Tyler Kolek
 Tyrese Martin
 Tyrese Maxey
 Tyrese Proctor
+Tyson Etienne
 Tyus Jones
 VJ Edgecombe
 Victor Wembanyama
 Vince Williams Jr.
+Vladislav Goldin
 Vít Krejčí
+Walker Kessler
 Walter Clayton Jr.
 Wendell Carter Jr.
+Wendell Moore Jr.
 Will Richard
 Will Riley
 Xavier Tillman
 Yang Hansen
 Yanic Konan Niederhäuser
+Yuki Kawamura
 Yves Missi
 Zaccharie Risacher
 Zach Collins
@@ -436,12 +515,250 @@ Zach LaVine
 Zeke Nnaji
 Ziaire Williams
 Zion Williamson
-Jaxson Hayes
-Jay Huff
-Jaylen Brown
-Jaylen Clark
-Jaylen Wells
-Jaylin Williams
-Jaylon Tyson
-Jusuf Nurkić
-Moritz Wagner
+Adam Flagler
+Adama Sanogo
+Alec Burks
+Alex Ducas
+Alex Len
+Alex Reese
+Alondes Williams
+Anton Watson
+Armel Traore
+Ben Simmons
+Bol Bol
+Brandon Boston
+Braxton Key
+Bruno Fernando
+Cam Reddish
+Cameron Payne
+Chris Duarte
+Chuma Okeke
+Cole Swider
+Colin Castleton
+Cory Joseph
+Cui Cui
+D.J. Carton
+DaQuan Jeffries
+Daishen Nix
+Dalano Banton
+Damian Lillard
+Damion Baugh
+Damion Lee
+Daniel Theis
+Danté Exum
+Dariq Whitehead
+David Duke Jr.
+David Roddy
+Dejounte Murray
+Delon Wright
+Elfrid Payton
+Emoni Bates
+Enrique Freeman
+Fred VanVleet
+Georges Niang
+Haywood Highsmith
+Isaiah Mobley
+Isaiah Wong
+JT Thor
+Jack McVeigh
+Jackson Rowe
+Jaden Springer
+Jae Crowder
+Jahlil Okafor
+Jalen Bridges
+Jalen Hood-Schifino
+Jalen McDaniels
+James Johnson
+Jared Butler
+Jared Rhoden
+Jaylen Martin
+Jaylen Nowell
+Jaylen Sims
+Jayson Tatum
+Jazian Gortman
+Jeff Dowtin Jr.
+Jesse Edwards
+Josh Christopher
+Josh Richardson
+Justin Minaya
+KJ Martin
+Kai Jones
+Keion Brooks Jr.
+Keon Johnson
+Kessler Edwards
+Kevin Knox II
+Killian Hayes
+Kylor Kelley
+Kyrie Irving
+Lamar Stevens
+Lester Quinones
+Liam Robbins
+Lonnie Walker IV
+Malachi Flynn
+Malcolm Brogdon
+Malik Beasley
+MarJon Beauchamp
+Marcus Bagley
+Marcus Garrett
+Markelle Fultz
+Markieff Morris
+Mason Jones
+Matt Ryan
+Max Strus
+Maxwell Lewis
+Miles Norris
+Moses Brown
+Oshae Brissett
+P.J. Tucker
+PJ Dozier
+Patty Mills
+Phillip Wheeler
+Quincy Olivari
+Reece Beekman
+Reggie Jackson
+Richaun Holmes
+Ricky Council IV
+Scoot Henderson
+Scotty Pippen Jr.
+Shake Milton
+Spencer Dinwiddie
+Taj Gibson
+Talen Horton-Tucker
+Taze Moore
+Terence Davis
+Terry Rozier
+Terry Taylor
+Torrey Craig
+Trevelin Queen
+Trey Lyles
+Tristan Thompson
+Tristen Newton
+Tyler Smith
+Tyrese Haliburton
+Ulrich Chomche
+Vasilije Micic
+Vlatko Čančar
+Yuri Collins
+Zyon Pullin
+AJ Griffin
+Admiral Schofield
+Aleksej Pokusevski
+Alex Fudge
+Amari Bailey
+Andrew Funk
+Armoni Brooks
+Ashton Hagans
+Boban Marjanovic
+Bojan Bogdanovic
+Buddy Boeheim
+Cedi Osman
+Charlie Brown Jr.
+Chimezie Metu
+Christian Wood
+Cody Zeller
+D'Moi Hodge
+D.J. Wilson
+Damian Jones
+Danilo Gallinari
+Danny Green
+Danuel House Jr.
+Darius Bazley
+Davis Bertans
+DeJon Jarreau
+Dennis Smith Jr.
+Dereon Seabron
+Derrick Rose
+Devonte' Graham
+Dexter Dennis
+Dmytro Skapintsev
+Dylan Windler
+Eugene Omoruyi
+Evan Fournier
+Filip Petrusev
+Frank Ntilikina
+Furkan Korkmaz
+Gordon Hayward
+Greg Brown III
+Hamidou Diallo
+Harry Giles III
+Henri Drell
+Ibou Badji
+Isaiah Thomas
+Ish Smith
+Ish Wainright
+Izaiah Brockington
+JaVale McGee
+Jack White
+Jacob Gilyard
+Jahmi'us Ramsey
+Jalen Crutcher
+Jalen Slawson
+James Bouknight
+Jason Preston
+Javon Freeman-Liberty
+Javonte Smart
+Jermaine Samuels Jr.
+Jerome Robinson
+Joe Harris
+Jontay Porter
+Jordan Ford
+Jordan Nwora
+Joshua Primo
+Juan Toscano-Anderson
+Jules Bernard
+Justin Holiday
+Justin Jackson
+Kaiser Gates
+Keita Bates-Diop
+Kendall Brown
+Kenneth Lofton Jr.
+Kevon Harris
+Keyontae Johnson
+Kira Lewis Jr.
+Kobi Simmons
+Leaky Black
+Lindell Wigginton
+Luka Samanic
+Malcolm Cazalon
+Malik Williams
+Mamadi Diakite
+Maozinha Pereira
+Marcus Morris Sr.
+Markquis Nowell
+Marques Bolden
+Matt Hurt
+Mike Muscala
+Mouhamadou Gueye
+Nassir Little
+Nate Hinton
+Nathan Mensah
+Olivier Sarr
+Omer Yurtseven
+Onuralp Bitim
+Otto Porter Jr.
+Patrick Beverley
+R.J. Hampton
+RaiQuan Gray
+Reggie Bullock Jr.
+Robert Covington
+Robin Lopez
+Ryan Arcidiacono
+Saben Lee
+Sasha Vezenkov
+Seth Lundy
+Shaquille Harrison
+Skylar Mays
+T.J. Warren
+Terquavion Smith
+Thaddeus Young
+Theo Maledon
+Timmy Allen
+Trent Forrest
+Troy Brown Jr.
+Udoka Azubuike
+Usman Garuba
+Wenyen Gabriel
+Wesley Matthews
+Xavier Moon
+Yuta Watanabe
+Zavier Simpson

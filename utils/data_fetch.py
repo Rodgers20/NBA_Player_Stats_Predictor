@@ -20,6 +20,7 @@ KEY CONCEPTS:
 """
 
 import time
+import random
 import pandas as pd
 from nba_api.stats.endpoints import (
     leaguedashteamstats,
@@ -30,6 +31,68 @@ from nba_api.stats.endpoints import (
 )
 from nba_api.stats.static import players, teams
 from datetime import datetime
+
+# Custom headers to avoid NBA API blocks (VERY IMPORTANT)
+# NOTE: Do NOT set 'Host' header - it causes connection issues
+CUSTOM_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Referer': 'https://www.nba.com/',
+    'Origin': 'https://www.nba.com',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Connection': 'keep-alive',
+}
+
+# Proxy configuration (set to None to disable, or use format "http://ip:port")
+# Example: PROXY = "http://123.45.67.89:8080"
+PROXY = None
+
+
+def get_proxy_dict():
+    """Get proxy dictionary for requests if PROXY is configured."""
+    if PROXY:
+        return {"http": PROXY, "https": PROXY}
+    return None
+
+
+def api_call_with_retry(api_func, max_retries=3, base_delay=5):
+    """
+    Wrapper to retry NBA API calls with exponential backoff.
+
+    Args:
+        api_func: A callable that makes the API call
+        max_retries: Maximum number of retry attempts
+        base_delay: Initial delay in seconds (doubles each retry)
+
+    Returns:
+        The result of api_func() or raises the last exception
+    """
+    last_exception = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            # Add some randomness to avoid synchronized retries
+            if attempt > 0:
+                delay = base_delay * (2 ** (attempt - 1)) + random.uniform(0, 2)
+                print(f"  Retry {attempt}/{max_retries} after {delay:.1f}s delay...")
+                time.sleep(delay)
+
+            return api_func()
+
+        except Exception as e:
+            last_exception = e
+            error_msg = str(e).lower()
+
+            # Check if it's a timeout or connection error (worth retrying)
+            if "timeout" in error_msg or "connection" in error_msg:
+                print(f"  Connection issue: {e}")
+                continue
+            else:
+                # For other errors, don't retry
+                raise e
+
+    # All retries exhausted
+    raise last_exception
 
 
 # =============================================================================
@@ -130,15 +193,19 @@ def get_player_stats(
 
     try:
         # PlayerGameLog is an "endpoint" - it hits the NBA's API server
-        gamelog = playergamelog.PlayerGameLog(
-            player_id=player_id,
-            season=season,
-            season_type_all_star=season_type
-        )
+        # Use custom headers to avoid blocks and increase timeout
+        def make_call():
+            gamelog = playergamelog.PlayerGameLog(
+                player_id=player_id,
+                season=season,
+                season_type_all_star=season_type,
+                timeout=60
+            )
+            return gamelog.get_data_frames()[0]
 
         # get_data_frames() returns a list of DataFrames
         # Most endpoints return just one, so we take [0]
-        df = gamelog.get_data_frames()[0]
+        df = api_call_with_retry(make_call)
 
         # Add player name for clarity (the API only returns player_id)
         df["PLAYER_NAME"] = player_name
@@ -282,13 +349,18 @@ def get_all_players_season_stats(
         - Advanced: FG_PCT, FG3_PCT, FT_PCT, PLUS_MINUS
     """
     try:
-        stats = leaguedashplayerstats.LeagueDashPlayerStats(
-            season=season,
-            season_type_all_star=season_type,
-            per_mode_detailed="PerGame"  # Get per-game averages, not totals
-        )
+        def make_call():
+            stats = leaguedashplayerstats.LeagueDashPlayerStats(
+                season=season,
+                season_type_all_star=season_type,
+                per_mode_detailed="PerGame",
+                headers=CUSTOM_HEADERS,
+                timeout=120,
+                proxy=PROXY
+            )
+            return stats.get_data_frames()[0]
 
-        return stats.get_data_frames()[0]
+        return api_call_with_retry(make_call)
 
     except Exception as e:
         print(f"Error fetching league player stats: {e}")
@@ -321,13 +393,19 @@ def get_team_data(
         DataFrame with one row per NBA team
     """
     try:
-        stats = leaguedashteamstats.LeagueDashTeamStats(
-            season=season,
-            season_type_all_star=season_type,
-            per_mode_detailed="PerGame",
-            measure_type_detailed_defense="Base",
-        )
-        df = stats.get_data_frames()[0]
+        def make_call():
+            stats = leaguedashteamstats.LeagueDashTeamStats(
+                season=season,
+                season_type_all_star=season_type,
+                per_mode_detailed="PerGame",
+                measure_type_detailed_defense="Base",
+                headers=CUSTOM_HEADERS,
+                timeout=120,
+                proxy=PROXY
+            )
+            return stats.get_data_frames()[0]
+
+        df = api_call_with_retry(make_call)
 
         # Filter out WNBA teams (the API sometimes includes them)
         # We get the list of NBA team IDs and only keep those
@@ -363,13 +441,19 @@ def get_team_defensive_stats(
         DataFrame with defensive stats for each team
     """
     try:
-        stats = leaguedashteamstats.LeagueDashTeamStats(
-            season=season,
-            season_type_all_star=season_type,
-            per_mode_detailed="PerGame",
-            measure_type_detailed_defense="Opponent"  # KEY: Gets opponent/defensive stats
-        )
-        df = stats.get_data_frames()[0]
+        def make_call():
+            stats = leaguedashteamstats.LeagueDashTeamStats(
+                season=season,
+                season_type_all_star=season_type,
+                per_mode_detailed="PerGame",
+                measure_type_detailed_defense="Opponent",
+                headers=CUSTOM_HEADERS,
+                timeout=120,
+                proxy=PROXY
+            )
+            return stats.get_data_frames()[0]
+
+        df = api_call_with_retry(make_call)
 
         # Filter to NBA teams only
         nba_teams = teams.get_teams()
@@ -459,12 +543,18 @@ def get_all_players_with_positions(season: str = "2024-25") -> pd.DataFrame:
     from nba_api.stats.endpoints import commonplayerinfo
 
     try:
-        stats = leaguedashplayerstats.LeagueDashPlayerStats(
-            season=season,
-            season_type_all_star="Regular Season",
-            per_mode_detailed="PerGame"
-        )
-        df = stats.get_data_frames()[0]
+        def make_call():
+            stats = leaguedashplayerstats.LeagueDashPlayerStats(
+                season=season,
+                season_type_all_star="Regular Season",
+                per_mode_detailed="PerGame",
+                headers=CUSTOM_HEADERS,
+                timeout=120,
+                proxy=PROXY
+            )
+            return stats.get_data_frames()[0]
+
+        df = api_call_with_retry(make_call)
 
         # Keep relevant columns
         result = df[["PLAYER_ID", "PLAYER_NAME", "TEAM_ABBREVIATION"]].copy()
@@ -593,9 +683,13 @@ def calculate_defense_vs_position(
 # LIVE GAME FUNCTIONS
 # =============================================================================
 
+# Simple cache for today's games to avoid repeated API calls
+_todays_games_cache = {"data": None, "timestamp": None}
+_CACHE_TTL_SECONDS = 300  # Cache for 5 minutes
+
 def get_todays_games() -> pd.DataFrame:
     """
-    Fetch today's scheduled NBA games.
+    Fetch today's scheduled NBA games with caching.
 
     WHY THIS IS NEEDED:
     For the "Best Props" feature, we need to know which games
@@ -606,19 +700,33 @@ def get_todays_games() -> pd.DataFrame:
         GAME_ID, GAME_DATE, HOME_TEAM_ID, HOME_TEAM_ABBREVIATION,
         VISITOR_TEAM_ID, VISITOR_TEAM_ABBREVIATION, GAME_STATUS
     """
-    today = datetime.now().strftime("%Y-%m-%d")
+    global _todays_games_cache
+
+    # Check cache first
+    now = datetime.now()
+    if _todays_games_cache["data"] is not None and _todays_games_cache["timestamp"]:
+        age = (now - _todays_games_cache["timestamp"]).total_seconds()
+        if age < _CACHE_TTL_SECONDS:
+            return _todays_games_cache["data"]
+
+    today = now.strftime("%Y-%m-%d")
 
     try:
+        # NOTE: Don't use custom headers - they cause connection issues
         scoreboard = scoreboardv2.ScoreboardV2(
             game_date=today,
             league_id="00",
-            day_offset=0
+            day_offset=0,
+            timeout=30  # Shorter timeout to fail fast
         )
 
         # Get the game header which contains basic game info
         games_df = scoreboard.get_data_frames()[0]  # GameHeader
 
         if games_df.empty:
+            # Cache empty result to avoid repeated API calls
+            _todays_games_cache["data"] = pd.DataFrame()
+            _todays_games_cache["timestamp"] = datetime.now()
             return pd.DataFrame()
 
         # Select relevant columns
@@ -637,10 +745,16 @@ def get_todays_games() -> pd.DataFrame:
         if "VISITOR_TEAM_ID" in result.columns:
             result["AWAY_TEAM"] = result["VISITOR_TEAM_ID"].map(all_teams)
 
+        # Cache the result
+        _todays_games_cache["data"] = result
+        _todays_games_cache["timestamp"] = datetime.now()
         return result
 
     except Exception as e:
         print(f"Error fetching today's games: {e}")
+        # Cache empty result on error to avoid repeated failures
+        _todays_games_cache["data"] = pd.DataFrame()
+        _todays_games_cache["timestamp"] = datetime.now()
         return pd.DataFrame()
 
 
@@ -721,7 +835,10 @@ def get_next_opponent_for_team(team_abbrev: str, max_days: int = 7) -> tuple[str
             scoreboard = scoreboardv2.ScoreboardV2(
                 game_date=check_date,
                 league_id="00",
-                day_offset=0
+                day_offset=0,
+                headers=CUSTOM_HEADERS,
+                timeout=120,
+                proxy=PROXY
             )
             games_df = scoreboard.get_data_frames()[0]
 

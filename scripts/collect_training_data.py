@@ -81,7 +81,8 @@ MIN_GAMES = 10  # Lowered to get more players
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
 # Delay between API calls (to avoid rate limiting)
-API_DELAY = 0.6  # seconds
+# Increased to 1.5s to avoid getting blocked by NBA API
+API_DELAY = 1.5  # seconds
 
 
 # =============================================================================
