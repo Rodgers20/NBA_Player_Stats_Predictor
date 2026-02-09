@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: nba-player-stats
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn dashboard.app:server
+    plan: free
+    branch: main
+    numInstances: 1
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12

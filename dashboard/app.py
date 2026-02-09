@@ -55,6 +55,7 @@ from utils.feature_engineering import engineer_features
 from utils.injury_news import get_player_injury_status
 from utils.prop_calculator import generate_best_props, calculate_hit_probability
 from utils.data_fetch import get_todays_games, get_teams_playing_today, get_next_opponent_for_team
+from utils.prop_scorer import calculate_smart_prop_score, detect_player_role
 from models.predictor import NBAPredictor
 
 # =============================================================================
@@ -87,6 +88,8 @@ def load_data():
         defense_vs_position=def_vs_pos if not def_vs_pos.empty else None
     )
     df["_date"] = pd.to_datetime(df["GAME_DATE"], format="%b %d, %Y", errors="coerce")
+    # Remove duplicate rows to prevent duplicate stats in charts
+    df = df.drop_duplicates(subset=["PLAYER_NAME", "GAME_DATE", "MATCHUP"], keep="first")
     df = df.sort_values(["PLAYER_NAME", "_date"])
 
     return df, team_def, positions_df, def_vs_pos
@@ -3694,14 +3697,11 @@ def create_insights_content(player_name, _stat=None):
                 opponent = home
                 break
 
-    # If no game today, use most recent opponent
+    # If no game today, get next upcoming opponent
     if not opponent:
-        last_matchup = player_df.iloc[0].get("MATCHUP", "")
-        if isinstance(last_matchup, str):
-            if "@" in last_matchup:
-                opponent = last_matchup.split("@")[-1].strip()[:3]
-            elif "vs." in last_matchup:
-                opponent = last_matchup.split("vs.")[-1].strip()[:3]
+        next_opp, next_date = get_next_opponent_for_team(player_team)
+        if next_opp:
+            opponent = next_opp
 
     # Team name mapping for display
     team_names = {
@@ -4222,12 +4222,7 @@ def create_best_props_content(_stat=None):
                     continue
 
                 recent_vals = recent[stat_cols].sum(axis=1)
-                season_vals = player_df[stat_cols].sum(axis=1)
-
-                l5_avg = recent_vals.head(5).mean()
                 l10_avg = recent_vals.mean()
-                season_avg = season_vals.mean()
-                std_dev = recent_vals.std() if len(recent_vals) > 1 else l10_avg * 0.2
 
                 # Set line based on recent average (round to 0.5)
                 line = round(l10_avg * 2) / 2
@@ -4257,88 +4252,34 @@ def create_best_props_content(_stat=None):
                             combo_pred += recent[stat].mean() if stat in recent.columns else 0
                     prediction = combo_pred if combo_pred > 0 else l10_avg
 
-                # Calculate hit probability
-                hit_prob = calculate_hit_probability(prediction, line, std_dev, "over")
-                l10_rate = (recent_vals >= line).sum() / len(recent_vals)
-                l5_rate = (recent_vals.head(5) >= line).sum() / 5
+                # Use SMART SCORING with full context
+                smart_score = calculate_smart_prop_score(
+                    player_name=player_name,
+                    stat_cols=stat_cols,
+                    line=line,
+                    player_df=player_df,
+                    info=info,
+                    defense_data=DEFENSE_VS_POS,
+                    prediction=prediction,
+                    injury_checker=None
+                )
 
-                # Analyze matchup favorability
-                matchup_edge = 0
-                matchup_reason = ""
-
-                if info.get("opponent") and not DEFENSE_VS_POS.empty:
-                    position = info.get("position", "F")
-                    opp = info.get("opponent", "")
-
-                    # Get opponent defense vs this position
-                    def_data = DEFENSE_VS_POS[
-                        (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opp) &
-                        (DEFENSE_VS_POS["POSITION"] == position)
-                    ]
-
-                    if len(def_data) > 0:
-                        def_row = def_data.iloc[0]
-                        # Check relevant defensive ranking
-                        if "PTS" in prop_type["stats"]:
-                            pts_rank = def_row.get("PTS_RANK", 15)
-                            if pts_rank <= 10:
-                                matchup_edge += 0.1
-                                matchup_reason = f"{opp} allows most PTS vs {position}s (#{int(pts_rank)})"
-                        if "AST" in prop_type["stats"]:
-                            ast_rank = def_row.get("AST_RANK", 15)
-                            if ast_rank <= 10:
-                                matchup_edge += 0.08
-                                if matchup_reason:
-                                    matchup_reason += f", AST #{int(ast_rank)}"
-                                else:
-                                    matchup_reason = f"{opp} allows high AST vs {position}s (#{int(ast_rank)})"
-                        if "REB" in prop_type["stats"]:
-                            reb_rank = def_row.get("REB_RANK", 15)
-                            if reb_rank <= 10:
-                                matchup_edge += 0.05
-                                if not matchup_reason:
-                                    matchup_reason = f"{opp} allows high REB vs {position}s (#{int(reb_rank)})"
-
-                # Build reasoning
-                reasons = []
-
-                # Trend analysis
-                if l5_avg > season_avg * 1.1:
-                    reasons.append(f"🔥 Hot streak: L5 avg {l5_avg:.1f} > season {season_avg:.1f}")
-                elif l5_avg > l10_avg:
-                    reasons.append(f"📈 Trending up: L5 {l5_avg:.1f} vs L10 {l10_avg:.1f}")
-
-                # Hit rate analysis
-                if l10_rate >= 0.7:
-                    reasons.append(f"✓ Hit {int(l10_rate*100)}% of L10 games over {line:.1f}")
-                elif l5_rate >= 0.8:
-                    reasons.append(f"✓ Hit {int(l5_rate*100)}% of L5 games over {line:.1f}")
-
-                # Matchup analysis
-                if matchup_reason:
-                    reasons.append(f"🎯 {matchup_reason}")
-
-                # Home/away boost
-                if info.get("is_home"):
-                    home_vals = player_df[player_df["is_home"] == 1][stat_cols].sum(axis=1)
-                    if len(home_vals) > 3 and home_vals.mean() > l10_avg * 1.05:
-                        reasons.append(f"🏠 Home boost: avg {home_vals.mean():.1f} at home")
-
-                # Only include if we have good reasons and probability
-                adjusted_prob = min(hit_prob + matchup_edge, 0.95)
-
-                if adjusted_prob >= 0.55 and len(reasons) >= 1:
+                # Only include if score is reasonable
+                if smart_score["final_score"] >= 0.45:
                     all_props.append({
                         "player": player_name,
                         "prop_type": prop_type["name"],
                         "prop_label": prop_type["label"],
                         "prediction": prediction,
                         "line": line,
-                        "hit_prob": adjusted_prob,
-                        "l10_rate": l10_rate,
-                        "l5_rate": l5_rate,
-                        "reasons": reasons,
-                        "matchup_edge": matchup_edge,
+                        "hit_prob": smart_score["final_score"],
+                        "l10_rate": smart_score["l10_rate"],
+                        "l5_rate": smart_score["l5_rate"],
+                        "positive_factors": smart_score["positive_factors"],
+                        "negative_factors": smart_score["negative_factors"],
+                        "role": smart_score["role"],
+                        "avg_minutes": smart_score["avg_minutes"],
+                        "confidence": smart_score["confidence"],
                         "opponent": info.get("opponent", ""),
                         "is_home": info.get("is_home", False)
                     })
@@ -4346,8 +4287,8 @@ def create_best_props_content(_stat=None):
             except Exception:
                 continue
 
-    # Sort by hit probability and matchup edge
-    all_props.sort(key=lambda x: (x["hit_prob"] + x["matchup_edge"] * 0.5), reverse=True)
+    # Sort by smart score (already weighted properly)
+    all_props.sort(key=lambda x: x["hit_prob"], reverse=True)
 
     # Take top props, ensuring variety
     final_props = []
@@ -4379,28 +4320,68 @@ def create_best_props_content(_stat=None):
             ], style=CARD)
         ])
 
-    # Build prop cards with explanations
+    # Build prop cards with smart analysis
     prop_cards = []
     for prop in final_props:
         prob_color = get_hit_color(prop["hit_prob"] * 100)
 
-        # Build reasons list
-        reason_elements = [
-            html.Div(reason, style={
-                "fontSize": "11px",
-                "color": COLORS["text_secondary"],
-                "marginBottom": "4px",
-                "paddingLeft": "8px",
-                "borderLeft": f"2px solid {COLORS['border']}"
-            }) for reason in prop["reasons"][:3]
-        ]
+        # Role badge styling
+        role = prop.get("role", "UNKNOWN")
+        role_colors = {
+            "STARTER": {"bg": "#1a472a", "text": "#4ade80"},
+            "ROTATION": {"bg": "#3d3d00", "text": "#facc15"},
+            "BENCH": {"bg": "#4a1c1c", "text": "#f87171"},
+            "UNKNOWN": {"bg": "#333", "text": "#888"}
+        }
+        role_style = role_colors.get(role, role_colors["UNKNOWN"])
+
+        # Confidence badge
+        confidence = prop.get("confidence", "LOW")
+        conf_colors = {
+            "HIGH": {"bg": "#1a472a", "text": "#4ade80"},
+            "MEDIUM": {"bg": "#3d3d00", "text": "#facc15"},
+            "LOW": {"bg": "#4a1c1c", "text": "#f87171"}
+        }
+        conf_style = conf_colors.get(confidence, conf_colors["LOW"])
+
+        # Build positive factors (green)
+        positive_elements = []
+        for factor in prop.get("positive_factors", [])[:2]:
+            positive_elements.append(
+                html.Div([
+                    html.Span("+ ", style={"color": "#4ade80", "fontWeight": "600"}),
+                    html.Span(factor["reason"])
+                ], style={
+                    "fontSize": "11px",
+                    "color": "#4ade80",
+                    "marginBottom": "3px",
+                    "paddingLeft": "8px",
+                    "borderLeft": "2px solid #4ade80"
+                })
+            )
+
+        # Build negative factors (orange/red)
+        negative_elements = []
+        for factor in prop.get("negative_factors", [])[:2]:
+            negative_elements.append(
+                html.Div([
+                    html.Span("- " if factor["type"] != "role" else "! ", style={"color": "#f97316", "fontWeight": "600"}),
+                    html.Span(factor["reason"])
+                ], style={
+                    "fontSize": "11px",
+                    "color": "#f97316",
+                    "marginBottom": "3px",
+                    "paddingLeft": "8px",
+                    "borderLeft": "2px solid #f97316"
+                })
+            )
 
         # Build opponent span
         opponent_span = html.Span(f" vs {prop['opponent']}", style={
             "color": COLORS["text_muted"],
             "fontSize": "12px",
             "marginLeft": "4px"
-        }) if prop["opponent"] else None
+        }) if prop.get("opponent") else None
 
         prop_card = html.Div([
             # Header row: Player info + Probability
@@ -4413,10 +4394,20 @@ def create_best_props_content(_stat=None):
                             "fontSize": "14px"
                         }),
                         opponent_span,
-                        html.Span(" 🏠" if prop["is_home"] else " ✈️", style={
+                        html.Span(" " if prop.get("is_home") else " ", style={
                             "fontSize": "12px",
                             "marginLeft": "4px"
-                        })
+                        }),
+                        # Role badge
+                        html.Span(role, style={
+                            "fontSize": "9px",
+                            "fontWeight": "600",
+                            "backgroundColor": role_style["bg"],
+                            "color": role_style["text"],
+                            "padding": "2px 6px",
+                            "borderRadius": "4px",
+                            "marginLeft": "6px"
+                        }),
                     ]),
                     html.Div([
                         html.Span(f"O {prop['line']:.1f} ", style={
@@ -4427,21 +4418,32 @@ def create_best_props_content(_stat=None):
                         html.Span(prop["prop_label"], style={
                             "color": COLORS["text_secondary"],
                             "fontSize": "12px"
-                        })
+                        }),
+                        html.Span(f" ({prop.get('avg_minutes', 0):.0f} min avg)", style={
+                            "color": COLORS["text_muted"],
+                            "fontSize": "11px",
+                            "marginLeft": "6px"
+                        }) if prop.get("avg_minutes", 0) > 0 else None
                     ], style={"marginTop": "2px"})
                 ], style={"flex": "1"}),
 
-                # Right: Probability badge
+                # Right: Probability + Confidence
                 html.Div([
                     html.Div(f"{prop['hit_prob']*100:.0f}%", style={
                         "color": prob_color,
                         "fontWeight": "700",
                         "fontSize": "18px"
                     }),
-                    html.Div(f"L10: {prop['l10_rate']*100:.0f}%", style={
-                        "color": COLORS["text_muted"],
-                        "fontSize": "10px"
-                    })
+                    html.Div([
+                        html.Span(confidence, style={
+                            "fontSize": "9px",
+                            "fontWeight": "600",
+                            "backgroundColor": conf_style["bg"],
+                            "color": conf_style["text"],
+                            "padding": "2px 6px",
+                            "borderRadius": "4px"
+                        })
+                    ])
                 ], style={"textAlign": "right"})
             ], style={
                 "display": "flex",
@@ -4450,8 +4452,11 @@ def create_best_props_content(_stat=None):
                 "marginBottom": "8px"
             }),
 
-            # WHY section - reasons for selection
-            html.Div(reason_elements, style={"marginTop": "8px"})
+            # Smart Analysis section - positive and negative factors
+            html.Div([
+                *positive_elements,
+                *negative_elements
+            ], style={"marginTop": "8px"}) if (positive_elements or negative_elements) else None
 
         ], style={
             "padding": "14px",
