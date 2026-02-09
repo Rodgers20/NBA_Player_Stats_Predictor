@@ -36,10 +36,10 @@ Thumbs.db
 # data/*.json
 
 # Model files (large binary files)
-models/*.pkl
-models/*.h5
-models/*.keras
-models/*.joblib
+# models/*.pkl
+# models/*.h5
+# models/*.keras
+# models/*.joblib
 
 # Logs
 *.log
