@@ -13,11 +13,11 @@ An ML-powered application that predicts NBA player performance (points, assists,
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/kingzman20/nba-player-predictor)
 
 ## Live Demo
 
-[**View Live Dashboard**](https://nba-player-stats.onrender.com) (Replace with your actual URL after deployment)
+[**View Live Dashboard**](https://huggingface.co/spaces/kingzman20/nba-player-predictor)
 
 ## Features
 
