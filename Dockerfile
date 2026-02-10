@@ -13,4 +13,4 @@ COPY . .
 EXPOSE 7860
 
 # Run the app
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "dashboard.app:server"]
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers=1", "--timeout=120", "dashboard.app:server"]

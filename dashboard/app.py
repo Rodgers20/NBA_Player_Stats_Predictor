@@ -11,9 +11,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
 import numpy as np
+import threading
 from datetime import datetime
 from dash import Dash, html, dcc, Input, Output, callback, ALL, State
 import plotly.graph_objects as go
+from apscheduler.schedulers.background import BackgroundScheduler
 
 
 def get_current_nba_season():
@@ -122,6 +124,71 @@ if "Player_ID" in DF.columns:
 
 print(f"Loaded {len(DF)} game records for {len(PLAYERS)} players")
 print(f"Player photos available: {len(PLAYER_IDS)}")
+
+# =============================================================================
+# BACKGROUND DATA UPDATER
+# =============================================================================
+
+# Thread-safe data access
+_data_lock = threading.Lock()
+
+
+def get_global_df():
+    """Thread-safe getter for DF."""
+    with _data_lock:
+        return DF.copy()
+
+
+def merge_new_games(new_games_df):
+    """Thread-safe merger for new games into global DF."""
+    global DF
+    from utils.feature_engineering import add_rolling_averages
+
+    with _data_lock:
+        try:
+            # Add rolling averages to new games
+            if not new_games_df.empty:
+                new_games_df = add_rolling_averages(new_games_df)
+
+                # Parse dates for sorting
+                new_games_df["_date"] = pd.to_datetime(
+                    new_games_df["GAME_DATE"],
+                    format="%b %d, %Y",
+                    errors="coerce"
+                )
+
+                # Merge with existing, keeping latest version of duplicates
+                DF = pd.concat([DF, new_games_df]).drop_duplicates(
+                    subset=["PLAYER_NAME", "GAME_DATE", "MATCHUP"],
+                    keep="last"
+                ).sort_values(["PLAYER_NAME", "_date"])
+
+                print(f"[App] Global DF updated: now has {len(DF)} records")
+        except Exception as e:
+            print(f"[App] Error merging new games: {e}")
+
+
+def scheduled_update():
+    """Wrapper for scheduled data update."""
+    from utils.data_updater import update_game_data
+    update_game_data(get_global_df, merge_new_games)
+
+
+# Initialize and start background scheduler
+try:
+    scheduler = BackgroundScheduler(daemon=True)
+    scheduler.add_job(
+        scheduled_update,
+        'interval',
+        minutes=30,
+        id='game_data_updater',
+        replace_existing=True,
+        max_instances=1
+    )
+    scheduler.start()
+    print("[App] Background data updater started (runs every 30 minutes)")
+except Exception as e:
+    print(f"[App] Warning: Could not start scheduler: {e}")
 
 # =============================================================================
 # COLOR SCHEME (Outlier Style)

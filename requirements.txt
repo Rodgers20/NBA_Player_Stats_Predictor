@@ -29,3 +29,6 @@ pytest>=7.4.0
 
 # Deployment
 gunicorn>=21.2.0
+
+# Background Scheduling
+APScheduler>=3.10.0

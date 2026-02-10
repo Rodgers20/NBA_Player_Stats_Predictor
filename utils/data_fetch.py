@@ -55,6 +55,27 @@ def get_proxy_dict():
     return None
 
 
+def get_current_nba_season():
+    """
+    Get the current NBA season string (e.g., '2025-26').
+
+    NBA season runs Oct-June:
+    - Oct-Dec 2025 = '2025-26' season
+    - Jan-Sep 2026 = still '2025-26' season
+    """
+    today = datetime.now()
+    year = today.year
+    month = today.month
+
+    if month >= 10:  # October or later
+        start_year = year
+    else:  # January - September
+        start_year = year - 1
+
+    end_year = start_year + 1
+    return f"{start_year}-{str(end_year)[-2:]}"
+
+
 def api_call_with_retry(api_func, max_retries=3, base_delay=5):
     """
     Wrapper to retry NBA API calls with exponential backoff.
@@ -776,8 +797,9 @@ def get_recent_games_for_player(
     Returns:
         DataFrame with game logs since the specified date
     """
-    # Fetch current season data
-    df = get_player_stats(player_name, season="2024-25")
+    # Fetch current season data (dynamic season)
+    current_season = get_current_nba_season()
+    df = get_player_stats(player_name, season=current_season)
 
     if df.empty:
         return df
