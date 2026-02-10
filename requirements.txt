@@ -3,6 +3,7 @@
 # Data Handling
 pandas>=2.0.0
 numpy>=1.24.0
+pyarrow>=14.0.0  # Fast Parquet support for caching
 
 # NBA Data
 nba_api>=1.4.0

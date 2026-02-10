@@ -61,27 +61,52 @@ from utils.prop_scorer import calculate_smart_prop_score, detect_player_role
 from models.predictor import NBAPredictor
 
 # =============================================================================
-# DATA LOADING
+# DATA LOADING (Optimized with Parquet caching)
 # =============================================================================
 
 def load_data():
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-    game_logs = pd.read_csv(os.path.join(data_dir, "player_game_logs.csv"))
-    team_def = pd.read_csv(os.path.join(data_dir, "team_defensive_stats.csv"))
+    """
+    Load data with Parquet caching for fast startup.
 
-    # Load optional position data
+    Priority:
+    1. Load pre-computed Parquet (fastest - ~2 seconds)
+    2. Fall back to CSV + feature engineering (~30 seconds)
+    3. Save Parquet for next startup
+    """
+    data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+    parquet_path = os.path.join(data_dir, "engineered_data.parquet")
+
+    # Load supporting data (small files, always needed)
+    team_def_path = os.path.join(data_dir, "team_defensive_stats.csv")
+    team_def = pd.read_csv(team_def_path) if os.path.exists(team_def_path) else pd.DataFrame()
+
     positions_path = os.path.join(data_dir, "player_positions.csv")
     positions_df = pd.read_csv(positions_path) if os.path.exists(positions_path) else pd.DataFrame()
 
-    # Load optional defense vs position data
     def_vs_pos_path = os.path.join(data_dir, "defense_vs_position.csv")
     def_vs_pos = pd.read_csv(def_vs_pos_path) if os.path.exists(def_vs_pos_path) else pd.DataFrame()
 
-    # Load team stats for pace
+    # Try to load pre-computed Parquet (FAST PATH)
+    if os.path.exists(parquet_path):
+        try:
+            print("Loading pre-computed data (Parquet)...")
+            df = pd.read_parquet(parquet_path)
+            # Ensure _date column exists
+            if "_date" not in df.columns:
+                df["_date"] = pd.to_datetime(df["GAME_DATE"], format="%b %d, %Y", errors="coerce")
+            print(f"  Loaded {len(df)} records from Parquet (fast path)")
+            return df, team_def, positions_df, def_vs_pos
+        except Exception as e:
+            print(f"  Parquet load failed: {e}, falling back to CSV...")
+
+    # SLOW PATH: Load CSV and engineer features
+    print("Loading from CSV (first run or cache miss)...")
+    game_logs = pd.read_csv(os.path.join(data_dir, "player_game_logs.csv"))
+
     team_stats_path = os.path.join(data_dir, "team_stats.csv")
     team_stats = pd.read_csv(team_stats_path) if os.path.exists(team_stats_path) else pd.DataFrame()
 
-    # Engineer features with all available data
+    # Engineer features
     df = engineer_features(
         game_logs,
         team_def,
@@ -90,26 +115,55 @@ def load_data():
         defense_vs_position=def_vs_pos if not def_vs_pos.empty else None
     )
     df["_date"] = pd.to_datetime(df["GAME_DATE"], format="%b %d, %Y", errors="coerce")
-    # Remove duplicate rows to prevent duplicate stats in charts
     df = df.drop_duplicates(subset=["PLAYER_NAME", "GAME_DATE", "MATCHUP"], keep="first")
     df = df.sort_values(["PLAYER_NAME", "_date"])
+
+    # Save Parquet for next startup (background save)
+    try:
+        df.to_parquet(parquet_path, index=False)
+        print(f"  Saved Parquet cache for faster next startup")
+    except Exception as e:
+        print(f"  Could not save Parquet cache: {e}")
 
     return df, team_def, positions_df, def_vs_pos
 
 
-def load_models():
-    models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
-    predictors = {}
-    for target in ["pts", "ast", "reb"]:
-        filepath = os.path.join(models_dir, f"{target}_predictor.pkl")
+# Lazy model loading - only load when needed
+_models_cache = {}
+_models_lock = threading.Lock()
+
+
+def get_predictor(stat: str):
+    """
+    Lazy load predictor models on first use.
+    This speeds up initial app startup.
+    """
+    stat = stat.upper()
+
+    with _models_lock:
+        if stat in _models_cache:
+            return _models_cache[stat]
+
+        models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
+        filepath = os.path.join(models_dir, f"{stat.lower()}_predictor.pkl")
+
         if os.path.exists(filepath):
-            predictors[target.upper()] = NBAPredictor.load(filepath)
-    return predictors
+            print(f"Loading {stat} predictor (lazy load)...")
+            _models_cache[stat] = NBAPredictor.load(filepath)
+            return _models_cache[stat]
+
+        return None
+
+
+def load_models():
+    """Legacy function for compatibility - now uses lazy loading."""
+    # Return empty dict, models load on-demand via get_predictor()
+    return {}
 
 
 print("Loading data...")
 DF, TEAM_DEF, PLAYER_POSITIONS, DEFENSE_VS_POS = load_data()
-PREDICTORS = load_models()
+PREDICTORS = load_models()  # Empty, uses lazy loading now
 PLAYERS = sorted(DF["PLAYER_NAME"].unique().tolist())
 
 # Build player ID mapping from the data (column is "Player_ID" from NBA API)
@@ -140,7 +194,7 @@ def get_global_df():
 
 
 def merge_new_games(new_games_df):
-    """Thread-safe merger for new games into global DF."""
+    """Thread-safe merger for new games into global DF. Also updates Parquet cache."""
     global DF
     from utils.feature_engineering import add_rolling_averages
 
@@ -164,6 +218,16 @@ def merge_new_games(new_games_df):
                 ).sort_values(["PLAYER_NAME", "_date"])
 
                 print(f"[App] Global DF updated: now has {len(DF)} records")
+
+                # Update Parquet cache for faster next startup
+                try:
+                    data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+                    parquet_path = os.path.join(data_dir, "engineered_data.parquet")
+                    DF.to_parquet(parquet_path, index=False)
+                    print(f"[App] Parquet cache updated")
+                except Exception as pe:
+                    print(f"[App] Could not update Parquet cache: {pe}")
+
         except Exception as e:
             print(f"[App] Error merging new games: {e}")
 
@@ -3941,11 +4005,12 @@ def create_insights_content(player_name, _stat=None):
         risks.append("No significant risk factors identified.")
 
     # Build matchup-aware recommendation
-    # Get model prediction
+    # Get model prediction (lazy loaded)
     model_prediction = l5_avg
-    if "PTS" in PREDICTORS:
+    pts_predictor = get_predictor("PTS")
+    if pts_predictor:
         try:
-            result = PREDICTORS["PTS"].predict_player_game(player_name, DF)
+            result = pts_predictor.predict_player_game(player_name, DF)
             if "error" not in result:
                 model_prediction = result.get("predicted_pts", l5_avg)
         except:
@@ -4294,23 +4359,26 @@ def create_best_props_content(_stat=None):
                 # Set line based on recent average (round to 0.5)
                 line = round(l10_avg * 2) / 2
 
-                # Get model prediction for single stats
+                # Get model prediction for single stats (lazy loaded)
                 prediction = l10_avg
-                if len(prop_type["stats"]) == 1 and prop_type["stats"][0].upper() in PREDICTORS:
-                    try:
-                        result = PREDICTORS[prop_type["stats"][0].upper()].predict_player_game(player_name, DF)
-                        if "error" not in result:
-                            pred_key = f"predicted_{prop_type['stats'][0].lower()}"
-                            prediction = result.get(pred_key, l10_avg)
-                    except Exception:
-                        pass
+                if len(prop_type["stats"]) == 1:
+                    stat_predictor = get_predictor(prop_type["stats"][0])
+                    if stat_predictor:
+                        try:
+                            result = stat_predictor.predict_player_game(player_name, DF)
+                            if "error" not in result:
+                                pred_key = f"predicted_{prop_type['stats'][0].lower()}"
+                                prediction = result.get(pred_key, l10_avg)
+                        except Exception:
+                            pass
                 elif len(prop_type["stats"]) > 1:
                     # For combos, sum predictions
                     combo_pred = 0
                     for stat in prop_type["stats"]:
-                        if stat.upper() in PREDICTORS:
+                        stat_predictor = get_predictor(stat)
+                        if stat_predictor:
                             try:
-                                result = PREDICTORS[stat.upper()].predict_player_game(player_name, DF)
+                                result = stat_predictor.predict_player_game(player_name, DF)
                                 if "error" not in result:
                                     combo_pred += result.get(f"predicted_{stat.lower()}", 0)
                             except Exception:
