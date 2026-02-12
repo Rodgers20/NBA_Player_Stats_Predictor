@@ -1,134 +1,222 @@
-/* Custom CSS for NBA Props Dashboard */
+/* 
+    NBA Player Stats Predictor - Modern Dashboard Theme
+    Designed with a focus on data visibility and dark mode aesthetics.
+*/
 
-/* Dark theme for dropdown */
+:root {
+    /* Color Palette (Slate & Teal Theme) */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    
+    --accent-primary: #14b8a6; /* Teal 500 */
+    --accent-hover: #0d9488;
+    --accent-glow: rgba(20, 184, 166, 0.2);
+    
+    --danger: #ef4444;
+    --success: #22c55e;
+    --warning: #eab308;
+    
+    --border-color: #334155;
+    
+    /* Spacing */
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    
+    /* Font */
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Reset & Base */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Layout Containers */
+.main-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 2rem;
+    display: flex;
+    gap: 2rem;
+}
+
+.content-area {
+    flex: 1;
+    min-width: 0; /* Prevent flex blowout with charts */
+}
+
+.sidebar {
+    width: 380px;
+    flex-shrink: 0;
+}
+
+/* Card Component */
+.card {
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-md);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg);
+    border-color: var(--bg-tertiary);
+}
+
+/* Navigation */
+.nav-header {
+    background-color: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.nav-brand {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    background: linear-gradient(to right, #2dd4bf, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.nav-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-tertiary);
+}
+
+.nav-link.active {
+    background-color: var(--accent-glow);
+    color: var(--accent-primary);
+}
+
+/* Buttons & Tabs */
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.tab-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    background-color: var(--bg-secondary);
+    padding: 0.25rem;
+    border-radius: var(--radius-md);
+    width: fit-content;
+}
+
+.tab {
+    background: transparent;
+    color: var(--text-muted);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tab:hover {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tab.active {
+    background-color: var(--bg-tertiary);
+    color: var(--accent-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Stat Values */
+.stat-value {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.stat-badge.high { background-color: rgba(34, 197, 94, 0.2); color: var(--success); }
+.stat-badge.mid { background-color: rgba(234, 179, 8, 0.2); color: var(--warning); }
+.stat-badge.low { background-color: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+/* Inputs & Dropdowns Override */
 .Select-control {
-    background-color: #0d0d0d !important;
-    border-color: #1b1b1b !important;
-    color: white !important;
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-color) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--text-primary) !important;
 }
 
 .Select-menu-outer {
-    background-color: #0d0d0d !important;
-    border-color: #1b1b1b !important;
+    background-color: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--shadow-lg) !important;
 }
 
-.Select-option {
-    background-color: #0d0d0d !important;
-    color: white !important;
-}
+.Select-value-label { color: var(--text-primary) !important; }
+.Select-placeholder { color: var(--text-muted) !important; }
+.Select-arrow-zone { color: var(--text-muted) !important; }
 
-.Select-option:hover,
-.Select-option.is-focused {
-    background-color: #1a1a1a !important;
-}
-
-.Select-value-label,
-.Select-placeholder {
-    color: white !important;
-}
-
-.Select-input input {
-    color: white !important;
-}
-
-/* Dash dropdown specific */
-.dash-dropdown .Select-control {
-    background-color: #0d0d0d !important;
-    border: 1px solid #1b1b1b !important;
-}
-
-.dash-dropdown .Select-menu {
-    background-color: #0d0d0d !important;
-}
-
-.dash-dropdown .VirtualizedSelectOption {
-    background-color: #0d0d0d !important;
-    color: white !important;
-}
-
-.dash-dropdown .VirtualizedSelectFocusedOption {
-    background-color: #1a1a1a !important;
-}
-
-/* Remove default blue focus outline */
-.Select.is-focused:not(.is-open) > .Select-control {
-    border-color: #9d8ec9 !important;
-    box-shadow: none !important;
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #0d0d0d;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #333;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #444;
-}
-
-/* Slider styling for dark theme */
-.rc-slider {
-    background-color: transparent !important;
-}
-
-.rc-slider-rail {
-    background-color: #444 !important;
-    height: 6px !important;
-}
-
-.rc-slider-track {
-    background-color: #14b8a6 !important;
-    height: 6px !important;
-}
-
-.rc-slider-handle {
-    background-color: #14b8a6 !important;
-    border-color: #14b8a6 !important;
-    width: 18px !important;
-    height: 18px !important;
-    margin-top: -6px !important;
-}
-
-.rc-slider-handle:hover,
-.rc-slider-handle:active,
-.rc-slider-handle:focus {
-    border-color: #0d9488 !important;
-    box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.2) !important;
-}
-
-/* Slider mark numbers - bright white for visibility */
-.rc-slider-mark-text {
-    color: #ffffff !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-}
-
-.rc-slider-mark-text-active {
-    color: #14b8a6 !important;
-}
-
-/* Hide the tooltip completely since we show value separately */
-.rc-slider-tooltip,
-.rc-slider-tooltip-inner,
-.rc-slider-tooltip-content,
-.rc-slider-tooltip-arrow,
-.dash-slider .rc-slider-tooltip {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    pointer-events: none !important;
+/* Responsive */
+@media (max-width: 1024px) {
+    .main-container {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+    }
 }

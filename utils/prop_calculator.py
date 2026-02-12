@@ -253,6 +253,21 @@ def get_streak_info(
     }
 
 
+def calculate_ev(
+    hit_prob: float,
+    decimal_odds: float = 1.91  # Standard -110 lines = 1.91 decimal
+) -> float:
+    """
+    Calculate Expected Value (EV).
+    EV = (Prob_Win * Profit) - (Prob_Loss * Wager)
+    
+    For decimal odds 1.91 (Profit 0.91):
+    EV% = (Prob * 0.91) - ((1 - Prob) * 1.0)
+    """
+    profit = decimal_odds - 1.0
+    ev = (hit_prob * profit) - ((1 - hit_prob) * 1.0)
+    return round(ev, 4)
+
 # =============================================================================
 # BEST PROPS GENERATION
 # =============================================================================
@@ -262,7 +277,8 @@ def generate_best_props(
     game_logs_df: pd.DataFrame,
     stat_type: str = "PTS",
     top_n: int = 20,
-    min_games: int = 5
+    min_games: int = 5,
+    availability_data: dict = None  # New parameter
 ) -> pd.DataFrame:
     """
     Generate ranked list of best prop bets for today.
@@ -277,11 +293,12 @@ def generate_best_props(
         stat_type: Which stat to analyze
         top_n: Number of top picks to return
         min_games: Minimum games needed for a player
+        availability_data: Dict {player: (is_available, reason)}
 
     Returns:
         DataFrame with columns:
         player, prediction, line, direction, hit_prob,
-        l10_rate, edge, confidence
+        l10_rate, edge, ev, confidence
     """
     stat_lower = stat_type.lower()
     pred_col = f"pred_{stat_lower}"
@@ -294,6 +311,13 @@ def generate_best_props(
 
     for _, row in predictions_df.iterrows():
         player = row.get("player", row.get("PLAYER_NAME", "Unknown"))
+        
+        # STRICT AVAILABILITY CHECK
+        if availability_data:
+            is_avail, reason = availability_data.get(player, (True, ""))
+            if not is_avail:
+                continue
+
         prediction = row.get(pred_col, 0)
 
         if prediction <= 0:
@@ -332,8 +356,9 @@ def generate_best_props(
         # Get streak info
         streak = get_streak_info(recent_stats, line, direction)
 
-        # Calculate edge
+        # Calculate edge and EV
         edge = calculate_edge(prob)
+        ev = calculate_ev(prob)
 
         # Determine confidence
         if prob >= 0.65 and l10_rate >= 0.70:
@@ -353,6 +378,7 @@ def generate_best_props(
             "hit_prob": prob,
             "l10_rate": l10_rate,
             "edge": edge,
+            "ev": ev,
             "current_streak": streak["current_streak"],
             "confidence": confidence
         })
@@ -363,9 +389,9 @@ def generate_best_props(
     if results_df.empty:
         return results_df
 
-    # Sort by edge (best value) then by probability
+    # Sort by EV (best value)
     results_df = results_df.sort_values(
-        ["edge", "hit_prob"],
+        ["ev", "hit_prob"],
         ascending=[False, False]
     ).head(top_n)
 

@@ -443,20 +443,49 @@ def get_injury_report(player_names: list[str]) -> pd.DataFrame:
 
 def is_player_available(player_name: str) -> tuple[bool, str]:
     """
-    Simple check: Is this player likely to play?
+    Strict check: Is this player available to play?
+    Returns (is_available, reason)
     """
     status = get_player_injury_status(player_name)
+    s = status["status"]
+    r = status["reason"]
 
-    if status["status"] == "OUT":
-        return False, f"OUT - {status['reason']}"
-    elif status["status"] == "DOUBTFUL":
-        return False, f"DOUBTFUL - {status['reason']}"
-    elif status["status"] == "QUESTIONABLE":
-        return True, f"QUESTIONABLE - {status['reason']}"
-    elif status["status"] == "PROBABLE":
-        return True, f"PROBABLE - {status['reason']}"
+    if s == "OUT":
+        return False, f"OUT - {r}"
+    elif s == "DOUBTFUL":
+        return False, f"DOUBTFUL - {r}"
+    elif s == "QUESTIONABLE":
+        return True, f"GTD - {r}"  # Allow GTD but flag it
+    elif s == "PROBABLE":
+        return True, "PROBABLE"
     else:
-        return True, "ACTIVE - Available to play"
+        return True, "ACTIVE"
+
+def get_batch_availability(player_names: list[str]) -> dict:
+    """
+    Get availability for a list of players efficiently.
+    Returns dict: {player_name: (bool, reason)}
+    """
+    # Fetch news once
+    all_news = get_nba_injury_news(limit=200)
+    results = {}
+    
+    for player in player_names:
+        p_news = search_player_news(player, all_news)
+        analysis = analyze_injury_status(p_news)
+        s = analysis["status"]
+        r = analysis["reason"]
+        
+        if s == "OUT":
+            results[player] = (False, f"OUT - {r}")
+        elif s == "DOUBTFUL":
+            results[player] = (False, f"DOUBTFUL - {r}")
+        elif s == "QUESTIONABLE":
+            results[player] = (True, f"GTD - {r}")
+        else:
+            results[player] = (True, "ACTIVE")
+            
+    return results
 
 
 def extract_injury_type(news_text: str) -> Optional[str]:

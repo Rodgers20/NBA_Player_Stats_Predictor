@@ -391,238 +391,6 @@ STAT_TYPES = [
 app = Dash(__name__, suppress_callback_exceptions=True)
 server = app.server
 
-# Custom CSS to remove default browser styles and create seamless dark theme
-app.index_string = '''
-<!DOCTYPE html>
-<html>
-    <head>
-        {%metas%}
-        <title>NBA Props Dashboard</title>
-        {%favicon%}
-        {%css%}
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            html, body {
-                background-color: #0a0a0f;
-                color: #ffffff;
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                font-weight: 500;
-                -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
-                letter-spacing: -0.01em;
-            }
-            /* Typography defaults */
-            h1, h2, h3, h4, h5, h6 {
-                font-weight: 700;
-                letter-spacing: -0.02em;
-            }
-            p, span, div {
-                font-weight: 500;
-            }
-            /* Remove Dash default margins */
-            #react-entry-point, ._dash-loading {
-                background-color: #0a0a0f !important;
-            }
-            /* Style dropdowns */
-            .Select-control, .Select-menu-outer {
-                background-color: #12121a !important;
-                border-color: #1e1e2e !important;
-                font-family: 'Inter', sans-serif !important;
-                font-weight: 500 !important;
-            }
-            .Select-value-label, .Select-placeholder, .Select-input input {
-                color: #ffffff !important;
-                font-family: 'Inter', sans-serif !important;
-                font-weight: 500 !important;
-            }
-            .Select-menu-outer {
-                border-radius: 8px !important;
-                margin-top: 4px !important;
-            }
-            .Select-option {
-                background-color: #12121a !important;
-                color: #ffffff !important;
-                font-weight: 500 !important;
-            }
-            .Select-option:hover, .Select-option.is-focused {
-                background-color: #1e1e2e !important;
-            }
-            .Select-arrow-zone {
-                color: #8888aa !important;
-            }
-            /* Remove input outlines */
-            input:focus, button:focus, .Select-control:focus {
-                outline: none !important;
-                box-shadow: none !important;
-            }
-            /* Button typography */
-            button {
-                font-family: 'Inter', sans-serif !important;
-                font-weight: 600 !important;
-            }
-            /* Scrollbar styling */
-            ::-webkit-scrollbar {
-                width: 8px;
-                height: 8px;
-            }
-            ::-webkit-scrollbar-track {
-                background: #0a0a0f;
-            }
-            ::-webkit-scrollbar-thumb {
-                background: #1e1e2e;
-                border-radius: 4px;
-            }
-            ::-webkit-scrollbar-thumb:hover {
-                background: #2e2e3e;
-            }
-            /* Slider styling */
-            .rc-slider-track {
-                background-color: #14b8a6 !important;
-            }
-            .rc-slider-handle {
-                border-color: #14b8a6 !important;
-                background-color: #14b8a6 !important;
-            }
-            /* Responsive styles */
-            @media (max-width: 1200px) {
-                .main-container {
-                    flex-direction: column !important;
-                }
-                .sidebar {
-                    width: 100% !important;
-                    margin-top: 20px;
-                }
-                .main-content {
-                    margin-right: 0 !important;
-                }
-            }
-            @media (max-width: 768px) {
-                .nav-header {
-                    flex-wrap: wrap;
-                    gap: 10px;
-                }
-                .stat-tabs {
-                    flex-wrap: wrap !important;
-                    gap: 6px !important;
-                }
-                .period-tabs {
-                    flex-wrap: wrap !important;
-                    gap: 6px !important;
-                }
-                .supporting-stats {
-                    flex-direction: column !important;
-                }
-                .player-header {
-                    flex-direction: column !important;
-                    text-align: center;
-                }
-                .player-photo {
-                    margin: 0 auto 16px auto !important;
-                }
-                .Select {
-                    width: 100% !important;
-                }
-            }
-            @media (max-width: 480px) {
-                body {
-                    font-size: 14px;
-                }
-                .card {
-                    padding: 16px !important;
-                    border-radius: 12px !important;
-                }
-                button {
-                    padding: 8px 12px !important;
-                    font-size: 12px !important;
-                }
-            }
-            .rc-slider-rail {
-                background-color: #1e1e2e !important;
-            }
-        </style>
-    </head>
-    <body>
-        {%app_entry%}
-        <footer>
-            {%config%}
-            {%scripts%}
-            {%renderer%}
-        </footer>
-    </body>
-</html>
-'''
-
-# =============================================================================
-# STYLES
-# =============================================================================
-
-CARD = {
-    "backgroundColor": COLORS["card"],
-    "borderRadius": "16px",
-    "padding": "20px",
-    "marginBottom": "16px",
-    "border": "none",
-    "boxShadow": "0 4px 20px rgba(0, 0, 0, 0.3)"
-}
-
-TAB_STYLE = {
-    "padding": "10px 16px",
-    "borderRadius": "8px",
-    "cursor": "pointer",
-    "fontSize": "13px",
-    "fontWeight": "500",
-    "color": COLORS["text_secondary"],
-    "backgroundColor": "transparent",
-    "border": "none",
-    "marginRight": "6px",
-    "whiteSpace": "nowrap",
-    "transition": "all 0.2s ease",
-}
-
-TAB_ACTIVE = {
-    **TAB_STYLE,
-    "backgroundColor": "rgba(20, 184, 166, 0.15)",
-    "color": COLORS["accent"],
-    "fontWeight": "600",
-}
-
-# =============================================================================
-# HELPER FUNCTIONS
-# =============================================================================
-
-def get_player_headshot_url(player_name):
-    """Get NBA CDN headshot URL for a player"""
-    player_id = PLAYER_IDS.get(player_name)
-    if player_id:
-        return f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_id}.png"
-    return "https://cdn.nba.com/headshots/nba/latest/1040x760/fallback.png"
-
-def get_stat_value(row, stat):
-    """Calculate stat value for a row, handling combo stats"""
-    if "+" in stat:
-        parts = stat.split("+")
-        return sum(row.get(p, 0) for p in parts)
-    return row.get(stat, 0)
-
-def get_stat_color(stat):
-    """Get the color for a stat type"""
-    colors = {
-        "PTS": COLORS["pts"],
-        "AST": COLORS["ast"],
-        "REB": COLORS["reb"],
-        "BLK": COLORS["blk"],
-        "STL": COLORS["stl"],
-        "FG3M": COLORS["fg3m"],
-    }
-    return colors.get(stat, COLORS["accent"])
-
 # =============================================================================
 # LAYOUT
 # =============================================================================
@@ -633,322 +401,252 @@ app.layout = html.Div([
 
     # Navigation header
     html.Div([
+        # Logo/Title
+        html.Div("NBA Props AI", className="nav-brand"),
+        
+        # Navigation links
         html.Div([
-            # Logo/Title
-            html.Div("NBA Props", style={
-                "fontWeight": "700",
-                "fontSize": "18px",
-                "color": COLORS["text"],
-                "marginRight": "32px"
-            }),
-            # Navigation links
-            html.A("Player Analysis", href="/", style={
-                "color": COLORS["text"],
-                "textDecoration": "none",
-                "padding": "8px 16px",
-                "marginRight": "8px",
-                "borderRadius": "6px",
-                "fontSize": "14px"
-            }, id="nav-player"),
-            html.A("Today's Games", href="/games", style={
-                "color": COLORS["text_muted"],
-                "textDecoration": "none",
-                "padding": "8px 16px",
-                "borderRadius": "6px",
-                "fontSize": "14px"
-            }, id="nav-games"),
-            html.A("Best Props", href="/props", style={
-                "color": COLORS["text_muted"],
-                "textDecoration": "none",
-                "padding": "8px 16px",
-                "borderRadius": "6px",
-                "fontSize": "14px"
-            }, id="nav-props"),
-        ], style={"display": "flex", "alignItems": "center"})
-    ], style={
-        "padding": "12px 24px",
-        "backgroundColor": COLORS["bg"],
-        "borderBottom": f"1px solid {COLORS['border']}",
-        "display": "flex",
-        "alignItems": "center"
-    }),
+            dcc.Link("Player Analysis", href="/", className="nav-link", id="nav-player"),
+            dcc.Link("Today's Games", href="/games", className="nav-link", id="nav-games"),
+            dcc.Link("Best Props", href="/props", className="nav-link", id="nav-props"),
+        ], style={"display": "flex", "gap": "8px"})
+    ], className="nav-header"),
 
     # Page content container
     html.Div(id="page-content"),
 
-], style={"backgroundColor": COLORS["bg"], "minHeight": "100vh", "color": COLORS["text"]})
+])
 
 
 def create_player_analysis_page():
     """Create the main player analysis page layout"""
     return html.Div([
-    # Header with player photo and info
-    html.Div([
+        # Header with player photo and info
         html.Div([
-            # Player photo
-            html.Div(id="player-photo", style={
-                "width": "80px",
-                "height": "80px",
-                "borderRadius": "50%",
-                "overflow": "hidden",
-                "marginRight": "20px",
-                "backgroundColor": COLORS["border"],
-                "flexShrink": "0"
-            }),
-
-            # Player info and dropdown
             html.Div([
-                dcc.Dropdown(
-                    id="player-dropdown",
-                    options=[{"label": p, "value": p} for p in PLAYERS],
-                    value=PLAYERS[0] if PLAYERS else None,
-                    placeholder="Search player...",
-                    searchable=True,
-                    clearable=False,
-                    style={"width": "300px", "backgroundColor": COLORS["card"], "minWidth": "200px"}
-                ),
-                html.Div(id="player-header", style={"marginTop": "8px"}),
-            ]),
-        ], style={"display": "flex", "alignItems": "center", "flexWrap": "wrap", "gap": "16px"}, className="player-header"),
-    ], style={
-        "padding": "20px 24px",
-        "backgroundColor": COLORS["card"],
-        "borderBottom": f"1px solid {COLORS['border']}"
-    }),
+                # Player photo
+                html.Div(id="player-photo", style={
+                    "width": "80px",
+                    "height": "80px",
+                    "borderRadius": "50%",
+                    "overflow": "hidden",
+                    "marginRight": "20px",
+                    "backgroundColor": "#334155",
+                    "flexShrink": "0"
+                }),
 
-    # Main content
-    html.Div([
-        # Left panel - Main chart area
+                # Player info and dropdown
+                html.Div([
+                    dcc.Dropdown(
+                        id="player-dropdown",
+                        options=[{"label": p, "value": p} for p in PLAYERS],
+                        value=PLAYERS[0] if PLAYERS else None,
+                        placeholder="Search player...",
+                        searchable=True,
+                        clearable=False,
+                        className="player-search-dropdown",
+                        style={"width": "300px"}
+                    ),
+                    html.Div(id="player-header", style={"marginTop": "8px"}),
+                ]),
+            ], style={"display": "flex", "alignItems": "center", "flexWrap": "wrap"}),
+        ], className="card", style={"padding": "1.5rem", "marginBottom": "2rem"}),
+
+        # Main content
         html.Div([
-            # Stat type tabs (scrollable)
+            # Left panel - Main chart area
             html.Div([
+                # Stat type tabs
                 html.Div([
                     html.Button(
                         s["label"],
                         id=f"tab-{s['id'].lower().replace('+', '-')}",
                         n_clicks=0,
-                        style=TAB_ACTIVE if s["id"] == "PTS" else TAB_STYLE
+                        className="tab" + (" active" if s["id"] == "PTS" else "")
                     ) for s in STAT_TYPES
-                ], style={"display": "flex", "flexWrap": "wrap", "gap": "6px"}, className="stat-tabs")
-            ], style={
-                "overflowX": "auto",
-                "marginBottom": "16px",
-                "paddingBottom": "8px",
-            }),
+                ], className="tab-group"),
 
-            # Store for selected stat
-            dcc.Store(id="selected-stat", data="PTS"),
+                # Store for selected stat
+                dcc.Store(id="selected-stat", data="PTS"),
 
-            # Time period tabs (with dynamic seasons)
-            html.Div([
-                html.Button("L5", id="period-l5", n_clicks=0, style=TAB_STYLE),
-                html.Button("L10", id="period-l10", n_clicks=0, style=TAB_ACTIVE),
-                html.Button("L20", id="period-l20", n_clicks=0, style=TAB_STYLE),
-                html.Button("H2H", id="period-h2h", n_clicks=0, style=TAB_STYLE),
-                html.Button("H/W", id="period-hw", n_clicks=0, style=TAB_STYLE),
-                html.Button(CURRENT_SEASON.split("-")[0], id="period-current", n_clicks=0, style=TAB_STYLE),
-                html.Button(PREVIOUS_SEASON.split("-")[0], id="period-previous", n_clicks=0, style=TAB_STYLE),
-            ], style={"display": "flex", "marginBottom": "20px", "flexWrap": "wrap", "gap": "6px"}, className="period-tabs"),
-
-            dcc.Store(id="selected-period", data=10),
-            dcc.Store(id="selected-season", data=None),
-            dcc.Store(id="selected-h2h", data=None),  # Store for H2H opponent
-            dcc.Store(id="selected-location", data=None),  # Store for Home/Away filter
-            # Store the season values for use in callbacks
-            dcc.Store(id="current-season-store", data=CURRENT_SEASON),
-            dcc.Store(id="previous-season-store", data=PREVIOUS_SEASON),
-
-            # Hit rate header with avg/median
-            html.Div(id="hit-rate-header", style={"marginBottom": "20px"}),
-
-            # Threshold slider
-            html.Div([
-                html.Div("Threshold:", style={
-                    "color": COLORS["text_secondary"],
-                    "fontSize": "12px",
-                    "marginRight": "12px",
-                    "minWidth": "70px"
-                }),
+                # Time period tabs
                 html.Div([
-                    dcc.Slider(
-                        id="threshold-slider",
-                        min=0,
-                        max=50,
-                        step=0.5,
-                        value=10,
-                        marks={
-                            0: {"label": "0", "style": {"color": "#fff"}},
-                            10: {"label": "10", "style": {"color": "#fff"}},
-                            20: {"label": "20", "style": {"color": "#fff"}},
-                            30: {"label": "30", "style": {"color": "#fff"}},
-                            40: {"label": "40", "style": {"color": "#fff"}},
-                            50: {"label": "50", "style": {"color": "#fff"}},
-                        },
-                        included=True,
-                        tooltip=None,
-                    ),
-                ], style={"flex": "1", "marginRight": "16px"}),
-                html.Div(id="threshold-display", style={
-                    "color": "#14b8a6",
-                    "fontSize": "18px",
-                    "fontWeight": "700",
-                    "minWidth": "60px",
-                    "textAlign": "center",
-                    "backgroundColor": "#000000",
-                    "padding": "6px 12px",
-                    "borderRadius": "6px",
-                    "border": "2px solid #14b8a6"
-                }),
-            ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
+                    html.Button("L5", id="period-l5", n_clicks=0, className="tab"),
+                    html.Button("L10", id="period-l10", n_clicks=0, className="tab active"),
+                    html.Button("L20", id="period-l20", n_clicks=0, className="tab"),
+                    html.Button("H2H", id="period-h2h", n_clicks=0, className="tab"),
+                    html.Button("H/W", id="period-hw", n_clicks=0, className="tab"),
+                    html.Button(CURRENT_SEASON.split("-")[0], id="period-current", n_clicks=0, className="tab"),
+                    html.Button(PREVIOUS_SEASON.split("-")[0], id="period-previous", n_clicks=0, className="tab"),
+                ], className="tab-group"),
 
-            # Main chart
-            html.Div([
-                dcc.Graph(id="main-chart", config={"displayModeBar": False})
-            ], style=CARD),
+                dcc.Store(id="selected-period", data=10),
+                dcc.Store(id="selected-season", data=None),
+                dcc.Store(id="selected-h2h", data=None),
+                dcc.Store(id="selected-location", data=None),
+                dcc.Store(id="current-season-store", data=CURRENT_SEASON),
+                dcc.Store(id="previous-season-store", data=PREVIOUS_SEASON),
 
-            # Average/Median footer
-            html.Div(id="avg-median-footer", style={
-                "display": "flex",
-                "justifyContent": "center",
-                "gap": "40px",
-                "padding": "12px",
-                "backgroundColor": COLORS["card"],
-                "borderRadius": "8px",
-                "marginBottom": "16px"
-            }),
+                # Hit rate header with avg/median
+                html.Div(id="hit-rate-header", style={"marginBottom": "20px"}),
 
-            # Supporting Stats Section
-            html.Div([
-                # Header with Average/Median toggle
+                # Threshold slider
                 html.Div([
-                    html.Div("Supporting Stats", style={
-                        "fontSize": "18px",
-                        "fontWeight": "700",
-                        "color": COLORS["text"]
+                    html.Div("Threshold:", style={
+                        "color": "var(--text-secondary)",
+                        "fontSize": "0.8rem",
+                        "marginRight": "12px",
+                        "minWidth": "70px"
                     }),
                     html.Div([
-                        html.Button("Average", id="supporting-avg-btn", n_clicks=1, style={
-                            "padding": "6px 16px",
-                            "fontSize": "12px",
-                            "backgroundColor": COLORS["border"],
-                            "color": COLORS["text"],
-                            "border": "none",
-                            "borderRadius": "4px 0 0 4px",
-                            "cursor": "pointer"
-                        }),
-                        html.Button("Median", id="supporting-median-btn", n_clicks=0, style={
-                            "padding": "6px 16px",
-                            "fontSize": "12px",
-                            "backgroundColor": "transparent",
-                            "color": COLORS["text_muted"],
-                            "border": "none",
-                            "borderRadius": "0 4px 4px 0",
-                            "cursor": "pointer"
-                        }),
-                    ])
-                ], style={
+                        dcc.Slider(
+                            id="threshold-slider",
+                            min=0,
+                            max=50,
+                            step=0.5,
+                            value=10,
+                            marks={
+                                0: {"label": "0"},
+                                10: {"label": "10"},
+                                20: {"label": "20"},
+                                30: {"label": "30"},
+                                40: {"label": "40"},
+                                50: {"label": "50"},
+                            },
+                            included=True,
+                            tooltip=None,
+                        ),
+                    ], style={"flex": "1", "marginRight": "16px"}),
+                    html.Div(id="threshold-display", style={
+                        "color": "var(--accent-primary)",
+                        "fontSize": "1.2rem",
+                        "fontWeight": "700",
+                        "minWidth": "60px",
+                        "textAlign": "center",
+                        "backgroundColor": "var(--bg-tertiary)",
+                        "padding": "4px 12px",
+                        "borderRadius": "var(--radius-sm)",
+                    }),
+                ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
+
+                # Main chart
+                html.Div([
+                    dcc.Graph(id="main-chart", config={"displayModeBar": False})
+                ], className="card"),
+
+                # Average/Median footer
+                html.Div(id="avg-median-footer", style={
                     "display": "flex",
-                    "justifyContent": "space-between",
-                    "alignItems": "center",
-                    "marginBottom": "20px"
+                    "justifyContent": "center",
+                    "gap": "40px",
+                    "padding": "12px",
+                    "backgroundColor": "var(--bg-secondary)",
+                    "borderRadius": "var(--radius-md)",
+                    "marginBottom": "16px"
                 }),
 
-                # Store for average/median selection
-                dcc.Store(id="supporting-stat-mode", data="average"),
-
-                # Supporting stats cards
-                html.Div(id="supporting-stats-cards", style={
-                    "display": "flex",
-                    "gap": "12px",
-                    "marginBottom": "24px",
-                    "flexWrap": "wrap"
-                }, className="supporting-stats"),
-
-                # Store for selected shooting stat
-                dcc.Store(id="selected-shooting-stat", data="FG"),
-
-                # Shooting breakdown chart (stacked bar)
+                # Supporting Stats Section
                 html.Div([
-                    dcc.Graph(id="shooting-breakdown-chart", config={"displayModeBar": False})
-                ]),
-
-                # Insights section
-                html.Div([
-                    html.Div("Insights", style={
-                        "color": COLORS["text"],
-                        "fontSize": "18px",
-                        "fontWeight": "700",
-                        "marginBottom": "14px",
-                        "marginTop": "24px",
-                        "letterSpacing": "-0.02em"
+                    # Header with Average/Median toggle
+                    html.Div([
+                        html.Div("Supporting Stats", style={
+                            "fontSize": "1.1rem",
+                            "fontWeight": "700",
+                        }),
+                        html.Div([
+                            html.Button("Average", id="supporting-avg-btn", n_clicks=1, className="btn", style={"backgroundColor": "var(--bg-tertiary)"}),
+                            html.Button("Median", id="supporting-median-btn", n_clicks=0, className="btn", style={"backgroundColor": "transparent"}),
+                        ])
+                    ], style={
+                        "display": "flex",
+                        "justifyContent": "space-between",
+                        "alignItems": "center",
+                        "marginBottom": "20px"
                     }),
-                    html.Div(id="player-insights", style={
-                        "color": COLORS["text"],
-                        "fontSize": "15px",
-                        "fontWeight": "500",
-                        "lineHeight": "1.7",
-                        "padding": "18px",
-                        "backgroundColor": COLORS["bg"],
-                        "borderRadius": "12px",
-                        "borderLeft": f"4px solid {COLORS['accent']}"
-                    })
-                ])
-            ], style={**CARD, "marginTop": "16px"}),
 
-            # Best Props for Today section
-            html.Div([
+                    # Store for average/median selection
+                    dcc.Store(id="supporting-stat-mode", data="average"),
+
+                    # Supporting stats cards
+                    html.Div(id="supporting-stats-cards", style={
+                        "display": "flex",
+                        "gap": "12px",
+                        "marginBottom": "24px",
+                        "flexWrap": "wrap"
+                    }),
+
+                    # Store for selected shooting stat
+                    dcc.Store(id="selected-shooting-stat", data="FG"),
+
+                    # Shooting breakdown chart (stacked bar)
+                    html.Div([
+                        dcc.Graph(id="shooting-breakdown-chart", config={"displayModeBar": False})
+                    ]),
+
+                    # Insights section
+                    html.Div([
+                        html.Div("Insights", style={
+                            "fontSize": "1.1rem",
+                            "fontWeight": "700",
+                            "marginBottom": "14px",
+                            "marginTop": "24px",
+                        }),
+                        html.Div(id="player-insights", style={
+                            "color": "var(--text-secondary)",
+                            "fontSize": "0.95rem",
+                            "lineHeight": "1.7",
+                            "padding": "18px",
+                            "backgroundColor": "var(--bg-primary)",
+                            "borderRadius": "var(--radius-md)",
+                            "borderLeft": "4px solid var(--accent-primary)"
+                        })
+                    ])
+                ], className="card"),
+
+                # Best Props for Today section
                 html.Div([
-                    html.Span("🔥", style={"marginRight": "10px", "fontSize": "20px"}),
-                    html.Span("BEST PROPS FOR TODAY", style={
-                        "color": COLORS["text"],
-                        "fontSize": "18px",
-                        "fontWeight": "700",
-                        "letterSpacing": "-0.02em"
+                    html.Div([
+                        html.Span("🔥", style={"marginRight": "10px", "fontSize": "20px"}),
+                        html.Span("BEST PROPS FOR TODAY", style={
+                            "fontSize": "1.1rem",
+                            "fontWeight": "700",
+                        })
+                    ], style={"marginBottom": "16px", "display": "flex", "alignItems": "center"}),
+                    html.Div(id="best-props-main", style={
+                        "maxHeight": "400px",
+                        "overflowY": "auto"
                     })
-                ], style={"marginBottom": "16px", "display": "flex", "alignItems": "center"}),
-                html.Div(id="best-props-main", style={
-                    "maxHeight": "400px",
-                    "overflowY": "auto"
-                })
-            ], style={**CARD, "marginTop": "16px"}),
+                ], className="card"),
 
-        ], style={"flex": "2", "marginRight": "20px"}, className="main-content"),
+            ], className="content-area"),
 
-        # Right panel - Sidebar
-        html.Div([
-            # Tabs for sidebar sections
+            # Right panel - Sidebar
             html.Div([
-                html.Button("Matchup", id="sidebar-matchup", n_clicks=1, style=TAB_ACTIVE),
-                html.Button("Injuries", id="sidebar-injuries", n_clicks=0, style=TAB_STYLE),
-                html.Button("Insights", id="sidebar-insights", n_clicks=0, style=TAB_STYLE),
-                html.Button("Best Props", id="sidebar-props", n_clicks=0, style=TAB_STYLE),
-            ], style={"display": "flex", "marginBottom": "16px", "flexWrap": "wrap", "gap": "6px"}, className="period-tabs"),
+                # Tabs for sidebar sections
+                html.Div([
+                    html.Button("Matchup", id="sidebar-matchup", n_clicks=1, className="tab active"),
+                    html.Button("Injuries", id="sidebar-injuries", n_clicks=0, className="tab"),
+                    html.Button("Insights", id="sidebar-insights", n_clicks=0, className="tab"),
+                    html.Button("Best Props", id="sidebar-props", n_clicks=0, className="tab"),
+                ], className="tab-group"),
 
-            dcc.Store(id="sidebar-tab", data="matchup"),
+                dcc.Store(id="sidebar-tab", data="matchup"),
 
-            # Dynamic sidebar content
-            html.Div(id="sidebar-content"),
+                # Dynamic sidebar content
+                html.Div(id="sidebar-content"),
 
-        ], style={"width": "380px", "flexShrink": "0"}, className="sidebar"),
+            ], className="sidebar"),
 
-    ], style={
-        "display": "flex",
-        "padding": "24px",
-        "maxWidth": "1600px",
-        "margin": "0 auto",
-        "flexWrap": "wrap"
-    }, className="main-container"),
+        ], className="main-container"),
 
-    # Auto-refresh interval (every 5 minutes)
-    dcc.Interval(
-        id="auto-refresh-interval",
-        interval=5 * 60 * 1000,  # 5 minutes in milliseconds
-        n_intervals=0
-    ),
+        # Auto-refresh interval
+        dcc.Interval(
+            id="auto-refresh-interval",
+            interval=5 * 60 * 1000,
+            n_intervals=0
+        ),
 
-    # Store for last update time
-    dcc.Store(id="last-update-time", data=datetime.now().isoformat()),
-
+        dcc.Store(id="last-update-time", data=datetime.now().isoformat()),
     ])
 
 
@@ -980,268 +678,160 @@ def create_todays_games_page():
     if games.empty:
         return html.Div([
             html.Div([
-                html.Div("TODAY'S GAMES", style={
-                    "fontSize": "24px",
-                    "fontWeight": "700",
-                    "marginBottom": "8px"
-                }),
-                html.Div(datetime.now().strftime("%A, %B %d, %Y"), style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "14px",
-                    "marginBottom": "32px"
-                }),
-                html.Div("No games scheduled today", style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "16px",
-                    "textAlign": "center",
-                    "padding": "60px 0"
-                })
-            ], style={"maxWidth": "1200px", "margin": "0 auto", "padding": "32px 24px"})
+                html.Div("TODAY'S GAMES", style={"fontSize": "1.5rem", "fontWeight": "700", "marginBottom": "8px"}),
+                html.Div(datetime.now().strftime("%A, %B %d, %Y"), style={"color": "var(--text-muted)", "marginBottom": "32px"}),
+                html.Div("No games scheduled today", style={"color": "var(--text-muted)", "textAlign": "center", "padding": "60px 0"})
+            ], style={"maxWidth": "1200px", "margin": "0 auto"})
         ])
 
     # Build game cards
     game_cards = []
     for _, game in games.iterrows():
-        # Get team abbreviations - handle different column names
+        # Get team abbreviations
         home_team = game.get("HOME_TEAM", game.get("HOME_TEAM_ABBREVIATION", ""))
         away_team = game.get("AWAY_TEAM", game.get("VISITOR_TEAM_ABBREVIATION", game.get("VISITOR_TEAM", "")))
         game_status = game.get("GAME_STATUS_TEXT", "Scheduled")
 
-        # Get team logo URLs
         home_logo = get_team_logo_url(home_team)
         away_logo = get_team_logo_url(away_team)
-
-        # Debug: print what we found
-        # print(f"Game: {away_team} @ {home_team}")
 
         # Get team defensive stats
         home_def = TEAM_DEF[TEAM_DEF["TEAM_ABBREVIATION"] == home_team] if "TEAM_ABBREVIATION" in TEAM_DEF.columns else pd.DataFrame()
         away_def = TEAM_DEF[TEAM_DEF["TEAM_ABBREVIATION"] == away_team] if "TEAM_ABBREVIATION" in TEAM_DEF.columns else pd.DataFrame()
 
-        # Get defensive rankings
         home_pts_allowed = home_def.iloc[0].get("OPP_PTS", 0) if len(home_def) > 0 else 0
         away_pts_allowed = away_def.iloc[0].get("OPP_PTS", 0) if len(away_def) > 0 else 0
 
         # Get position-specific defense
-        home_guard_def = DEFENSE_VS_POS[(DEFENSE_VS_POS["TEAM_ABBREVIATION"] == home_team) & (DEFENSE_VS_POS["POSITION"] == "G")] if not DEFENSE_VS_POS.empty else pd.DataFrame()
-        home_forward_def = DEFENSE_VS_POS[(DEFENSE_VS_POS["TEAM_ABBREVIATION"] == home_team) & (DEFENSE_VS_POS["POSITION"] == "F")] if not DEFENSE_VS_POS.empty else pd.DataFrame()
-        home_center_def = DEFENSE_VS_POS[(DEFENSE_VS_POS["TEAM_ABBREVIATION"] == home_team) & (DEFENSE_VS_POS["POSITION"] == "C")] if not DEFENSE_VS_POS.empty else pd.DataFrame()
+        def get_pos_def(team, pos):
+            if DEFENSE_VS_POS.empty: return pd.DataFrame()
+            return DEFENSE_VS_POS[(DEFENSE_VS_POS["TEAM_ABBREVIATION"] == team) & (DEFENSE_VS_POS["POSITION"] == pos)]
 
-        away_guard_def = DEFENSE_VS_POS[(DEFENSE_VS_POS["TEAM_ABBREVIATION"] == away_team) & (DEFENSE_VS_POS["POSITION"] == "G")] if not DEFENSE_VS_POS.empty else pd.DataFrame()
-        away_forward_def = DEFENSE_VS_POS[(DEFENSE_VS_POS["TEAM_ABBREVIATION"] == away_team) & (DEFENSE_VS_POS["POSITION"] == "F")] if not DEFENSE_VS_POS.empty else pd.DataFrame()
-        away_center_def = DEFENSE_VS_POS[(DEFENSE_VS_POS["TEAM_ABBREVIATION"] == away_team) & (DEFENSE_VS_POS["POSITION"] == "C")] if not DEFENSE_VS_POS.empty else pd.DataFrame()
+        home_guard_def = get_pos_def(home_team, "G")
+        home_forward_def = get_pos_def(home_team, "F")
+        home_center_def = get_pos_def(home_team, "C")
+
+        away_guard_def = get_pos_def(away_team, "G")
+        away_forward_def = get_pos_def(away_team, "F")
+        away_center_def = get_pos_def(away_team, "C")
 
         def get_rank_badge(rank, label):
-            if pd.isna(rank):
-                return html.Span()
+            if pd.isna(rank): return html.Span()
             rank = int(rank)
-            color = COLORS["hit_high"] if rank <= 10 else COLORS["hit_mid"] if rank <= 20 else COLORS["text_muted"]
+            badge_class = "stat-badge high" if rank <= 10 else "stat-badge mid" if rank <= 20 else "stat-badge low"
+            # Invert logic: Low rank # (1st) is GOOD defense (Red for props? No, usually Green means Good for Over, so Bad Defense)
+            # Actually for Defense rankings: #1 is Best Defense (Hard for props -> Red), #30 is Worst Defense (Easy for props -> Green)
+            # Let's align with the dashboard's "Hit" logic. 
+            # If rank <= 10 (Good Defense) -> Red (Hard)
+            # If rank >= 20 (Bad Defense) -> Green (Easy)
+            # BUT the original code had: rank <= 10 -> COLORS["hit_high"] (Green). 
+            # This implies the original code treated Rank 1 as "Best Matchup" (i.e. Worst Defense).
+            # Let's assume Rank 1 = "Worst Defense" (Best for Props) based on previous context, OR user meant Rank 1 = Best Defense.
+            # Standard NBA stats: Rank 1 = Fewest Points Allowed (Best Defense).
+            # If the user's CSV has "Rank 1" as "Best for Props", then Green is correct.
+            # I will stick to the previous color logic: <=10 is Green.
+            
             return html.Div([
-                html.Span(f"#{rank}", style={"fontWeight": "600", "color": color}),
-                html.Span(f" {label}", style={"fontSize": "10px", "color": COLORS["text_muted"]})
-            ], style={"marginRight": "12px", "fontSize": "12px"})
+                html.Span(f"#{rank}", className=badge_class),
+                html.Span(f" {label}", style={"fontSize": "0.7rem", "color": "var(--text-muted)", "marginLeft": "4px"})
+            ], style={"display": "flex", "alignItems": "center", "marginRight": "8px"})
 
         game_card = html.Div([
-            # Game header with logos
+            # Game header
             html.Div([
-                # Away team with logo
+                # Away
                 html.Div([
-                    html.Img(src=away_logo, style={
-                        "width": "48px",
-                        "height": "48px",
-                        "marginRight": "12px"
-                    }) if away_logo else html.Div(style={"width": "48px", "height": "48px", "marginRight": "12px"}),
-                    html.Span(away_team, style={"fontWeight": "700", "fontSize": "22px"})
+                    html.Img(src=away_logo, style={"width": "48px", "height": "48px", "marginRight": "12px"}) if away_logo else None,
+                    html.Span(away_team, style={"fontWeight": "700", "fontSize": "1.4rem"})
                 ], style={"display": "flex", "alignItems": "center"}),
 
-                # @ symbol
-                html.Span("@", style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "18px",
-                    "margin": "0 20px"
-                }),
+                html.Span("@", style={"color": "var(--text-muted)", "fontSize": "1.2rem", "margin": "0 20px"}),
 
-                # Home team with logo
+                # Home
                 html.Div([
-                    html.Span(home_team, style={"fontWeight": "700", "fontSize": "22px"}),
-                    html.Img(src=home_logo, style={
-                        "width": "48px",
-                        "height": "48px",
-                        "marginLeft": "12px"
-                    }) if home_logo else html.Div(style={"width": "48px", "height": "48px", "marginLeft": "12px"})
+                    html.Span(home_team, style={"fontWeight": "700", "fontSize": "1.4rem"}),
+                    html.Img(src=home_logo, style={"width": "48px", "height": "48px", "marginLeft": "12px"}) if home_logo else None,
                 ], style={"display": "flex", "alignItems": "center"}),
 
-                # Game status
+                # Status
                 html.Div(game_status, style={
-                    "color": COLORS["accent"],
-                    "fontSize": "12px",
-                    "fontWeight": "600",
-                    "marginLeft": "auto",
-                    "padding": "6px 12px",
-                    "backgroundColor": COLORS["bg"],
-                    "borderRadius": "4px"
+                    "marginLeft": "auto", 
+                    "padding": "4px 12px", 
+                    "backgroundColor": "var(--bg-primary)", 
+                    "borderRadius": "var(--radius-sm)",
+                    "fontSize": "0.8rem",
+                    "color": "var(--accent-primary)"
                 })
-            ], style={
-                "display": "flex",
-                "alignItems": "center",
-                "marginBottom": "24px"
-            }),
+            ], style={"display": "flex", "alignItems": "center", "marginBottom": "1.5rem", "borderBottom": "1px solid var(--border-color)", "paddingBottom": "1rem"}),
 
-            # Two columns: Away team vs Home team
+            # Matchup Stats
             html.Div([
-                # Away team column
+                # Away Defense Column
                 html.Div([
+                    html.Div(f"{away_team} Defense", style={"fontWeight": "600", "marginBottom": "12px", "color": "var(--text-secondary)"}),
                     html.Div([
-                        html.Img(src=away_logo, style={
-                            "width": "24px",
-                            "height": "24px",
-                            "marginRight": "8px"
-                        }) if away_logo else None,
-                        html.Span(f"{away_team} Defense", style={
-                            "fontSize": "14px",
-                            "fontWeight": "600",
-                            "color": COLORS["text"]
-                        })
-                    ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
-                    html.Div([
+                        html.Div("vs Guards", style={"fontSize": "0.8rem", "color": "var(--text-muted)"}),
                         html.Div([
-                            html.Div("vs Guards", style={"fontSize": "11px", "color": COLORS["text_muted"], "marginBottom": "4px"}),
-                            html.Div([
-                                get_rank_badge(away_guard_def.iloc[0].get("PTS_RANK") if len(away_guard_def) > 0 else None, "PTS"),
-                                get_rank_badge(away_guard_def.iloc[0].get("AST_RANK") if len(away_guard_def) > 0 else None, "AST"),
-                            ], style={"display": "flex"})
-                        ], style={"marginBottom": "10px"}),
-                        html.Div([
-                            html.Div("vs Forwards", style={"fontSize": "11px", "color": COLORS["text_muted"], "marginBottom": "4px"}),
-                            html.Div([
-                                get_rank_badge(away_forward_def.iloc[0].get("PTS_RANK") if len(away_forward_def) > 0 else None, "PTS"),
-                                get_rank_badge(away_forward_def.iloc[0].get("REB_RANK") if len(away_forward_def) > 0 else None, "REB"),
-                            ], style={"display": "flex"})
-                        ], style={"marginBottom": "10px"}),
-                        html.Div([
-                            html.Div("vs Centers", style={"fontSize": "11px", "color": COLORS["text_muted"], "marginBottom": "4px"}),
-                            html.Div([
-                                get_rank_badge(away_center_def.iloc[0].get("PTS_RANK") if len(away_center_def) > 0 else None, "PTS"),
-                                get_rank_badge(away_center_def.iloc[0].get("REB_RANK") if len(away_center_def) > 0 else None, "REB"),
-                            ], style={"display": "flex"})
-                        ]),
+                            get_rank_badge(away_guard_def.iloc[0].get("PTS_RANK") if len(away_guard_def) > 0 else None, "PTS"),
+                            get_rank_badge(away_guard_def.iloc[0].get("AST_RANK") if len(away_guard_def) > 0 else None, "AST"),
+                        ], style={"display": "flex", "marginBottom": "8px"})
                     ]),
-                    html.Div(f"PPG Allowed: {away_pts_allowed:.1f}" if away_pts_allowed else "", style={
-                        "fontSize": "12px",
-                        "color": COLORS["text_muted"],
-                        "marginTop": "12px"
-                    })
-                ], style={"flex": "1", "paddingRight": "20px"}),
+                    html.Div([
+                        html.Div("vs Forwards", style={"fontSize": "0.8rem", "color": "var(--text-muted)"}),
+                        html.Div([
+                            get_rank_badge(away_forward_def.iloc[0].get("PTS_RANK") if len(away_forward_def) > 0 else None, "PTS"),
+                            get_rank_badge(away_forward_def.iloc[0].get("REB_RANK") if len(away_forward_def) > 0 else None, "REB"),
+                        ], style={"display": "flex", "marginBottom": "8px"})
+                    ]),
+                     html.Div(f"PPG Allowed: {away_pts_allowed:.1f}", style={"fontSize": "0.8rem", "color": "var(--text-muted)", "marginTop": "8px"})
+                ], style={"flex": "1"}),
 
                 # Divider
-                html.Div(style={
-                    "width": "1px",
-                    "backgroundColor": COLORS["border"],
-                    "margin": "0 20px"
-                }),
+                html.Div(style={"width": "1px", "backgroundColor": "var(--border-color)", "margin": "0 20px"}),
 
-                # Home team column
+                # Home Defense Column
                 html.Div([
+                    html.Div(f"{home_team} Defense", style={"fontWeight": "600", "marginBottom": "12px", "color": "var(--text-secondary)"}),
                     html.Div([
-                        html.Img(src=home_logo, style={
-                            "width": "24px",
-                            "height": "24px",
-                            "marginRight": "8px"
-                        }) if home_logo else None,
-                        html.Span(f"{home_team} Defense", style={
-                            "fontSize": "14px",
-                            "fontWeight": "600",
-                            "color": COLORS["text"]
-                        })
-                    ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
-                    html.Div([
+                        html.Div("vs Guards", style={"fontSize": "0.8rem", "color": "var(--text-muted)"}),
                         html.Div([
-                            html.Div("vs Guards", style={"fontSize": "11px", "color": COLORS["text_muted"], "marginBottom": "4px"}),
-                            html.Div([
-                                get_rank_badge(home_guard_def.iloc[0].get("PTS_RANK") if len(home_guard_def) > 0 else None, "PTS"),
-                                get_rank_badge(home_guard_def.iloc[0].get("AST_RANK") if len(home_guard_def) > 0 else None, "AST"),
-                            ], style={"display": "flex"})
-                        ], style={"marginBottom": "10px"}),
-                        html.Div([
-                            html.Div("vs Forwards", style={"fontSize": "11px", "color": COLORS["text_muted"], "marginBottom": "4px"}),
-                            html.Div([
-                                get_rank_badge(home_forward_def.iloc[0].get("PTS_RANK") if len(home_forward_def) > 0 else None, "PTS"),
-                                get_rank_badge(home_forward_def.iloc[0].get("REB_RANK") if len(home_forward_def) > 0 else None, "REB"),
-                            ], style={"display": "flex"})
-                        ], style={"marginBottom": "10px"}),
-                        html.Div([
-                            html.Div("vs Centers", style={"fontSize": "11px", "color": COLORS["text_muted"], "marginBottom": "4px"}),
-                            html.Div([
-                                get_rank_badge(home_center_def.iloc[0].get("PTS_RANK") if len(home_center_def) > 0 else None, "PTS"),
-                                get_rank_badge(home_center_def.iloc[0].get("REB_RANK") if len(home_center_def) > 0 else None, "REB"),
-                            ], style={"display": "flex"})
-                        ]),
+                            get_rank_badge(home_guard_def.iloc[0].get("PTS_RANK") if len(home_guard_def) > 0 else None, "PTS"),
+                            get_rank_badge(home_guard_def.iloc[0].get("AST_RANK") if len(home_guard_def) > 0 else None, "AST"),
+                        ], style={"display": "flex", "marginBottom": "8px"})
                     ]),
-                    html.Div(f"PPG Allowed: {home_pts_allowed:.1f}" if home_pts_allowed else "", style={
-                        "fontSize": "12px",
-                        "color": COLORS["text_muted"],
-                        "marginTop": "12px"
-                    })
-                ], style={"flex": "1", "paddingLeft": "20px"}),
-            ], style={"display": "flex"}),
+                    html.Div([
+                        html.Div("vs Forwards", style={"fontSize": "0.8rem", "color": "var(--text-muted)"}),
+                        html.Div([
+                            get_rank_badge(home_forward_def.iloc[0].get("PTS_RANK") if len(home_forward_def) > 0 else None, "PTS"),
+                            get_rank_badge(home_forward_def.iloc[0].get("REB_RANK") if len(home_forward_def) > 0 else None, "REB"),
+                        ], style={"display": "flex", "marginBottom": "8px"})
+                    ]),
+                    html.Div(f"PPG Allowed: {home_pts_allowed:.1f}", style={"fontSize": "0.8rem", "color": "var(--text-muted)", "marginTop": "8px"})
+                ], style={"flex": "1"}),
 
-        ], style={
-            "padding": "24px",
-            "backgroundColor": COLORS["card"],
-            "borderRadius": "12px",
-            "marginBottom": "16px",
-            "border": f"1px solid {COLORS['border']}"
-        })
+            ], style={"display": "flex"})
 
+        ], className="card")
         game_cards.append(game_card)
 
     return html.Div([
         html.Div([
-            html.Div("TODAY'S GAMES", style={
-                "fontSize": "24px",
-                "fontWeight": "700",
-                "marginBottom": "8px"
-            }),
+            html.Div("TODAY'S GAMES", style={"fontSize": "1.5rem", "fontWeight": "700", "marginBottom": "8px"}),
             html.Div([
-                html.Span(datetime.now().strftime("%A, %B %d, %Y"), style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "14px",
-                }),
-                html.Span(f" • {len(games)} games", style={
-                    "color": COLORS["accent"],
-                    "fontSize": "14px",
-                    "marginLeft": "8px"
-                })
-            ], style={"marginBottom": "32px"}),
-
-            # Legend
-            html.Div([
-                html.Span("Rankings: ", style={"color": COLORS["text_muted"], "fontSize": "11px"}),
-                html.Span("#1-10 ", style={"color": COLORS["hit_high"], "fontSize": "11px", "fontWeight": "600"}),
-                html.Span("= favorable matchup | ", style={"color": COLORS["text_muted"], "fontSize": "11px"}),
-                html.Span("#11-20 ", style={"color": COLORS["hit_mid"], "fontSize": "11px", "fontWeight": "600"}),
-                html.Span("= average | ", style={"color": COLORS["text_muted"], "fontSize": "11px"}),
-                html.Span("#21-30 ", style={"color": COLORS["text_secondary"], "fontSize": "11px"}),
-                html.Span("= tough matchup", style={"color": COLORS["text_muted"], "fontSize": "11px"}),
+                html.Span(datetime.now().strftime("%A, %B %d, %Y"), style={"color": "var(--text-muted)"}),
+                html.Span(f" • {len(games)} games", style={"color": "var(--accent-primary)", "marginLeft": "8px"})
             ], style={"marginBottom": "24px"}),
-
-            # Game cards
-            html.Div(game_cards),
-
-            # Last updated
-            html.Div(f"Last updated: {datetime.now().strftime('%I:%M %p')}", style={
-                "color": COLORS["text_muted"],
-                "fontSize": "11px",
-                "textAlign": "center",
-                "marginTop": "24px"
-            })
-        ], style={"maxWidth": "1000px", "margin": "0 auto", "padding": "32px 24px"})
+            
+            html.Div(game_cards)
+        ], style={"maxWidth": "1000px", "margin": "0 auto"})
     ])
 
 
 def create_best_props_page():
     """Create the Best Props page showing top value picks for today"""
     from utils.data_fetch import get_todays_games
+    from utils.injury_news import get_batch_availability  # Import batch availability check
+    from utils.prop_calculator import calculate_ev        # Import EV calc
 
     # Team IDs for logos
     TEAM_IDS = {
@@ -1267,12 +857,12 @@ def create_best_props_page():
             return f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_id}.png"
         return ""
 
-    # Get today's games to know which teams are playing
+    # Get today's games
     games = get_todays_games()
     teams_playing = []
-    teams_home_away = {}  # Track if team is home or away today
-    game_matchups = []  # List of game matchup strings for dropdown
-    team_to_matchup = {}  # Map team to its game matchup string
+    teams_home_away = {}
+    game_matchups = []
+    
     if not games.empty:
         for _, game in games.iterrows():
             home = game.get("HOME_TEAM", "")
@@ -1280,8 +870,6 @@ def create_best_props_page():
             if home and away:
                 matchup_str = f"{away} @ {home}"
                 game_matchups.append(matchup_str)
-                team_to_matchup[home] = matchup_str
-                team_to_matchup[away] = matchup_str
             if home:
                 teams_playing.append(home)
                 teams_home_away[home] = "home"
@@ -1289,498 +877,142 @@ def create_best_props_page():
                 teams_playing.append(away)
                 teams_home_away[away] = "away"
 
-    # Get players from teams playing today
+    # Players playing today
     players_today = []
     if teams_playing and not PLAYER_POSITIONS.empty:
         players_today = PLAYER_POSITIONS[
             PLAYER_POSITIONS["TEAM_ABBREVIATION"].isin(teams_playing)
         ]["PLAYER_NAME"].tolist()
 
-    # Generate props for players playing today
+    # CHECK AVAILABILITY
+    # Only process players who are actually playing
+    availability_map = get_batch_availability(players_today[:50]) # Limit for speed
+
     props_data = []
-
-    for player_name in players_today[:50]:  # Limit to avoid slow loading
-        player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
-
-        if len(player_df) < 5:
+    
+    for player_name in players_today[:50]:
+        # Filter out injured players
+        is_avail, reason = availability_map.get(player_name, (True, ""))
+        if not is_avail:
             continue
 
-        # Get player's team and opponent
+        player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+        if len(player_df) < 5: continue
+
         player_team = get_player_current_team(player_name)
         opponent = ""
         is_home_today = teams_home_away.get(player_team, "home") == "home"
 
-        # Find opponent from today's games
         for _, game in games.iterrows():
-            home = game.get("HOME_TEAM", "")
-            away = game.get("AWAY_TEAM", "")
-            if player_team == home:
-                opponent = away
-                break
-            elif player_team == away:
-                opponent = home
-                break
+            if player_team == game.get("HOME_TEAM"): opponent = game.get("AWAY_TEAM"); break
+            elif player_team == game.get("AWAY_TEAM"): opponent = game.get("HOME_TEAM"); break
+        
+        if not opponent: continue
 
-        if not opponent:
-            continue
-
-        # Get player position
+        # Position
         pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
         position = pos_match["POSITION"].iloc[0] if len(pos_match) > 0 else "F"
 
-        # Split games into home and away based on MATCHUP column
-        # "vs." = home game, "@" = away game
-        if "MATCHUP" in player_df.columns:
-            home_games = player_df[player_df["MATCHUP"].str.contains("vs.", na=False)].head(10)
-            away_games = player_df[player_df["MATCHUP"].str.contains("@", na=False)].head(10)
-        else:
-            home_games = player_df.head(10)
-            away_games = player_df.head(10)
-
-        # Calculate stats for different props
         recent_10 = player_df.head(10)
+        
+        # Home/Away splits
+        home_games = player_df[player_df["MATCHUP"].str.contains("vs.", na=False)].head(10) if "MATCHUP" in player_df.columns else player_df.head(10)
+        away_games = player_df[player_df["MATCHUP"].str.contains("@", na=False)].head(10) if "MATCHUP" in player_df.columns else player_df.head(10)
 
         for stat_type in ["PTS", "AST", "REB", "FG3M"]:
-            if stat_type not in recent_10.columns:
-                continue
-
+            if stat_type not in recent_10.columns: continue
+            
             recent_stats = recent_10[stat_type]
             avg_stat = recent_stats.mean()
+            if avg_stat < 1: continue
 
-            # Calculate home/away specific stats
-            home_stats = home_games[stat_type] if stat_type in home_games.columns and len(home_games) > 0 else pd.Series([])
-            away_stats = away_games[stat_type] if stat_type in away_games.columns and len(away_games) > 0 else pd.Series([])
+            # Line logic
+            if stat_type == "PTS": line = round(avg_stat - 0.5) + 0.5 if avg_stat > 5 else 4.5
+            elif stat_type == "FG3M": line = round(avg_stat - 0.5) + 0.5 if avg_stat > 1 else 0.5
+            else: line = round(avg_stat - 0.5) + 0.5 if avg_stat > 2 else 1.5
 
-            home_avg = home_stats.mean() if len(home_stats) > 0 else avg_stat
-            away_avg = away_stats.mean() if len(away_stats) > 0 else avg_stat
-
-            if avg_stat < 1:
-                continue
-
-            # Calculate a sensible line based on average
-            if stat_type == "PTS":
-                line = round(avg_stat - 0.5) + 0.5 if avg_stat > 5 else 4.5
-            elif stat_type == "FG3M":
-                line = round(avg_stat - 0.5) + 0.5 if avg_stat > 1 else 0.5
-            else:
-                line = round(avg_stat - 0.5) + 0.5 if avg_stat > 2 else 1.5
-
-            # Calculate hit rates for all, home, and away
             hits_all = (recent_stats >= line).sum()
             hit_rate_all = hits_all / len(recent_stats) if len(recent_stats) > 0 else 0
+            
+            # Opponent rank
+            opp_def = DEFENSE_VS_POS[(DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) & (DEFENSE_VS_POS["POSITION"] == position)]
+            def_rank = int(opp_def.iloc[0].get(f"{stat_type}_RANK" if stat_type != "FG3M" else "3PM_RANK", 15)) if not opp_def.empty else None
 
-            hits_home = (home_stats >= line).sum() if len(home_stats) > 0 else 0
-            hit_rate_home = hits_home / len(home_stats) if len(home_stats) > 0 else 0
+            # Calculate EV (Using hit rate as proxy for probability for now)
+            # ideally we use the model's probability, but here we are using hit rate for the dashboard feed
+            ev_value = calculate_ev(hit_rate_all)
 
-            hits_away = (away_stats >= line).sum() if len(away_stats) > 0 else 0
-            hit_rate_away = hits_away / len(away_stats) if len(away_stats) > 0 else 0
-
-            # Get opponent's defensive ranking for this position
-            opp_def = DEFENSE_VS_POS[
-                (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) &
-                (DEFENSE_VS_POS["POSITION"] == position)
-            ] if not DEFENSE_VS_POS.empty else pd.DataFrame()
-
-            def_rank = None
-            if len(opp_def) > 0:
-                rank_col = f"{stat_type}_RANK" if stat_type != "FG3M" else "3PM_RANK"
-                if rank_col in opp_def.columns:
-                    def_rank = int(opp_def.iloc[0].get(rank_col, 15))
-
-            # Only include props with decent hit rate
             if hit_rate_all >= 0.5:
                 props_data.append({
-                    "player": player_name,
-                    "team": player_team,
-                    "opponent": opponent,
-                    "position": position,
-                    "stat": stat_type,
-                    "line": line,
-                    "avg": round(avg_stat, 1),
-                    "avg_home": round(home_avg, 1) if not pd.isna(home_avg) else round(avg_stat, 1),
-                    "avg_away": round(away_avg, 1) if not pd.isna(away_avg) else round(avg_stat, 1),
-                    "hit_rate": hit_rate_all,
-                    "hit_rate_home": hit_rate_home,
-                    "hit_rate_away": hit_rate_away,
-                    "hits": hits_all,
-                    "hits_home": hits_home,
-                    "hits_away": hits_away,
-                    "total": len(recent_stats),
-                    "total_home": len(home_stats),
-                    "total_away": len(away_stats),
-                    "def_rank": def_rank,
-                    "is_home_today": is_home_today,
-                    "game_matchup": team_to_matchup.get(player_team, "")
+                    "player": player_name, "team": player_team, "opponent": opponent, "position": position,
+                    "stat": stat_type, "line": line, "avg": round(avg_stat, 1),
+                    "hit_rate": hit_rate_all, "hits": hits_all, "total": len(recent_stats),
+                    "def_rank": def_rank, "is_home_today": is_home_today,
+                    "ev": ev_value, # ADD EV
+                    "game_matchup": f"{opponent} @ {player_team}" if is_home_today else f"{player_team} @ {opponent}",
+                    # Add extra data for callbacks
+                    "hit_rate_home": (home_games[stat_type] >= line).sum()/len(home_games) if not home_games.empty else 0,
+                    "hit_rate_away": (away_games[stat_type] >= line).sum()/len(away_games) if not away_games.empty else 0,
+                    "hits_home": (home_games[stat_type] >= line).sum() if not home_games.empty else 0,
+                    "hits_away": (away_games[stat_type] >= line).sum() if not away_games.empty else 0,
+                    "total_home": len(home_games), "total_away": len(away_games),
+                    "avg_home": round(home_games[stat_type].mean(), 1) if not home_games.empty else 0,
+                    "avg_away": round(away_games[stat_type].mean(), 1) if not away_games.empty else 0
                 })
 
-    # Sort by hit rate
-    props_data.sort(key=lambda x: x["hit_rate"], reverse=True)
-
-    # Build prop cards
-    prop_cards = []
-
-    for prop in props_data[:30]:  # Show top 30
-        hit_pct = int(prop["hit_rate"] * 100)
-        hit_color = COLORS["hit_high"] if hit_pct >= 70 else COLORS["hit_mid"] if hit_pct >= 60 else COLORS["text"]
-
-        # Stat label colors
-        stat_colors = {
-            "PTS": COLORS["pts"],
-            "AST": COLORS["ast"],
-            "REB": COLORS["reb"],
-            "FG3M": COLORS["fg3m"]
-        }
-        stat_color = stat_colors.get(prop["stat"], COLORS["text"])
-
-        # Position full names
-        pos_names = {"G": "Guards", "F": "Forwards", "C": "Centers"}
-        pos_name = pos_names.get(prop["position"], "Players")
-
-        # Get home/away specific data
-        home_hit_pct = int(prop.get("hit_rate_home", 0) * 100)
-        away_hit_pct = int(prop.get("hit_rate_away", 0) * 100)
-        home_hits = prop.get("hits_home", 0)
-        away_hits = prop.get("hits_away", 0)
-        total_home = prop.get("total_home", 0)
-        total_away = prop.get("total_away", 0)
-        is_home_today = prop.get("is_home_today", True)
-
-        # Build insight text
-        insights = [
-            f"The Over Hit {prop['hits']}/{prop['total']} In The Last 10 Games"
-        ]
-
-        # Add home/away insight based on where they're playing
-        if is_home_today and total_home > 0:
-            insights.append(f"At Home: {home_hits}/{total_home} ({home_hit_pct}%) • Avg: {prop.get('avg_home', prop['avg'])}")
-        elif not is_home_today and total_away > 0:
-            insights.append(f"On Road: {away_hits}/{total_away} ({away_hit_pct}%) • Avg: {prop.get('avg_away', prop['avg'])}")
-
-        if prop["def_rank"]:
-            rank_text = "Most" if prop["def_rank"] <= 10 else "Least" if prop["def_rank"] >= 21 else ""
-            if rank_text:
-                stat_name = "Points" if prop["stat"] == "PTS" else "Assists" if prop["stat"] == "AST" else "Rebounds" if prop["stat"] == "REB" else "3-Pointers"
-                insights.append(f"{prop['opponent']} Allow #{prop['def_rank']} {rank_text} {stat_name} To {pos_name}")
-
-        player_photo = get_player_photo_url(prop["player"])
-        team_logo = get_team_logo_url(prop["team"])
-
-        prop_card = html.Div([
-            # Header: Player info + hit rate
-            html.Div([
-                # Player photo
-                html.Div([
-                    html.Img(src=player_photo, style={
-                        "width": "40px",
-                        "height": "40px",
-                        "borderRadius": "50%",
-                        "objectFit": "cover",
-                        "backgroundColor": COLORS["border"]
-                    }) if player_photo else html.Div(style={
-                        "width": "40px",
-                        "height": "40px",
-                        "borderRadius": "50%",
-                        "backgroundColor": COLORS["border"]
-                    })
-                ], style={"marginRight": "12px"}),
-
-                # Player name and matchup
-                html.Div([
-                    html.Div([
-                        html.Span(prop["player"], style={
-                            "fontWeight": "700",
-                            "fontSize": "16px",
-                            "color": COLORS["text"]
-                        }),
-                        html.Span(f" {'vs' if is_home_today else '@'} {prop['opponent']}", style={
-                            "color": COLORS["text_muted"],
-                            "fontSize": "14px"
-                        }),
-                        html.Span(f" {'HOME' if is_home_today else 'AWAY'}", style={
-                            "color": COLORS["accent"] if is_home_today else COLORS["text_secondary"],
-                            "fontSize": "10px",
-                            "fontWeight": "600",
-                            "marginLeft": "8px",
-                            "padding": "2px 6px",
-                            "backgroundColor": COLORS["bg"],
-                            "borderRadius": "4px"
-                        })
-                    ]),
-                    html.Div(f"{prop['team']} • {prop['position']}", style={
-                        "fontSize": "12px",
-                        "color": COLORS["text_muted"]
-                    })
-                ], style={"flex": "1"}),
-
-                # Hit rate badge
-                html.Div(f"{hit_pct}%", style={
-                    "fontSize": "20px",
-                    "fontWeight": "700",
-                    "color": hit_color
-                })
-            ], style={
-                "display": "flex",
-                "alignItems": "center",
-                "marginBottom": "16px"
-            }),
-
-            # Insights
-            html.Div([
-                html.Div([
-                    html.Span("• ", style={"color": COLORS["hit_high"]}),
-                    html.Span(insight, style={"color": COLORS["text_secondary"], "fontSize": "13px"})
-                ], style={"marginBottom": "6px"})
-                for insight in insights
-            ], style={
-                "backgroundColor": COLORS["bg"],
-                "padding": "12px 16px",
-                "borderRadius": "8px",
-                "borderLeft": f"3px solid {COLORS['hit_high']}",
-                "marginBottom": "16px"
-            }),
-
-            # Prop line
-            html.Div([
-                html.Div([
-                    html.Span(prop["stat"], style={
-                        "color": stat_color,
-                        "fontWeight": "600",
-                        "fontSize": "12px",
-                        "marginRight": "8px"
-                    }),
-                    html.Span(f"Over {prop['line']}", style={
-                        "fontWeight": "700",
-                        "fontSize": "16px",
-                        "color": COLORS["text"]
-                    })
-                ], style={"display": "flex", "alignItems": "center"}),
-
-                html.Div(f"Avg: {prop['avg']}", style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "13px"
-                })
-            ], style={
-                "display": "flex",
-                "justifyContent": "space-between",
-                "alignItems": "center",
-                "backgroundColor": COLORS["bg"],
-                "padding": "12px 16px",
-                "borderRadius": "8px"
-            })
-
-        ], style={
-            "backgroundColor": COLORS["card"],
-            "borderRadius": "12px",
-            "padding": "20px",
-            "marginBottom": "16px",
-            "border": f"1px solid {COLORS['border']}"
-        })
-
-        prop_cards.append(prop_card)
-
-    # No games message
-    if not teams_playing:
-        no_games_msg = html.Div([
-            html.Div("No NBA games scheduled today", style={
-                "color": COLORS["text_muted"],
-                "fontSize": "18px",
-                "textAlign": "center",
-                "padding": "60px 0"
-            }),
-            html.Div("Check back on game days for the best prop picks!", style={
-                "color": COLORS["text_muted"],
-                "fontSize": "14px",
-                "textAlign": "center"
-            })
-        ])
-        prop_cards = [no_games_msg]
-
-    elif not prop_cards:
-        no_props_msg = html.Div([
-            html.Div("No high-value props found for today's games", style={
-                "color": COLORS["text_muted"],
-                "fontSize": "18px",
-                "textAlign": "center",
-                "padding": "60px 0"
-            })
-        ])
-        prop_cards = [no_props_msg]
+    # Sort by EV instead of hit rate
+    props_data.sort(key=lambda x: x["ev"], reverse=True)
 
     return html.Div([
         html.Div([
             # Page header
             html.Div([
-                html.Div("BEST PROPS", style={
-                    "fontSize": "24px",
-                    "fontWeight": "700",
-                    "marginBottom": "8px"
-                }),
+                html.Div("BEST PROPS", style={"fontSize": "1.5rem", "fontWeight": "700", "marginBottom": "8px"}),
                 html.Div([
-                    html.Span(datetime.now().strftime("%A, %B %d, %Y"), style={
-                        "color": COLORS["text_muted"],
-                        "fontSize": "14px",
-                    }),
-                    html.Span(f" • {len(prop_cards)} picks" if prop_cards and teams_playing else "", style={
-                        "color": COLORS["accent"],
-                        "fontSize": "14px",
-                        "marginLeft": "8px"
-                    })
+                    html.Span(datetime.now().strftime("%A, %B %d, %Y"), style={"color": "var(--text-muted)"}),
+                    html.Span(f" • {len(props_data)} picks", style={"color": "var(--accent-primary)", "marginLeft": "8px"})
                 ], style={"marginBottom": "8px"}),
-
-                html.Div("Top value player props based on L10 hit rate and matchup analysis", style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "13px",
-                    "marginBottom": "24px"
-                }),
+                html.Div("Top value player props based on EV (+Expected Value)", style={"color": "var(--text-secondary)", "fontSize": "0.9rem", "marginBottom": "24px"}),
             ]),
 
-            # Stat filter tabs
+            # Filters
             html.Div([
-                html.Div("All Stats", id="props-filter-all", n_clicks=0, style={
-                    "padding": "8px 16px",
-                    "backgroundColor": COLORS["border"],
-                    "borderRadius": "6px",
-                    "fontSize": "13px",
-                    "cursor": "pointer",
-                    "marginRight": "8px",
-                    "fontWeight": "600"
-                }),
-                html.Div("Points", id="props-filter-pts", n_clicks=0, style={
-                    "padding": "8px 16px",
-                    "backgroundColor": COLORS["card"],
-                    "borderRadius": "6px",
-                    "fontSize": "13px",
-                    "cursor": "pointer",
-                    "marginRight": "8px",
-                    "color": COLORS["pts"]
-                }),
-                html.Div("Assists", id="props-filter-ast", n_clicks=0, style={
-                    "padding": "8px 16px",
-                    "backgroundColor": COLORS["card"],
-                    "borderRadius": "6px",
-                    "fontSize": "13px",
-                    "cursor": "pointer",
-                    "marginRight": "8px",
-                    "color": COLORS["ast"]
-                }),
-                html.Div("Rebounds", id="props-filter-reb", n_clicks=0, style={
-                    "padding": "8px 16px",
-                    "backgroundColor": COLORS["card"],
-                    "borderRadius": "6px",
-                    "fontSize": "13px",
-                    "cursor": "pointer",
-                    "marginRight": "8px",
-                    "color": COLORS["reb"]
-                }),
-                html.Div("3-Pointers", id="props-filter-3pm", n_clicks=0, style={
-                    "padding": "8px 16px",
-                    "backgroundColor": COLORS["card"],
-                    "borderRadius": "6px",
-                    "fontSize": "13px",
-                    "cursor": "pointer",
-                    "color": COLORS["fg3m"]
-                }),
-            ], style={
-                "display": "flex",
-                "marginBottom": "16px",
-                "flexWrap": "wrap",
-                "gap": "8px"
-            }),
+                html.Div("All Stats", id="props-filter-all", n_clicks=0, className="tab active"),
+                html.Div("Points", id="props-filter-pts", n_clicks=0, className="tab", style={"color": "var(--accent-primary)"}),
+                html.Div("Assists", id="props-filter-ast", n_clicks=0, className="tab", style={"color": "#f97066"}),
+                html.Div("Rebounds", id="props-filter-reb", n_clicks=0, className="tab", style={"color": "#a78bfa"}),
+                html.Div("3-Pointers", id="props-filter-3pm", n_clicks=0, className="tab", style={"color": "#ec4899"}),
+            ], className="tab-group"),
 
-            # Location filter (Home/Away)
+            # Location & Game Filter
             html.Div([
-                html.Span("Location: ", style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "13px",
-                    "marginRight": "12px",
-                    "alignSelf": "center"
-                }),
-                html.Div("All Games", id="props-loc-all", n_clicks=0, style={
-                    "padding": "6px 14px",
-                    "backgroundColor": COLORS["border"],
-                    "borderRadius": "6px",
-                    "fontSize": "12px",
-                    "cursor": "pointer",
-                    "marginRight": "8px",
-                    "fontWeight": "600"
-                }),
-                html.Div("Home", id="props-loc-home", n_clicks=0, style={
-                    "padding": "6px 14px",
-                    "backgroundColor": COLORS["card"],
-                    "borderRadius": "6px",
-                    "fontSize": "12px",
-                    "cursor": "pointer",
-                    "marginRight": "8px",
-                    "border": f"1px solid {COLORS['border']}"
-                }),
-                html.Div("Away", id="props-loc-away", n_clicks=0, style={
-                    "padding": "6px 14px",
-                    "backgroundColor": COLORS["card"],
-                    "borderRadius": "6px",
-                    "fontSize": "12px",
-                    "cursor": "pointer",
-                    "border": f"1px solid {COLORS['border']}"
-                }),
-            ], style={
-                "display": "flex",
-                "marginBottom": "16px",
-                "alignItems": "center"
-            }),
+                html.Span("Location: ", style={"color": "var(--text-muted)", "fontSize": "0.9rem", "marginRight": "12px"}),
+                html.Div("All Games", id="props-loc-all", n_clicks=0, className="tab active"),
+                html.Div("Home", id="props-loc-home", n_clicks=0, className="tab"),
+                html.Div("Away", id="props-loc-away", n_clicks=0, className="tab"),
+                
+                html.Div([
+                    html.Span("Game: ", style={"color": "var(--text-muted)", "fontSize": "0.9rem", "marginLeft": "24px", "marginRight": "12px"}),
+                    dcc.Dropdown(
+                        id="props-game-filter",
+                        options=[{"label": "All Games", "value": "all"}] + [{"label": m, "value": m} for m in game_matchups],
+                        value="all",
+                        clearable=False,
+                        style={"width": "200px"},
+                        className="game-filter-dropdown"
+                    ),
+                ], style={"display": "flex", "alignItems": "center"}) if game_matchups else html.Div(),
+            ], style={"display": "flex", "alignItems": "center", "marginBottom": "24px", "flexWrap": "wrap"}),
 
-            # Game filter dropdown
-            html.Div([
-                html.Span("Game: ", style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "13px",
-                    "marginRight": "12px",
-                    "alignSelf": "center"
-                }),
-                dcc.Dropdown(
-                    id="props-game-filter",
-                    options=[{"label": "All Games", "value": "all"}] + [
-                        {"label": matchup, "value": matchup} for matchup in game_matchups
-                    ],
-                    value="all",
-                    clearable=False,
-                    style={
-                        "width": "200px",
-                        "fontSize": "13px"
-                    },
-                    className="game-filter-dropdown"
-                ),
-            ], style={
-                "display": "flex",
-                "marginBottom": "24px",
-                "alignItems": "center"
-            }) if game_matchups else html.Div(),
-
-            # Legend
-            html.Div([
-                html.Span("Hit Rate: ", style={"color": COLORS["text_muted"], "fontSize": "11px"}),
-                html.Span("70%+ ", style={"color": COLORS["hit_high"], "fontSize": "11px", "fontWeight": "600"}),
-                html.Span("= High confidence | ", style={"color": COLORS["text_muted"], "fontSize": "11px"}),
-                html.Span("60-69% ", style={"color": COLORS["hit_mid"], "fontSize": "11px", "fontWeight": "600"}),
-                html.Span("= Medium | ", style={"color": COLORS["text_muted"], "fontSize": "11px"}),
-                html.Span("50-59% ", style={"color": COLORS["text"], "fontSize": "11px"}),
-                html.Span("= Watchlist", style={"color": COLORS["text_muted"], "fontSize": "11px"}),
-            ], style={"marginBottom": "24px"}),
-
-            # Store for props data and filter state
             dcc.Store(id="props-data-store", data=props_data),
             dcc.Store(id="props-location-filter", data="all"),
 
-            # Prop cards
-            html.Div(prop_cards, id="props-list"),
+            # Prop cards container (populated by callback)
+            html.Div(id="props-list"),
 
-            # Last updated
-            html.Div(f"Last updated: {datetime.now().strftime('%I:%M %p')}", style={
-                "color": COLORS["text_muted"],
-                "fontSize": "11px",
-                "textAlign": "center",
-                "marginTop": "24px"
-            })
+            html.Div(f"Last updated: {datetime.now().strftime('%I:%M %p')}", style={"color": "var(--text-muted)", "fontSize": "0.8rem", "textAlign": "center", "marginTop": "24px"})
 
-        ], style={"maxWidth": "700px", "margin": "0 auto", "padding": "32px 24px"})
+        ], style={"maxWidth": "800px", "margin": "0 auto"})
     ])
 
 
@@ -1790,37 +1022,22 @@ def create_best_props_page():
 
 @callback(
     [Output("page-content", "children"),
-     Output("nav-player", "style"),
-     Output("nav-games", "style"),
-     Output("nav-props", "style")],
+     Output("nav-player", "className"),
+     Output("nav-games", "className"),
+     Output("nav-props", "className")],
     Input("url", "pathname")
 )
 def display_page(pathname):
     """Route to the correct page based on URL"""
-    nav_active = {
-        "color": COLORS["text"],
-        "textDecoration": "none",
-        "padding": "8px 16px",
-        "marginRight": "8px",
-        "borderRadius": "6px",
-        "fontSize": "14px",
-        "backgroundColor": COLORS["border"]
-    }
-    nav_inactive = {
-        "color": COLORS["text_muted"],
-        "textDecoration": "none",
-        "padding": "8px 16px",
-        "marginRight": "8px",
-        "borderRadius": "6px",
-        "fontSize": "14px"
-    }
+    active = "nav-link active"
+    inactive = "nav-link"
 
     if pathname == "/games":
-        return create_todays_games_page(), nav_inactive, nav_active, nav_inactive
+        return create_todays_games_page(), inactive, active, inactive
     elif pathname == "/props":
-        return create_best_props_page(), nav_inactive, nav_inactive, nav_active
+        return create_best_props_page(), inactive, inactive, active
     else:
-        return create_player_analysis_page(), nav_active, nav_inactive, nav_inactive
+        return create_player_analysis_page(), active, inactive, inactive
 
 
 # =============================================================================
@@ -1849,16 +1066,17 @@ def update_stat_selection(*clicks):
 
 # Update tab styles based on selection
 @callback(
-    [Output(f"tab-{s['id'].lower().replace('+', '-')}", "style") for s in STAT_TYPES],
+    [Output(f"tab-{s['id'].lower().replace('+', '-')}", "className") for s in STAT_TYPES],
     Input("selected-stat", "data")
 )
 def update_stat_tab_styles(selected):
     styles = []
     for s in STAT_TYPES:
+        base_class = "tab"
         if s["id"] == selected:
-            styles.append(TAB_ACTIVE)
+            styles.append(f"{base_class} active")
         else:
-            styles.append(TAB_STYLE)
+            styles.append(base_class)
     return styles
 
 
@@ -1868,14 +1086,14 @@ def update_stat_tab_styles(selected):
      Output("selected-season", "data"),
      Output("selected-h2h", "data"),
      Output("selected-location", "data"),
-     Output("period-l5", "style"),
-     Output("period-l10", "style"),
-     Output("period-l20", "style"),
-     Output("period-h2h", "style"),
-     Output("period-hw", "style"),
+     Output("period-l5", "className"),
+     Output("period-l10", "className"),
+     Output("period-l20", "className"),
+     Output("period-h2h", "className"),
+     Output("period-hw", "className"),
      Output("period-hw", "children"),
-     Output("period-current", "style"),
-     Output("period-previous", "style")],
+     Output("period-current", "className"),
+     Output("period-previous", "className")],
     [Input("period-l5", "n_clicks"),
      Input("period-l10", "n_clicks"),
      Input("period-l20", "n_clicks"),
@@ -1889,36 +1107,41 @@ def update_period_tabs(l5, l10, l20, h2h, hw, current, previous, current_locatio
     from dash import ctx
     triggered = ctx.triggered_id
 
-    styles = [TAB_STYLE] * 7  # 7 buttons now
+    # Default all to inactive
+    styles = ["tab"] * 7
     period = 10
     season = None
-    h2h_mode = None  # Will be set to "h2h" when H2H is selected
-    location = None  # Will be set to "home" or "away" when location filter selected
-    hw_label = "H/W"  # Default label for H/W toggle button
+    h2h_mode = None
+    location = None
+    hw_label = "H/W"
 
     if triggered == "period-l5":
-        period, styles[0] = 5, TAB_ACTIVE
+        period, styles[0] = 5, "tab active"
     elif triggered == "period-l10" or triggered is None:
-        period, styles[1] = 10, TAB_ACTIVE
+        period, styles[1] = 10, "tab active"
     elif triggered == "period-l20":
-        period, styles[2] = 20, TAB_ACTIVE
+        period, styles[2] = 20, "tab active"
     elif triggered == "period-h2h":
-        period, h2h_mode, styles[3] = 100, "h2h", TAB_ACTIVE  # Use large period, filter by opponent
+        period, h2h_mode, styles[3] = 100, "h2h", "tab active"
     elif triggered == "period-hw":
-        # Toggle through: None -> "home" -> "away" -> None
         if current_location is None:
             location, hw_label = "home", "Home"
         elif current_location == "home":
             location, hw_label = "away", "Away"
         else:
             location, hw_label = None, "H/W"
-        period, styles[4] = 100 if location else 10, TAB_ACTIVE if location else TAB_STYLE
+        
+        period = 100 if location else 10
+        styles[4] = "tab active" if location else "tab"
+        
+        # If toggling off, go back to L10
         if not location:
-            styles[1] = TAB_ACTIVE  # Reset to L10 when clearing filter
+            styles[1] = "tab active"
+            
     elif triggered == "period-current":
-        period, season, styles[5] = 100, CURRENT_SEASON, TAB_ACTIVE
+        period, season, styles[5] = 100, CURRENT_SEASON, "tab active"
     elif triggered == "period-previous":
-        period, season, styles[6] = 100, PREVIOUS_SEASON, TAB_ACTIVE
+        period, season, styles[6] = 100, PREVIOUS_SEASON, "tab active"
 
     return [period, season, h2h_mode, location] + styles[:4] + [styles[4], hw_label] + styles[5:]
 
@@ -1926,10 +1149,10 @@ def update_period_tabs(l5, l10, l20, h2h, hw, current, previous, current_locatio
 # Sidebar tab handler
 @callback(
     [Output("sidebar-tab", "data"),
-     Output("sidebar-matchup", "style"),
-     Output("sidebar-injuries", "style"),
-     Output("sidebar-insights", "style"),
-     Output("sidebar-props", "style")],
+     Output("sidebar-matchup", "className"),
+     Output("sidebar-injuries", "className"),
+     Output("sidebar-insights", "className"),
+     Output("sidebar-props", "className")],
     [Input("sidebar-matchup", "n_clicks"),
      Input("sidebar-injuries", "n_clicks"),
      Input("sidebar-insights", "n_clicks"),
@@ -1939,19 +1162,20 @@ def update_sidebar_tabs(matchup, injuries, insights, props):
     from dash import ctx
     triggered = ctx.triggered_id
 
-    styles = [TAB_STYLE] * 4
+    styles = ["tab"] * 4
     tab = "matchup"
 
     if triggered == "sidebar-matchup" or triggered is None:
-        tab, styles[0] = "matchup", TAB_ACTIVE
+        tab, styles[0] = "matchup", "tab active"
     elif triggered == "sidebar-injuries":
-        tab, styles[1] = "injuries", TAB_ACTIVE
+        tab, styles[1] = "injuries", "tab active"
     elif triggered == "sidebar-insights":
-        tab, styles[2] = "insights", TAB_ACTIVE
+        tab, styles[2] = "insights", "tab active"
     elif triggered == "sidebar-props":
-        tab, styles[3] = "props", TAB_ACTIVE
+        tab, styles[3] = "props", "tab active"
 
     return [tab] + styles
+
 
 
 # =============================================================================
@@ -1960,9 +1184,9 @@ def update_sidebar_tabs(matchup, injuries, insights, props):
 
 @callback(
     [Output("props-location-filter", "data"),
-     Output("props-loc-all", "style"),
-     Output("props-loc-home", "style"),
-     Output("props-loc-away", "style")],
+     Output("props-loc-all", "className"),
+     Output("props-loc-home", "className"),
+     Output("props-loc-away", "className")],
     [Input("props-loc-all", "n_clicks"),
      Input("props-loc-home", "n_clicks"),
      Input("props-loc-away", "n_clicks")],
@@ -1972,40 +1196,15 @@ def update_location_filter(all_clicks, home_clicks, away_clicks):
     from dash import ctx
     triggered = ctx.triggered_id
 
-    # Define button styles
-    active_style = {
-        "padding": "6px 14px",
-        "backgroundColor": COLORS["border"],
-        "borderRadius": "6px",
-        "fontSize": "12px",
-        "cursor": "pointer",
-        "marginRight": "8px",
-        "fontWeight": "600"
-    }
-    inactive_style = {
-        "padding": "6px 14px",
-        "backgroundColor": COLORS["card"],
-        "borderRadius": "6px",
-        "fontSize": "12px",
-        "cursor": "pointer",
-        "marginRight": "8px",
-        "border": f"1px solid {COLORS['border']}"
-    }
-    inactive_style_last = {
-        "padding": "6px 14px",
-        "backgroundColor": COLORS["card"],
-        "borderRadius": "6px",
-        "fontSize": "12px",
-        "cursor": "pointer",
-        "border": f"1px solid {COLORS['border']}"
-    }
+    active = "tab active"
+    inactive = "tab"
 
     if triggered == "props-loc-home":
-        return "home", inactive_style, active_style, inactive_style_last
+        return "home", inactive, active, inactive
     elif triggered == "props-loc-away":
-        return "away", inactive_style, inactive_style, {**active_style, "marginRight": "0px"}
+        return "away", inactive, inactive, active
     else:  # all or default
-        return "all", active_style, inactive_style, inactive_style_last
+        return "all", active, inactive, inactive
 
 
 @callback(
@@ -2017,7 +1216,7 @@ def update_location_filter(all_clicks, home_clicks, away_clicks):
 def update_props_list(location_filter, game_filter, props_data):
     if not props_data:
         return html.Div("No props data available", style={
-            "color": COLORS["text_muted"],
+            "color": "var(--text-muted)",
             "textAlign": "center",
             "padding": "40px"
         })
@@ -2050,7 +1249,7 @@ def update_props_list(location_filter, game_filter, props_data):
 
     if not filtered_props:
         return html.Div(f"No {'home' if location_filter == 'home' else 'away' if location_filter == 'away' else ''} props found", style={
-            "color": COLORS["text_muted"],
+            "color": "var(--text-muted)",
             "textAlign": "center",
             "padding": "40px"
         })
@@ -2076,19 +1275,25 @@ def update_props_list(location_filter, game_filter, props_data):
             avg = prop.get("avg", 0)
 
         hit_pct = int(hit_rate * 100)
-        hit_color = COLORS["hit_high"] if hit_pct >= 70 else COLORS["hit_mid"] if hit_pct >= 60 else COLORS["text"]
+        # Dynamic color for hit rate
+        hit_color = "var(--success)" if hit_pct >= 70 else "var(--warning)" if hit_pct >= 60 else "var(--text-primary)"
 
         stat_colors = {
-            "PTS": COLORS["pts"],
-            "AST": COLORS["ast"],
-            "REB": COLORS["reb"],
-            "FG3M": COLORS["fg3m"]
+            "PTS": "var(--accent-primary)", # Teal
+            "AST": "#f97066", # Coral
+            "REB": "#a78bfa", # Purple
+            "FG3M": "#ec4899" # Pink
         }
-        stat_color = stat_colors.get(prop.get("stat", "PTS"), COLORS["text"])
+        stat_color = stat_colors.get(prop.get("stat", "PTS"), "var(--text-primary)")
 
         is_home_today = prop.get("is_home_today", True)
         player_id = PLAYER_IDS.get(prop.get("player", ""), "")
         player_photo = f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_id}.png" if player_id else ""
+        
+        # Format EV
+        ev_val = prop.get("ev", 0)
+        ev_text = f"+{ev_val:.1f}% EV" if ev_val > 0 else f"{ev_val:.1f}% EV"
+        ev_color = "var(--success)" if ev_val > 0 else "var(--text-muted)"
 
         # Build insights
         insights = []
@@ -2109,50 +1314,54 @@ def update_props_list(location_filter, game_filter, props_data):
             html.Div([
                 html.Div([
                     html.Img(src=player_photo, style={
-                        "width": "40px", "height": "40px", "borderRadius": "50%",
-                        "objectFit": "cover", "backgroundColor": COLORS["border"]
+                        "width": "48px", "height": "48px", "borderRadius": "50%",
+                        "objectFit": "cover", "backgroundColor": "var(--bg-tertiary)"
                     }) if player_photo else html.Div(style={
-                        "width": "40px", "height": "40px", "borderRadius": "50%",
-                        "backgroundColor": COLORS["border"]
+                        "width": "48px", "height": "48px", "borderRadius": "50%",
+                        "backgroundColor": "var(--bg-tertiary)"
                     })
-                ], style={"marginRight": "12px"}),
+                ], style={"marginRight": "16px"}),
                 html.Div([
                     html.Div([
-                        html.Span(prop.get("player", ""), style={"fontWeight": "700", "fontSize": "16px", "color": COLORS["text"]}),
-                        html.Span(f" {'vs' if is_home_today else '@'} {prop.get('opponent', '')}", style={"color": COLORS["text_muted"], "fontSize": "14px"}),
+                        html.Span(prop.get("player", ""), style={"fontWeight": "700", "fontSize": "1.1rem"}),
+                        html.Span(f" {'vs' if is_home_today else '@'} {prop.get('opponent', '')}", style={"color": "var(--text-muted)", "fontSize": "0.9rem", "marginLeft": "8px"}),
                         html.Span(f" {'HOME' if is_home_today else 'AWAY'}", style={
-                            "color": COLORS["accent"] if is_home_today else COLORS["text_secondary"],
-                            "fontSize": "10px", "fontWeight": "600", "marginLeft": "8px",
-                            "padding": "2px 6px", "backgroundColor": COLORS["bg"], "borderRadius": "4px"
+                            "color": "var(--accent-primary)" if is_home_today else "var(--text-secondary)",
+                            "fontSize": "0.7rem", "fontWeight": "600", "marginLeft": "8px",
+                            "padding": "2px 6px", "backgroundColor": "var(--bg-primary)", "borderRadius": "4px"
                         })
                     ]),
-                    html.Div(f"{prop.get('team', '')} • {prop.get('position', '')}", style={"fontSize": "12px", "color": COLORS["text_muted"]})
+                    html.Div(f"{prop.get('team', '')} • {prop.get('position', '')}", style={"fontSize": "0.85rem", "color": "var(--text-muted)"})
                 ], style={"flex": "1"}),
-                html.Div(f"{hit_pct}%", style={"fontSize": "20px", "fontWeight": "700", "color": hit_color})
+                
+                # Hit Rate + EV Column
+                html.Div([
+                    html.Div(f"{hit_pct}%", style={"fontSize": "1.5rem", "fontWeight": "800", "color": hit_color, "textAlign": "right"}),
+                    html.Div(ev_text, style={"fontSize": "0.8rem", "fontWeight": "600", "color": ev_color, "textAlign": "right"})
+                ])
             ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
+            
             html.Div([
                 html.Div([
-                    html.Span("• ", style={"color": COLORS["hit_high"]}),
-                    html.Span(insight, style={"color": COLORS["text_secondary"], "fontSize": "13px"})
-                ], style={"marginBottom": "6px"}) for insight in insights
+                    html.Span("• ", style={"color": "var(--success)"}),
+                    html.Span(insight, style={"color": "var(--text-secondary)", "fontSize": "0.9rem"})
+                ], style={"marginBottom": "4px"}) for insight in insights
             ], style={
-                "backgroundColor": COLORS["bg"], "padding": "12px 16px", "borderRadius": "8px",
-                "borderLeft": f"3px solid {COLORS['hit_high']}", "marginBottom": "16px"
+                "backgroundColor": "var(--bg-primary)", "padding": "12px", "borderRadius": "var(--radius-sm)",
+                "borderLeft": "3px solid var(--success)", "marginBottom": "16px"
             }),
+            
             html.Div([
                 html.Div([
-                    html.Span(prop.get("stat", ""), style={"color": stat_color, "fontWeight": "600", "fontSize": "12px", "marginRight": "8px"}),
-                    html.Span(f"Over {prop.get('line', 0)}", style={"fontWeight": "700", "fontSize": "16px", "color": COLORS["text"]})
+                    html.Span(prop.get("stat", ""), style={"color": stat_color, "fontWeight": "700", "fontSize": "0.9rem", "marginRight": "8px"}),
+                    html.Span(f"Over {prop.get('line', 0)}", style={"fontWeight": "700", "fontSize": "1.1rem"})
                 ], style={"display": "flex", "alignItems": "center"}),
-                html.Div(f"Avg: {avg}", style={"color": COLORS["text_muted"], "fontSize": "13px"})
+                html.Div(f"Avg: {avg}", style={"color": "var(--text-muted)", "fontSize": "0.9rem"})
             ], style={
                 "display": "flex", "justifyContent": "space-between", "alignItems": "center",
-                "backgroundColor": COLORS["bg"], "padding": "12px 16px", "borderRadius": "8px"
+                "backgroundColor": "var(--bg-primary)", "padding": "12px", "borderRadius": "var(--radius-sm)"
             })
-        ], style={
-            "backgroundColor": COLORS["card"], "borderRadius": "12px", "padding": "20px",
-            "marginBottom": "16px", "border": f"1px solid {COLORS['border']}"
-        })
+        ], className="card")
         prop_cards.append(prop_card)
 
     return prop_cards
