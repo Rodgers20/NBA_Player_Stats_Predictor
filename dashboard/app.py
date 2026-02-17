@@ -167,6 +167,26 @@ PREDICTORS = load_models()  # Empty, uses lazy loading now
 PLAYERS = sorted(DF["PLAYER_NAME"].unique().tolist())
 
 # Build player ID mapping from the data (column is "Player_ID" from NBA API)
+# Build player ID mapping from the data (column is "Player_ID" from NBA API)
+PLAYER_IDS = {}
+if "Player_ID" in DF.columns:
+    try:
+        # Optimized mapping using vectorization (much faster than iterating)
+        # Drop rows where Player_ID is NaN, then drop duplicates by Name
+        mapping_df = DF[["PLAYER_NAME", "Player_ID"]].dropna(subset=["Player_ID"]).drop_duplicates("PLAYER_NAME")
+        # Convert to dictionary
+        PLAYER_IDS = dict(zip(mapping_df["PLAYER_NAME"], mapping_df["Player_ID"].astype(int)))
+    except Exception as e:
+        print(f"Error building player ID map: {e}")
+        # Fallback to empty if fails
+
+
+print(f"Loaded {len(DF)} game records for {len(PLAYERS)} players")
+
+# Diagnostic print for Player_ID column
+print(f"DEBUG: 'Player_ID' in DF.columns = {'Player_ID' in DF.columns}")
+
+# Build player ID mapping from the data (column is "Player_ID" from NBA API)
 PLAYER_IDS = {}
 if "Player_ID" in DF.columns:
     for name in PLAYERS:
@@ -176,8 +196,8 @@ if "Player_ID" in DF.columns:
             if pid:
                 PLAYER_IDS[name] = int(pid)
 
-print(f"Loaded {len(DF)} game records for {len(PLAYERS)} players")
 print(f"Player photos available: {len(PLAYER_IDS)}")
+
 
 # =============================================================================
 # BACKGROUND DATA UPDATER
@@ -288,6 +308,15 @@ COLORS = {
     "accent_secondary": "#8b5cf6",
 }
 
+# Card style definition (Missing in original code)
+CARD = {
+    "backgroundColor": COLORS["card"],
+    "borderRadius": "16px",
+    "padding": "24px",
+    "boxShadow": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    "marginBottom": "24px"
+}
+
 def get_hit_color(pct):
     if pct >= 66:
         return COLORS["hit_high"]
@@ -295,6 +324,19 @@ def get_hit_color(pct):
         return COLORS["hit_mid"]
     else:
         return COLORS["hit_low"]
+
+def get_stat_color(stat):
+    """Get the color for a stat type"""
+    colors = {
+        "PTS": COLORS["pts"],
+        "AST": COLORS["ast"],
+        "REB": COLORS["reb"],
+        "BLK": COLORS["blk"],
+        "STL": COLORS["stl"],
+        "FG3M": COLORS["fg3m"],
+    }
+    return colors.get(stat, COLORS["accent"])
+
 
 
 def get_player_current_team(player_name):
@@ -390,6 +432,42 @@ STAT_TYPES = [
 
 app = Dash(__name__, suppress_callback_exceptions=True)
 server = app.server
+
+# =============================================================================
+# SHARED HELPER FUNCTIONS
+# =============================================================================
+
+# Team IDs for logos
+TEAM_IDS = {
+    "ATL": 1610612737, "BOS": 1610612738, "BKN": 1610612751, "CHA": 1610612766,
+    "CHI": 1610612741, "CLE": 1610612739, "DAL": 1610612742, "DEN": 1610612743,
+    "DET": 1610612765, "GSW": 1610612744, "HOU": 1610612745, "IND": 1610612754,
+    "LAC": 1610612746, "LAL": 1610612747, "MEM": 1610612763, "MIA": 1610612748,
+    "MIL": 1610612749, "MIN": 1610612750, "NOP": 1610612740, "NYK": 1610612752,
+    "OKC": 1610612760, "ORL": 1610612753, "PHI": 1610612755, "PHX": 1610612756,
+    "POR": 1610612757, "SAC": 1610612758, "SAS": 1610612759, "TOR": 1610612761,
+    "UTA": 1610612762, "WAS": 1610612764
+}
+
+def get_team_logo_url(team_abbr):
+    """Get team logo URL from NBA CDN"""
+    team_id = TEAM_IDS.get(team_abbr, "")
+    if team_id:
+        return f"https://cdn.nba.com/logos/nba/{team_id}/global/L/logo.svg"
+    return ""
+
+def get_player_headshot_url(player_name):
+    """Get NBA CDN headshot URL for a player"""
+    player_id = PLAYER_IDS.get(player_name)
+    if player_id:
+        # standard 260x190 endpoint which is more reliable
+        url = f"https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{player_id}.png"
+        # print(f"DEBUG: Player headshot URL for {player_name}: {url}")
+        return url
+    
+    # Generic fallback
+    fallback_url = "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png"
+    return fallback_url
 
 # =============================================================================
 # LAYOUT
@@ -506,26 +584,26 @@ def create_player_analysis_page():
                             step=0.5,
                             value=10,
                             marks={
-                                0: {"label": "0"},
-                                10: {"label": "10"},
-                                20: {"label": "20"},
-                                30: {"label": "30"},
-                                40: {"label": "40"},
-                                50: {"label": "50"},
+                                0: {"label": "0", "style": {"color": COLORS["text_secondary"]}},
+                                10: {"label": "10", "style": {"color": COLORS["text_secondary"]}},
+                                20: {"label": "20", "style": {"color": COLORS["text_secondary"]}},
+                                30: {"label": "30", "style": {"color": COLORS["text_secondary"]}},
+                                40: {"label": "40", "style": {"color": COLORS["text_secondary"]}},
+                                50: {"label": "50", "style": {"color": COLORS["text_secondary"]}},
                             },
                             included=True,
                             tooltip=None,
                         ),
                     ], style={"flex": "1", "marginRight": "16px"}),
                     html.Div(id="threshold-display", style={
-                        "color": "var(--accent-primary)",
+                        "color": "#000000",  # Force black for high visibility
                         "fontSize": "1.2rem",
                         "fontWeight": "700",
                         "minWidth": "60px",
                         "textAlign": "center",
-                        "backgroundColor": "var(--bg-tertiary)",
+                        "backgroundColor": "#ffffff", # Force white background
                         "padding": "4px 12px",
-                        "borderRadius": "var(--radius-sm)",
+                        "borderRadius": "8px"
                     }),
                 ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
 
@@ -654,24 +732,7 @@ def create_todays_games_page():
     """Create the Today's Games page showing all matchups"""
     from utils.data_fetch import get_todays_games
 
-    # Team abbreviation to ID mapping for logos
-    TEAM_IDS = {
-        "ATL": 1610612737, "BOS": 1610612738, "BKN": 1610612751, "CHA": 1610612766,
-        "CHI": 1610612741, "CLE": 1610612739, "DAL": 1610612742, "DEN": 1610612743,
-        "DET": 1610612765, "GSW": 1610612744, "HOU": 1610612745, "IND": 1610612754,
-        "LAC": 1610612746, "LAL": 1610612747, "MEM": 1610612763, "MIA": 1610612748,
-        "MIL": 1610612749, "MIN": 1610612750, "NOP": 1610612740, "NYK": 1610612752,
-        "OKC": 1610612760, "ORL": 1610612753, "PHI": 1610612755, "PHX": 1610612756,
-        "POR": 1610612757, "SAC": 1610612758, "SAS": 1610612759, "TOR": 1610612761,
-        "UTA": 1610612762, "WAS": 1610612764
-    }
-
-    def get_team_logo_url(team_abbr):
-        """Get team logo URL from NBA CDN"""
-        team_id = TEAM_IDS.get(team_abbr, "")
-        if team_id:
-            return f"https://cdn.nba.com/logos/nba/{team_id}/global/L/logo.svg"
-        return ""
+    from utils.data_fetch import get_todays_games
 
     games = get_todays_games()
 
@@ -833,30 +894,7 @@ def create_best_props_page():
     from utils.injury_news import get_batch_availability  # Import batch availability check
     from utils.prop_calculator import calculate_ev        # Import EV calc
 
-    # Team IDs for logos
-    TEAM_IDS = {
-        "ATL": 1610612737, "BOS": 1610612738, "BKN": 1610612751, "CHA": 1610612766,
-        "CHI": 1610612741, "CLE": 1610612739, "DAL": 1610612742, "DEN": 1610612743,
-        "DET": 1610612765, "GSW": 1610612744, "HOU": 1610612745, "IND": 1610612754,
-        "LAC": 1610612746, "LAL": 1610612747, "MEM": 1610612763, "MIA": 1610612748,
-        "MIL": 1610612749, "MIN": 1610612750, "NOP": 1610612740, "NYK": 1610612752,
-        "OKC": 1610612760, "ORL": 1610612753, "PHI": 1610612755, "PHX": 1610612756,
-        "POR": 1610612757, "SAC": 1610612758, "SAS": 1610612759, "TOR": 1610612761,
-        "UTA": 1610612762, "WAS": 1610612764
-    }
-
-    def get_team_logo_url(team_abbr):
-        team_id = TEAM_IDS.get(team_abbr, "")
-        if team_id:
-            return f"https://cdn.nba.com/logos/nba/{team_id}/global/L/logo.svg"
-        return ""
-
-    def get_player_photo_url(player_name):
-        player_id = PLAYER_IDS.get(player_name, "")
-        if player_id:
-            return f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_id}.png"
-        return ""
-
+    from utils.prop_calculator import calculate_ev        # Import EV calc
     # Get today's games
     games = get_todays_games()
     teams_playing = []
@@ -1002,6 +1040,23 @@ def create_best_props_page():
                         className="game-filter-dropdown"
                     ),
                 ], style={"display": "flex", "alignItems": "center"}) if game_matchups else html.Div(),
+
+                # SORT FILTER
+                html.Div([
+                    html.Span("Sort By: ", style={"color": "var(--text-muted)", "fontSize": "0.9rem", "marginLeft": "24px", "marginRight": "12px"}),
+                    dcc.Dropdown(
+                        id="props-sort-dropdown",
+                        options=[
+                            {"label": "Highest EV (+Value)", "value": "ev"},
+                            {"label": "Highest Hit Rate %", "value": "hit_rate"}
+                        ],
+                        value="ev",
+                        clearable=False,
+                        style={"width": "180px"},
+                        className="game-filter-dropdown"
+                    ),
+                ], style={"display": "flex", "alignItems": "center"}),
+
             ], style={"display": "flex", "alignItems": "center", "marginBottom": "24px", "flexWrap": "wrap"}),
 
             dcc.Store(id="props-data-store", data=props_data),
@@ -1211,9 +1266,10 @@ def update_location_filter(all_clicks, home_clicks, away_clicks):
     Output("props-list", "children"),
     [Input("props-location-filter", "data"),
      Input("props-game-filter", "value"),
+     Input("props-sort-dropdown", "value"),
      Input("props-data-store", "data")]
 )
-def update_props_list(location_filter, game_filter, props_data):
+def update_props_list(location_filter, game_filter, sort_by, props_data):
     if not props_data:
         return html.Div("No props data available", style={
             "color": "var(--text-muted)",
@@ -1239,13 +1295,19 @@ def update_props_list(location_filter, game_filter, props_data):
         elif location_filter == "away" and not prop.get("is_home_today", True):
             filtered_props.append(prop)
 
-    # Re-sort by hit rate based on location
+    # Sort Logic
+    # 1. Determine the metric key based on filter context
+    hit_rate_key = "hit_rate"
     if location_filter == "home":
-        filtered_props.sort(key=lambda x: x.get("hit_rate_home", 0), reverse=True)
+        hit_rate_key = "hit_rate_home"
     elif location_filter == "away":
-        filtered_props.sort(key=lambda x: x.get("hit_rate_away", 0), reverse=True)
-    else:
-        filtered_props.sort(key=lambda x: x.get("hit_rate", 0), reverse=True)
+        hit_rate_key = "hit_rate_away"
+
+    # 2. Apply sort
+    if sort_by == "hit_rate":
+        filtered_props.sort(key=lambda x: x.get(hit_rate_key, 0), reverse=True)
+    else: # Default to EV
+        filtered_props.sort(key=lambda x: x.get("ev", 0), reverse=True)
 
     if not filtered_props:
         return html.Div(f"No {'home' if location_filter == 'home' else 'away' if location_filter == 'away' else ''} props found", style={
@@ -1888,8 +1950,8 @@ def update_sidebar_content(tab, player_name, stat, n_intervals):
 
 @callback(
     [Output("supporting-stat-mode", "data"),
-     Output("supporting-avg-btn", "style"),
-     Output("supporting-median-btn", "style")],
+     Output("supporting-avg-btn", "className"),
+     Output("supporting-median-btn", "className")],
     [Input("supporting-avg-btn", "n_clicks"),
      Input("supporting-median-btn", "n_clicks")]
 )
@@ -1897,29 +1959,13 @@ def update_supporting_stat_mode(_avg_clicks, _median_clicks):
     from dash import ctx
     triggered = ctx.triggered_id
 
-    active_style = {
-        "padding": "6px 16px",
-        "fontSize": "12px",
-        "backgroundColor": COLORS["border"],
-        "color": COLORS["text"],
-        "border": "none",
-        "borderRadius": "4px 0 0 4px",
-        "cursor": "pointer"
-    }
-    inactive_style = {
-        "padding": "6px 16px",
-        "fontSize": "12px",
-        "backgroundColor": "transparent",
-        "color": COLORS["text_muted"],
-        "border": "none",
-        "borderRadius": "0 4px 4px 0",
-        "cursor": "pointer"
-    }
+    active = "btn active"
+    inactive = "btn"
 
     if triggered == "supporting-median-btn":
-        return "median", {**inactive_style, "borderRadius": "4px 0 0 4px"}, {**active_style, "borderRadius": "0 4px 4px 0"}
+        return "median", inactive, active
     else:
-        return "average", active_style, inactive_style
+        return "average", active, inactive
 
 
 @callback(
@@ -1995,56 +2041,26 @@ def update_supporting_stats_cards(player_name, mode, period, season, current_sel
         },
     ]
 
-    # Build stat cards - all clickable now
+    # Build stat cards
     cards = []
 
     for stat in stats:
         is_selected = stat["key"] == selected_stat
-
-        card_style = {
-            "padding": "12px 16px",
-            "backgroundColor": COLORS["card"] if is_selected else COLORS["bg"],
-            "borderRadius": "8px",
-            "minWidth": "100px",
-            "cursor": "pointer",
-            "border": f"2px solid {COLORS['text']}" if is_selected else f"1px solid {COLORS['border']}",
-            "transition": "all 0.2s ease"
-        }
+        card_class = "stat-card active" if is_selected else "stat-card"
 
         if stat["type"] == "shooting":
             # Shooting stat with percentage
-            card_content = html.Button([
-                html.Div(stat["label"], style={
-                    "color": COLORS["text"] if is_selected else COLORS["text_muted"],
-                    "fontSize": "12px",
-                    "fontWeight": "600",
-                    "marginBottom": "4px"
-                }),
-                html.Div(f"{stat['value']:.1f} Made ({stat['pct']:.0f}%)", style={
-                    "color": COLORS["text"],
-                    "fontSize": "13px",
-                    "fontWeight": "500"
-                }),
-                html.Div(f"{stat['attempts']:.1f} Attempts", style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "11px"
-                }),
-            ], id={"type": "supporting-stat-btn", "index": stat["key"]}, n_clicks=0, style={**card_style, "textAlign": "left", "width": "auto"})
+            card_content = html.Div([
+                html.Div(stat["label"], style={"fontSize": "0.75rem", "fontWeight": "600", "color": "var(--text-secondary)", "marginBottom": "4px"}),
+                html.Div(f"{stat['value']:.1f} Made ({stat['pct']:.0f}%)", style={"fontSize": "0.85rem", "fontWeight": "500"}),
+                html.Div(f"{stat['attempts']:.1f} Attempts", style={"fontSize": "0.7rem", "color": "var(--text-muted)"}),
+            ], id={"type": "supporting-stat-btn", "index": stat["key"]}, n_clicks=0, className=card_class)
         else:
             # Simple stat (Minutes, Fouls, AST)
-            card_content = html.Button([
-                html.Div(stat["label"], style={
-                    "color": COLORS["text"] if is_selected else COLORS["text_muted"],
-                    "fontSize": "12px",
-                    "fontWeight": "600",
-                    "marginBottom": "4px"
-                }),
-                html.Div(f"{stat['value']:.1f}", style={
-                    "color": COLORS["text"],
-                    "fontSize": "18px",
-                    "fontWeight": "600"
-                }),
-            ], id={"type": "supporting-stat-btn", "index": stat["key"]}, n_clicks=0, style={**card_style, "textAlign": "left", "width": "auto"})
+            card_content = html.Div([
+                html.Div(stat["label"], style={"fontSize": "0.75rem", "fontWeight": "600", "color": "var(--text-secondary)", "marginBottom": "4px"}),
+                html.Div(f"{stat['value']:.1f}", style={"fontSize": "1.1rem", "fontWeight": "700"}),
+            ], id={"type": "supporting-stat-btn", "index": stat["key"]}, n_clicks=0, className=card_class)
 
         cards.append(card_content)
 
@@ -2416,11 +2432,14 @@ def generate_player_insights(player_name, period, season, h2h_mode, location):
 )
 def update_best_props_main(selected_player):
     """Generate best props for today's games - shown in main content area"""
+    from utils.injury_news import get_batch_availability
+    from utils.prop_calculator import calculate_ev
+
     today_games = get_todays_games()
 
     if today_games.empty:
         return html.Div("No games scheduled today", style={
-            "color": COLORS["text_muted"],
+            "color": "var(--text-muted)",
             "textAlign": "center",
             "padding": "30px"
         })
@@ -2438,56 +2457,54 @@ def update_best_props_main(selected_player):
 
     if not teams_today:
         return html.Div("No games scheduled today", style={
-            "color": COLORS["text_muted"],
+            "color": "var(--text-muted)",
             "textAlign": "center",
             "padding": "30px"
         })
 
-    # Get players on teams playing today (exclude injured)
+    # Get players on teams playing today
+    players_today = []
+    player_teams = {}
+    player_positions_map = {}
+
+    for player_name in PLAYERS[:150]:  # Check top 150 players
+        # Get player's CURRENT team
+        if not PLAYER_POSITIONS.empty:
+            pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
+            if len(pos_match) > 0:
+                team = str(pos_match["TEAM_ABBREVIATION"].iloc[0])
+                pos = str(pos_match["POSITION"].iloc[0])
+                
+                if team in teams_today:
+                    players_today.append(player_name)
+                    player_teams[player_name] = team
+                    
+                    if "G" in pos: p_pos = "G"
+                    elif "F" in pos: p_pos = "F"
+                    elif "C" in pos: p_pos = "C"
+                    else: p_pos = "F"
+                    player_positions_map[player_name] = p_pos
+
+    # Batch check availability
+    availability_map = get_batch_availability(players_today)
+
     best_props = []
 
-    for player_name in PLAYERS[:100]:  # Check top 100 players
+    for player_name in players_today:
+        # Check availability
+        is_avail, reason = availability_map.get(player_name, (True, ""))
+        if not is_avail:
+            continue
+
         player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
         if len(player_df) < 5:
             continue
 
-        # Get player's CURRENT team from PLAYER_POSITIONS (most accurate source)
-        player_team = ""
-        player_position = "G"
-        if not PLAYER_POSITIONS.empty:
-            pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
-            if len(pos_match) > 0:
-                player_team = str(pos_match["TEAM_ABBREVIATION"].iloc[0])
-                pos = str(pos_match["POSITION"].iloc[0])
-                if "G" in pos:
-                    player_position = "G"
-                elif "F" in pos:
-                    player_position = "F"
-                elif "C" in pos:
-                    player_position = "C"
-
-        # Skip if we couldn't find the player's current team
-        if not player_team:
-            continue
-
-        # Skip if player's team isn't playing today
-        if player_team not in teams_today:
-            continue
-
-        # Get TODAY's actual opponent from today's schedule
+        player_team = player_teams[player_name]
+        player_position = player_positions_map[player_name]
         opponent = team_to_opponent.get(player_team, "")
-        if not opponent:
-            continue
 
-        # Check injury status
-        try:
-            injury_status = get_player_injury_status(player_name)
-            if injury_status.get("status") == "OUT":
-                continue
-        except:
-            pass
-
-        # Get defensive ranking for TODAY's opponent
+        # Get defensive ranking
         opp_def_rank = 15
         if not DEFENSE_VS_POS.empty and opponent:
             opp_def = DEFENSE_VS_POS[
@@ -2504,51 +2521,51 @@ def update_best_props_main(selected_player):
         # Calculate hit rates
         pts_line = round(pts_avg * 0.9, 1)
         pts_hits = (l10["PTS"] > pts_line).sum()
-        pts_hit_pct = int(pts_hits / len(l10) * 100)
+        pts_hit_pct = pts_hits / len(l10) if len(l10) > 0 else 0
+        pts_hit_display = int(pts_hit_pct * 100)
 
-        # Score based on hit rate and matchup
-        score = pts_hit_pct
-        if opp_def_rank >= 20:  # Weak defense
-            score += 15
-        elif opp_def_rank <= 6:  # Elite defense
-            score -= 10
+        # Calculate EV
+        ev_val = calculate_ev(pts_hit_pct)
 
-        # Determine confidence
-        if score >= 85:
+        # Determine confidence/score based on EV
+        score = ev_val
+        
+        if score >= 0.15: # +15% EV
             confidence = "HIGH"
-            conf_color = COLORS["hit_high"]
-        elif score >= 70:
+            conf_color = "var(--success)"
+        elif score >= 0.05: # +5% EV
             confidence = "MED"
-            conf_color = COLORS["hit_mid"]
+            conf_color = "var(--warning)"
         else:
             confidence = "LOW"
-            conf_color = COLORS["hit_low"]
+            conf_color = "var(--text-muted)"
 
-        # Only include if decent hit rate
-        if pts_hit_pct >= 60:
+        # Only include positive EV props
+        if ev_val > 0:
             pos_name = {"G": "guards", "F": "forwards", "C": "centers"}.get(player_position, "players")
-            reason = f"vs {opponent} (#{opp_def_rank} vs {pos_name}) • {pts_hit_pct}% hit rate L10"
+            reason = f"vs {opponent} (#{opp_def_rank} vs {pos_name}) • {pts_hit_display}% hit rate L10"
 
             best_props.append({
                 "player": player_name,
                 "team": player_team,
                 "prop": f"Over {pts_line} PTS",
                 "projection": pts_avg,
-                "hit_rate": pts_hit_pct,
+                "hit_rate": pts_hit_display,
                 "confidence": confidence,
                 "conf_color": conf_color,
                 "reason": reason,
                 "score": score,
+                "ev": ev_val,
                 "opponent": opponent,
                 "def_rank": opp_def_rank
             })
 
-    # Sort by score
+    # Sort by EV (Score)
     best_props.sort(key=lambda x: x["score"], reverse=True)
 
     if not best_props:
         return html.Div("No strong props found for today", style={
-            "color": COLORS["text_muted"],
+            "color": "var(--text-muted)",
             "textAlign": "center",
             "padding": "30px"
         })
@@ -2556,6 +2573,8 @@ def update_best_props_main(selected_player):
     # Build UI for top 5 props
     prop_cards = []
     for prop in best_props[:5]:
+        ev_text = f"+{prop['ev']:.1f}% EV"
+        
         prop_cards.append(
             html.Div([
                 # Header row
@@ -2563,41 +2582,48 @@ def update_best_props_main(selected_player):
                     html.Div([
                         html.Span(prop["player"], style={
                             "fontWeight": "600",
-                            "fontSize": "14px",
-                            "color": COLORS["text"]
+                            "fontSize": "0.9rem",
+                            "color": "var(--text-primary)"
                         }),
                         html.Span(f" vs {prop['opponent']}", style={
-                            "color": COLORS["text_muted"],
-                            "fontSize": "13px"
+                            "color": "var(--text-muted)",
+                            "fontSize": "0.8rem"
                         })
                     ]),
-                    html.Span(prop["confidence"], style={
-                        "backgroundColor": prop["conf_color"],
-                        "color": "#000" if prop["confidence"] == "MED" else "#fff",
-                        "padding": "2px 8px",
-                        "borderRadius": "4px",
-                        "fontSize": "11px",
-                        "fontWeight": "700"
+                    html.Span(ev_text, style={
+                        "color": "var(--success)",
+                        "fontWeight": "700",
+                        "fontSize": "0.8rem"
                     })
                 ], style={"display": "flex", "justifyContent": "space-between", "alignItems": "center", "marginBottom": "8px"}),
 
                 # Prop line
-                html.Div(prop["prop"], style={
-                    "color": COLORS["accent"],
-                    "fontSize": "16px",
-                    "fontWeight": "700",
-                    "marginBottom": "6px"
-                }),
+                html.Div([
+                    html.Span(prop["prop"], style={
+                        "color": "var(--accent-primary)",
+                        "fontSize": "1rem",
+                        "fontWeight": "700",
+                        "marginRight": "8px"
+                    }),
+                    html.Span(prop["confidence"], style={
+                        "backgroundColor": prop["conf_color"],
+                        "color": "#fff" if prop["confidence"] != "MED" else "#000",
+                        "padding": "2px 6px",
+                        "borderRadius": "4px",
+                        "fontSize": "0.7rem",
+                        "fontWeight": "700"
+                    })
+                ], style={"marginBottom": "6px", "display": "flex", "alignItems": "center"}),
 
                 # Reason
                 html.Div(prop["reason"], style={
-                    "color": COLORS["text_secondary"],
-                    "fontSize": "12px"
+                    "color": "var(--text-secondary)",
+                    "fontSize": "0.75rem"
                 })
             ], style={
-                "padding": "14px",
-                "backgroundColor": COLORS["bg"],
-                "borderRadius": "10px",
+                "padding": "12px",
+                "backgroundColor": "var(--bg-primary)",
+                "borderRadius": "var(--radius-md)",
                 "marginBottom": "10px",
                 "borderLeft": f"3px solid {prop['conf_color']}"
             })
@@ -2982,7 +3008,6 @@ def create_injuries_content(player_name):
                     "marginLeft": "8px"
                 })
             ], style={"marginBottom": "16px"}),
-            html.Div(news_elements)
         ], style=CARD),
     ])
 
@@ -3449,7 +3474,7 @@ def create_best_props_content(_stat=None):
                     "textAlign": "center",
                     "padding": "40px 0"
                 }),
-            ], style=CARD)
+            ], className="card")
         ])
 
     # Build team -> opponent mapping from TODAY's games
@@ -3843,7 +3868,7 @@ def create_best_props_content(_stat=None):
                     "borderRadius": "4px"
                 }),
             ], style={"marginTop": "8px"})
-        ], style={**CARD, "marginBottom": "12px"}),
+        ], className="card"),
 
         # Prop cards with explanations
         html.Div(prop_cards),

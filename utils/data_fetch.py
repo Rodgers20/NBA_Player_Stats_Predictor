@@ -835,6 +835,55 @@ def get_teams_playing_today() -> list[str]:
     return list(set(teams_today))
 
 
+def get_teams_playing_between(start_date: str, end_date: str) -> list[str]:
+    """
+    Get list of team abbreviations that played between start_date and end_date (inclusive).
+
+    Args:
+        start_date: Format "YYYY-MM-DD"
+        end_date: Format "YYYY-MM-DD"
+
+    Returns:
+        List of team abbreviations
+    """
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
+    curr = start
+    
+    all_teams_set = set()
+    
+    while curr <= end:
+        date_str = curr.strftime("%Y-%m-%d")
+        try:
+            # We can use ScoreboardV2 for each day
+            # Reusing specific day fetch logic (mocking get_todays_games logic but for specific date)
+            scoreboard = scoreboardv2.ScoreboardV2(
+                game_date=date_str,
+                league_id="00",
+                day_offset=0,
+                timeout=30
+            )
+            games_df = scoreboard.get_data_frames()[0]
+            
+            if not games_df.empty:
+                # Add team abbreviations
+                # Need mapping map
+                all_teams_map = {t["id"]: t["abbreviation"] for t in teams.get_teams()}
+                
+                if "HOME_TEAM_ID" in games_df.columns:
+                    all_teams_set.update(games_df["HOME_TEAM_ID"].map(all_teams_map).dropna().tolist())
+                if "VISITOR_TEAM_ID" in games_df.columns:
+                    all_teams_set.update(games_df["VISITOR_TEAM_ID"].map(all_teams_map).dropna().tolist())
+                    
+        except Exception as e:
+            print(f"Error checking teams for {date_str}: {e}")
+            
+        curr += timedelta(days=1)
+        time.sleep(0.5) # Rate limit
+        
+    return list(all_teams_set)
+
+
 def get_next_opponent_for_team(team_abbrev: str, max_days: int = 7) -> tuple[str, str]:
     """
     Get the next opponent for a team by checking upcoming days.

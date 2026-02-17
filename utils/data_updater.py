@@ -103,7 +103,7 @@ def update_game_data(get_df_func, merge_func):
     global _last_update_date, _is_updating
 
     # Import here to avoid circular imports
-    from utils.data_fetch import get_teams_playing_today, get_current_nba_season
+    from utils.data_fetch import get_teams_playing_between, get_current_nba_season
 
     # Check if already updating
     with _update_lock:
@@ -115,26 +115,51 @@ def update_game_data(get_df_func, merge_func):
     try:
         print(f"[DataUpdater] Starting update at {datetime.now()}")
 
-        # Get teams that played today
-        teams_today = get_teams_playing_today()
-        if not teams_today:
-            print("[DataUpdater] No games today, skipping update")
+        # Get current DataFrame to find last data point
+        current_df = get_df_func()
+        last_date = None
+        
+        if not current_df.empty and "_date" in current_df.columns:
+            last_date = current_df["_date"].max()
+            
+        # Defaults if no data
+        if pd.isna(last_date) or not last_date:
+            last_date = datetime.now() - timedelta(days=3) # Default to last 3 days if empty
+            
+        # We want data from the day AFTER the last data point
+        start_date = last_date + timedelta(days=1)
+        end_date = datetime.now()
+        
+        start_str = start_date.strftime("%Y-%m-%d")
+        end_str = end_date.strftime("%Y-%m-%d")
+        
+        print(f"[DataUpdater] Data valid until {last_date.strftime('%Y-%m-%d')}. Fetching gap: {start_str} to {end_str}")
+
+        if start_date > end_date:
+            print("[DataUpdater] Data is up to date, skipping.")
             return False
 
-        print(f"[DataUpdater] Teams playing today: {teams_today}")
+        # Get teams that played in the missing window
+        # Use our new function that checks a range of dates
+        teams_to_update = get_teams_playing_between(start_str, end_str)
+        
+        if not teams_to_update:
+            print(f"[DataUpdater] No games found between {start_str} and {end_str}, skipping update")
+            return False
 
-        # Calculate since_date (yesterday if first run, else last update)
-        since_date = _last_update_date or (datetime.now() - timedelta(days=1))
+        print(f"[DataUpdater] Teams active in missing window: {teams_to_update}")
 
-        # Get current DataFrame and extract players from teams that played
-        current_df = get_df_func()
-        players = get_players_who_played_today(current_df, teams_today)
+        # Calculate since_date for API filtering (use last_date)
+        since_date = last_date
+
+        # Extract players from teams that played
+        players = get_players_who_played_today(current_df, teams_to_update)
 
         if not players:
-            print("[DataUpdater] No players found for today's teams")
+            print("[DataUpdater] No players found for active teams")
             return False
 
-        print(f"[DataUpdater] Updating {len(players)} players from {len(teams_today)} teams")
+        print(f"[DataUpdater] Updating {len(players)} players from {len(teams_to_update)} teams")
 
         # Get current season
         season = get_current_nba_season()
