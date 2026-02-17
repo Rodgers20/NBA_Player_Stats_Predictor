@@ -19,12 +19,13 @@ _update_lock = threading.Lock()
 _is_updating = False
 
 
-def get_players_who_played_today(all_players_df, teams_today):
+def get_players_who_played_today(roster_df, teams_today):
     """
-    Filter to only players on teams that played today.
+    Filter to only active players on teams that played today.
+    Uses the latest ROSTER (not game logs) to ensure traded players are found.
 
     Args:
-        all_players_df: DataFrame with PLAYER_NAME and TEAM_ABBREVIATION columns
+        roster_df: DataFrame with PLAYER_NAME and TEAM_ABBREVIATION columns (from player_positions.csv)
         teams_today: List of team abbreviations that played today
 
     Returns:
@@ -33,14 +34,20 @@ def get_players_who_played_today(all_players_df, teams_today):
     if not teams_today:
         return []
 
-    if "TEAM_ABBREVIATION" not in all_players_df.columns:
-        # Fallback: try to extract from MATCHUP column
-        print("[DataUpdater] No TEAM_ABBREVIATION column, returning all players")
-        return all_players_df["PLAYER_NAME"].unique().tolist()[:50]  # Limit to 50
+    if roster_df.empty:
+        print("[DataUpdater] Roster is empty, cannot determine active players")
+        return []
 
-    return all_players_df[
-        all_players_df["TEAM_ABBREVIATION"].isin(teams_today)
+    if "TEAM_ABBREVIATION" not in roster_df.columns:
+        print("[DataUpdater] No TEAM_ABBREVIATION column in roster")
+        return []
+
+    # Filter for players on the active teams
+    active_players = roster_df[
+        roster_df["TEAM_ABBREVIATION"].isin(teams_today)
     ]["PLAYER_NAME"].unique().tolist()
+    
+    return active_players
 
 
 def fetch_games_batch(players, since_date, season, delay=2.0):
@@ -89,6 +96,36 @@ def fetch_games_batch(players, since_date, season, delay=2.0):
     return pd.DataFrame()
 
 
+
+def update_rosters():
+    """
+    Fetch latest player list and team assignments.
+    This handles traded players by updating their current team in our records.
+    """
+    from utils.data_fetch import get_all_players_with_positions, get_current_nba_season
+    import os
+    
+    print("[DataUpdater] Checking for roster updates (trades/signings)...")
+    try:
+        current_season = get_current_nba_season()
+        roster_df = get_all_players_with_positions(current_season)
+        
+        if not roster_df.empty:
+            # Save to CSV
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+            positions_path = os.path.join(data_dir, "player_positions.csv")
+            roster_df.to_csv(positions_path, index=False)
+            print(f"[DataUpdater] Roster updated: {len(roster_df)} players found.")
+            return roster_df
+        else:
+            print("[DataUpdater] Failed to fetch fresh roster, using existing.")
+            return pd.DataFrame()
+            
+    except Exception as e:
+        print(f"[DataUpdater] Error updating rosters: {e}")
+        return pd.DataFrame()
+
+
 def update_game_data(get_df_func, merge_func):
     """
     Main update function - called by scheduler every 30 minutes.
@@ -104,6 +141,7 @@ def update_game_data(get_df_func, merge_func):
 
     # Import here to avoid circular imports
     from utils.data_fetch import get_teams_playing_between, get_current_nba_season
+    import os
 
     # Check if already updating
     with _update_lock:
@@ -114,6 +152,17 @@ def update_game_data(get_df_func, merge_func):
 
     try:
         print(f"[DataUpdater] Starting update at {datetime.now()}")
+
+        # 1. Update Rosters First (Handle Trades)
+        # We need to know who is on what team TODAY, not 3 months ago
+        fresh_roster = update_rosters()
+        
+        # If fetch failed, try to load from disk
+        if fresh_roster.empty:
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+            positions_path = os.path.join(data_dir, "player_positions.csv")
+            if os.path.exists(positions_path):
+                fresh_roster = pd.read_csv(positions_path)
 
         # Get current DataFrame to find last data point
         current_df = get_df_func()
@@ -153,7 +202,8 @@ def update_game_data(get_df_func, merge_func):
         since_date = last_date
 
         # Extract players from teams that played
-        players = get_players_who_played_today(current_df, teams_to_update)
+        # KEY FIX: Use fresh_roster instad of current_df to find players!
+        players = get_players_who_played_today(fresh_roster, teams_to_update)
 
         if not players:
             print("[DataUpdater] No players found for active teams")

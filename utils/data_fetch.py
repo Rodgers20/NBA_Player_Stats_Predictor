@@ -30,7 +30,7 @@ from nba_api.stats.endpoints import (
     scoreboardv2,  # For today's games
 )
 from nba_api.stats.static import players, teams
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Custom headers to avoid NBA API blocks (VERY IMPORTANT)
 # NOTE: Do NOT set 'Host' header - it causes connection issues

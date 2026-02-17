@@ -215,11 +215,18 @@ def get_global_df():
 
 def merge_new_games(new_games_df):
     """Thread-safe merger for new games into global DF. Also updates Parquet cache."""
-    global DF
+    global DF, PLAYER_POSITIONS
     from utils.feature_engineering import add_rolling_averages
 
     with _data_lock:
         try:
+            # Reload PLAYER_POSITIONS (in case of trades)
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+            positions_path = os.path.join(data_dir, "player_positions.csv")
+            if os.path.exists(positions_path):
+                PLAYER_POSITIONS = pd.read_csv(positions_path)
+                print(f"[App] Roster updated: {len(PLAYER_POSITIONS)} players")
+
             # Add rolling averages to new games
             if not new_games_df.empty:
                 new_games_df = add_rolling_averages(new_games_df)
@@ -1039,7 +1046,7 @@ def create_best_props_page():
                         style={"width": "200px"},
                         className="game-filter-dropdown"
                     ),
-                ], style={"display": "flex", "alignItems": "center"}) if game_matchups else html.Div(),
+                ], style={"display": "flex" if game_matchups else "none", "alignItems": "center"}),
 
                 # SORT FILTER
                 html.Div([
