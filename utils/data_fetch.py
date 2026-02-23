@@ -255,13 +255,17 @@ def get_todays_games() -> pd.DataFrame:
     today = now.strftime("%Y-%m-%d")
 
     try:
-        scoreboard = scoreboardv2.ScoreboardV2(
-            game_date=today,
-            league_id="00",
-            day_offset=0,
-            timeout=30
-        )
+        def _fetch_scoreboard():
+            return scoreboardv2.ScoreboardV2(
+                game_date=today,
+                league_id="00",
+                day_offset=0,
+                headers=CUSTOM_HEADERS,
+                timeout=120,
+                proxy=PROXY
+            )
 
+        scoreboard = api_call_with_retry(_fetch_scoreboard)
         games_df = scoreboard.get_data_frames()[0]
 
         if games_df.empty:
@@ -289,8 +293,7 @@ def get_todays_games() -> pd.DataFrame:
 
     except Exception as e:
         print(f"Error fetching today's games: {e}")
-        _todays_games_cache["data"] = pd.DataFrame()
-        _todays_games_cache["timestamp"] = datetime.now()
+        # Don't cache errors — allow immediate retry on next call
         return pd.DataFrame()
 
 
@@ -339,7 +342,9 @@ def get_teams_playing_between(start_date: str, end_date: str) -> list[str]:
                 game_date=date_str,
                 league_id="00",
                 day_offset=0,
-                timeout=30
+                headers=CUSTOM_HEADERS,
+                timeout=120,
+                proxy=PROXY
             )
             games_df = scoreboard.get_data_frames()[0]
 

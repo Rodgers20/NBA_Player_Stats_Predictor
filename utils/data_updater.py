@@ -15,6 +15,7 @@ import pandas as pd
 
 # Track state
 _last_update_date = None
+_last_download_date = None  # Track last Kaggle download (daily)
 _update_lock = threading.Lock()
 _is_updating = False
 
@@ -88,7 +89,7 @@ def update_game_data(get_df_func, merge_func):
     Returns:
         True if update succeeded, False otherwise
     """
-    global _last_update_date, _is_updating
+    global _last_update_date, _last_download_date, _is_updating
 
     from utils.kaggle_loader import download_dataset, load_player_game_logs
 
@@ -100,14 +101,20 @@ def update_game_data(get_df_func, merge_func):
         _is_updating = True
 
     try:
+        today = datetime.now().date()
         print(f"[DataUpdater] Starting update at {datetime.now()}")
 
         # 1. Update rosters (handle trades)
         update_rosters()
 
-        # 2. Refresh Kaggle dataset
-        print("[DataUpdater] Downloading latest Kaggle data...")
-        download_dataset(force=True)
+        # 2. Refresh Kaggle dataset (force-download once per day, cache otherwise)
+        if _last_download_date != today:
+            print("[DataUpdater] Daily refresh: downloading latest Kaggle data...")
+            download_dataset(force=True)
+            _last_download_date = today
+        else:
+            print("[DataUpdater] Using cached Kaggle data (already downloaded today)")
+            download_dataset(force=False)
 
         # 3. Load current season from Kaggle
         fresh_df = load_player_game_logs(num_seasons=1)
