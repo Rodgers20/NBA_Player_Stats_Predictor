@@ -1,23 +1,26 @@
+#!/usr/bin/env python3
 # scripts/fetch_team_data.py
+"""
+Fetch team data from Kaggle dataset and save to CSV.
+
+HOW TO RUN:
+    cd NBA_Player_Stats_Predictor
+    python scripts/fetch_team_data.py
+"""
 
 import os
 import sys
-import pandas as pd
-from utils.data_fetch import get_team_data  # Adjust path if needed
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Add the project root to the system path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.kaggle_loader import load_team_stats
 
-from utils.data_fetch import get_team_data  # Now it should find utils
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+os.makedirs(DATA_DIR, exist_ok=True)
 
-# Ensure the data directory exists
-os.makedirs("data", exist_ok=True)
+team_data = load_team_stats(num_seasons=1)
+print(team_data.head())
 
-# Fetch and display team data
-team_data = get_team_data()
-print(team_data.head())  # Show the first few rows of the team data
-
-# Save the team data to a CSV file
-team_data.to_csv("data/teams_list.csv", index=False)
-print("Team data saved to data/teams_list.csv")
+output_path = os.path.join(DATA_DIR, "team_stats.csv")
+team_data.to_csv(output_path, index=False)
+print(f"Team data saved to {output_path} ({len(team_data)} rows)")

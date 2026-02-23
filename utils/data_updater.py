@@ -1,13 +1,13 @@
 """
 Background data updater for NBA Player Stats Predictor.
-Periodically fetches new game data without restarting the app.
+Periodically refreshes data from Kaggle without restarting the app.
 
 This module handles:
-- Fetching recent games for players who played today
-- Rate limiting to avoid NBA API bans
-- Thread-safe updates to global data
+- Downloading latest Kaggle dataset (updated daily)
+- Diffing against existing data to find new games
+- Thread-safe merges into global state
 """
-import time
+import os
 import threading
 from datetime import datetime, timedelta
 import pandas as pd
@@ -25,7 +25,7 @@ def get_players_who_played_today(roster_df, teams_today):
     Uses the latest ROSTER (not game logs) to ensure traded players are found.
 
     Args:
-        roster_df: DataFrame with PLAYER_NAME and TEAM_ABBREVIATION columns (from player_positions.csv)
+        roster_df: DataFrame with PLAYER_NAME and TEAM_ABBREVIATION columns
         teams_today: List of team abbreviations that played today
 
     Returns:
@@ -42,85 +42,34 @@ def get_players_who_played_today(roster_df, teams_today):
         print("[DataUpdater] No TEAM_ABBREVIATION column in roster")
         return []
 
-    # Filter for players on the active teams
     active_players = roster_df[
         roster_df["TEAM_ABBREVIATION"].isin(teams_today)
     ]["PLAYER_NAME"].unique().tolist()
-    
+
     return active_players
-
-
-def fetch_games_batch(players, since_date, season, delay=2.0):
-    """
-    Fetch recent games for a batch of players with rate limiting.
-
-    Args:
-        players: List of player names
-        since_date: Only fetch games after this datetime
-        season: NBA season string (e.g., "2025-26")
-        delay: Seconds to wait between API calls
-
-    Returns:
-        DataFrame with all new games
-    """
-    # Import here to avoid circular imports
-    from utils.data_fetch import get_player_stats, get_current_nba_season
-
-    all_games = []
-    for player in players:
-        try:
-            df = get_player_stats(player, season=season)
-            if not df.empty and since_date:
-                df["_temp_date"] = pd.to_datetime(
-                    df["GAME_DATE"],
-                    format="%b %d, %Y",
-                    errors="coerce"
-                )
-                df = df[df["_temp_date"] > since_date]
-                df = df.drop(columns=["_temp_date"])
-
-            if not df.empty:
-                df["PLAYER_NAME"] = player
-                df["SEASON"] = season
-                all_games.append(df)
-                print(f"[DataUpdater] Fetched {len(df)} games for {player}")
-
-            time.sleep(delay)  # Rate limit
-
-        except Exception as e:
-            print(f"[DataUpdater] Error fetching {player}: {e}")
-            time.sleep(delay * 2)  # Extra delay on error
-
-    if all_games:
-        return pd.concat(all_games, ignore_index=True)
-    return pd.DataFrame()
-
 
 
 def update_rosters():
     """
-    Fetch latest player list and team assignments.
-    This handles traded players by updating their current team in our records.
+    Fetch latest player positions from Kaggle dataset.
+    Handles traded players by reflecting their current team.
     """
-    from utils.data_fetch import get_all_players_with_positions, get_current_nba_season
-    import os
-    
-    print("[DataUpdater] Checking for roster updates (trades/signings)...")
+    from utils.kaggle_loader import load_player_positions
+
+    print("[DataUpdater] Updating roster from Kaggle data...")
     try:
-        current_season = get_current_nba_season()
-        roster_df = get_all_players_with_positions(current_season)
-        
-        if not roster_df.empty:
-            # Save to CSV
+        positions_df = load_player_positions(num_seasons=1)
+
+        if not positions_df.empty:
             data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
             positions_path = os.path.join(data_dir, "player_positions.csv")
-            roster_df.to_csv(positions_path, index=False)
-            print(f"[DataUpdater] Roster updated: {len(roster_df)} players found.")
-            return roster_df
+            positions_df.to_csv(positions_path, index=False)
+            print(f"[DataUpdater] Roster updated: {len(positions_df)} players.")
+            return positions_df
         else:
-            print("[DataUpdater] Failed to fetch fresh roster, using existing.")
+            print("[DataUpdater] No positions loaded, using existing.")
             return pd.DataFrame()
-            
+
     except Exception as e:
         print(f"[DataUpdater] Error updating rosters: {e}")
         return pd.DataFrame()
@@ -128,7 +77,9 @@ def update_rosters():
 
 def update_game_data(get_df_func, merge_func):
     """
-    Main update function - called by scheduler every 30 minutes.
+    Main update function - called by scheduler.
+
+    Downloads latest Kaggle data and diffs against existing to find new games.
 
     Args:
         get_df_func: Function that returns current global DataFrame
@@ -139,9 +90,7 @@ def update_game_data(get_df_func, merge_func):
     """
     global _last_update_date, _is_updating
 
-    # Import here to avoid circular imports
-    from utils.data_fetch import get_teams_playing_between, get_current_nba_season
-    import os
+    from utils.kaggle_loader import download_dataset, load_player_game_logs
 
     # Check if already updating
     with _update_lock:
@@ -153,102 +102,48 @@ def update_game_data(get_df_func, merge_func):
     try:
         print(f"[DataUpdater] Starting update at {datetime.now()}")
 
-        # 1. Update Rosters First (Handle Trades)
-        # We need to know who is on what team TODAY, not 3 months ago
-        fresh_roster = update_rosters()
-        
-        # If fetch failed, try to load from disk
-        if fresh_roster.empty:
-            data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-            positions_path = os.path.join(data_dir, "player_positions.csv")
-            if os.path.exists(positions_path):
-                fresh_roster = pd.read_csv(positions_path)
+        # 1. Update rosters (handle trades)
+        update_rosters()
 
-        # Get current DataFrame to find last data point
+        # 2. Refresh Kaggle dataset
+        print("[DataUpdater] Downloading latest Kaggle data...")
+        download_dataset(force=True)
+
+        # 3. Load current season from Kaggle
+        fresh_df = load_player_game_logs(num_seasons=1)
+
+        if fresh_df.empty:
+            print("[DataUpdater] No data from Kaggle")
+            return False
+
+        # 4. Diff against existing data
         current_df = get_df_func()
-        last_date = None
-        
-        if not current_df.empty and "_date" in current_df.columns:
-            last_date = current_df["_date"].max()
-            
-        # Defaults if no data
-        if pd.isna(last_date) or not last_date:
-            last_date = datetime.now() - timedelta(days=3) # Default to last 3 days if empty
-            
-        # We want data from the day AFTER the last data point
-        start_date = last_date + timedelta(days=1)
-        end_date = datetime.now()
-        
-        start_str = start_date.strftime("%Y-%m-%d")
-        end_str = end_date.strftime("%Y-%m-%d")
-        
-        print(f"[DataUpdater] Data valid until {last_date.strftime('%Y-%m-%d')}. Fetching gap: {start_str} to {end_str}")
 
-        if start_date > end_date:
-            print("[DataUpdater] Data is up to date, skipping.")
-            return False
+        if not current_df.empty:
+            existing_keys = set(zip(
+                current_df["PLAYER_NAME"],
+                current_df["GAME_DATE"],
+                current_df["MATCHUP"]
+            ))
+            new_mask = fresh_df.apply(
+                lambda r: (r["PLAYER_NAME"], r["GAME_DATE"], r["MATCHUP"])
+                not in existing_keys,
+                axis=1
+            )
+            new_games = fresh_df[new_mask]
+        else:
+            new_games = fresh_df
 
-        # Get teams that played in the missing window
-        # Use our new function that checks a range of dates
-        teams_to_update = get_teams_playing_between(start_str, end_str)
-        
-        if not teams_to_update:
-            print(f"[DataUpdater] No games found between {start_str} and {end_str}, skipping update")
-            return False
-
-        print(f"[DataUpdater] Teams active in missing window: {teams_to_update}")
-
-        # Calculate since_date for API filtering (use last_date)
-        since_date = last_date
-
-        # Extract players from teams that played
-        # KEY FIX: Use fresh_roster instad of current_df to find players!
-        players = get_players_who_played_today(fresh_roster, teams_to_update)
-
-        if not players:
-            print("[DataUpdater] No players found for active teams")
-            return False
-
-        print(f"[DataUpdater] Updating {len(players)} players from {len(teams_to_update)} teams")
-
-        # Get current season
-        season = get_current_nba_season()
-
-        # Fetch in batches of 20 with 30s pause between batches
-        BATCH_SIZE = 20
-        BATCH_DELAY = 30  # seconds between batches
-        API_DELAY = 2.0   # seconds between individual API calls
-
-        all_new_games = []
-        total_batches = (len(players) - 1) // BATCH_SIZE + 1
-
-        for i in range(0, len(players), BATCH_SIZE):
-            batch = players[i:i + BATCH_SIZE]
-            batch_num = i // BATCH_SIZE + 1
-            print(f"[DataUpdater] Processing batch {batch_num}/{total_batches}")
-
-            new_df = fetch_games_batch(batch, since_date, season, delay=API_DELAY)
-            if not new_df.empty:
-                all_new_games.append(new_df)
-
-            # Pause between batches (but not after last batch)
-            if i + BATCH_SIZE < len(players):
-                print(f"[DataUpdater] Pausing {BATCH_DELAY}s before next batch...")
-                time.sleep(BATCH_DELAY)
-
-        if all_new_games:
-            combined = pd.concat(all_new_games, ignore_index=True)
-            print(f"[DataUpdater] Found {len(combined)} new game records")
-
-            # Merge into global state via callback
-            merge_func(combined)
-
+        # 5. Merge new games
+        if not new_games.empty:
+            print(f"[DataUpdater] Found {len(new_games)} new game records")
+            merge_func(new_games)
             _last_update_date = datetime.now()
-            print(f"[DataUpdater] Update completed successfully at {_last_update_date}")
+            print(f"[DataUpdater] Update completed at {_last_update_date}")
             return True
         else:
-            print("[DataUpdater] No new games found")
-            _last_update_date = datetime.now()  # Still update timestamp
+            print("[DataUpdater] Data is up to date, no new games")
+            _last_update_date = datetime.now()
             return False
 
     except Exception as e:
