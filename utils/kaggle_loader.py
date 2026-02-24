@@ -53,11 +53,35 @@ def download_dataset(force: bool = False) -> Path:
 
 
 def _get_dataset_path() -> Path:
-    """Get cached dataset path, downloading if needed."""
+    """Get cached dataset path, downloading if needed. Works offline."""
     global _dataset_path
-    if _dataset_path is None:
+    if _dataset_path is not None:
+        return _dataset_path
+
+    # Try downloading from Kaggle
+    try:
         _dataset_path = download_dataset()
-    return _dataset_path
+        return _dataset_path
+    except Exception as e:
+        logger.warning(f"Kaggle download failed: {e}")
+
+    # Fallback: scan local kagglehub cache for latest version
+    cache_base = Path.home() / ".cache" / "kagglehub" / "datasets" / "eoinamoore" / "historical-nba-data-and-player-box-scores" / "versions"
+    if cache_base.exists():
+        versions = sorted(cache_base.iterdir(), key=lambda p: p.name, reverse=True)
+        for v in versions:
+            if (v / "PlayerStatistics.csv").exists():
+                _dataset_path = v
+                logger.info(f"Using cached dataset: {_dataset_path}")
+                return _dataset_path
+
+    # Last resort: use exported CSVs in data/ directory
+    if (PROJECT_DATA_DIR / "player_game_logs.csv").exists():
+        logger.info(f"Using exported data dir: {PROJECT_DATA_DIR}")
+        _dataset_path = PROJECT_DATA_DIR
+        return _dataset_path
+
+    raise FileNotFoundError("No Kaggle dataset found. Run: python scripts/setup_kaggle_data.py")
 
 
 # =============================================================================

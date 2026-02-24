@@ -265,7 +265,7 @@ def get_todays_games() -> pd.DataFrame:
                 proxy=PROXY
             )
 
-        scoreboard = api_call_with_retry(_fetch_scoreboard)
+        scoreboard = api_call_with_retry(_fetch_scoreboard, max_retries=1, base_delay=3)
         games_df = scoreboard.get_data_frames()[0]
 
         if games_df.empty:

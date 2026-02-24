@@ -359,30 +359,38 @@ def get_player_current_team(player_name):
 def get_h2h_opponent_for_player(player_name):
     """Get opponent for a player (for H2H mode).
 
-    First checks if playing today, if not, finds next upcoming opponent.
+    Checks: today's games → most recent opponent from game log.
     Returns (opponent_abbrev, player_team)
     """
+    from utils.data_fetch import extract_opponent_from_matchup
+
     player_team = get_player_current_team(player_name)
     if not player_team:
         return "", ""
 
-    # First check if playing today
-    teams_today = get_teams_playing_today()
-    if player_team in teams_today:
-        today_games = get_todays_games()
-        if not today_games.empty:
-            for _, game in today_games.iterrows():
-                home = game.get("HOME_TEAM", "")
-                away = game.get("AWAY_TEAM", "")
-                if player_team == home:
-                    return away, player_team
-                elif player_team == away:
-                    return home, player_team
+    # Try today's games first (non-blocking — returns empty on API failure)
+    try:
+        teams_today = get_teams_playing_today()
+        if player_team in teams_today:
+            today_games = get_todays_games()
+            if not today_games.empty:
+                for _, game in today_games.iterrows():
+                    home = game.get("HOME_TEAM", "")
+                    away = game.get("AWAY_TEAM", "")
+                    if player_team == home:
+                        return away, player_team
+                    elif player_team == away:
+                        return home, player_team
+    except Exception:
+        pass
 
-    # Not playing today - find next opponent
-    next_opponent, _ = get_next_opponent_for_team(player_team, max_days=7)
-    if next_opponent:
-        return next_opponent, player_team
+    # Fallback: get most recent opponent from game log (always works)
+    player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+    if not player_df.empty and "MATCHUP" in player_df.columns:
+        last_matchup = player_df.iloc[0].get("MATCHUP", "")
+        opponent = extract_opponent_from_matchup(last_matchup)
+        if opponent:
+            return opponent, player_team
 
     return "", ""
 
@@ -739,8 +747,6 @@ def create_todays_games_page():
     """Create the Today's Games page showing all matchups"""
     from utils.data_fetch import get_todays_games
 
-    from utils.data_fetch import get_todays_games
-
     games = get_todays_games()
 
     if games.empty:
@@ -748,7 +754,17 @@ def create_todays_games_page():
             html.Div([
                 html.Div("TODAY'S GAMES", style={"fontSize": "1.5rem", "fontWeight": "700", "marginBottom": "8px"}),
                 html.Div(datetime.now().strftime("%A, %B %d, %Y"), style={"color": "var(--text-muted)", "marginBottom": "32px"}),
-                html.Div("No games scheduled today", style={"color": "var(--text-muted)", "textAlign": "center", "padding": "60px 0"})
+                html.Div([
+                    html.Div("No games available", style={"fontSize": "1.1rem", "fontWeight": "600", "marginBottom": "8px"}),
+                    html.Div(
+                        "Schedule data is temporarily unavailable. Check nba.com/schedule for today's matchups.",
+                        style={"color": "var(--text-muted)", "fontSize": "0.9rem"}
+                    ),
+                    html.Div(
+                        "Player predictions and Best Props are still fully functional.",
+                        style={"color": "var(--accent-primary)", "fontSize": "0.9rem", "marginTop": "8px"}
+                    ),
+                ], style={"textAlign": "center", "padding": "60px 0"})
             ], style={"maxWidth": "1200px", "margin": "0 auto"})
         ])
 
@@ -896,25 +912,25 @@ def create_todays_games_page():
 
 
 def create_best_props_page():
-    """Create the Best Props page showing top value picks for today"""
-    from utils.data_fetch import get_todays_games
-    from utils.injury_news import get_batch_availability  # Import batch availability check
-    from utils.prop_calculator import calculate_ev        # Import EV calc
+    """Create the Best Props page showing top value picks."""
+    from utils.data_fetch import get_todays_games, extract_opponent_from_matchup
+    from utils.injury_news import get_batch_availability
+    from utils.prop_calculator import calculate_ev
 
-    from utils.prop_calculator import calculate_ev        # Import EV calc
-    # Get today's games
+    # Try to get today's games (fast fail if NBA API is down)
     games = get_todays_games()
     teams_playing = []
     teams_home_away = {}
     game_matchups = []
-    
+    has_todays_games = False
+
     if not games.empty:
+        has_todays_games = True
         for _, game in games.iterrows():
             home = game.get("HOME_TEAM", "")
             away = game.get("AWAY_TEAM", "")
             if home and away:
-                matchup_str = f"{away} @ {home}"
-                game_matchups.append(matchup_str)
+                game_matchups.append(f"{away} @ {home}")
             if home:
                 teams_playing.append(home)
                 teams_home_away[home] = "home"
@@ -922,20 +938,26 @@ def create_best_props_page():
                 teams_playing.append(away)
                 teams_home_away[away] = "away"
 
-    # Players playing today
-    players_today = []
-    if teams_playing and not PLAYER_POSITIONS.empty:
-        players_today = PLAYER_POSITIONS[
+    # Get players to analyze
+    if has_todays_games and teams_playing and not PLAYER_POSITIONS.empty:
+        # Filter to players on teams playing today
+        players_to_analyze = PLAYER_POSITIONS[
             PLAYER_POSITIONS["TEAM_ABBREVIATION"].isin(teams_playing)
         ]["PLAYER_NAME"].tolist()
+    elif not PLAYER_POSITIONS.empty:
+        # No games available — use top players by recent minutes played
+        recent_players = DF.sort_values("_date", ascending=False).drop_duplicates("PLAYER_NAME")
+        top_players = recent_players.nlargest(150, "MIN")["PLAYER_NAME"].tolist()
+        players_to_analyze = top_players
+    else:
+        players_to_analyze = []
 
-    # CHECK AVAILABILITY
-    # Only process players who are actually playing
-    availability_map = get_batch_availability(players_today[:50]) # Limit for speed
+    # Check availability (limit for speed)
+    availability_map = get_batch_availability(players_to_analyze[:100])
 
     props_data = []
-    
-    for player_name in players_today[:50]:
+
+    for player_name in players_to_analyze[:100]:
         # Filter out injured players
         is_avail, reason = availability_map.get(player_name, (True, ""))
         if not is_avail:
@@ -945,13 +967,20 @@ def create_best_props_page():
         if len(player_df) < 5: continue
 
         player_team = get_player_current_team(player_name)
-        opponent = ""
-        is_home_today = teams_home_away.get(player_team, "home") == "home"
 
-        for _, game in games.iterrows():
-            if player_team == game.get("HOME_TEAM"): opponent = game.get("AWAY_TEAM"); break
-            elif player_team == game.get("AWAY_TEAM"): opponent = game.get("HOME_TEAM"); break
-        
+        # Determine opponent
+        opponent = ""
+        is_home_today = True
+        if has_todays_games:
+            is_home_today = teams_home_away.get(player_team, "home") == "home"
+            for _, game in games.iterrows():
+                if player_team == game.get("HOME_TEAM"): opponent = game.get("AWAY_TEAM"); break
+                elif player_team == game.get("AWAY_TEAM"): opponent = game.get("HOME_TEAM"); break
+        if not opponent:
+            # Fallback: use most recent opponent from game log
+            last_matchup = player_df.iloc[0].get("MATCHUP", "") if not player_df.empty else ""
+            opponent = extract_opponent_from_matchup(last_matchup)
+            is_home_today = "vs." in str(last_matchup)
         if not opponent: continue
 
         # Position
@@ -1012,7 +1041,7 @@ def create_best_props_page():
         html.Div([
             # Page header
             html.Div([
-                html.Div("BEST PROPS", style={"fontSize": "1.5rem", "fontWeight": "700", "marginBottom": "8px"}),
+                html.Div("BEST PROPS" if has_todays_games else "BEST PROPS — All Players", style={"fontSize": "1.5rem", "fontWeight": "700", "marginBottom": "8px"}),
                 html.Div([
                     html.Span(datetime.now().strftime("%A, %B %d, %Y"), style={"color": "var(--text-muted)"}),
                     html.Span(f" • {len(props_data)} picks", style={"color": "var(--accent-primary)", "marginLeft": "8px"})
@@ -2438,66 +2467,62 @@ def generate_player_insights(player_name, period, season, h2h_mode, location):
     [Input("player-dropdown", "value")]
 )
 def update_best_props_main(selected_player):
-    """Generate best props for today's games - shown in main content area"""
+    """Generate best props — shown in main content area. Works without NBA API."""
+    from utils.data_fetch import extract_opponent_from_matchup
     from utils.injury_news import get_batch_availability
     from utils.prop_calculator import calculate_ev
 
     today_games = get_todays_games()
 
-    if today_games.empty:
-        return html.Div("No games scheduled today", style={
-            "color": "var(--text-muted)",
-            "textAlign": "center",
-            "padding": "30px"
-        })
-
     # Build a mapping of team -> opponent for today's games
     team_to_opponent = {}
-    for _, game in today_games.iterrows():
-        home = game.get("HOME_TEAM", "")
-        away = game.get("AWAY_TEAM", "")
-        if home and away:
-            team_to_opponent[home] = away
-            team_to_opponent[away] = home
+    if not today_games.empty:
+        for _, game in today_games.iterrows():
+            home = game.get("HOME_TEAM", "")
+            away = game.get("AWAY_TEAM", "")
+            if home and away:
+                team_to_opponent[home] = away
+                team_to_opponent[away] = home
 
+    has_todays_games = bool(team_to_opponent)
     teams_today = set(team_to_opponent.keys())
 
-    if not teams_today:
-        return html.Div("No games scheduled today", style={
-            "color": "var(--text-muted)",
-            "textAlign": "center",
-            "padding": "30px"
-        })
-
-    # Get players on teams playing today
-    players_today = []
+    # Get players to analyze
+    players_list = []
     player_teams = {}
     player_positions_map = {}
 
-    for player_name in PLAYERS[:150]:  # Check top 150 players
-        # Get player's CURRENT team
+    for player_name in PLAYERS[:150]:
         if not PLAYER_POSITIONS.empty:
             pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
             if len(pos_match) > 0:
                 team = str(pos_match["TEAM_ABBREVIATION"].iloc[0])
                 pos = str(pos_match["POSITION"].iloc[0])
-                
-                if team in teams_today:
-                    players_today.append(player_name)
-                    player_teams[player_name] = team
-                    
-                    if "G" in pos: p_pos = "G"
-                    elif "F" in pos: p_pos = "F"
-                    elif "C" in pos: p_pos = "C"
-                    else: p_pos = "F"
-                    player_positions_map[player_name] = p_pos
+
+                # If we have today's games, only include players on those teams
+                if has_todays_games and team not in teams_today:
+                    continue
+
+                players_list.append(player_name)
+                player_teams[player_name] = team
+
+                if "G" in pos: p_pos = "G"
+                elif "F" in pos: p_pos = "F"
+                elif "C" in pos: p_pos = "C"
+                else: p_pos = "F"
+                player_positions_map[player_name] = p_pos
+
+    if not players_list:
+        return html.Div("No player data available", style={
+            "color": "var(--text-muted)", "textAlign": "center", "padding": "30px"
+        })
 
     # Batch check availability
-    availability_map = get_batch_availability(players_today)
+    availability_map = get_batch_availability(players_list[:100])
 
     best_props = []
 
-    for player_name in players_today:
+    for player_name in players_list[:100]:
         # Check availability
         is_avail, reason = availability_map.get(player_name, (True, ""))
         if not is_avail:
@@ -2510,6 +2535,11 @@ def update_best_props_main(selected_player):
         player_team = player_teams[player_name]
         player_position = player_positions_map[player_name]
         opponent = team_to_opponent.get(player_team, "")
+
+        # Fallback: get opponent from most recent game log
+        if not opponent and not player_df.empty and "MATCHUP" in player_df.columns:
+            last_matchup = player_df.iloc[0].get("MATCHUP", "")
+            opponent = extract_opponent_from_matchup(last_matchup)
 
         # Get defensive ranking
         opp_def_rank = 15
@@ -3462,72 +3492,36 @@ def create_best_props_content(_stat=None):
     Includes single stats (PTS, AST, REB) and combos (PTS+AST, PTS+REB, PRA).
     Shows WHY each prop was selected with matchup analysis.
     """
-    # Get today's actual games
-    today_games = get_todays_games()
+    from utils.data_fetch import extract_opponent_from_matchup
 
-    if today_games.empty:
-        return html.Div([
-            html.Div([
-                html.Div("BEST PROPS", style={
-                    "color": COLORS["text_secondary"],
-                    "fontSize": "11px",
-                    "fontWeight": "600",
-                    "letterSpacing": "1px",
-                    "marginBottom": "16px"
-                }),
-                html.Div("No games scheduled today", style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "14px",
-                    "textAlign": "center",
-                    "padding": "40px 0"
-                }),
-            ], className="card")
-        ])
+    # Try to get today's games (fast fail if NBA API is down)
+    today_games = get_todays_games()
 
     # Build team -> opponent mapping from TODAY's games
     team_to_opponent = {}
     team_is_home = {}
-    for _, game in today_games.iterrows():
-        home = game.get("HOME_TEAM", "")
-        away = game.get("AWAY_TEAM", "")
-        if home and away:
-            team_to_opponent[home] = away
-            team_to_opponent[away] = home
-            team_is_home[home] = True
-            team_is_home[away] = False
+    if not today_games.empty:
+        for _, game in today_games.iterrows():
+            home = game.get("HOME_TEAM", "")
+            away = game.get("AWAY_TEAM", "")
+            if home and away:
+                team_to_opponent[home] = away
+                team_to_opponent[away] = home
+                team_is_home[home] = True
+                team_is_home[away] = False
 
+    has_todays_games = bool(team_to_opponent)
     teams_today = set(team_to_opponent.keys())
 
-    if not teams_today:
-        return html.Div([
-            html.Div([
-                html.Div("BEST PROPS", style={
-                    "color": COLORS["text_secondary"],
-                    "fontSize": "11px",
-                    "fontWeight": "600",
-                    "letterSpacing": "1px",
-                    "marginBottom": "16px"
-                }),
-                html.Div("No games scheduled today", style={
-                    "color": COLORS["text_muted"],
-                    "fontSize": "14px",
-                    "textAlign": "center",
-                    "padding": "40px 0"
-                }),
-            ], style=CARD)
-        ])
-
-    # Get players on teams playing today (skip injured players)
+    # Get players to analyze (skip injured players)
     players_today = []
-    player_info = {}  # Store player info for analysis
+    player_info = {}
 
     for player_name in PLAYERS:
-        # Must have game history
         player_df = DF[DF["PLAYER_NAME"] == player_name]
         if len(player_df) == 0:
             continue
 
-        # Get player's CURRENT team from PLAYER_POSITIONS (most accurate source)
         player_team = ""
         position = "F"
         if not PLAYER_POSITIONS.empty:
@@ -3536,30 +3530,35 @@ def create_best_props_content(_stat=None):
                 player_team = str(pos_match["TEAM_ABBREVIATION"].iloc[0])
                 position = str(pos_match["POSITION"].iloc[0])
 
-        # Skip if we couldn't find the player's current team
         if not player_team:
             continue
 
-        # Check if player's team is playing today
-        if player_team in teams_today:
-            # Check if player is injured (OUT status)
-            try:
-                injury_status = get_player_injury_status(player_name)
-                if injury_status.get("status") == "OUT":
-                    continue  # Skip injured players
-            except Exception:
-                pass  # If we can't check, include the player
+        # If we have today's games, only include players on those teams
+        if has_todays_games and player_team not in teams_today:
+            continue
 
-            # Get TODAY's actual opponent
-            opponent = team_to_opponent.get(player_team, "")
+        # Check if player is injured
+        try:
+            injury_status = get_player_injury_status(player_name)
+            if injury_status.get("status") == "OUT":
+                continue
+        except Exception:
+            pass
 
-            players_today.append(player_name)
-            player_info[player_name] = {
-                "team": player_team,
-                "opponent": opponent,
-                "position": position,
-                "is_home": team_is_home.get(player_team, False)
-                }
+        # Get opponent: from today's games or from most recent game log
+        opponent = team_to_opponent.get(player_team, "")
+        if not opponent:
+            recent = player_df.sort_values("_date", ascending=False)
+            if not recent.empty and "MATCHUP" in recent.columns:
+                opponent = extract_opponent_from_matchup(str(recent.iloc[0].get("MATCHUP", "")))
+
+        players_today.append(player_name)
+        player_info[player_name] = {
+            "team": player_team,
+            "opponent": opponent,
+            "position": position,
+            "is_home": team_is_home.get(player_team, "vs." in str(player_df.sort_values("_date", ascending=False).iloc[0].get("MATCHUP", "")) if not player_df.empty else False)
+        }
 
     if not players_today:
         players_today = PLAYERS[:50]
