@@ -265,6 +265,15 @@ def scheduled_update():
     update_game_data(get_global_df, merge_new_games)
 
 
+def scheduled_props_refresh():
+    """Refresh the props cache in the background."""
+    from utils.props_cache import refresh_props_cache
+    try:
+        refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predictor_fn=get_predictor)
+    except Exception as e:
+        print(f"[App] Props cache refresh error: {e}")
+
+
 # Initialize and start background scheduler
 try:
     scheduler = BackgroundScheduler(daemon=True)
@@ -276,8 +285,16 @@ try:
         replace_existing=True,
         max_instances=1
     )
+    scheduler.add_job(
+        scheduled_props_refresh,
+        'interval',
+        minutes=30,
+        id='props_cache_refresher',
+        replace_existing=True,
+        max_instances=1
+    )
     scheduler.start()
-    print("[App] Background data updater started (runs every 30 minutes)")
+    print("[App] Background schedulers started (data + props cache every 30 min)")
 except Exception as e:
     print(f"[App] Warning: Could not start scheduler: {e}")
 
@@ -912,130 +929,13 @@ def create_todays_games_page():
 
 
 def create_best_props_page():
-    """Create the Best Props page showing top value picks."""
-    from utils.data_fetch import get_todays_games, extract_opponent_from_matchup
-    from utils.injury_news import get_batch_availability
-    from utils.prop_calculator import calculate_ev
+    """Create the Best Props page showing top value picks (reads from pre-computed cache)."""
+    from utils.props_cache import get_cached_props
 
-    # Try to get today's games (fast fail if NBA API is down)
-    games = get_todays_games()
-    teams_playing = []
-    teams_home_away = {}
-    game_matchups = []
-    has_todays_games = False
-
-    if not games.empty:
-        has_todays_games = True
-        for _, game in games.iterrows():
-            home = game.get("HOME_TEAM", "")
-            away = game.get("AWAY_TEAM", "")
-            if home and away:
-                game_matchups.append(f"{away} @ {home}")
-            if home:
-                teams_playing.append(home)
-                teams_home_away[home] = "home"
-            if away:
-                teams_playing.append(away)
-                teams_home_away[away] = "away"
-
-    # Get players to analyze
-    if has_todays_games and teams_playing and not PLAYER_POSITIONS.empty:
-        # Filter to players on teams playing today
-        players_to_analyze = PLAYER_POSITIONS[
-            PLAYER_POSITIONS["TEAM_ABBREVIATION"].isin(teams_playing)
-        ]["PLAYER_NAME"].tolist()
-    elif not PLAYER_POSITIONS.empty:
-        # No games available — use top players by recent minutes played
-        recent_players = DF.sort_values("_date", ascending=False).drop_duplicates("PLAYER_NAME")
-        top_players = recent_players.nlargest(150, "MIN")["PLAYER_NAME"].tolist()
-        players_to_analyze = top_players
-    else:
-        players_to_analyze = []
-
-    # Check availability (limit for speed)
-    availability_map = get_batch_availability(players_to_analyze[:100])
-
-    props_data = []
-
-    for player_name in players_to_analyze[:100]:
-        # Filter out injured players
-        is_avail, reason = availability_map.get(player_name, (True, ""))
-        if not is_avail:
-            continue
-
-        player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
-        if len(player_df) < 5: continue
-
-        player_team = get_player_current_team(player_name)
-
-        # Determine opponent
-        opponent = ""
-        is_home_today = True
-        if has_todays_games:
-            is_home_today = teams_home_away.get(player_team, "home") == "home"
-            for _, game in games.iterrows():
-                if player_team == game.get("HOME_TEAM"): opponent = game.get("AWAY_TEAM"); break
-                elif player_team == game.get("AWAY_TEAM"): opponent = game.get("HOME_TEAM"); break
-        if not opponent:
-            # Fallback: use most recent opponent from game log
-            last_matchup = player_df.iloc[0].get("MATCHUP", "") if not player_df.empty else ""
-            opponent = extract_opponent_from_matchup(last_matchup)
-            is_home_today = "vs." in str(last_matchup)
-        if not opponent: continue
-
-        # Position
-        pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
-        position = pos_match["POSITION"].iloc[0] if len(pos_match) > 0 else "F"
-
-        recent_10 = player_df.head(10)
-        
-        # Home/Away splits
-        home_games = player_df[player_df["MATCHUP"].str.contains("vs.", na=False)].head(10) if "MATCHUP" in player_df.columns else player_df.head(10)
-        away_games = player_df[player_df["MATCHUP"].str.contains("@", na=False)].head(10) if "MATCHUP" in player_df.columns else player_df.head(10)
-
-        for stat_type in ["PTS", "AST", "REB", "FG3M"]:
-            if stat_type not in recent_10.columns: continue
-            
-            recent_stats = recent_10[stat_type]
-            avg_stat = recent_stats.mean()
-            if avg_stat < 1: continue
-
-            # Line logic
-            if stat_type == "PTS": line = round(avg_stat - 0.5) + 0.5 if avg_stat > 5 else 4.5
-            elif stat_type == "FG3M": line = round(avg_stat - 0.5) + 0.5 if avg_stat > 1 else 0.5
-            else: line = round(avg_stat - 0.5) + 0.5 if avg_stat > 2 else 1.5
-
-            hits_all = (recent_stats >= line).sum()
-            hit_rate_all = hits_all / len(recent_stats) if len(recent_stats) > 0 else 0
-            
-            # Opponent rank
-            opp_def = DEFENSE_VS_POS[(DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) & (DEFENSE_VS_POS["POSITION"] == position)]
-            def_rank = int(opp_def.iloc[0].get(f"{stat_type}_RANK" if stat_type != "FG3M" else "3PM_RANK", 15)) if not opp_def.empty else None
-
-            # Calculate EV (Using hit rate as proxy for probability for now)
-            # ideally we use the model's probability, but here we are using hit rate for the dashboard feed
-            ev_value = calculate_ev(hit_rate_all)
-
-            if hit_rate_all >= 0.5:
-                props_data.append({
-                    "player": player_name, "team": player_team, "opponent": opponent, "position": position,
-                    "stat": stat_type, "line": line, "avg": round(avg_stat, 1),
-                    "hit_rate": hit_rate_all, "hits": hits_all, "total": len(recent_stats),
-                    "def_rank": def_rank, "is_home_today": is_home_today,
-                    "ev": ev_value, # ADD EV
-                    "game_matchup": f"{opponent} @ {player_team}" if is_home_today else f"{player_team} @ {opponent}",
-                    # Add extra data for callbacks
-                    "hit_rate_home": (home_games[stat_type] >= line).sum()/len(home_games) if not home_games.empty else 0,
-                    "hit_rate_away": (away_games[stat_type] >= line).sum()/len(away_games) if not away_games.empty else 0,
-                    "hits_home": (home_games[stat_type] >= line).sum() if not home_games.empty else 0,
-                    "hits_away": (away_games[stat_type] >= line).sum() if not away_games.empty else 0,
-                    "total_home": len(home_games), "total_away": len(away_games),
-                    "avg_home": round(home_games[stat_type].mean(), 1) if not home_games.empty else 0,
-                    "avg_away": round(away_games[stat_type].mean(), 1) if not away_games.empty else 0
-                })
-
-    # Sort by EV instead of hit rate
-    props_data.sort(key=lambda x: x["ev"], reverse=True)
+    cache = get_cached_props()
+    props_data = cache["main_page_data"]
+    has_todays_games = cache["has_todays_games"]
+    game_matchups = cache["game_matchups"]
 
     return html.Div([
         html.Div([
@@ -1962,10 +1862,9 @@ def update_main_chart(player_name, stat, period, season, h2h_mode, location, thr
     Output("sidebar-content", "children"),
     [Input("sidebar-tab", "data"),
      Input("player-dropdown", "value"),
-     Input("selected-stat", "data"),
-     Input("auto-refresh-interval", "n_intervals")]
+     Input("selected-stat", "data")]
 )
-def update_sidebar_content(tab, player_name, stat, n_intervals):
+def update_sidebar_content(tab, player_name, stat):
     if tab == "props":
         return create_best_props_content(stat)
 
@@ -2467,138 +2366,11 @@ def generate_player_insights(player_name, period, season, h2h_mode, location):
     [Input("player-dropdown", "value")]
 )
 def update_best_props_main(selected_player):
-    """Generate best props — shown in main content area. Works without NBA API."""
-    from utils.data_fetch import extract_opponent_from_matchup
-    from utils.injury_news import get_batch_availability
-    from utils.prop_calculator import calculate_ev
+    """Generate best props — shown in main content area (reads from cache)."""
+    from utils.props_cache import get_cached_props
 
-    today_games = get_todays_games()
-
-    # Build a mapping of team -> opponent for today's games
-    team_to_opponent = {}
-    if not today_games.empty:
-        for _, game in today_games.iterrows():
-            home = game.get("HOME_TEAM", "")
-            away = game.get("AWAY_TEAM", "")
-            if home and away:
-                team_to_opponent[home] = away
-                team_to_opponent[away] = home
-
-    has_todays_games = bool(team_to_opponent)
-    teams_today = set(team_to_opponent.keys())
-
-    # Get players to analyze
-    players_list = []
-    player_teams = {}
-    player_positions_map = {}
-
-    for player_name in PLAYERS[:150]:
-        if not PLAYER_POSITIONS.empty:
-            pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
-            if len(pos_match) > 0:
-                team = str(pos_match["TEAM_ABBREVIATION"].iloc[0])
-                pos = str(pos_match["POSITION"].iloc[0])
-
-                # If we have today's games, only include players on those teams
-                if has_todays_games and team not in teams_today:
-                    continue
-
-                players_list.append(player_name)
-                player_teams[player_name] = team
-
-                if "G" in pos: p_pos = "G"
-                elif "F" in pos: p_pos = "F"
-                elif "C" in pos: p_pos = "C"
-                else: p_pos = "F"
-                player_positions_map[player_name] = p_pos
-
-    if not players_list:
-        return html.Div("No player data available", style={
-            "color": "var(--text-muted)", "textAlign": "center", "padding": "30px"
-        })
-
-    # Batch check availability
-    availability_map = get_batch_availability(players_list[:100])
-
-    best_props = []
-
-    for player_name in players_list[:100]:
-        # Check availability
-        is_avail, reason = availability_map.get(player_name, (True, ""))
-        if not is_avail:
-            continue
-
-        player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
-        if len(player_df) < 5:
-            continue
-
-        player_team = player_teams[player_name]
-        player_position = player_positions_map[player_name]
-        opponent = team_to_opponent.get(player_team, "")
-
-        # Fallback: get opponent from most recent game log
-        if not opponent and not player_df.empty and "MATCHUP" in player_df.columns:
-            last_matchup = player_df.iloc[0].get("MATCHUP", "")
-            opponent = extract_opponent_from_matchup(last_matchup)
-
-        # Get defensive ranking
-        opp_def_rank = 15
-        if not DEFENSE_VS_POS.empty and opponent:
-            opp_def = DEFENSE_VS_POS[
-                (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) &
-                (DEFENSE_VS_POS["POSITION"] == player_position)
-            ]
-            if len(opp_def) > 0:
-                opp_def_rank = int(opp_def["PTS_RANK"].iloc[0])
-
-        # Calculate stats from last 10 games
-        l10 = player_df.head(10)
-        pts_avg = l10["PTS"].mean()
-
-        # Calculate hit rates
-        pts_line = round(pts_avg * 0.9, 1)
-        pts_hits = (l10["PTS"] > pts_line).sum()
-        pts_hit_pct = pts_hits / len(l10) if len(l10) > 0 else 0
-        pts_hit_display = int(pts_hit_pct * 100)
-
-        # Calculate EV
-        ev_val = calculate_ev(pts_hit_pct)
-
-        # Determine confidence/score based on EV
-        score = ev_val
-        
-        if score >= 0.15: # +15% EV
-            confidence = "HIGH"
-            conf_color = "var(--success)"
-        elif score >= 0.05: # +5% EV
-            confidence = "MED"
-            conf_color = "var(--warning)"
-        else:
-            confidence = "LOW"
-            conf_color = "var(--text-muted)"
-
-        # Only include positive EV props
-        if ev_val > 0:
-            pos_name = {"G": "guards", "F": "forwards", "C": "centers"}.get(player_position, "players")
-            reason = f"vs {opponent} (#{opp_def_rank} vs {pos_name}) • {pts_hit_display}% hit rate L10"
-
-            best_props.append({
-                "player": player_name,
-                "team": player_team,
-                "prop": f"Over {pts_line} PTS",
-                "projection": pts_avg,
-                "hit_rate": pts_hit_display,
-                "confidence": confidence,
-                "conf_color": conf_color,
-                "reason": reason,
-                "score": score,
-                "ev": ev_val,
-                "opponent": opponent,
-                "def_rank": opp_def_rank
-            })
-
-    # Sort by EV (Score)
-    best_props.sort(key=lambda x: x["score"], reverse=True)
+    cache = get_cached_props()
+    best_props = cache["callback_data"]
 
     if not best_props:
         return html.Div("No strong props found for today", style={
@@ -3488,193 +3260,14 @@ def create_insights_content(player_name, _stat=None):
 
 def create_best_props_content(_stat=None):
     """
-    Create the Best Props tab content showing today's top picks.
-    Includes single stats (PTS, AST, REB) and combos (PTS+AST, PTS+REB, PRA).
+    Create the Best Props tab content (reads from pre-computed cache).
     Shows WHY each prop was selected with matchup analysis.
     """
-    from utils.data_fetch import extract_opponent_from_matchup
+    from utils.props_cache import get_cached_props
 
-    # Try to get today's games (fast fail if NBA API is down)
-    today_games = get_todays_games()
-
-    # Build team -> opponent mapping from TODAY's games
-    team_to_opponent = {}
-    team_is_home = {}
-    if not today_games.empty:
-        for _, game in today_games.iterrows():
-            home = game.get("HOME_TEAM", "")
-            away = game.get("AWAY_TEAM", "")
-            if home and away:
-                team_to_opponent[home] = away
-                team_to_opponent[away] = home
-                team_is_home[home] = True
-                team_is_home[away] = False
-
-    has_todays_games = bool(team_to_opponent)
-    teams_today = set(team_to_opponent.keys())
-
-    # Get players to analyze (skip injured players)
-    players_today = []
-    player_info = {}
-
-    for player_name in PLAYERS:
-        player_df = DF[DF["PLAYER_NAME"] == player_name]
-        if len(player_df) == 0:
-            continue
-
-        player_team = ""
-        position = "F"
-        if not PLAYER_POSITIONS.empty:
-            pos_match = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name]
-            if len(pos_match) > 0:
-                player_team = str(pos_match["TEAM_ABBREVIATION"].iloc[0])
-                position = str(pos_match["POSITION"].iloc[0])
-
-        if not player_team:
-            continue
-
-        # If we have today's games, only include players on those teams
-        if has_todays_games and player_team not in teams_today:
-            continue
-
-        # Check if player is injured
-        try:
-            injury_status = get_player_injury_status(player_name)
-            if injury_status.get("status") == "OUT":
-                continue
-        except Exception:
-            pass
-
-        # Get opponent: from today's games or from most recent game log
-        opponent = team_to_opponent.get(player_team, "")
-        if not opponent:
-            recent = player_df.sort_values("_date", ascending=False)
-            if not recent.empty and "MATCHUP" in recent.columns:
-                opponent = extract_opponent_from_matchup(str(recent.iloc[0].get("MATCHUP", "")))
-
-        players_today.append(player_name)
-        player_info[player_name] = {
-            "team": player_team,
-            "opponent": opponent,
-            "position": position,
-            "is_home": team_is_home.get(player_team, "vs." in str(player_df.sort_values("_date", ascending=False).iloc[0].get("MATCHUP", "")) if not player_df.empty else False)
-        }
-
-    if not players_today:
-        players_today = PLAYERS[:50]
-
-    # Define prop types to analyze (singles and combos)
-    prop_types = [
-        {"name": "PTS", "stats": ["PTS"], "label": "Points"},
-        {"name": "AST", "stats": ["AST"], "label": "Assists"},
-        {"name": "REB", "stats": ["REB"], "label": "Rebounds"},
-        {"name": "PTS+AST", "stats": ["PTS", "AST"], "label": "Pts+Ast"},
-        {"name": "PTS+REB", "stats": ["PTS", "REB"], "label": "Pts+Reb"},
-        {"name": "AST+REB", "stats": ["AST", "REB"], "label": "Ast+Reb"},
-        {"name": "PRA", "stats": ["PTS", "AST", "REB"], "label": "Pts+Ast+Reb"},
-        {"name": "3PM", "stats": ["FG3M"], "label": "3-Pointers"},
-    ]
-
-    # Generate all props with analysis
-    all_props = []
-
-    for player_name in players_today[:40]:  # Limit for performance
-        player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
-        recent = player_df.head(10)
-        info = player_info.get(player_name, {})
-
-        if len(recent) < 5:
-            continue
-
-        for prop_type in prop_types:
-            try:
-                # Calculate combined stat value
-                stat_cols = [s for s in prop_type["stats"] if s in recent.columns]
-                if len(stat_cols) != len(prop_type["stats"]):
-                    continue
-
-                recent_vals = recent[stat_cols].sum(axis=1)
-                l10_avg = recent_vals.mean()
-
-                # Set line based on recent average (round to 0.5)
-                line = round(l10_avg * 2) / 2
-
-                # Get model prediction for single stats (lazy loaded)
-                prediction = l10_avg
-                if len(prop_type["stats"]) == 1:
-                    stat_predictor = get_predictor(prop_type["stats"][0])
-                    if stat_predictor:
-                        try:
-                            result = stat_predictor.predict_player_game(player_name, DF)
-                            if "error" not in result:
-                                pred_key = f"predicted_{prop_type['stats'][0].lower()}"
-                                prediction = result.get(pred_key, l10_avg)
-                        except Exception:
-                            pass
-                elif len(prop_type["stats"]) > 1:
-                    # For combos, sum predictions
-                    combo_pred = 0
-                    for stat in prop_type["stats"]:
-                        stat_predictor = get_predictor(stat)
-                        if stat_predictor:
-                            try:
-                                result = stat_predictor.predict_player_game(player_name, DF)
-                                if "error" not in result:
-                                    combo_pred += result.get(f"predicted_{stat.lower()}", 0)
-                            except Exception:
-                                combo_pred += recent[stat].mean()
-                        else:
-                            combo_pred += recent[stat].mean() if stat in recent.columns else 0
-                    prediction = combo_pred if combo_pred > 0 else l10_avg
-
-                # Use SMART SCORING with full context
-                smart_score = calculate_smart_prop_score(
-                    player_name=player_name,
-                    stat_cols=stat_cols,
-                    line=line,
-                    player_df=player_df,
-                    info=info,
-                    defense_data=DEFENSE_VS_POS,
-                    prediction=prediction,
-                    injury_checker=None
-                )
-
-                # Only include if score is reasonable
-                if smart_score["final_score"] >= 0.45:
-                    all_props.append({
-                        "player": player_name,
-                        "prop_type": prop_type["name"],
-                        "prop_label": prop_type["label"],
-                        "prediction": prediction,
-                        "line": line,
-                        "hit_prob": smart_score["final_score"],
-                        "l10_rate": smart_score["l10_rate"],
-                        "l5_rate": smart_score["l5_rate"],
-                        "positive_factors": smart_score["positive_factors"],
-                        "negative_factors": smart_score["negative_factors"],
-                        "role": smart_score["role"],
-                        "avg_minutes": smart_score["avg_minutes"],
-                        "confidence": smart_score["confidence"],
-                        "opponent": info.get("opponent", ""),
-                        "is_home": info.get("is_home", False)
-                    })
-
-            except Exception:
-                continue
-
-    # Sort by smart score (already weighted properly)
-    all_props.sort(key=lambda x: x["hit_prob"], reverse=True)
-
-    # Take top props, ensuring variety
-    final_props = []
-    seen_players = {}
-    for prop in all_props:
-        player = prop["player"]
-        if seen_players.get(player, 0) < 2:  # Max 2 props per player
-            final_props.append(prop)
-            seen_players[player] = seen_players.get(player, 0) + 1
-        if len(final_props) >= 15:
-            break
+    cache = get_cached_props()
+    final_props = cache["sidebar_data"]
+    teams_today = cache.get("teams_today", set())
 
     if not final_props:
         return html.Div([
@@ -3985,10 +3578,25 @@ def create_hit_rates_table(player_name):
 # =============================================================================
 
 if __name__ == "__main__":
+    import threading
+
     print("\n" + "=" * 50)
-    print("🏀 NBA Props Dashboard")
+    print("NBA Props Dashboard")
     print("=" * 50)
+
+    # Warm the props cache in a background thread (non-blocking)
+    def _startup_cache_warm():
+        from utils.props_cache import refresh_props_cache
+        try:
+            refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predictor_fn=get_predictor)
+        except Exception as e:
+            print(f"[App] Props cache warm failed (will retry in 30 min): {e}")
+
+    cache_thread = threading.Thread(target=_startup_cache_warm, daemon=True)
+    cache_thread.start()
+    print("[App] Props cache warming in background...")
+
     print("\nOpen: http://127.0.0.1:8050")
     print("Press Ctrl+C to stop\n")
 
-    app.run(debug=True, port=8050)
+    app.run(debug=False, port=8050)

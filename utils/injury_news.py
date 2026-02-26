@@ -202,17 +202,29 @@ def fetch_rotowire_news(limit: int = 30) -> list[dict]:
 
 
 # =============================================================================
-# MAIN NEWS AGGREGATION
+# MAIN NEWS AGGREGATION (with TTL cache)
 # =============================================================================
+
+_news_cache = {"data": None, "timestamp": None}
+_NEWS_CACHE_TTL = 900  # 15 minutes
+
 
 def get_nba_injury_news(limit: int = 50) -> list[dict]:
     """
-    Aggregate injury news from all sources.
+    Aggregate injury news from all sources with 15-min TTL cache.
     Prioritizes Underdog Fantasy, then Rotowire, then other sources.
 
     Returns:
         List of news items with clickable links
     """
+    global _news_cache
+
+    # Return cached data if fresh
+    if _news_cache["data"] is not None and _news_cache["timestamp"]:
+        age = (datetime.now() - _news_cache["timestamp"]).total_seconds()
+        if age < _NEWS_CACHE_TTL:
+            return _news_cache["data"][:limit]
+
     all_news = []
 
     # 1. Try Underdog Fantasy first (most reliable for props)
@@ -240,6 +252,10 @@ def get_nba_injury_news(limit: int = 50) -> list[dict]:
         if title_key not in seen_titles and item["title"]:
             seen_titles.add(title_key)
             unique_news.append(item)
+
+    # Cache the results
+    _news_cache["data"] = unique_news
+    _news_cache["timestamp"] = datetime.now()
 
     return unique_news[:limit]
 
