@@ -40,16 +40,30 @@ _dataset_path: Optional[Path] = None
 def download_dataset(force: bool = False) -> Path:
     """
     Download/update the Kaggle NBA dataset.
+    Validates the downloaded directory is non-empty before returning.
 
     Returns: Path to the downloaded dataset directory.
+    Raises: FileNotFoundError if download succeeds but PlayerStatistics.csv is missing.
     """
     import kagglehub
 
     global _dataset_path
     path = kagglehub.dataset_download(KAGGLE_DATASET, force_download=force)
-    _dataset_path = Path(path)
-    logger.info(f"Dataset at: {_dataset_path}")
-    return _dataset_path
+    result_path = Path(path)
+
+    # Validate the download actually contains data
+    csv_file = result_path / "PlayerStatistics.csv"
+    if not csv_file.exists() or csv_file.stat().st_size < 1_000_000:
+        raise FileNotFoundError(
+            f"Kaggle download appears corrupted or empty: {result_path}\n"
+            f"PlayerStatistics.csv missing or <1MB. "
+            f"Delete ~/.cache/kagglehub/datasets/eoinamoore/ and retry."
+        )
+
+    size_mb = csv_file.stat().st_size / 1e6
+    logger.info(f"Dataset OK: {result_path} (PlayerStatistics.csv = {size_mb:.0f} MB)")
+    _dataset_path = result_path
+    return result_path
 
 
 def _get_dataset_path() -> Path:
@@ -641,5 +655,17 @@ def export_pipeline_csvs(num_seasons: int = 3) -> None:
     def_vs_pos = calculate_defense_vs_position(game_logs, positions)
     def_vs_pos.to_csv(PROJECT_DATA_DIR / "defense_vs_position.csv", index=False)
     print(f"  -> {len(def_vs_pos)} rows")
+
+    # Rebuild engineered_data.parquet with rolling averages so app startup is fast
+    try:
+        from utils.feature_engineering import add_rolling_averages
+        print("Rebuilding engineered_data.parquet with rolling averages...")
+        enriched = add_rolling_averages(game_logs)
+        enriched["_date"] = pd.to_datetime(enriched["GAME_DATE"], format="%b %d, %Y", errors="coerce")
+        enriched.to_parquet(PROJECT_DATA_DIR / "engineered_data.parquet", index=False)
+        latest = enriched["_date"].max()
+        print(f"  -> parquet written ({len(enriched)} rows, latest game: {latest.date() if pd.notna(latest) else 'unknown'})")
+    except Exception as e:
+        logger.warning(f"Could not write parquet: {e}")
 
     print("All pipeline CSVs exported to data/")

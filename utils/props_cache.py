@@ -16,9 +16,10 @@ from datetime import datetime
 
 import pandas as pd
 
-from utils.data_fetch import get_todays_games, extract_opponent_from_matchup
+from utils.data_fetch import get_todays_games, get_upcoming_games, extract_opponent_from_matchup
 from utils.injury_news import get_batch_availability
 from utils.prop_calculator import calculate_ev
+from utils.insight_generator import generate_player_insight
 
 # Thread-safe cache
 _cache_lock = threading.Lock()
@@ -28,6 +29,7 @@ _props_cache = {
     "sidebar_data": [],         # For create_best_props_content()
     "has_todays_games": False,
     "game_matchups": [],
+    "target_date": None,        # "YYYY-MM-DD" — today or tomorrow's slate
     "timestamp": None,
 }
 
@@ -39,8 +41,12 @@ def get_cached_props() -> dict:
 
 
 def _get_todays_game_info():
-    """Get today's games info — shared by all 3 cache builders."""
-    games = get_todays_games()
+    """Get upcoming games info — shared by all 3 cache builders.
+
+    Uses get_upcoming_games() which automatically falls back to tomorrow's
+    slate when all of today's games have finished.
+    """
+    games, target_date = get_upcoming_games()
     teams_playing = []
     teams_home_away = {}
     team_to_opponent = {}
@@ -70,6 +76,7 @@ def _get_todays_game_info():
         "team_to_opponent": team_to_opponent,
         "game_matchups": game_matchups,
         "has_todays_games": has_todays_games,
+        "target_date": target_date,
     }
 
 
@@ -164,6 +171,16 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             ev_value = calculate_ev(hit_rate_all)
 
             if hit_rate_all >= 0.5:
+                insight = generate_player_insight(
+                    player_name=player_name,
+                    stat=stat_type,
+                    line=line,
+                    opponent=opponent,
+                    player_df=player_df,
+                    defense_vs_pos=DEFENSE_VS_POS,
+                    is_home=is_home_today,
+                    position=position,
+                )
                 props_data.append({
                     "player": player_name, "team": player_team, "opponent": opponent, "position": position,
                     "stat": stat_type, "line": line, "avg": round(avg_stat, 1),
@@ -178,6 +195,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "total_home": len(home_games), "total_away": len(away_games),
                     "avg_home": round(home_games[stat_type].mean(), 1) if not home_games.empty else 0,
                     "avg_away": round(away_games[stat_type].mean(), 1) if not away_games.empty else 0,
+                    "insight": insight,
                 })
 
     props_data.sort(key=lambda x: x["ev"], reverse=True)
@@ -498,6 +516,7 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
             "has_todays_games": game_info["has_todays_games"],
             "game_matchups": game_info["game_matchups"],
             "teams_today": set(game_info["team_to_opponent"].keys()),
+            "target_date": game_info.get("target_date"),
             "timestamp": datetime.now(),
         }
 

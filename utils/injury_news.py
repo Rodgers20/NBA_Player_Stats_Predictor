@@ -206,13 +206,81 @@ def fetch_rotowire_news(limit: int = 30) -> list[dict]:
 # =============================================================================
 
 _news_cache = {"data": None, "timestamp": None}
-_NEWS_CACHE_TTL = 900  # 15 minutes
+_NEWS_CACHE_TTL = 14400  # 4 hours (injury status doesn't change minute-to-minute)
+
+# ESPN injury status codes → our status labels
+_ESPN_STATUS_MAP = {
+    "Out": "OUT",
+    "Doubtful": "DOUBTFUL",
+    "Questionable": "QUESTIONABLE",
+    "Day-To-Day": "QUESTIONABLE",
+    "Probable": "PROBABLE",
+    "Active": "ACTIVE",
+}
+
+# Direct ESPN injury data cache (separate from news cache — structured data)
+_espn_injury_cache: dict = {}
+_espn_injury_timestamp: Optional[datetime] = None
+_ESPN_INJURY_TTL = 14400  # 4 hours
+
+
+def _fetch_espn_injury_structured() -> dict:
+    """
+    Fetch structured injury data from ESPN's public injuries API.
+    Returns {player_name_lower: {"status": str, "reason": str}}
+    No API key required. Endpoint: /apis/site/v2/sports/basketball/nba/injuries
+    """
+    global _espn_injury_cache, _espn_injury_timestamp
+
+    now = datetime.now()
+    if _espn_injury_timestamp and (now - _espn_injury_timestamp).total_seconds() < _ESPN_INJURY_TTL:
+        return _espn_injury_cache
+
+    result = {}
+    try:
+        url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries"
+        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+
+        # Structure: {"injuries": [{"displayName": "TeamName", "injuries": [...]}, ...]}
+        for team_block in data.get("injuries", []):
+            for inj in team_block.get("injuries", []):
+                athlete = inj.get("athlete", {})
+                display_name = athlete.get("displayName", "")
+                if not display_name:
+                    continue
+
+                raw_status = inj.get("status", "Active")
+                mapped = _ESPN_STATUS_MAP.get(raw_status, "ACTIVE")
+
+                # Prefer shortComment for brevity, fall back to longComment
+                desc = (inj.get("shortComment") or inj.get("longComment") or raw_status).strip()
+
+                # Also check fantasyStatus for GTD vs OUT distinction
+                fantasy_status = inj.get("details", {}).get("fantasyStatus", {}).get("abbreviation", "")
+                if fantasy_status == "OUT":
+                    mapped = "OUT"
+                elif fantasy_status == "GTD" and mapped not in ("OUT", "DOUBTFUL"):
+                    mapped = "QUESTIONABLE"
+
+                result[display_name.lower()] = {"status": mapped, "reason": desc, "source": "ESPN"}
+
+        print(f"[Injury] ESPN structured: {len(result)} players with injury info")
+
+    except Exception as e:
+        print(f"[Injury] ESPN structured fetch failed: {e}")
+
+    _espn_injury_cache = result
+    _espn_injury_timestamp = now
+    return result
 
 
 def get_nba_injury_news(limit: int = 50) -> list[dict]:
     """
-    Aggregate injury news from all sources with 15-min TTL cache.
-    Prioritizes Underdog Fantasy, then Rotowire, then other sources.
+    Aggregate injury news from all sources with 4-hour TTL cache.
+    Priority: Rotowire scrape → CBS/ESPN RSS feeds.
+    Nitter/Twitter sources removed (unreliable — servers go down frequently).
 
     Returns:
         List of news items with clickable links
@@ -227,18 +295,14 @@ def get_nba_injury_news(limit: int = 50) -> list[dict]:
 
     all_news = []
 
-    # 1. Try Underdog Fantasy first (most reliable for props)
-    underdog_news = fetch_underdog_news(limit=20)
-    all_news.extend(underdog_news)
-
-    # 2. Try Rotowire (known for accurate injury reports)
-    rotowire_news = fetch_rotowire_news(limit=20)
+    # 1. Rotowire (most accurate injury reports)
+    rotowire_news = fetch_rotowire_news(limit=30)
     all_news.extend(rotowire_news)
 
-    # 3. Fallback to RSS feeds
+    # 2. CBS Sports + ESPN RSS feeds
     for feed in NBA_RSS_FEEDS:
         if feed["type"] == "rss":
-            items = fetch_rss_feed(feed["url"], limit=15)
+            items = fetch_rss_feed(feed["url"], limit=20)
             for item in items:
                 item["source"] = feed["name"]
                 item["source_url"] = feed["url"]
@@ -253,7 +317,6 @@ def get_nba_injury_news(limit: int = 50) -> list[dict]:
             seen_titles.add(title_key)
             unique_news.append(item)
 
-    # Cache the results
     _news_cache["data"] = unique_news
     _news_cache["timestamp"] = datetime.now()
 
@@ -480,18 +543,30 @@ def is_player_available(player_name: str) -> tuple[bool, str]:
 def get_batch_availability(player_names: list[str]) -> dict:
     """
     Get availability for a list of players efficiently.
+    Uses ESPN structured data first (most reliable), falls back to news scraping.
     Returns dict: {player_name: (bool, reason)}
     """
-    # Fetch news once
+    # Fetch ESPN structured injury data (4hr cache, authoritative)
+    espn_data = _fetch_espn_injury_structured()
+
+    # Fetch news as fallback for players not in ESPN data
     all_news = get_nba_injury_news(limit=200)
+
     results = {}
-    
+
     for player in player_names:
-        p_news = search_player_news(player, all_news)
-        analysis = analyze_injury_status(p_news)
-        s = analysis["status"]
-        r = analysis["reason"]
-        
+        # Check ESPN structured data first
+        espn_entry = espn_data.get(player.lower())
+        if espn_entry:
+            s = espn_entry["status"]
+            r = espn_entry["reason"]
+        else:
+            # Fall back to news scraping
+            p_news = search_player_news(player, all_news)
+            analysis = analyze_injury_status(p_news)
+            s = analysis["status"]
+            r = analysis["reason"]
+
         if s == "OUT":
             results[player] = (False, f"OUT - {r}")
         elif s == "DOUBTFUL":
@@ -500,7 +575,7 @@ def get_batch_availability(player_names: list[str]) -> dict:
             results[player] = (True, f"GTD - {r}")
         else:
             results[player] = (True, "ACTIVE")
-            
+
     return results
 
 

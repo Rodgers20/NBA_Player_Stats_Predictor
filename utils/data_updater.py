@@ -10,12 +10,28 @@ This module handles:
 import os
 import threading
 from datetime import datetime, timedelta
+from pathlib import Path
 import pandas as pd
 
 
+# Persist last download date to disk so it survives app restarts
+_STAMP_FILE = Path(__file__).parent.parent / "data" / ".last_kaggle_download"
+
+def _read_stamp() -> str | None:
+    try:
+        return _STAMP_FILE.read_text().strip() if _STAMP_FILE.exists() else None
+    except Exception:
+        return None
+
+def _write_stamp(date_str: str) -> None:
+    try:
+        _STAMP_FILE.write_text(date_str)
+    except Exception:
+        pass
+
 # Track state
 _last_update_date = None
-_last_download_date = None  # Track last Kaggle download (daily)
+_last_download_date = _read_stamp()  # Persist across restarts
 _update_lock = threading.Lock()
 _is_updating = False
 
@@ -108,10 +124,16 @@ def update_game_data(get_df_func, merge_func):
         update_rosters()
 
         # 2. Refresh Kaggle dataset (force-download once per day, cache otherwise)
-        if _last_download_date != today:
+        today_str = str(today)
+        if _last_download_date != today_str:
             print("[DataUpdater] Daily refresh: downloading latest Kaggle data...")
-            download_dataset(force=True)
-            _last_download_date = today
+            try:
+                download_dataset(force=True)
+                _last_download_date = today_str
+                _write_stamp(today_str)
+            except Exception as dl_err:
+                print(f"[DataUpdater] Force download failed ({dl_err}), using cached data")
+                download_dataset(force=False)
         else:
             print("[DataUpdater] Using cached Kaggle data (already downloaded today)")
             download_dataset(force=False)

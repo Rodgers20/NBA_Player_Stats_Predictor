@@ -295,6 +295,13 @@ try:
     )
     scheduler.start()
     print("[App] Background schedulers started (data + props cache every 30 min)")
+
+    # Trigger an immediate update at startup so data is fresh on first load
+    # (don't wait 30 minutes for the first scheduled run)
+    import threading as _threading
+    _startup_thread = _threading.Thread(target=scheduled_update, daemon=True, name="startup-update")
+    _startup_thread.start()
+    print("[App] Startup data refresh triggered in background")
 except Exception as e:
     print(f"[App] Warning: Could not start scheduler: {e}")
 
@@ -936,6 +943,21 @@ def create_best_props_page():
     props_data = cache["main_page_data"]
     has_todays_games = cache["has_todays_games"]
     game_matchups = cache["game_matchups"]
+    target_date = cache.get("target_date")
+
+    # Format the target date label (today vs tomorrow)
+    from datetime import date as _date
+    today_str = _date.today().isoformat()
+    if target_date and target_date != today_str:
+        from datetime import datetime as _dt
+        try:
+            label_date = _dt.strptime(target_date, "%Y-%m-%d").strftime("%A, %B %d, %Y")
+            date_note = f"Tomorrow's Slate — {label_date}"
+        except ValueError:
+            date_note = target_date
+    else:
+        label_date = datetime.now().strftime("%A, %B %d, %Y")
+        date_note = label_date
 
     return html.Div([
         html.Div([
@@ -943,10 +965,10 @@ def create_best_props_page():
             html.Div([
                 html.Div("BEST PROPS" if has_todays_games else "BEST PROPS — All Players", style={"fontSize": "1.5rem", "fontWeight": "700", "marginBottom": "8px"}),
                 html.Div([
-                    html.Span(datetime.now().strftime("%A, %B %d, %Y"), style={"color": "var(--text-muted)"}),
+                    html.Span(date_note, style={"color": "var(--text-muted)"}),
                     html.Span(f" • {len(props_data)} picks", style={"color": "var(--accent-primary)", "marginLeft": "8px"})
                 ], style={"marginBottom": "8px"}),
-                html.Div("Top value player props based on EV (+Expected Value)", style={"color": "var(--text-secondary)", "fontSize": "0.9rem", "marginBottom": "24px"}),
+                html.Div("Top value player props based on EV (+Expected Value) — upcoming games only", style={"color": "var(--text-secondary)", "fontSize": "0.9rem", "marginBottom": "24px"}),
             ]),
 
             # Filters
@@ -1293,22 +1315,34 @@ def update_props_list(location_filter, game_filter, sort_by, props_data):
         ev_text = f"+{ev_val:.1f}% EV" if ev_val > 0 else f"{ev_val:.1f}% EV"
         ev_color = "var(--success)" if ev_val > 0 else "var(--text-muted)"
 
-        # Build insights
-        insights = []
-        if location_filter == "home":
-            insights.append(f"At Home: {hits}/{total} ({hit_pct}%)")
-        elif location_filter == "away":
-            insights.append(f"On Road: {hits}/{total} ({hit_pct}%)")
-        else:
-            insights.append(f"Overall: {hits}/{total} ({hit_pct}%)")
+        # Build hit-rate insight line
+        location_label = "At Home" if location_filter == "home" else "On Road" if location_filter == "away" else "Overall"
 
-        if prop.get("def_rank"):
-            pos_names = {"G": "Guards", "F": "Forwards", "C": "Centers"}
-            pos_name = pos_names.get(prop.get("position", "F"), "Players")
-            stat_name = {"PTS": "Points", "AST": "Assists", "REB": "Rebounds", "FG3M": "3-Pointers"}.get(prop.get("stat", ""), "")
-            insights.append(f"{prop.get('opponent', '')} Allow #{prop.get('def_rank')} {stat_name} To {pos_name}")
+        # Pull insight data from pre-computed cache
+        insight_data = prop.get("insight") or {}
+        narrative = insight_data.get("narrative", "")
+        factors = insight_data.get("factors", [])
+        matchup_grade = insight_data.get("matchup_grade", "C")
+        trend = insight_data.get("trend", "neutral")
+
+        # Matchup grade badge colors
+        grade_colors = {"A": "var(--success)", "B": "#a3e635", "C": "var(--text-muted)", "D": "var(--warning)"}
+        grade_color = grade_colors.get(matchup_grade, "var(--text-muted)")
+
+        # Factors (up to 3 most relevant)
+        factor_items = []
+        for f in factors[:3]:
+            positive = f.get("positive")
+            dot_color = "var(--success)" if positive is True else "var(--warning)" if positive is False else "var(--text-muted)"
+            factor_items.append(
+                html.Div([
+                    html.Span("● ", style={"color": dot_color, "fontSize": "0.6rem", "verticalAlign": "middle", "marginRight": "6px"}),
+                    html.Span(f.get("text", ""), style={"color": "var(--text-secondary)", "fontSize": "0.85rem"})
+                ], style={"marginBottom": "3px"})
+            )
 
         prop_card = html.Div([
+            # ── Header row: photo / name / matchup badge / hit% / EV ──────────
             html.Div([
                 html.Div([
                     html.Img(src=player_photo, style={
@@ -1327,37 +1361,55 @@ def update_props_list(location_filter, game_filter, sort_by, props_data):
                             "color": "var(--accent-primary)" if is_home_today else "var(--text-secondary)",
                             "fontSize": "0.7rem", "fontWeight": "600", "marginLeft": "8px",
                             "padding": "2px 6px", "backgroundColor": "var(--bg-primary)", "borderRadius": "4px"
-                        })
+                        }),
+                        html.Span(f" {matchup_grade}", style={
+                            "color": grade_color, "fontSize": "0.7rem", "fontWeight": "700",
+                            "marginLeft": "6px", "padding": "2px 6px",
+                            "border": f"1px solid {grade_color}", "borderRadius": "4px"
+                        }) if matchup_grade != "C" else None,
                     ]),
                     html.Div(f"{prop.get('team', '')} • {prop.get('position', '')}", style={"fontSize": "0.85rem", "color": "var(--text-muted)"})
                 ], style={"flex": "1"}),
-                
-                # Hit Rate + EV Column
+
+                # Hit Rate + EV column
                 html.Div([
                     html.Div(f"{hit_pct}%", style={"fontSize": "1.5rem", "fontWeight": "800", "color": hit_color, "textAlign": "right"}),
                     html.Div(ev_text, style={"fontSize": "0.8rem", "fontWeight": "600", "color": ev_color, "textAlign": "right"})
                 ])
-            ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
-            
-            html.Div([
+            ], style={"display": "flex", "alignItems": "center", "marginBottom": "12px"}),
+
+            # ── Narrative insight ──────────────────────────────────────────────
+            html.Div(narrative, style={
+                "color": "var(--text-secondary)", "fontSize": "0.88rem", "lineHeight": "1.5",
+                "marginBottom": "10px", "fontStyle": "italic"
+            }) if narrative else None,
+
+            # ── Factors list ──────────────────────────────────────────────────
+            html.Div(factor_items, style={
+                "backgroundColor": "var(--bg-primary)", "padding": "10px 12px",
+                "borderRadius": "var(--radius-sm)", "borderLeft": "3px solid var(--success)",
+                "marginBottom": "10px"
+            }) if factor_items else html.Div([
                 html.Div([
-                    html.Span("• ", style={"color": "var(--success)"}),
-                    html.Span(insight, style={"color": "var(--text-secondary)", "fontSize": "0.9rem"})
-                ], style={"marginBottom": "4px"}) for insight in insights
+                    html.Span("● ", style={"color": "var(--success)", "fontSize": "0.6rem", "verticalAlign": "middle", "marginRight": "6px"}),
+                    html.Span(f"{location_label}: {hits}/{total} ({hit_pct}%)", style={"color": "var(--text-secondary)", "fontSize": "0.85rem"})
+                ])
             ], style={
-                "backgroundColor": "var(--bg-primary)", "padding": "12px", "borderRadius": "var(--radius-sm)",
-                "borderLeft": "3px solid var(--success)", "marginBottom": "16px"
+                "backgroundColor": "var(--bg-primary)", "padding": "10px 12px",
+                "borderRadius": "var(--radius-sm)", "borderLeft": "3px solid var(--success)",
+                "marginBottom": "10px"
             }),
-            
+
+            # ── Stat / Line / Avg row ─────────────────────────────────────────
             html.Div([
                 html.Div([
                     html.Span(prop.get("stat", ""), style={"color": stat_color, "fontWeight": "700", "fontSize": "0.9rem", "marginRight": "8px"}),
                     html.Span(f"Over {prop.get('line', 0)}", style={"fontWeight": "700", "fontSize": "1.1rem"})
                 ], style={"display": "flex", "alignItems": "center"}),
-                html.Div(f"Avg: {avg}", style={"color": "var(--text-muted)", "fontSize": "0.9rem"})
+                html.Div(f"L10 avg: {avg}  •  {location_label} {hit_pct}%", style={"color": "var(--text-muted)", "fontSize": "0.85rem"})
             ], style={
                 "display": "flex", "justifyContent": "space-between", "alignItems": "center",
-                "backgroundColor": "var(--bg-primary)", "padding": "12px", "borderRadius": "var(--radius-sm)"
+                "backgroundColor": "var(--bg-primary)", "padding": "10px 12px", "borderRadius": "var(--radius-sm)"
             })
         ], className="card")
         prop_cards.append(prop_card)

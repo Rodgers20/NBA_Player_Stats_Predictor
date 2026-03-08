@@ -16,9 +16,6 @@ This module retains:
 import time
 import random
 import pandas as pd
-from nba_api.stats.endpoints import (
-    scoreboardv2,  # For today's games
-)
 from nba_api.stats.static import players, teams
 from datetime import datetime, timedelta
 
@@ -235,14 +232,60 @@ def calculate_defense_vs_position(
 _todays_games_cache = {"data": None, "timestamp": None}
 _CACHE_TTL_SECONDS = 300  # Cache for 5 minutes
 
+
+def _get_games_from_espn(date_str: str) -> pd.DataFrame:
+    """Fetch games from ESPN's public scoreboard API for the given date (no auth).
+
+    Args:
+        date_str: Date in "YYYY-MM-DD" format. ESPN accepts ?dates=YYYYMMDD.
+    """
+    import requests as _requests
+    try:
+        url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
+        # ESPN uses YYYYMMDD format; omit param for today (defaults to current date)
+        espn_date = date_str.replace("-", "")
+        resp = _requests.get(url, headers=CUSTOM_HEADERS, params={"dates": espn_date}, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+
+        rows = []
+        for event in data.get("events", []):
+            comp = event["competitions"][0]
+            home_team, away_team = "", ""
+            for competitor in comp["competitors"]:
+                abbrev = competitor["team"]["abbreviation"]
+                if competitor["homeAway"] == "home":
+                    home_team = abbrev
+                else:
+                    away_team = abbrev
+
+            game_date = event.get("date", "")[:10]  # "2026-03-07T..."
+            rows.append({
+                "GAME_ID": event["id"],
+                "GAME_DATE_EST": game_date,
+                "HOME_TEAM": home_team,
+                "AWAY_TEAM": away_team,
+                "GAME_STATUS_TEXT": event["status"]["type"]["description"],
+                "HOME_TEAM_ID": 0,
+                "VISITOR_TEAM_ID": 0,
+            })
+
+        if rows:
+            print(f"[Games] ESPN returned {len(rows)} games for {date_str}")
+        return pd.DataFrame(rows)
+    except Exception as e:
+        print(f"[Games] ESPN fetch failed for {date_str}: {e}")
+        return pd.DataFrame()
+
+
 def get_todays_games() -> pd.DataFrame:
     """
     Fetch today's scheduled NBA games with caching.
+    Uses ESPN (fast, reliable, no auth). NBA API is dead and always times out.
 
     Returns:
         DataFrame with columns:
-        GAME_ID, GAME_DATE, HOME_TEAM_ID, HOME_TEAM_ABBREVIATION,
-        VISITOR_TEAM_ID, VISITOR_TEAM_ABBREVIATION, GAME_STATUS
+        GAME_ID, GAME_DATE_EST, HOME_TEAM, AWAY_TEAM, GAME_STATUS_TEXT
     """
     global _todays_games_cache
 
@@ -253,48 +296,67 @@ def get_todays_games() -> pd.DataFrame:
             return _todays_games_cache["data"]
 
     today = now.strftime("%Y-%m-%d")
+    result = _get_games_from_espn(today)
 
-    try:
-        def _fetch_scoreboard():
-            return scoreboardv2.ScoreboardV2(
-                game_date=today,
-                league_id="00",
-                day_offset=0,
-                headers=CUSTOM_HEADERS,
-                timeout=120,
-                proxy=PROXY
-            )
+    if not result.empty:
+        print(f"[Games] Found {len(result)} games for {today}")
 
-        scoreboard = api_call_with_retry(_fetch_scoreboard, max_retries=1, base_delay=3)
-        games_df = scoreboard.get_data_frames()[0]
+    _todays_games_cache["data"] = result
+    _todays_games_cache["timestamp"] = datetime.now()
+    return result
 
-        if games_df.empty:
-            _todays_games_cache["data"] = pd.DataFrame()
-            _todays_games_cache["timestamp"] = datetime.now()
-            return pd.DataFrame()
 
-        columns_to_keep = [
-            "GAME_ID", "GAME_DATE_EST", "HOME_TEAM_ID",
-            "VISITOR_TEAM_ID", "GAME_STATUS_TEXT"
+# Cache for upcoming games (separate from today's cache since it may target tomorrow)
+_upcoming_games_cache = {"data": None, "target_date": None, "timestamp": None}
+
+
+def get_upcoming_games() -> tuple[pd.DataFrame, str]:
+    """
+    Get games that haven't finished yet, with fallback to tomorrow's slate.
+
+    Logic:
+    1. Fetch today's games from ESPN
+    2. Filter out games with status "Final" (already played)
+    3. If no unplayed games today, fetch tomorrow's full schedule
+    4. Cache for 5 minutes
+
+    Returns:
+        (games_df, target_date_str) — target_date_str is "YYYY-MM-DD"
+    """
+    global _upcoming_games_cache
+
+    now = datetime.now()
+    if (
+        _upcoming_games_cache["data"] is not None
+        and _upcoming_games_cache["timestamp"]
+        and (now - _upcoming_games_cache["timestamp"]).total_seconds() < _CACHE_TTL_SECONDS
+    ):
+        return _upcoming_games_cache["data"], _upcoming_games_cache["target_date"]
+
+    today = now.strftime("%Y-%m-%d")
+    tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # ESPN is the primary (and only) source — fast, no auth, always works
+    today_games = _get_games_from_espn(today)
+
+    # Filter to only unplayed / in-progress games
+    if not today_games.empty and "GAME_STATUS_TEXT" in today_games.columns:
+        upcoming_today = today_games[
+            ~today_games["GAME_STATUS_TEXT"].str.lower().str.contains("final", na=False)
         ]
-        available_cols = [c for c in columns_to_keep if c in games_df.columns]
-        result = games_df[available_cols].copy()
+        if not upcoming_today.empty:
+            print(f"[Games] {len(upcoming_today)} upcoming game(s) today ({today})")
+            _upcoming_games_cache = {"data": upcoming_today, "target_date": today, "timestamp": now}
+            return upcoming_today, today
 
-        all_teams = {t["id"]: t["abbreviation"] for t in teams.get_teams()}
+    # All today's games are done (or no games today) — use tomorrow's slate
+    print(f"[Games] No upcoming games today, fetching tomorrow ({tomorrow})...")
+    tomorrow_games = _get_games_from_espn(tomorrow)
 
-        if "HOME_TEAM_ID" in result.columns:
-            result["HOME_TEAM"] = result["HOME_TEAM_ID"].map(all_teams)
-        if "VISITOR_TEAM_ID" in result.columns:
-            result["AWAY_TEAM"] = result["VISITOR_TEAM_ID"].map(all_teams)
-
-        _todays_games_cache["data"] = result
-        _todays_games_cache["timestamp"] = datetime.now()
-        return result
-
-    except Exception as e:
-        print(f"Error fetching today's games: {e}")
-        # Don't cache errors — allow immediate retry on next call
-        return pd.DataFrame()
+    target = tomorrow if not tomorrow_games.empty else today
+    result = tomorrow_games if not tomorrow_games.empty else pd.DataFrame()
+    _upcoming_games_cache = {"data": result, "target_date": target, "timestamp": now}
+    return result, target
 
 
 def get_teams_playing_today() -> list[str]:
@@ -337,37 +399,23 @@ def get_teams_playing_between(start_date: str, end_date: str) -> list[str]:
 
     while curr <= end:
         date_str = curr.strftime("%Y-%m-%d")
-        try:
-            scoreboard = scoreboardv2.ScoreboardV2(
-                game_date=date_str,
-                league_id="00",
-                day_offset=0,
-                headers=CUSTOM_HEADERS,
-                timeout=120,
-                proxy=PROXY
-            )
-            games_df = scoreboard.get_data_frames()[0]
-
-            if not games_df.empty:
-                all_teams_map = {t["id"]: t["abbreviation"] for t in teams.get_teams()}
-
-                if "HOME_TEAM_ID" in games_df.columns:
-                    all_teams_set.update(games_df["HOME_TEAM_ID"].map(all_teams_map).dropna().tolist())
-                if "VISITOR_TEAM_ID" in games_df.columns:
-                    all_teams_set.update(games_df["VISITOR_TEAM_ID"].map(all_teams_map).dropna().tolist())
-
-        except Exception as e:
-            print(f"Error checking teams for {date_str}: {e}")
-
+        # ESPN only — NBA API (stats.nba.com) consistently times out
+        games_df = _get_games_from_espn(date_str)
+        if not games_df.empty:
+            if "HOME_TEAM" in games_df.columns:
+                all_teams_set.update(games_df["HOME_TEAM"].dropna().tolist())
+            if "AWAY_TEAM" in games_df.columns:
+                all_teams_set.update(games_df["AWAY_TEAM"].dropna().tolist())
         curr += timedelta(days=1)
-        time.sleep(0.5)
 
     return list(all_teams_set)
 
 
 def get_next_opponent_for_team(team_abbrev: str, max_days: int = 7) -> tuple[str, str]:
     """
-    Get the next opponent for a team by checking upcoming days.
+    Get the next opponent for a team, looking ahead up to max_days.
+
+    Uses ESPN as primary source (reliable, no auth) with NBA API as fallback.
 
     Args:
         team_abbrev: Team abbreviation (e.g., "BOS", "LAL")
@@ -376,42 +424,21 @@ def get_next_opponent_for_team(team_abbrev: str, max_days: int = 7) -> tuple[str
     Returns:
         Tuple of (opponent_abbreviation, game_date) or ("", "") if not found
     """
-    all_teams = {t["id"]: t["abbreviation"] for t in teams.get_teams()}
-
     for day_offset in range(max_days):
         check_date = (datetime.now() + timedelta(days=day_offset)).strftime("%Y-%m-%d")
 
-        try:
-            scoreboard = scoreboardv2.ScoreboardV2(
-                game_date=check_date,
-                league_id="00",
-                day_offset=0,
-                headers=CUSTOM_HEADERS,
-                timeout=120,
-                proxy=PROXY
-            )
-            games_df = scoreboard.get_data_frames()[0]
+        # ESPN only — NBA API (stats.nba.com) consistently times out
+        games_df = _get_games_from_espn(check_date)
 
-            if games_df.empty:
-                continue
-
-            if "HOME_TEAM_ID" in games_df.columns:
-                games_df["HOME_TEAM"] = games_df["HOME_TEAM_ID"].map(all_teams)
-            if "VISITOR_TEAM_ID" in games_df.columns:
-                games_df["AWAY_TEAM"] = games_df["VISITOR_TEAM_ID"].map(all_teams)
-
-            for _, game in games_df.iterrows():
-                home = game.get("HOME_TEAM", "")
-                away = game.get("AWAY_TEAM", "")
-                if team_abbrev == home:
-                    return away, check_date
-                elif team_abbrev == away:
-                    return home, check_date
-
-            time.sleep(0.3)
-
-        except Exception as e:
-            print(f"Error checking date {check_date}: {e}")
+        if games_df.empty:
             continue
+
+        for _, game in games_df.iterrows():
+            home = game.get("HOME_TEAM", "")
+            away = game.get("AWAY_TEAM", "")
+            if team_abbrev == home:
+                return away, check_date
+            elif team_abbrev == away:
+                return home, check_date
 
     return "", ""
