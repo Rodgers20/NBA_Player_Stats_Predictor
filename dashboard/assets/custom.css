@@ -230,23 +230,139 @@ body {
 .stat-badge.mid { background-color: rgba(234, 179, 8, 0.2); color: var(--warning); }
 .stat-badge.low { background-color: rgba(239, 68, 68, 0.2); color: var(--danger); }
 
-/* Inputs & Dropdowns Override */
-.Select-control {
-    background-color: var(--bg-secondary) !important;
-    border-color: var(--border-color) !important;
+/* ======================================================
+   Dash 4 dcc.Dropdown — Dark Theme Override
+
+   Dash 4 defines its own CSS tokens in :root:
+     --Dash-Fill-Inverse-Strong: #fff  (white background)
+     --Dash-Text-Strong: dark text
+   We override these tokens to match our dark theme.
+   ====================================================== */
+
+/* Override Dash 4 design tokens to match dark theme */
+:root {
+    --Dash-Fill-Inverse-Strong: #1e293b;      /* bg-secondary — dark dropdown background */
+    --Dash-Stroke-Strong: #334155;             /* border-color */
+    --Dash-Stroke-Weak: rgba(51, 65, 85, 0.4);
+    --Dash-Text-Strong: #f8fafc;               /* text-primary */
+    --Dash-Text-Primary: #f8fafc;
+    --Dash-Text-Weak: #94a3b8;                 /* text-muted */
+    --Dash-Text-Disabled: #64748b;
+    --Dash-Fill-Interactive-Strong: #14b8a6;   /* accent-primary (teal) */
+    --Dash-Fill-Interactive-Weak: rgba(20, 184, 166, 0.1);
+    --Dash-Fill-Primary-Hover: rgba(255, 255, 255, 0.05);
+    --Dash-Fill-Primary-Active: rgba(255, 255, 255, 0.08);
+    --Dash-Fill-Disabled: rgba(255, 255, 255, 0.08);
+    --Dash-Shading-Strong: rgba(0, 0, 0, 0.5);
+    --Dash-Shading-Weak: rgba(0, 0, 0, 0.3);
+}
+
+/* Dropdown trigger button (the visible control box) */
+.dash-dropdown {
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border-color) !important;
     border-radius: var(--radius-sm) !important;
     color: var(--text-primary) !important;
 }
-
-.Select-menu-outer {
-    background-color: var(--bg-secondary) !important;
-    border: 1px solid var(--border-color) !important;
-    box-shadow: var(--shadow-lg) !important;
+.dash-dropdown:focus {
+    border-color: var(--accent-primary) !important;
+    outline-color: var(--accent-primary) !important;
+}
+.dash-dropdown .dash-dropdown-trigger {
+    min-height: 38px;
+    padding: 0 12px;
+}
+.dash-dropdown .dash-dropdown-value {
+    color: var(--text-primary) !important;
+    font-size: 0.875rem;
+}
+.dash-dropdown .dash-dropdown-placeholder {
+    color: var(--text-muted) !important;
+}
+.dash-dropdown .dash-dropdown-trigger-icon {
+    color: var(--text-muted) !important;
+    fill: var(--text-muted) !important;
+}
+.dash-dropdown .dash-dropdown-clear {
+    color: var(--text-muted) !important;
+}
+.dash-dropdown .dash-dropdown-clear:hover {
+    color: var(--text-primary) !important;
 }
 
-.Select-value-label { color: var(--text-primary) !important; }
-.Select-placeholder { color: var(--text-muted) !important; }
-.Select-arrow-zone { color: var(--text-muted) !important; }
+/* Dropdown menu (popover content) */
+.dash-dropdown-content {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--accent-primary) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+    z-index: 9999 !important;
+}
+
+/* Search container */
+.dash-dropdown-search-container {
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 4px !important;
+    margin: 6px !important;
+}
+.dash-dropdown-search-container:focus-within {
+    border-color: var(--accent-primary) !important;
+    outline-color: var(--accent-primary) !important;
+}
+.dash-dropdown-search-icon {
+    color: var(--text-muted) !important;
+}
+.dash-dropdown-search {
+    color: var(--text-primary) !important;
+    background: transparent !important;
+    caret-color: var(--accent-primary) !important;
+}
+.dash-dropdown-search::placeholder {
+    color: var(--text-muted) !important;
+}
+
+/* Options list */
+.dash-dropdown-options {
+    background: var(--bg-secondary) !important;
+}
+
+/* Individual option */
+.dash-dropdown-option {
+    background: var(--bg-secondary) !important;
+    color: var(--text-secondary) !important;
+    cursor: pointer;
+    transition: background-color 0.12s;
+    box-shadow: 0 -1px 0 0 rgba(51, 65, 85, 0.4) inset !important;
+}
+.dash-dropdown-option:hover {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+/* Selected option — Dash uses radio inputs, selected via :has */
+.dash-dropdown-option:has(input:checked),
+.dash-dropdown-option[data-highlighted] {
+    background: rgba(20, 184, 166, 0.15) !important;
+    color: var(--accent-primary) !important;
+}
+
+/* Action buttons */
+.dash-dropdown-action-button {
+    color: var(--accent-primary) !important;
+}
+.dash-dropdown-action-button:hover {
+    color: var(--text-primary) !important;
+}
+
+/* Wrapper */
+.dash-dropdown-wrapper {
+    background: transparent !important;
+}
+
+/* Player dropdown — hover feedback on trigger */
+#player-dropdown .dash-dropdown:hover {
+    border-color: var(--accent-primary) !important;
+}
 
 /* Responsive */
 @media (max-width: 1024px) {

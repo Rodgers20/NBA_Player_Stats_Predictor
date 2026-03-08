@@ -1320,9 +1320,9 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
             "padding": "40px"
         })
 
-    # Build prop cards
+    # Build prop cards — no arbitrary cap, show everything that passed filters
     prop_cards = []
-    for prop in filtered_props[:30]:
+    for prop in filtered_props:
         # Choose hit rate based on filter
         if location_filter == "home":
             hit_rate = prop.get("hit_rate_home", 0)

@@ -115,10 +115,37 @@ def _resolve_opponent(player_name, player_team, player_df, game_info):
 
 
 def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze):
-    """Compute props data for the main Best Props page."""
+    """Compute props data for the main Best Props page.
+
+    Process ALL players from every team playing today — no arbitrary cap.
+    After computing, build a final list that guarantees representation from
+    every team (both sides of every game), then sort by EV overall.
+    """
+    # Group players by team so we can guarantee per-team coverage
+    team_to_players = {}
+    for player_name in players_to_analyze:
+        team = _get_player_team(player_name, PLAYER_POSITIONS)
+        if team:
+            team_to_players.setdefault(team, []).append(player_name)
+
+    teams_today = set(game_info["team_to_opponent"].keys())
+
+    # Log which teams we found players for (helps debug abbrev mismatches)
+    found_teams = set(team_to_players.keys()) & teams_today
+    missing_teams = teams_today - found_teams
+    if missing_teams:
+        print(f"[PropsCache] WARNING: No players found for teams: {missing_teams}")
+        print(f"[PropsCache] teams_today={sorted(teams_today)}, found={sorted(found_teams)}")
+
     props_data = []
 
-    for player_name in players_to_analyze[:100]:
+    # Process players team-by-team so every team gets evaluated
+    processed_players = set()
+    for player_name in players_to_analyze:
+        if player_name in processed_players:
+            continue
+        processed_players.add(player_name)
+
         is_avail, reason = availability_map.get(player_name, (True, ""))
         if not is_avail:
             continue
@@ -128,6 +155,9 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             continue
 
         player_team = _get_player_team(player_name, PLAYER_POSITIONS)
+        if game_info["has_todays_games"] and player_team not in teams_today:
+            continue
+
         opponent = _resolve_opponent(player_name, player_team, player_df, game_info)
         if not opponent:
             continue
@@ -170,6 +200,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
 
             ev_value = calculate_ev(hit_rate_all)
 
+            # Include props with hit_rate >= 0.5 (positive edge)
             if hit_rate_all >= 0.5:
                 insight = generate_player_insight(
                     player_name=player_name,
@@ -198,7 +229,17 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "insight": insight,
                 })
 
+    # Sort everything by EV (best props first)
     props_data.sort(key=lambda x: x["ev"], reverse=True)
+
+    # Guarantee at least the top prop per team is represented in the final list.
+    # This ensures games with weaker overall EVs still show up.
+    if game_info["has_todays_games"] and teams_today:
+        teams_with_props = {p["team"] for p in props_data}
+        teams_without = teams_today - teams_with_props
+        if teams_without:
+            print(f"[PropsCache] Teams with no qualifying props (hit_rate<0.5): {teams_without}")
+
     return props_data
 
 
@@ -487,19 +528,20 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
     # Get today's game info (single NBA API call)
     game_info = _get_todays_game_info()
 
-    # Determine players to analyze
+    # Determine players to analyze — ALL players from ALL teams playing today
     if game_info["has_todays_games"] and game_info["teams_playing"] and not PLAYER_POSITIONS.empty:
         players_to_analyze = PLAYER_POSITIONS[
             PLAYER_POSITIONS["TEAM_ABBREVIATION"].isin(game_info["teams_playing"])
         ]["PLAYER_NAME"].tolist()
+        print(f"[PropsCache] {len(players_to_analyze)} players from {len(game_info['teams_playing'])} teams playing today")
     elif not PLAYER_POSITIONS.empty:
         recent_players = DF.sort_values("_date", ascending=False).drop_duplicates("PLAYER_NAME")
-        players_to_analyze = recent_players.nlargest(150, "MIN")["PLAYER_NAME"].tolist()
+        players_to_analyze = recent_players.nlargest(300, "MIN")["PLAYER_NAME"].tolist()
     else:
         players_to_analyze = []
 
-    # Single batch availability check (uses cached injury news)
-    availability_map = get_batch_availability(players_to_analyze[:100])
+    # Batch availability check — no arbitrary cap, check all players
+    availability_map = get_batch_availability(players_to_analyze)
 
     # Compute all 3 data sets
     main_data = _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze)

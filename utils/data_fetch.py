@@ -233,14 +233,20 @@ _todays_games_cache = {"data": None, "timestamp": None}
 _CACHE_TTL_SECONDS = 300  # Cache for 5 minutes
 
 # ESPN uses shortened abbreviations that differ from NBA/Kaggle standard.
-# Map ESPN → standard so player lookups match PLAYER_POSITIONS.
+# Map ESPN → NBA standard so player lookups match PLAYER_POSITIONS (Kaggle data).
+# NBA standard abbreviations: SAS, GSW, NYK, NOP, WAS, PHX, etc.
 _ESPN_ABBREV_MAP = {
-    "SA":  "SAN",   # San Antonio Spurs
-    "NO":  "NOP",   # New Orleans Pelicans
-    "NY":  "NYK",   # New York Knicks
-    "GS":  "GSW",   # Golden State Warriors
-    "WSH": "WAS",   # Washington Wizards
-    "UTA": "UTA",   # Utah Jazz (same, but listed for clarity)
+    "SA":   "SAS",   # San Antonio Spurs  (ESPN: SA  → NBA: SAS)
+    "NO":   "NOP",   # New Orleans Pelicans (ESPN: NO  → NBA: NOP)
+    "NY":   "NYK",   # New York Knicks     (ESPN: NY  → NBA: NYK)
+    "GS":   "GSW",   # Golden State Warriors (ESPN: GS → NBA: GSW)
+    "WSH":  "WAS",   # Washington Wizards  (ESPN: WSH → NBA: WAS)
+    "PHX":  "PHX",   # Phoenix Suns        (consistent)
+    "UTAH": "UTA",   # Utah Jazz           (ESPN sometimes returns 4-letter)
+    "NJ":   "BKN",   # Brooklyn Nets       (legacy ESPN code)
+    "BKN":  "BKN",   # Brooklyn Nets       (modern, explicit)
+    "CHA":  "CHA",   # Charlotte Hornets   (explicit)
+    "OKC":  "OKC",   # Oklahoma City       (explicit)
 }
 
 
