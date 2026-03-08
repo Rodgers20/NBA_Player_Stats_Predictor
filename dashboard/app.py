@@ -163,6 +163,13 @@ def load_models():
 
 print("Loading data...")
 DF, TEAM_DEF, PLAYER_POSITIONS, DEFENSE_VS_POS = load_data()
+
+# Offensive team stats (team_stats.csv) — used by matchup card Team Rankings
+_team_off_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "team_stats.csv")
+TEAM_OFF = pd.read_csv(_team_off_path) if os.path.exists(_team_off_path) else pd.DataFrame()
+if not TEAM_OFF.empty and "SEASON" in TEAM_OFF.columns:
+    TEAM_OFF = TEAM_OFF[TEAM_OFF["SEASON"] == CURRENT_SEASON]
+
 PREDICTORS = load_models()  # Empty, uses lazy loading now
 PLAYERS = sorted(DF["PLAYER_NAME"].unique().tolist())
 
@@ -971,54 +978,55 @@ def create_best_props_page():
                 html.Div("Top value player props based on EV (+Expected Value) — upcoming games only", style={"color": "var(--text-secondary)", "fontSize": "0.9rem", "marginBottom": "24px"}),
             ]),
 
-            # Filters
+            # Row 1: Stat type filter
             html.Div([
                 html.Div("All Stats", id="props-filter-all", n_clicks=0, className="tab active"),
-                html.Div("Points", id="props-filter-pts", n_clicks=0, className="tab", style={"color": "var(--accent-primary)"}),
-                html.Div("Assists", id="props-filter-ast", n_clicks=0, className="tab", style={"color": "#f97066"}),
-                html.Div("Rebounds", id="props-filter-reb", n_clicks=0, className="tab", style={"color": "#a78bfa"}),
-                html.Div("3-Pointers", id="props-filter-3pm", n_clicks=0, className="tab", style={"color": "#ec4899"}),
-            ], className="tab-group"),
+                html.Div("Points",    id="props-filter-pts", n_clicks=0, className="tab"),
+                html.Div("Assists",   id="props-filter-ast", n_clicks=0, className="tab"),
+                html.Div("Rebounds",  id="props-filter-reb", n_clicks=0, className="tab"),
+                html.Div("3-Pointers",id="props-filter-3pm", n_clicks=0, className="tab"),
+            ], className="tab-group", style={"marginBottom": "12px"}),
 
-            # Location & Game Filter
+            # Row 2: Location | Game | Sort — all on one line
             html.Div([
-                html.Span("Location: ", style={"color": "var(--text-muted)", "fontSize": "0.9rem", "marginRight": "12px"}),
-                html.Div("All Games", id="props-loc-all", n_clicks=0, className="tab active"),
-                html.Div("Home", id="props-loc-home", n_clicks=0, className="tab"),
-                html.Div("Away", id="props-loc-away", n_clicks=0, className="tab"),
-                
+                html.Div("All", id="props-loc-all",  n_clicks=0, className="tab active"),
+                html.Div("Home",id="props-loc-home", n_clicks=0, className="tab"),
+                html.Div("Away",id="props-loc-away", n_clicks=0, className="tab"),
+
+                html.Div(style={"flex": "1"}),  # spacer
+
                 html.Div([
-                    html.Span("Game: ", style={"color": "var(--text-muted)", "fontSize": "0.9rem", "marginLeft": "24px", "marginRight": "12px"}),
+                    html.Span("Game:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
                     dcc.Dropdown(
                         id="props-game-filter",
                         options=[{"label": "All Games", "value": "all"}] + [{"label": m, "value": m} for m in game_matchups],
                         value="all",
                         clearable=False,
-                        style={"width": "200px"},
+                        style={"width": "185px"},
                         className="game-filter-dropdown"
                     ),
-                ], style={"display": "flex" if game_matchups else "none", "alignItems": "center"}),
+                ], style={"display": "flex" if game_matchups else "none", "alignItems": "center", "gap": "0"}),
 
-                # SORT FILTER
                 html.Div([
-                    html.Span("Sort By: ", style={"color": "var(--text-muted)", "fontSize": "0.9rem", "marginLeft": "24px", "marginRight": "12px"}),
+                    html.Span("Sort:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
                     dcc.Dropdown(
                         id="props-sort-dropdown",
                         options=[
-                            {"label": "Highest EV (+Value)", "value": "ev"},
-                            {"label": "Highest Hit Rate %", "value": "hit_rate"}
+                            {"label": "Highest EV",       "value": "ev"},
+                            {"label": "Highest Hit Rate", "value": "hit_rate"}
                         ],
                         value="ev",
                         clearable=False,
-                        style={"width": "180px"},
+                        style={"width": "160px"},
                         className="game-filter-dropdown"
                     ),
-                ], style={"display": "flex", "alignItems": "center"}),
+                ], style={"display": "flex", "alignItems": "center", "gap": "0"}),
 
-            ], style={"display": "flex", "alignItems": "center", "marginBottom": "24px", "flexWrap": "wrap"}),
+            ], style={"display": "flex", "alignItems": "center", "gap": "8px", "marginBottom": "24px", "flexWrap": "wrap"}),
 
             dcc.Store(id="props-data-store", data=props_data),
             dcc.Store(id="props-location-filter", data="all"),
+            dcc.Store(id="props-stat-filter", data="all"),
 
             # Prop cards container (populated by callback)
             html.Div(id="props-list"),
@@ -1221,13 +1229,42 @@ def update_location_filter(all_clicks, home_clicks, away_clicks):
 
 
 @callback(
+    [Output("props-stat-filter", "data"),
+     Output("props-filter-all", "className"),
+     Output("props-filter-pts", "className"),
+     Output("props-filter-ast", "className"),
+     Output("props-filter-reb", "className"),
+     Output("props-filter-3pm", "className")],
+    [Input("props-filter-all", "n_clicks"),
+     Input("props-filter-pts", "n_clicks"),
+     Input("props-filter-ast", "n_clicks"),
+     Input("props-filter-reb", "n_clicks"),
+     Input("props-filter-3pm", "n_clicks")],
+    prevent_initial_call=True,
+)
+def update_stat_filter(*_):
+    from dash import ctx
+    triggered = ctx.triggered_id
+    active = "tab active"
+    inactive = "tab"
+    mapping = {
+        "props-filter-pts":  ["PTS",  inactive, active,   inactive, inactive, inactive],
+        "props-filter-ast":  ["AST",  inactive, inactive, active,   inactive, inactive],
+        "props-filter-reb":  ["REB",  inactive, inactive, inactive, active,   inactive],
+        "props-filter-3pm":  ["FG3M", inactive, inactive, inactive, inactive, active  ],
+    }
+    return mapping.get(triggered, ["all", active, inactive, inactive, inactive, inactive])
+
+
+@callback(
     Output("props-list", "children"),
     [Input("props-location-filter", "data"),
      Input("props-game-filter", "value"),
      Input("props-sort-dropdown", "value"),
-     Input("props-data-store", "data")]
+     Input("props-data-store", "data"),
+     Input("props-stat-filter", "data")]
 )
-def update_props_list(location_filter, game_filter, sort_by, props_data):
+def update_props_list(location_filter, game_filter, sort_by, props_data, stat_filter):
     if not props_data:
         return html.Div("No props data available", style={
             "color": "var(--text-muted)",
@@ -1235,7 +1272,11 @@ def update_props_list(location_filter, game_filter, sort_by, props_data):
             "padding": "40px"
         })
 
-    # Filter props based on game first
+    # Filter by stat type
+    if stat_filter and stat_filter != "all":
+        props_data = [p for p in props_data if p.get("stat") == stat_filter]
+
+    # Filter props based on game
     game_filtered = []
     for prop in props_data:
         if game_filter == "all" or not game_filter:
@@ -2521,16 +2562,11 @@ def create_matchup_content(player_name, stat):
     position_display = {"G": "Guards", "F": "Forwards", "C": "Centers"}
     player_pos_display = position_display.get(player_position, "Forwards")
 
-    # Get position-specific defensive stats from DEFENSE_VS_POS
-    pts_allowed = 0
-    ast_allowed = 0
-    reb_allowed = 0
-    pts_rank = 15
-    ast_rank = 15
-    reb_rank = 15
+    # Position-specific defensive stats from DEFENSE_VS_POS
+    pts_allowed = ast_allowed = reb_allowed = tpm_allowed = 0
+    pts_rank = ast_rank = reb_rank = tpm_rank = 15
 
     if not DEFENSE_VS_POS.empty and opponent:
-        # Filter for opponent team and player's position
         pos_def = DEFENSE_VS_POS[
             (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) &
             (DEFENSE_VS_POS["POSITION"] == player_position)
@@ -2540,21 +2576,37 @@ def create_matchup_content(player_name, stat):
             pts_allowed = row.get("AVG_PTS_ALLOWED", 0)
             ast_allowed = row.get("AVG_AST_ALLOWED", 0)
             reb_allowed = row.get("AVG_REB_ALLOWED", 0)
+            tpm_allowed = row.get("AVG_3PM_ALLOWED", 0)
             pts_rank = int(row.get("PTS_RANK", 15))
             ast_rank = int(row.get("AST_RANK", 15))
             reb_rank = int(row.get("REB_RANK", 15))
+            tpm_rank = int(row.get("3PM_RANK", 15))
 
     # Fallback to team-level defense stats if position-specific not available
     if pts_allowed == 0 and not TEAM_DEF.empty:
         opp_def = TEAM_DEF[TEAM_DEF["TEAM_ABBREVIATION"] == opponent] if "TEAM_ABBREVIATION" in TEAM_DEF.columns else pd.DataFrame()
         if not opp_def.empty:
             row = opp_def.iloc[0]
-            pts_allowed = row.get("OPP_PTS", row.get("PTS", 0))
-            ast_allowed = row.get("OPP_AST", row.get("AST", 0))
-            reb_allowed = row.get("OPP_REB", row.get("REB", 0))
-            if "OPP_PTS" in TEAM_DEF.columns:
-                pts_rank = int(TEAM_DEF["OPP_PTS"].rank(ascending=False).loc[opp_def.index[0]])
-                ast_rank = int(TEAM_DEF["OPP_AST"].rank(ascending=False).loc[opp_def.index[0]])
+            pts_allowed = row.get("OPP_PTS", 0)
+            ast_allowed = row.get("OPP_AST", 0)
+            reb_allowed = row.get("OPP_REB", 0)
+            tpm_allowed = row.get("OPP_FG3M", 0)
+            pts_rank = int(row.get("OPP_PTS_RANK", 15))
+            ast_rank = int(row.get("OPP_AST_RANK", 15))
+
+    # Opponent W-L record and defensive context from TEAM_DEF
+    opp_record = ""
+    opp_fg_pct = opp_fg_rank = opp_tov = opp_tov_rank = None
+    if not TEAM_DEF.empty and opponent:
+        opp_row = TEAM_DEF[TEAM_DEF["TEAM_ABBREVIATION"] == opponent]
+        if not opp_row.empty:
+            r = opp_row.iloc[0]
+            w, l = int(r.get("W", 0)), int(r.get("L", 0))
+            opp_record = f"{w}-{l}"
+            opp_fg_pct = r.get("OPP_FG_PCT", None)
+            opp_fg_rank = r.get("OPP_FG_PCT_RANK", None)
+            opp_tov = r.get("OPP_TOV", None)
+            opp_tov_rank = r.get("OPP_TOV_RANK", None)
 
     # Position tabs - using actual position categories from data
     position_tabs = ["Overall", "vs Guards", "vs Forwards", "vs Centers"]
@@ -2571,12 +2623,27 @@ def create_matchup_content(player_name, stat):
     return html.Div([
         # Key Defense Section
         html.Div([
-            html.Div(f"Key {opponent} Defense vs {player_pos_display}", style={
-                "color": COLORS["text"],
-                "fontSize": "14px",
-                "fontWeight": "600",
-                "marginBottom": "16px"
-            }),
+            # Header with W-L record
+            html.Div([
+                html.Span(f"Key {opponent} Defense vs {player_pos_display}", style={
+                    "color": COLORS["text"], "fontSize": "14px", "fontWeight": "600"
+                }),
+                html.Span(f"  {opp_record}", style={
+                    "color": COLORS["text_muted"], "fontSize": "12px", "marginLeft": "8px"
+                }) if opp_record else None,
+            ], style={"marginBottom": "8px"}),
+
+            # Context line: Opp FG% + TOV forced
+            html.Div([
+                html.Span(
+                    f"Opp FG% {opp_fg_pct*100:.1f}% (#{int(opp_fg_rank)})",
+                    style={"color": COLORS["text_secondary"], "fontSize": "11px", "marginRight": "12px"}
+                ) if opp_fg_pct is not None and opp_fg_rank is not None else None,
+                html.Span(
+                    f"TOV forced {opp_tov:.1f}/g (#{int(opp_tov_rank)})",
+                    style={"color": COLORS["text_secondary"], "fontSize": "11px"}
+                ) if opp_tov is not None and opp_tov_rank is not None else None,
+            ], style={"display": "flex", "marginBottom": "14px"}),
 
             # Position tabs
             html.Div([
@@ -2593,30 +2660,35 @@ def create_matchup_content(player_name, stat):
                 ) for pos in position_tabs
             ], style={"display": "flex", "marginBottom": "16px", "flexWrap": "wrap"}),
 
-            # Stats table
+            # Stats table — PTS / AST / REB / 3PM
             html.Table([
                 html.Thead([
                     html.Tr([
                         html.Th("Stat (per game)", style={"textAlign": "left", "color": COLORS["text_muted"], "fontSize": "11px", "padding": "8px 0", "fontWeight": "400"}),
                         html.Th("Rank", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px", "fontWeight": "400"}),
-                        html.Th("Value", style={"textAlign": "right", "color": COLORS["text_muted"], "fontSize": "11px", "fontWeight": "400"}),
+                        html.Th("Avg", style={"textAlign": "right", "color": COLORS["text_muted"], "fontSize": "11px", "fontWeight": "400"}),
                     ])
                 ]),
                 html.Tbody([
                     html.Tr([
-                        html.Td("Points Allowed", style={"padding": "10px 0", "fontSize": "13px", "fontWeight": "500"}),
+                        html.Td("Points Allowed", style={"padding": "9px 0", "fontSize": "13px", "fontWeight": "500"}),
                         html.Td(f"#{pts_rank}", style={"textAlign": "center", "color": get_rank_color(pts_rank), "fontSize": "14px", "fontWeight": "600"}),
                         html.Td(f"{pts_allowed:.1f}", style={"textAlign": "right", "fontSize": "13px"}),
                     ]),
                     html.Tr([
-                        html.Td("Assists Allowed", style={"padding": "10px 0", "fontSize": "13px", "fontWeight": "500"}),
+                        html.Td("Assists Allowed", style={"padding": "9px 0", "fontSize": "13px", "fontWeight": "500"}),
                         html.Td(f"#{ast_rank}", style={"textAlign": "center", "color": get_rank_color(ast_rank), "fontSize": "14px", "fontWeight": "600"}),
                         html.Td(f"{ast_allowed:.1f}", style={"textAlign": "right", "fontSize": "13px"}),
                     ]),
                     html.Tr([
-                        html.Td("Rebounds Allowed", style={"padding": "10px 0", "fontSize": "13px", "fontWeight": "500"}),
+                        html.Td("Rebounds Allowed", style={"padding": "9px 0", "fontSize": "13px", "fontWeight": "500"}),
                         html.Td(f"#{reb_rank}", style={"textAlign": "center", "color": get_rank_color(reb_rank), "fontSize": "14px", "fontWeight": "600"}),
                         html.Td(f"{reb_allowed:.1f}", style={"textAlign": "right", "fontSize": "13px"}),
+                    ]),
+                    html.Tr([
+                        html.Td("3-Pointers Allowed", style={"padding": "9px 0", "fontSize": "13px", "fontWeight": "500"}),
+                        html.Td(f"#{tpm_rank}", style={"textAlign": "center", "color": get_rank_color(tpm_rank), "fontSize": "14px", "fontWeight": "600"}),
+                        html.Td(f"{tpm_allowed:.1f}", style={"textAlign": "right", "fontSize": "13px"}),
                     ]),
                 ])
             ], style={"width": "100%", "borderCollapse": "collapse"})
@@ -2669,47 +2741,57 @@ def create_matchup_content(player_name, stat):
 
 
 def create_team_rankings_table(player_df, opponent):
-    """Create team rankings comparison table"""
-    # Get player's team
+    """Create team rankings comparison table.
+
+    Left column: player's team offensive stats (from TEAM_OFF).
+    Right column: opponent defensive stats (from TEAM_DEF).
+    """
+    # Get player's team from most recent game matchup
     last_game = player_df.sort_values("_date", ascending=False).iloc[0]
     matchup = last_game.get("MATCHUP", "")
     player_team = matchup.split()[0] if isinstance(matchup, str) and matchup else "UNK"
 
-    # Get team stats
-    player_team_stats = TEAM_DEF[TEAM_DEF["TEAM_ABBREVIATION"] == player_team] if "TEAM_ABBREVIATION" in TEAM_DEF.columns else pd.DataFrame()
-    opp_team_stats = TEAM_DEF[TEAM_DEF["TEAM_ABBREVIATION"] == opponent] if "TEAM_ABBREVIATION" in TEAM_DEF.columns else pd.DataFrame()
+    # Player team → offensive stats (TEAM_OFF = team_stats.csv)
+    player_off = TEAM_OFF[TEAM_OFF["TEAM_ABBREVIATION"] == player_team] if not TEAM_OFF.empty else pd.DataFrame()
+    # Opponent → defensive stats (TEAM_DEF = team_defensive_stats.csv)
+    opp_def = TEAM_DEF[TEAM_DEF["TEAM_ABBREVIATION"] == opponent] if "TEAM_ABBREVIATION" in TEAM_DEF.columns else pd.DataFrame()
 
+    # (stat_label, off_col, off_rank_col, def_col, def_rank_col, is_pct)
     stats_to_show = [
-        ("Points", "OPP_PTS", "PTS"),
-        ("Field Goal Pct", "OPP_FG_PCT", "FG_PCT"),
-        ("3-Point Pct", "OPP_FG3_PCT", "FG3_PCT"),
-        ("Rebounds", "OPP_REB", "REB"),
+        ("Points",   "PTS",     None,              "OPP_PTS",     "OPP_PTS_RANK",     False),
+        ("FG%",      "FG_PCT",  None,              "OPP_FG_PCT",  "OPP_FG_PCT_RANK",  True),
+        ("3P%",      "FG3_PCT", None,              "OPP_FG3_PCT", "OPP_FG3_PCT_RANK", True),
+        ("Rebounds", "REB",     None,              "OPP_REB",     "OPP_REB_RANK",     False),
+        ("Assists",  "AST",     None,              "OPP_AST",     "OPP_AST_RANK",     False),
     ]
 
     rows = []
-    for stat_name, def_col, off_col in stats_to_show:
-        # Player team values
-        pt_val = 0
+    for stat_name, off_col, _, def_col, def_rank_col, is_pct in stats_to_show:
+        # Player team offensive value + rank (rank within TEAM_OFF)
+        pt_val = 0.0
         pt_rank = "-"
-        if not player_team_stats.empty:
-            pt_val = player_team_stats.iloc[0].get(off_col, 0)
-            if off_col in TEAM_DEF.columns:
-                pt_rank = int(TEAM_DEF[off_col].rank(ascending=False).get(player_team_stats.index[0], 15))
+        if not player_off.empty and off_col in player_off.columns:
+            pt_val = float(player_off.iloc[0].get(off_col, 0) or 0)
+            if off_col in TEAM_OFF.columns:
+                try:
+                    pt_rank = int(TEAM_OFF[off_col].rank(ascending=False, method="min").loc[player_off.index[0]])
+                except Exception:
+                    pt_rank = "-"
 
-        # Opponent team values
-        opp_val = 0
+        # Opponent defensive value + rank (use pre-computed rank column)
+        opp_val = 0.0
         opp_rank = "-"
-        if not opp_team_stats.empty:
-            opp_val = opp_team_stats.iloc[0].get(def_col, opp_team_stats.iloc[0].get(off_col, 0))
-            if def_col in TEAM_DEF.columns:
-                opp_rank = int(TEAM_DEF[def_col].rank(ascending=False).get(opp_team_stats.index[0], 15))
+        if not opp_def.empty:
+            opp_val = float(opp_def.iloc[0].get(def_col, 0) or 0)
+            if def_rank_col in opp_def.columns:
+                opp_rank = int(opp_def.iloc[0].get(def_rank_col, 15))
 
-        # Format values
-        if "Pct" in stat_name:
-            pt_display = f"{pt_val * 100:.1f}" if pt_val < 1 else f"{pt_val:.1f}"
-            opp_display = f"{opp_val * 100:.1f}" if opp_val < 1 else f"{opp_val:.1f}"
+        # Format
+        if is_pct:
+            pt_display  = f"{pt_val * 100:.1f}%"  if pt_val  < 1 else f"{pt_val:.1f}%"
+            opp_display = f"{opp_val * 100:.1f}%" if opp_val < 1 else f"{opp_val:.1f}%"
         else:
-            pt_display = f"{pt_val:.1f}"
+            pt_display  = f"{pt_val:.1f}"
             opp_display = f"{opp_val:.1f}"
 
         rows.append(html.Tr([
