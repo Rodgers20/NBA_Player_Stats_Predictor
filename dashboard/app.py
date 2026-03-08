@@ -727,20 +727,6 @@ def create_player_analysis_page():
                     ])
                 ], className="card"),
 
-                # Best Props for Today section
-                html.Div([
-                    html.Div([
-                        html.Span("🔥", style={"marginRight": "10px", "fontSize": "20px"}),
-                        html.Span("BEST PROPS FOR TODAY", style={
-                            "fontSize": "1.1rem",
-                            "fontWeight": "700",
-                        })
-                    ], style={"marginBottom": "16px", "display": "flex", "alignItems": "center"}),
-                    html.Div(id="best-props-main", style={
-                        "maxHeight": "400px",
-                        "overflowY": "auto"
-                    })
-                ], className="card"),
 
             ], className="content-area"),
 
@@ -1257,6 +1243,25 @@ def update_stat_filter(*_):
 
 
 @callback(
+    [Output("player-dropdown", "value"),
+     Output("url", "pathname")],
+    Input({"type": "prop-player-name", "index": ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def select_player_from_prop(n_clicks_list):
+    """Navigate to player analysis page when a prop card player name is clicked."""
+    from dash import ctx
+    if not any(n_clicks_list):
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    triggered = ctx.triggered_id
+    if triggered and isinstance(triggered, dict):
+        return triggered["index"], "/"
+    from dash.exceptions import PreventUpdate
+    raise PreventUpdate
+
+
+@callback(
     Output("props-list", "children"),
     [Input("props-location-filter", "data"),
      Input("props-game-filter", "value"),
@@ -1396,7 +1401,13 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
                 ], style={"marginRight": "16px"}),
                 html.Div([
                     html.Div([
-                        html.Span(prop.get("player", ""), style={"fontWeight": "700", "fontSize": "1.1rem"}),
+                        html.Span(
+                            prop.get("player", ""),
+                            id={"type": "prop-player-name", "index": prop.get("player", "")},
+                            n_clicks=0,
+                            style={"fontWeight": "700", "fontSize": "1.1rem", "cursor": "pointer",
+                                   "borderBottom": "1px dashed var(--text-muted)"}
+                        ),
                         html.Span(f" {'vs' if is_home_today else '@'} {prop.get('opponent', '')}", style={"color": "var(--text-muted)", "fontSize": "0.9rem", "marginLeft": "8px"}),
                         html.Span(f" {'HOME' if is_home_today else 'AWAY'}", style={
                             "color": "var(--accent-primary)" if is_home_today else "var(--text-secondary)",
@@ -2452,86 +2463,6 @@ def generate_player_insights(player_name, period, season, h2h_mode, location):
             insights.append(f"Over {line} points in {hits} of last {len(recent)} games ({pts_avg:.1f} PPG).")
 
     return " ".join(insights)
-
-
-@callback(
-    Output("best-props-main", "children"),
-    [Input("player-dropdown", "value")]
-)
-def update_best_props_main(selected_player):
-    """Generate best props — shown in main content area (reads from cache)."""
-    from utils.props_cache import get_cached_props
-
-    cache = get_cached_props()
-    best_props = cache["callback_data"]
-
-    if not best_props:
-        return html.Div("No strong props found for today", style={
-            "color": "var(--text-muted)",
-            "textAlign": "center",
-            "padding": "30px"
-        })
-
-    # Build UI for top 5 props
-    prop_cards = []
-    for prop in best_props[:5]:
-        ev_text = f"+{prop['ev']:.1f}% EV"
-        
-        prop_cards.append(
-            html.Div([
-                # Header row
-                html.Div([
-                    html.Div([
-                        html.Span(prop["player"], style={
-                            "fontWeight": "600",
-                            "fontSize": "0.9rem",
-                            "color": "var(--text-primary)"
-                        }),
-                        html.Span(f" vs {prop['opponent']}", style={
-                            "color": "var(--text-muted)",
-                            "fontSize": "0.8rem"
-                        })
-                    ]),
-                    html.Span(ev_text, style={
-                        "color": "var(--success)",
-                        "fontWeight": "700",
-                        "fontSize": "0.8rem"
-                    })
-                ], style={"display": "flex", "justifyContent": "space-between", "alignItems": "center", "marginBottom": "8px"}),
-
-                # Prop line
-                html.Div([
-                    html.Span(prop["prop"], style={
-                        "color": "var(--accent-primary)",
-                        "fontSize": "1rem",
-                        "fontWeight": "700",
-                        "marginRight": "8px"
-                    }),
-                    html.Span(prop["confidence"], style={
-                        "backgroundColor": prop["conf_color"],
-                        "color": "#fff" if prop["confidence"] != "MED" else "#000",
-                        "padding": "2px 6px",
-                        "borderRadius": "4px",
-                        "fontSize": "0.7rem",
-                        "fontWeight": "700"
-                    })
-                ], style={"marginBottom": "6px", "display": "flex", "alignItems": "center"}),
-
-                # Reason
-                html.Div(prop["reason"], style={
-                    "color": "var(--text-secondary)",
-                    "fontSize": "0.75rem"
-                })
-            ], style={
-                "padding": "12px",
-                "backgroundColor": "var(--bg-primary)",
-                "borderRadius": "var(--radius-md)",
-                "marginBottom": "10px",
-                "borderLeft": f"3px solid {prop['conf_color']}"
-            })
-        )
-
-    return html.Div(prop_cards)
 
 
 def create_matchup_content(player_name, stat):

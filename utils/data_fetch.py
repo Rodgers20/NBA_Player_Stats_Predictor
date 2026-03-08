@@ -232,6 +232,21 @@ def calculate_defense_vs_position(
 _todays_games_cache = {"data": None, "timestamp": None}
 _CACHE_TTL_SECONDS = 300  # Cache for 5 minutes
 
+# ESPN uses shortened abbreviations that differ from NBA/Kaggle standard.
+# Map ESPN → standard so player lookups match PLAYER_POSITIONS.
+_ESPN_ABBREV_MAP = {
+    "SA":  "SAN",   # San Antonio Spurs
+    "NO":  "NOP",   # New Orleans Pelicans
+    "NY":  "NYK",   # New York Knicks
+    "GS":  "GSW",   # Golden State Warriors
+    "WSH": "WAS",   # Washington Wizards
+    "UTA": "UTA",   # Utah Jazz (same, but listed for clarity)
+}
+
+
+def _normalize_espn_abbrev(abbrev: str) -> str:
+    return _ESPN_ABBREV_MAP.get(abbrev, abbrev)
+
 
 def _get_games_from_espn(date_str: str) -> pd.DataFrame:
     """Fetch games from ESPN's public scoreboard API for the given date (no auth).
@@ -253,7 +268,7 @@ def _get_games_from_espn(date_str: str) -> pd.DataFrame:
             comp = event["competitions"][0]
             home_team, away_team = "", ""
             for competitor in comp["competitors"]:
-                abbrev = competitor["team"]["abbreviation"]
+                abbrev = _normalize_espn_abbrev(competitor["team"]["abbreviation"])
                 if competitor["homeAway"] == "home":
                     home_team = abbrev
                 else:
