@@ -9,6 +9,13 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Load .env so THE_ODDS_API_KEY and other secrets are available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv optional; set env vars manually if not installed
+
 import pandas as pd
 import numpy as np
 import threading
@@ -1261,6 +1268,63 @@ def select_player_from_prop(n_clicks_list):
     raise PreventUpdate
 
 
+def _build_odds_row(prop: dict, stat_color: str, avg: float, location_label: str, hit_pct: int) -> list:
+    """
+    Build the bottom stat/line row for a prop card.
+
+    When live sportsbook odds are available (has_live_odds=True), shows:
+      • The real bookmaker line and over/under prices
+      • A badge with the bookmaker name (e.g. "FanDuel")
+
+    Falls back to the estimated line when no live odds are loaded.
+    """
+    line       = prop.get("line", 0)
+    has_live   = prop.get("has_live_odds", False)
+    bookmaker  = prop.get("live_bookmaker", "")
+    over_price = prop.get("live_over_price")
+    under_price= prop.get("live_under_price")
+
+    def _fmt_american(p):
+        if p is None:
+            return ""
+        return f"+{p}" if p > 0 else str(p)
+
+    if has_live:
+        odds_badge = html.Div([
+            html.Span(bookmaker, style={
+                "fontSize": "0.65rem", "fontWeight": "700", "color": "var(--accent-primary)",
+                "border": "1px solid var(--accent-primary)", "borderRadius": "4px",
+                "padding": "1px 5px", "marginRight": "6px"
+            }),
+            html.Span(
+                f"O {_fmt_american(over_price)}  /  U {_fmt_american(under_price)}",
+                style={"fontSize": "0.75rem", "color": "var(--text-muted)"}
+            ),
+        ], style={"display": "flex", "alignItems": "center"})
+    else:
+        odds_badge = html.Span(
+            "est. line",
+            style={"fontSize": "0.65rem", "color": "var(--text-muted)",
+                   "border": "1px solid var(--bg-tertiary)", "borderRadius": "4px", "padding": "1px 5px"}
+        )
+
+    row = html.Div([
+        html.Div([
+            html.Span(prop.get("stat", ""), style={
+                "color": stat_color, "fontWeight": "700", "fontSize": "0.9rem", "marginRight": "8px"
+            }),
+            html.Span(f"Over {line}", style={"fontWeight": "700", "fontSize": "1.1rem", "marginRight": "8px"}),
+            odds_badge,
+        ], style={"display": "flex", "alignItems": "center"}),
+        html.Div(f"L10 avg: {avg}  •  {location_label} {hit_pct}%",
+                 style={"color": "var(--text-muted)", "fontSize": "0.85rem"})
+    ], style={
+        "display": "flex", "justifyContent": "space-between", "alignItems": "center",
+        "backgroundColor": "var(--bg-primary)", "padding": "10px 12px", "borderRadius": "var(--radius-sm)"
+    })
+    return [row]
+
+
 @callback(
     Output("props-list", "children"),
     [Input("props-location-filter", "data"),
@@ -1453,16 +1517,7 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
             }),
 
             # ── Stat / Line / Avg row ─────────────────────────────────────────
-            html.Div([
-                html.Div([
-                    html.Span(prop.get("stat", ""), style={"color": stat_color, "fontWeight": "700", "fontSize": "0.9rem", "marginRight": "8px"}),
-                    html.Span(f"Over {prop.get('line', 0)}", style={"fontWeight": "700", "fontSize": "1.1rem"})
-                ], style={"display": "flex", "alignItems": "center"}),
-                html.Div(f"L10 avg: {avg}  •  {location_label} {hit_pct}%", style={"color": "var(--text-muted)", "fontSize": "0.85rem"})
-            ], style={
-                "display": "flex", "justifyContent": "space-between", "alignItems": "center",
-                "backgroundColor": "var(--bg-primary)", "padding": "10px 12px", "borderRadius": "var(--radius-sm)"
-            })
+            *_build_odds_row(prop, stat_color, avg, location_label, hit_pct),
         ], className="card")
         prop_cards.append(prop_card)
 

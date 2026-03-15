@@ -20,6 +20,7 @@ from utils.data_fetch import get_todays_games, get_upcoming_games, extract_oppon
 from utils.injury_news import get_batch_availability
 from utils.prop_calculator import calculate_ev
 from utils.insight_generator import generate_player_insight
+from utils.odds_fetcher import get_live_odds
 
 # Thread-safe cache
 _cache_lock = threading.Lock()
@@ -228,6 +229,33 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "avg_away": round(away_games[stat_type].mean(), 1) if not away_games.empty else 0,
                     "insight": insight,
                 })
+
+    # ── Enrich with live sportsbook odds ─────────────────────────────────
+    live_odds = get_live_odds()
+    for prop in props_data:
+        player  = prop["player"]
+        stat    = prop["stat"]
+        p_odds  = live_odds.get(player) or live_odds.get(player.replace(".", "").replace("  ", " ").strip())
+        s_odds  = p_odds.get(stat) if p_odds else None
+
+        if s_odds:
+            # Override line with the real sportsbook line and recalculate EV
+            prop["live_line"]        = s_odds["line"]
+            prop["live_over_price"]  = s_odds["over_price"]
+            prop["live_under_price"] = s_odds["under_price"]
+            prop["live_bookmaker"]   = s_odds["bookmaker"]
+            prop["has_live_odds"]    = True
+
+            # Recalculate hits/hit_rate against real line
+            # (The cached line was estimated; use sportsbook line if different)
+            prop["line"] = s_odds["line"]
+            prop["ev"]   = calculate_ev(prop["hit_rate"], over_american=s_odds["over_price"])
+        else:
+            prop["has_live_odds"]    = False
+            prop["live_line"]        = None
+            prop["live_over_price"]  = None
+            prop["live_under_price"] = None
+            prop["live_bookmaker"]   = None
 
     # Sort everything by EV (best props first)
     props_data.sort(key=lambda x: x["ev"], reverse=True)

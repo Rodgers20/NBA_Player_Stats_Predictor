@@ -255,15 +255,33 @@ def get_streak_info(
 
 def calculate_ev(
     hit_prob: float,
-    decimal_odds: float = 1.91  # Standard -110 lines = 1.91 decimal
+    decimal_odds: float = None,
+    over_american: int = -110,
 ) -> float:
     """
-    Calculate Expected Value (EV).
+    Calculate Expected Value (EV) as a percentage.
     EV = (Prob_Win * Profit) - (Prob_Loss * Wager)
-    
-    For decimal odds 1.91 (Profit 0.91):
-    EV% = (Prob * 0.91) - ((1 - Prob) * 1.0)
+
+    Accepts either decimal odds directly, or American odds (e.g. -110, +150).
+    When live sportsbook odds are available pass ``over_american`` so the EV
+    reflects the actual juice rather than the assumed -110 standard line.
+
+    Args:
+        hit_prob:      Probability of hitting the prop (0–1).
+        decimal_odds:  Decimal odds (e.g. 1.91).  Takes priority when set.
+        over_american: American odds for the over side (e.g. -115, +100).
+                       Used only when decimal_odds is None.
+
+    Returns:
+        EV as a float (e.g. 0.05 = 5% edge, returned as percentage: 5.0).
     """
+    if decimal_odds is None:
+        # Convert American odds to decimal
+        if over_american > 0:
+            decimal_odds = (over_american / 100) + 1.0
+        else:
+            decimal_odds = (100 / abs(over_american)) + 1.0
+
     profit = decimal_odds - 1.0
     ev = (hit_prob * profit) - ((1 - hit_prob) * 1.0)
     return round(ev, 4)
