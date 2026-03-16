@@ -324,42 +324,40 @@ except Exception as e:
 # =============================================================================
 
 COLORS = {
-    "bg": "#0a0a0f",
-    "card": "#12121a",
-    "border": "#1e1e2e",
-    "text": "#ffffff",
-    "text_secondary": "#8888aa",
-    "text_muted": "#555566",
+    "bg": "#060b18",
+    "card": "rgba(0,0,0,0)",      # transparent — glass cards handle bg via CSS
+    "border": "rgba(255,255,255,0.06)",
+    "text": "#f0f4ff",
+    "text_secondary": "#8ca0c0",
+    "text_muted": "#4a5a75",
 
-    # Stat colors (from the screenshot)
-    "pts": "#14b8a6",       # Teal for points
-    "ast": "#f97066",       # Coral/orange for assists
-    "reb": "#a78bfa",       # Purple for rebounds
-    "blk": "#60a5fa",       # Blue for blocks
-    "stl": "#fbbf24",       # Yellow/gold for steals
-    "fg3m": "#ec4899",      # Pink for 3-pointers
+    # Stat colors
+    "pts":  "#14b8a6",       # Teal  — points
+    "ast":  "#f97066",       # Coral — assists
+    "reb":  "#a78bfa",       # Violet — rebounds
+    "blk":  "#60a5fa",       # Blue  — blocks
+    "stl":  "#fbbf24",       # Amber — steals
+    "fg3m": "#ec4899",       # Pink  — 3-pointers
 
-    # Hit/miss colors for bars
-    "hit": "#22c55e",       # Green for above threshold
-    "miss": "#ef4444",      # Red for below threshold
+    # Hit/miss
+    "hit":  "#22c55e",       # Green  — above threshold
+    "miss": "#f43f5e",       # Rose   — below threshold
 
-    # Hit rate colors
-    "hit_high": "#22c55e",   # Green 66%+
-    "hit_mid": "#eab308",    # Yellow 50-65%
-    "hit_low": "#ef4444",    # Red <50%
+    # Hit rate tiers
+    "hit_high": "#22c55e",   # Green  66%+
+    "hit_mid":  "#f59e0b",   # Amber  50-65%
+    "hit_low":  "#f43f5e",   # Rose   <50%
 
     # Accents
-    "accent": "#14b8a6",
+    "accent":           "#14b8a6",
     "accent_secondary": "#8b5cf6",
 }
 
-# Card style definition (Missing in original code)
+# Card style — visual handled by CSS .card class; keep inline fallback minimal
 CARD = {
-    "backgroundColor": COLORS["card"],
-    "borderRadius": "16px",
+    "borderRadius": "20px",
     "padding": "24px",
-    "boxShadow": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-    "marginBottom": "24px"
+    "marginBottom": "20px",
 }
 
 def get_hit_color(pct):
@@ -540,7 +538,7 @@ app.layout = html.Div([
             dcc.Link("Player Analysis", href="/", className="nav-link", id="nav-player"),
             dcc.Link("Today's Games", href="/games", className="nav-link", id="nav-games"),
             dcc.Link("Best Props", href="/props", className="nav-link", id="nav-props"),
-        ], style={"display": "flex", "gap": "8px"})
+        ], className="nav-links")
     ], className="nav-header"),
 
     # Page content container
@@ -557,13 +555,15 @@ def create_player_analysis_page():
             html.Div([
                 # Player photo
                 html.Div(id="player-photo", style={
-                    "width": "80px",
-                    "height": "80px",
+                    "width": "84px",
+                    "height": "84px",
                     "borderRadius": "50%",
                     "overflow": "hidden",
                     "marginRight": "20px",
-                    "backgroundColor": "#334155",
-                    "flexShrink": "0"
+                    "background": "linear-gradient(135deg, rgba(20,184,166,0.2), rgba(139,92,246,0.2))",
+                    "border": "2px solid rgba(20,184,166,0.35)",
+                    "boxShadow": "0 0 20px rgba(20,184,166,0.2)",
+                    "flexShrink": "0",
                 }),
 
                 # Player info and dropdown
@@ -649,14 +649,16 @@ def create_player_analysis_page():
                         ),
                     ], style={"flex": "1", "marginRight": "16px"}),
                     html.Div(id="threshold-display", style={
-                        "color": "#000000",  # Force black for high visibility
-                        "fontSize": "1.2rem",
+                        "color": "var(--teal-400, #2dd4bf)",
+                        "fontSize": "1.15rem",
                         "fontWeight": "700",
                         "minWidth": "60px",
                         "textAlign": "center",
-                        "backgroundColor": "#ffffff", # Force white background
-                        "padding": "4px 12px",
-                        "borderRadius": "8px"
+                        "backgroundColor": "rgba(20,184,166,0.12)",
+                        "border": "1px solid rgba(20,184,166,0.3)",
+                        "padding": "4px 14px",
+                        "borderRadius": "8px",
+                        "fontFamily": "var(--font-mono, 'Fira Code', monospace)",
                     }),
                 ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
 
@@ -670,9 +672,11 @@ def create_player_analysis_page():
                     "display": "flex",
                     "justifyContent": "center",
                     "gap": "40px",
-                    "padding": "12px",
-                    "backgroundColor": "var(--bg-secondary)",
-                    "borderRadius": "var(--radius-md)",
+                    "padding": "12px 20px",
+                    "background": "rgba(255,255,255,0.03)",
+                    "border": "1px solid rgba(255,255,255,0.06)",
+                    "backdropFilter": "blur(8px)",
+                    "borderRadius": "12px",
                     "marginBottom": "16px"
                 }),
 
@@ -853,7 +857,7 @@ def create_todays_games_page():
                     html.Span(away_team, style={"fontWeight": "700", "fontSize": "1.4rem"})
                 ], style={"display": "flex", "alignItems": "center"}),
 
-                html.Span("@", style={"color": "var(--text-muted)", "fontSize": "1.2rem", "margin": "0 20px"}),
+                html.Span("@", className="game-vs", style={"margin": "0 16px"}),
 
                 # Home
                 html.Div([
@@ -862,15 +866,8 @@ def create_todays_games_page():
                 ], style={"display": "flex", "alignItems": "center"}),
 
                 # Status
-                html.Div(game_status, style={
-                    "marginLeft": "auto", 
-                    "padding": "4px 12px", 
-                    "backgroundColor": "var(--bg-primary)", 
-                    "borderRadius": "var(--radius-sm)",
-                    "fontSize": "0.8rem",
-                    "color": "var(--accent-primary)"
-                })
-            ], style={"display": "flex", "alignItems": "center", "marginBottom": "1.5rem", "borderBottom": "1px solid var(--border-color)", "paddingBottom": "1rem"}),
+                html.Div(game_status, className="game-time-chip", style={"marginLeft": "auto"})
+            ], style={"display": "flex", "alignItems": "center", "marginBottom": "1.5rem", "borderBottom": "1px solid rgba(255,255,255,0.06)", "paddingBottom": "1rem"}),
 
             # Matchup Stats
             html.Div([
@@ -895,7 +892,7 @@ def create_todays_games_page():
                 ], style={"flex": "1"}),
 
                 # Divider
-                html.Div(style={"width": "1px", "backgroundColor": "var(--border-color)", "margin": "0 20px"}),
+                html.Div(style={"width": "1px", "background": "rgba(255,255,255,0.06)", "margin": "0 20px"}),
 
                 # Home Defense Column
                 html.Div([
@@ -919,15 +916,21 @@ def create_todays_games_page():
 
             ], style={"display": "flex"})
 
-        ], className="card")
+        ], className="card game-card")
         game_cards.append(game_card)
 
     return html.Div([
         html.Div([
-            html.Div("TODAY'S GAMES", style={"fontSize": "1.5rem", "fontWeight": "700", "marginBottom": "8px"}),
+            html.Div("TODAY'S GAMES", style={
+                "fontSize": "1.6rem", "fontWeight": "800", "marginBottom": "6px",
+                "letterSpacing": "-0.02em",
+                "background": "linear-gradient(135deg, #f0f4ff 40%, #8ca0c0 100%)",
+                "WebkitBackgroundClip": "text", "WebkitTextFillColor": "transparent",
+                "backgroundClip": "text"
+            }),
             html.Div([
-                html.Span(datetime.now().strftime("%A, %B %d, %Y"), style={"color": "var(--text-muted)"}),
-                html.Span(f" • {len(games)} games", style={"color": "var(--accent-primary)", "marginLeft": "8px"})
+                html.Span(datetime.now().strftime("%A, %B %d, %Y"), style={"color": "var(--text-muted, #4a5a75)", "fontSize": "0.9rem"}),
+                html.Span(f" • {len(games)} games", style={"color": "var(--teal-400, #2dd4bf)", "marginLeft": "8px", "fontSize": "0.9rem", "fontWeight": "600"})
             ], style={"marginBottom": "24px"}),
             
             html.Div(game_cards)
@@ -963,12 +966,18 @@ def create_best_props_page():
         html.Div([
             # Page header
             html.Div([
-                html.Div("BEST PROPS" if has_todays_games else "BEST PROPS — All Players", style={"fontSize": "1.5rem", "fontWeight": "700", "marginBottom": "8px"}),
+                html.Div("BEST PROPS" if has_todays_games else "BEST PROPS", style={
+                    "fontSize": "1.6rem", "fontWeight": "800", "marginBottom": "6px",
+                    "letterSpacing": "-0.02em",
+                    "background": "linear-gradient(135deg, #f0f4ff 40%, #8ca0c0 100%)",
+                    "WebkitBackgroundClip": "text", "WebkitTextFillColor": "transparent",
+                    "backgroundClip": "text"
+                }),
                 html.Div([
-                    html.Span(date_note, style={"color": "var(--text-muted)"}),
-                    html.Span(f" • {len(props_data)} picks", style={"color": "var(--accent-primary)", "marginLeft": "8px"})
-                ], style={"marginBottom": "8px"}),
-                html.Div("Top value player props based on EV (+Expected Value) — upcoming games only", style={"color": "var(--text-secondary)", "fontSize": "0.9rem", "marginBottom": "24px"}),
+                    html.Span(date_note, style={"color": "var(--text-muted, #4a5a75)", "fontSize": "0.9rem"}),
+                    html.Span(f" • {len(props_data)} picks", style={"color": "var(--teal-400, #2dd4bf)", "marginLeft": "8px", "fontSize": "0.9rem", "fontWeight": "600"})
+                ], style={"marginBottom": "6px"}),
+                html.Div("Top value player props ranked by Expected Value — upcoming games only", style={"color": "var(--text-secondary, #8ca0c0)", "fontSize": "0.875rem", "marginBottom": "24px"}),
             ]),
 
             # Row 1: Stat type filter
@@ -1456,13 +1465,16 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
             html.Div([
                 html.Div([
                     html.Img(src=player_photo, style={
-                        "width": "48px", "height": "48px", "borderRadius": "50%",
-                        "objectFit": "cover", "backgroundColor": "var(--bg-tertiary)"
+                        "width": "52px", "height": "52px", "borderRadius": "50%",
+                        "objectFit": "cover", "backgroundColor": "var(--bg-tertiary)",
+                        "border": "2px solid rgba(20,184,166,0.3)",
+                        "boxShadow": "0 0 10px rgba(20,184,166,0.15)"
                     }) if player_photo else html.Div(style={
-                        "width": "48px", "height": "48px", "borderRadius": "50%",
-                        "backgroundColor": "var(--bg-tertiary)"
+                        "width": "52px", "height": "52px", "borderRadius": "50%",
+                        "background": "linear-gradient(135deg, rgba(20,184,166,0.15), rgba(139,92,246,0.15))",
+                        "border": "2px solid rgba(20,184,166,0.25)"
                     })
-                ], style={"marginRight": "16px"}),
+                ], style={"marginRight": "14px", "flexShrink": "0"}),
                 html.Div([
                     html.Div([
                         html.Span(
@@ -1502,23 +1514,23 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
 
             # ── Factors list ──────────────────────────────────────────────────
             html.Div(factor_items, style={
-                "backgroundColor": "var(--bg-primary)", "padding": "10px 12px",
-                "borderRadius": "var(--radius-sm)", "borderLeft": "3px solid var(--success)",
-                "marginBottom": "10px"
+                "background": "rgba(34,197,94,0.06)", "padding": "10px 12px",
+                "borderRadius": "8px", "borderLeft": "3px solid var(--success)",
+                "border": "1px solid rgba(34,197,94,0.15)", "marginBottom": "10px"
             }) if factor_items else html.Div([
                 html.Div([
                     html.Span("● ", style={"color": "var(--success)", "fontSize": "0.6rem", "verticalAlign": "middle", "marginRight": "6px"}),
                     html.Span(f"{location_label}: {hits}/{total} ({hit_pct}%)", style={"color": "var(--text-secondary)", "fontSize": "0.85rem"})
                 ])
             ], style={
-                "backgroundColor": "var(--bg-primary)", "padding": "10px 12px",
-                "borderRadius": "var(--radius-sm)", "borderLeft": "3px solid var(--success)",
-                "marginBottom": "10px"
+                "background": "rgba(34,197,94,0.06)", "padding": "10px 12px",
+                "borderRadius": "8px", "borderLeft": "3px solid var(--success)",
+                "border": "1px solid rgba(34,197,94,0.15)", "marginBottom": "10px"
             }),
 
             # ── Stat / Line / Avg row ─────────────────────────────────────────
             *_build_odds_row(prop, stat_color, avg, location_label, hit_pct),
-        ], className="card")
+        ], className="card prop-card")
         prop_cards.append(prop_card)
 
     return prop_cards
@@ -1969,12 +1981,12 @@ def update_main_chart(player_name, stat, period, season, h2h_mode, location, thr
     # Add threshold line
     fig.add_hline(
         y=threshold,
-        line_dash="solid",
-        line_color=COLORS["text_secondary"],
-        line_width=2,
+        line_dash="dot",
+        line_color=COLORS["accent"],
+        line_width=1.5,
         annotation_text=f"{threshold}",
         annotation_position="left",
-        annotation_font_color=COLORS["text_secondary"]
+        annotation_font_color=COLORS["accent"]
     )
 
     # X-axis labels (date + opponent)
