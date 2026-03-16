@@ -350,7 +350,7 @@ body::before {
         transform var(--t-base) var(--ease-out),
         box-shadow var(--t-base) var(--ease-out),
         border-color var(--t-base) var(--ease-out);
-    overflow: hidden;
+    /* overflow: hidden removed — clips dropdown menus */
 }
 
 /* Top edge highlight (glass illusion) */
@@ -1029,7 +1029,8 @@ body::before {
     border: 1px solid var(--teal-border) !important;
     border-radius: var(--radius-md) !important;
     box-shadow: var(--shadow-xl), var(--glow-teal) !important;
-    z-index: var(--z-dropdown) !important;
+    z-index: 9999 !important;
+    position: relative !important;
     backdrop-filter: var(--blur-md) !important;
     -webkit-backdrop-filter: var(--blur-md) !important;
 }
@@ -1074,7 +1075,7 @@ body::before {
 
 .dash-dropdown-action-button       { color: var(--teal-500) !important; }
 .dash-dropdown-action-button:hover { color: var(--text-primary) !important; }
-.dash-dropdown-wrapper             { background: transparent !important; }
+.dash-dropdown-wrapper             { background: transparent !important; position: relative; z-index: 9999; }
 
 #player-dropdown .dash-dropdown:hover {
     border-color: var(--teal-500) !important;
