@@ -41,6 +41,18 @@ def get_cached_props() -> dict:
         return _props_cache.copy()
 
 
+# ESPN/NBA API abbreviations → internal data abbreviations
+# Add any future mismatches here
+_ABBR_ALIAS: dict[str, str] = {
+    "SAS": "SAN",   # San Antonio: API returns SAS, data files use SAN
+}
+
+
+def _normalize_abbr(abbr: str) -> str:
+    """Translate API team abbreviation to the one used in internal data files."""
+    return _ABBR_ALIAS.get(abbr, abbr)
+
+
 def _get_todays_game_info():
     """Get upcoming games info — shared by all 3 cache builders.
 
@@ -57,8 +69,8 @@ def _get_todays_game_info():
     if not games.empty:
         has_todays_games = True
         for _, game in games.iterrows():
-            home = game.get("HOME_TEAM", "")
-            away = game.get("AWAY_TEAM", "")
+            home = _normalize_abbr(game.get("HOME_TEAM", ""))
+            away = _normalize_abbr(game.get("AWAY_TEAM", ""))
             if home and away:
                 game_matchups.append(f"{away} @ {home}")
                 team_to_opponent[home] = away

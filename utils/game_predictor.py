@@ -1,123 +1,134 @@
 # utils/game_predictor.py
 """
-Game-Level Spread & Total Predictor
-=====================================
-Uses team offensive/defensive ratings + recent form from player game logs
-to predict game totals and spreads — no random guessing.
+Game-Level Predictor — Spread, Total, and Winner
+==================================================
+Uses team recent form (rolling 10 games) + season defensive ratings
++ home court advantage + pace + head-to-head history.
 
-Methodology:
-  predicted_home_score = blend(home_off_ppg, away_def_ppg) + home_court_adj
-  predicted_away_score = blend(away_off_ppg, home_def_ppg)
-  predicted_total      = predicted_home + predicted_away
-  predicted_spread     = predicted_home - predicted_away  (neg = home favored)
-
-  COVER PICK → compare model spread to actual spread
-  TOTAL PICK → compare model total to actual O/U line
+Form is the primary driver of predictions — recent momentum matters
+more than season-long averages.
 """
 
 import logging
-from functools import lru_cache
-
-import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 # ── Constants ──────────────────────────────────────────────────────────────
-HOME_COURT_ADV   = 2.5    # points home teams score extra on average
-LEAGUE_AVG_PACE  = 98.0   # league-average possessions per 48 min
-OFFENSE_WEIGHT   = 0.55   # blend weight for team's own offense vs opp defense
-DEFENSE_WEIGHT   = 0.45
-MIN_EDGE_SPREAD  = 1.5    # min model vs line gap to make a spread pick
-MIN_EDGE_TOTAL   = 2.0    # min model vs line gap to make a total pick
-RECENT_N_GAMES   = 10     # recent form window
+HOME_COURT_ADV   = 2.5    # pts home teams score extra on average
+LEAGUE_AVG_PACE  = 98.0
+FORM_WEIGHT      = 0.65   # recent rolling form vs season rating
+SEASON_WEIGHT    = 0.35
+MIN_EDGE_SPREAD  = 1.5    # min gap to issue a spread pick
+MIN_EDGE_TOTAL   = 2.0    # min gap to issue a total pick
+RECENT_N         = 10     # rolling form window
+H2H_SEASONS      = 2      # how many seasons back for H2H
 
 
 class GamePredictor:
     """
-    Predicts game totals and spreads using:
-    - Season-level team defensive stats (OPP_PTS, W_PCT, PLUS_MINUS)
-    - Rolling team offensive PPG derived from player game logs
-    - Recent W/L form from player game logs
-    - Home court advantage + pace adjustment
+    Predicts winner, spread, and total using:
+      - Rolling 10-game team PPG (from player game logs)
+      - Team defensive ratings (OPP_PTS from team_def_df)
+      - Recent W/L form momentum
+      - Head-to-head record
+      - Home court advantage + pace adjustment
     """
 
     def __init__(self, team_def_df: pd.DataFrame, player_logs_df: pd.DataFrame):
-        """
-        Args:
-            team_def_df:    team_defensive_stats.csv (one row per team per season)
-            player_logs_df: engineered player game log data (DF global in app.py)
-        """
-        self.team_def  = team_def_df
-        self.logs      = player_logs_df
+        self.team_def = team_def_df
+        self.logs     = player_logs_df
+        self._scores  = self._build_scores(player_logs_df)
 
-        # Pre-build team game score table from player logs
-        self._team_game_scores = self._build_team_game_scores()
+    def refresh(self, player_logs_df: pd.DataFrame) -> None:
+        """Re-build the game scores table from a fresh DF (call after data update)."""
+        self.logs    = player_logs_df
+        self._scores = self._build_scores(player_logs_df)
 
     # ── Public API ────────────────────────────────────────────────────────
 
-    def predict_game(self, home_abbr: str, away_abbr: str) -> dict:
+    def predict_game(self, home: str, away: str) -> dict:
         """
-        Predict score, spread, and total for a matchup.
+        Full game prediction.
 
-        Returns:
-            {
-              "predicted_home_score": float,
-              "predicted_away_score": float,
-              "predicted_total":      float,
-              "predicted_spread":     float,   # home - away (negative = home favored)
-              "home_form":            dict,
-              "away_form":            dict,
-              "home_season":          dict,
-              "away_season":          dict,
-              "confidence":           str,      # "HIGH" | "MEDIUM" | "LOW"
-              "intel":                list[str],
-            }
+        Returns
+        -------
+        {
+          predicted_home_score: float,
+          predicted_away_score: float,
+          predicted_total:      float,
+          predicted_spread:     float,   # home - away  (neg = home favored)
+          winner:               str,     # team abbrev of predicted winner
+          winner_margin:        float,
+          winner_confidence:    str,     # HIGH / MEDIUM / LOW
+          home_form:            dict,
+          away_form:            dict,
+          h2h:                  dict,
+          intel:                list[str],
+        }
         """
-        home_season = self._get_team_season_stats(home_abbr)
-        away_season = self._get_team_season_stats(away_abbr)
-        home_form   = self._get_team_form(home_abbr)
-        away_form   = self._get_team_form(away_abbr)
+        home_form   = self._get_form(home)
+        away_form   = self._get_form(away)
+        home_season = self._get_season(home)
+        away_season = self._get_season(away)
+        h2h         = self.get_h2h(home, away)
 
-        # Offensive PPG — prefer recent rolling avg, fall back to season derivation
-        home_off = home_form.get("rolling_ppg") or home_season.get("ppg", 112.0)
-        away_off = away_form.get("rolling_ppg") or away_season.get("ppg", 112.0)
+        # ── Offensive estimate per team ───────────────────────────────────
+        # Primary: rolling form PPG.  Fallback: season derivation.
+        home_off_raw = home_form.get("rolling_ppg") or home_season.get("ppg", 112.0)
+        away_off_raw = away_form.get("rolling_ppg") or away_season.get("ppg", 112.0)
 
-        # Defensive PPG allowed (from team_def season stats)
-        home_def_allowed = home_season.get("opp_ppg", 112.0)
-        away_def_allowed = away_season.get("opp_ppg", 112.0)
+        home_def_raw = home_season.get("opp_ppg", 112.0)   # pts allowed / game
+        away_def_raw = away_season.get("opp_ppg", 112.0)
 
-        # Blend offense vs opponent defense
-        raw_home = (home_off * OFFENSE_WEIGHT) + (away_def_allowed * DEFENSE_WEIGHT)
-        raw_away = (away_off * OFFENSE_WEIGHT) + (home_def_allowed * DEFENSE_WEIGHT)
+        # Blend form vs season defense
+        pred_home = (home_off_raw * FORM_WEIGHT + away_def_raw * SEASON_WEIGHT)
+        pred_away = (away_off_raw * FORM_WEIGHT + home_def_raw * SEASON_WEIGHT)
 
-        # Apply home court advantage
-        raw_home += HOME_COURT_ADV
+        # Form momentum: recent win% vs season win% → ±points adjustment
+        home_form_wp = home_form.get("wins", 0) / max(home_form.get("wins", 0) + home_form.get("losses", 0), 1)
+        away_form_wp = away_form.get("wins", 0) / max(away_form.get("wins", 0) + away_form.get("losses", 0), 1)
+        home_season_wp = home_season.get("w_pct", 0.5)
+        away_season_wp = away_season.get("w_pct", 0.5)
+        home_momentum = (home_form_wp - home_season_wp) * 4.0  # max ±2 pts
+        away_momentum = (away_form_wp - away_season_wp) * 4.0
+        pred_home += home_momentum
+        pred_away += away_momentum
 
-        # Pace adjustment: scale by avg pace relative to league average
+        # H2H momentum: if one team dominates the head-to-head
+        h2h_boost = self._h2h_boost(h2h, home, away)
+        pred_home += h2h_boost
+        pred_away -= h2h_boost
+
+        # Home court advantage
+        pred_home += HOME_COURT_ADV
+
+        # Pace adjustment
         home_pace = home_season.get("pace", LEAGUE_AVG_PACE)
         away_pace = away_season.get("pace", LEAGUE_AVG_PACE)
-        avg_pace  = (home_pace + away_pace) / 2
-        pace_factor = avg_pace / LEAGUE_AVG_PACE
+        pace_factor = ((home_pace + away_pace) / 2) / LEAGUE_AVG_PACE
+        pred_home = round(pred_home * pace_factor, 1)
+        pred_away = round(pred_away * pace_factor, 1)
 
-        pred_home  = round(raw_home * pace_factor, 1)
-        pred_away  = round(raw_away * pace_factor, 1)
-        pred_total = round(pred_home + pred_away,  1)
-        pred_spread = round(pred_home - pred_away, 1)
+        pred_total  = round(pred_home + pred_away, 1)
+        pred_spread = round(pred_home - pred_away, 1)    # home - away
 
-        # Confidence: based on how complete the data is
-        data_quality = sum([
-            bool(home_form.get("rolling_ppg")),
-            bool(away_form.get("rolling_ppg")),
-            not self.team_def.empty,
-        ])
-        confidence = ["LOW", "MEDIUM", "MEDIUM", "HIGH"][data_quality]
+        # Winner
+        margin = abs(pred_spread)
+        if margin >= 8:
+            winner_conf = "HIGH"
+        elif margin >= 4:
+            winner_conf = "MEDIUM"
+        else:
+            winner_conf = "LOW"
+
+        winner = home if pred_home >= pred_away else away
 
         intel = self._build_intel(
-            home_abbr, away_abbr,
-            home_season, away_season,
+            home, away,
             home_form, away_form,
-            pred_home, pred_away, pred_total, pred_spread,
+            home_season, away_season,
+            h2h, pred_home, pred_away, pred_total,
         )
 
         return {
@@ -125,61 +136,59 @@ class GamePredictor:
             "predicted_away_score": pred_away,
             "predicted_total":      pred_total,
             "predicted_spread":     pred_spread,
+            "winner":               winner,
+            "winner_margin":        margin,
+            "winner_confidence":    winner_conf,
             "home_form":            home_form,
             "away_form":            away_form,
+            "h2h":                  h2h,
             "home_season":          home_season,
             "away_season":          away_season,
-            "confidence":           confidence,
             "intel":                intel,
         }
 
-    def get_pick(self, prediction: dict, actual_spread: float | None,
-                 actual_total: float | None) -> dict:
+    def get_pick(self, prediction: dict, home: str, away: str,
+                 actual_spread: float | None,
+                 actual_total:  float | None) -> dict:
         """
-        Compare model prediction to sportsbook lines and return picks.
+        Compare model to sportsbook line and return picks.
 
-        Returns:
-            {
-              "spread_pick":       str | None,   e.g. "HOME -6.5"
-              "spread_team":       str | None,   e.g. "BOS"
-              "spread_confidence": str,
-              "total_pick":        str | None,   e.g. "UNDER 224.5"
-              "total_confidence":  str,
-              "model_spread":      float,
-              "model_total":       float,
-            }
+        Returns
+        -------
+        {
+          spread_pick, spread_team, spread_confidence,
+          total_pick, total_confidence,
+          winner_pick, winner_confidence,
+          model_spread, model_total,
+        }
         """
         model_spread = prediction["predicted_spread"]
         model_total  = prediction["predicted_total"]
         result = {
-            "spread_pick":       None,
-            "spread_team":       None,
-            "spread_confidence": "LOW",
-            "total_pick":        None,
-            "total_confidence":  "LOW",
-            "model_spread":      model_spread,
-            "model_total":       model_total,
+            "spread_pick":        None,
+            "spread_team":        None,
+            "spread_confidence":  "LOW",
+            "total_pick":         None,
+            "total_confidence":   "LOW",
+            "winner_pick":        prediction.get("winner"),
+            "winner_confidence":  prediction.get("winner_confidence", "LOW"),
+            "model_spread":       model_spread,
+            "model_total":        model_total,
         }
 
-        # ── Spread pick ────────────────────────────────────────────────
         if actual_spread is not None:
-            # actual_spread = the line for the home team (e.g. -6.5 means home favored 6.5)
-            # model_spread  = home - away (e.g. -4.3 = home favored by 4.3)
-            edge = model_spread - actual_spread  # how much model vs line
+            edge = model_spread - actual_spread
             if edge > MIN_EDGE_SPREAD:
-                # Model thinks home wins by MORE than the line → HOME covers
                 result["spread_pick"] = "HOME"
-                result["spread_team"] = "home"
+                result["spread_team"] = home
             elif edge < -MIN_EDGE_SPREAD:
-                # Model thinks home wins by LESS than line → AWAY covers
                 result["spread_pick"] = "AWAY"
-                result["spread_team"] = "away"
+                result["spread_team"] = away
             abs_edge = abs(edge)
             result["spread_confidence"] = (
                 "HIGH" if abs_edge >= 4.0 else "MEDIUM" if abs_edge >= 2.0 else "LOW"
             )
 
-        # ── Total pick ─────────────────────────────────────────────────
         if actual_total is not None:
             edge = model_total - actual_total
             if edge > MIN_EDGE_TOTAL:
@@ -193,116 +202,233 @@ class GamePredictor:
 
         return result
 
+    def get_team_last_n_games(self, team: str, n: int = 10) -> list[dict]:
+        """
+        Return the last n games for a team with date, opponent, W/L, and scores.
+
+        Each dict:
+          { date, opponent, wl, team_pts, opp_pts, home_away }
+        """
+        if self._scores.empty:
+            return []
+
+        team_games = (
+            self._scores[self._scores["team"] == team]
+            .sort_values("_date", ascending=False)
+            .head(n)
+        )
+
+        results = []
+        for _, row in team_games.iterrows():
+            opp  = row.get("opponent", "")
+            date = row["_date"]
+            # look up opponent score on same date
+            opp_game = self._scores[
+                (self._scores["team"] == opp) & (self._scores["_date"] == date)
+            ]
+            opp_pts = round(float(opp_game["team_pts"].iloc[0]), 0) if not opp_game.empty else None
+
+            results.append({
+                "date":       date.strftime("%-m/%-d") if hasattr(date, "strftime") else str(date)[:10],
+                "opponent":   opp,
+                "wl":         row.get("wl", ""),
+                "team_pts":   round(float(row["team_pts"]), 0),
+                "opp_pts":    opp_pts,
+                "home_away":  "HOME" if row.get("is_home") else "AWAY",
+            })
+        return results
+
+    def get_h2h(self, team_a: str, team_b: str) -> dict:
+        """
+        Head-to-head record between two teams from available game log data.
+
+        Returns
+        -------
+        {
+          wins_a, losses_a, total,
+          games: [ {date, wl, team_a_pts, team_b_pts}, ... ]   # last 5
+        }
+        """
+        if self._scores.empty:
+            return {"wins_a": 0, "losses_a": 0, "total": 0, "games": []}
+
+        h2h_rows = (
+            self._scores[
+                (self._scores["team"] == team_a) &
+                (self._scores["opponent"] == team_b)
+            ]
+            .sort_values("_date", ascending=False)
+        )
+
+        wins_a   = int((h2h_rows["wl"] == "W").sum())
+        losses_a = int((h2h_rows["wl"] == "L").sum())
+
+        games = []
+        for _, row in h2h_rows.head(5).iterrows():
+            date = row["_date"]
+            b_game = self._scores[
+                (self._scores["team"] == team_b) & (self._scores["_date"] == date)
+            ]
+            b_pts = round(float(b_game["team_pts"].iloc[0]), 0) if not b_game.empty else None
+            a_pts = round(float(row["team_pts"]), 0)
+
+            games.append({
+                "date":       date.strftime("%-m/%-d") if hasattr(date, "strftime") else str(date)[:10],
+                "wl":         row.get("wl", ""),
+                "home_away":  "HOME" if row.get("is_home") else "AWAY",
+                "team_a_pts": a_pts,
+                "team_b_pts": b_pts,
+            })
+
+        return {
+            "wins_a":   wins_a,
+            "losses_a": losses_a,
+            "total":    wins_a + losses_a,
+            "games":    games,
+        }
+
     # ── Internal helpers ──────────────────────────────────────────────────
 
-    def _build_team_game_scores(self) -> pd.DataFrame:
+    def _build_scores(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Aggregate player logs into team-level per-game PTS.
-        MATCHUP[:3] = player's team abbreviation (e.g. 'BOS vs. MIA' → 'BOS').
+        Aggregate player logs into team-level per-game scores.
+        Extracts team + opponent from MATCHUP column.
         """
-        if self.logs.empty or "MATCHUP" not in self.logs.columns:
+        if df is None or df.empty or "MATCHUP" not in df.columns:
             return pd.DataFrame()
 
-        df = self.logs.copy()
-        df["team_abbr"] = df["MATCHUP"].str[:3].str.strip()
+        d = df.copy()
 
-        # Sum all players' PTS for (team, date) = team total points
+        # Parse team and opponent from MATCHUP  e.g. "ATL vs. ORL" or "ATL @ ORL"
+        d["team"]     = d["MATCHUP"].str.extract(r'^([A-Z]{2,3})\s+(?:vs\.|@)')[0]
+        d["opponent"] = d["MATCHUP"].str.extract(r'(?:vs\.|@)\s+([A-Z]{2,3})')[0]
+        d["is_home"]  = d["MATCHUP"].str.contains(r"\bvs\.", regex=True, na=False)
+
+        # Drop rows with missing extraction or date
+        d = d.dropna(subset=["team", "_date", "WL"])
+        d["WL"] = d["WL"].astype(str).str.strip().str.upper()
+        d = d[d["WL"].isin(["W", "L"])]
+
+        # Sum player PTS per (team, date) = team total points per game
         agg = (
-            df.groupby(["team_abbr", "_date"])
-            .agg(team_pts=("PTS", "sum"), wl=("WL", "first"))
+            d.groupby(["team", "_date", "opponent", "is_home"])
+            .agg(
+                team_pts=("PTS", "sum"),
+                wl=("WL",  lambda x: "W" if (x == "W").sum() > (x == "L").sum() else "L"),
+            )
             .reset_index()
             .sort_values("_date", ascending=False)
         )
         return agg
 
-    def _get_team_season_stats(self, team_abbr: str) -> dict:
-        """
-        Pull the most recent season row for a team from team_def_df.
-        Derives offensive PPG as OPP_PTS + PLUS_MINUS (point differential).
-        """
-        if self.team_def.empty or "TEAM_ABBREVIATION" not in self.team_def.columns:
-            return {"ppg": 112.0, "opp_ppg": 112.0, "w_pct": 0.5, "pace": LEAGUE_AVG_PACE}
+    def _get_form(self, team: str, n: int = RECENT_N) -> dict:
+        """Rolling form for last n games."""
+        if self._scores.empty:
+            return {"wins": 0, "losses": 0, "rolling_ppg": None, "wl_list": [], "games": 0}
 
-        rows = self.team_def[self.team_def["TEAM_ABBREVIATION"] == team_abbr]
-        if rows.empty:
-            return {"ppg": 112.0, "opp_ppg": 112.0, "w_pct": 0.5, "pace": LEAGUE_AVG_PACE}
-
-        # Use the most recent season row
-        row = rows.sort_values("SEASON", ascending=False).iloc[0]
-        opp_pts    = float(row.get("OPP_PTS",    112.0))
-        plus_minus = float(row.get("PLUS_MINUS",   0.0))
-        w_pct      = float(row.get("W_PCT",         0.5))
-        pace       = float(row["PACE"]) if "PACE" in row.index else LEAGUE_AVG_PACE
-        opp_pts_rank = int(row.get("OPP_PTS_RANK", 15))
-
-        return {
-            "ppg":          round(opp_pts + plus_minus, 1),
-            "opp_ppg":      round(opp_pts, 1),
-            "w_pct":        round(w_pct, 3),
-            "pace":         round(pace, 1),
-            "opp_pts_rank": opp_pts_rank,
-        }
-
-    def _get_team_form(self, team_abbr: str, n: int = RECENT_N_GAMES) -> dict:
-        """
-        Compute rolling form for a team from aggregated game scores.
-        """
-        if self._team_game_scores.empty:
-            return {"wins": 0, "losses": 0, "rolling_ppg": None, "wl_list": []}
-
-        team_games = (
-            self._team_game_scores[self._team_game_scores["team_abbr"] == team_abbr]
+        rows = (
+            self._scores[self._scores["team"] == team]
             .sort_values("_date", ascending=False)
             .head(n)
         )
 
-        if team_games.empty:
-            return {"wins": 0, "losses": 0, "rolling_ppg": None, "wl_list": []}
+        if rows.empty:
+            return {"wins": 0, "losses": 0, "rolling_ppg": None, "wl_list": [], "games": 0}
 
-        wins   = int((team_games["wl"] == "W").sum())
-        losses = int((team_games["wl"] == "L").sum())
-        rolling_ppg = round(float(team_games["team_pts"].mean()), 1) if len(team_games) >= 3 else None
-        wl_list = team_games["wl"].tolist()
+        wins   = int((rows["wl"] == "W").sum())
+        losses = int((rows["wl"] == "L").sum())
+        rolling_ppg = round(float(rows["team_pts"].mean()), 1) if len(rows) >= 3 else None
+        wl_list = rows["wl"].tolist()
 
         return {
             "wins":        wins,
             "losses":      losses,
             "rolling_ppg": rolling_ppg,
             "wl_list":     wl_list,
-            "games":       len(team_games),
+            "games":       len(rows),
         }
 
+    def _get_season(self, team: str) -> dict:
+        """Current season stats from team_def_df."""
+        default = {"ppg": 112.0, "opp_ppg": 112.0, "w_pct": 0.5,
+                   "pace": LEAGUE_AVG_PACE, "opp_pts_rank": 15}
+
+        if self.team_def.empty or "TEAM_ABBREVIATION" not in self.team_def.columns:
+            return default
+
+        rows = self.team_def[self.team_def["TEAM_ABBREVIATION"] == team]
+        if rows.empty:
+            return default
+
+        row = rows.sort_values("SEASON", ascending=False).iloc[0]
+        opp_pts    = float(row.get("OPP_PTS",    112.0))
+        plus_minus = float(row.get("PLUS_MINUS",   0.0))
+        w_pct      = float(row.get("W_PCT",         0.5))
+        pace       = float(row["PACE"]) if "PACE" in row.index else LEAGUE_AVG_PACE
+        opp_rank   = int(row.get("OPP_PTS_RANK", 15))
+
+        return {
+            "ppg":          round(opp_pts + plus_minus, 1),
+            "opp_ppg":      round(opp_pts, 1),
+            "w_pct":        round(w_pct, 3),
+            "pace":         round(pace, 1),
+            "opp_pts_rank": opp_rank,
+        }
+
+    def _h2h_boost(self, h2h: dict, home: str, away: str) -> float:
+        """
+        Small scoring boost based on H2H dominance.
+        If one team has won 70%+ of H2H games → +1.0 pt boost for them.
+        """
+        total = h2h.get("total", 0)
+        if total < 2:
+            return 0.0
+        wins_home = h2h.get("wins_a", 0)   # wins_a = home team wins
+        win_rate  = wins_home / total
+        if win_rate >= 0.70:
+            return 1.0   # home dominates H2H
+        if win_rate <= 0.30:
+            return -1.0  # away dominates H2H
+        return 0.0
+
     def _build_intel(self, home: str, away: str,
-                     home_s: dict, away_s: dict,
-                     home_f: dict, away_f: dict,
-                     ph: float, pa: float, pt: float, ps: float) -> list:
-        """Generate 2-4 human-readable insight bullets."""
+                     hf: dict, af: dict,
+                     hs: dict, as_: dict,
+                     h2h: dict,
+                     ph: float, pa: float, pt: float) -> list[str]:
+        """2-5 data-driven insight bullets."""
         bullets = []
 
-        # Defense quality
-        home_def_rank = home_s.get("opp_pts_rank", 15)
-        away_def_rank = away_s.get("opp_pts_rank", 15)
-        if home_def_rank <= 8:
-            bullets.append(f"{home} ranks #{home_def_rank} defense ({home_s['opp_ppg']:.0f} OPP PPG)")
-        elif away_def_rank <= 8:
-            bullets.append(f"{away} ranks #{away_def_rank} defense ({away_s['opp_ppg']:.0f} OPP PPG)")
+        # Form streak highlight
+        hw, hl = hf.get("wins", 0), hf.get("losses", 0)
+        aw, al = af.get("wins", 0), af.get("losses", 0)
+        if hw >= 7:
+            bullets.append(f"{home} on a hot streak — {hw}-{hl} in last {hw+hl} games")
+        if aw >= 7:
+            bullets.append(f"{away} on a hot streak — {aw}-{al} in last {aw+al} games")
 
-        # Recent form note
-        hw, hl = home_f.get("wins", 0), home_f.get("losses", 0)
-        aw, al = away_f.get("wins", 0), away_f.get("losses", 0)
-        if hw + hl >= 5:
-            bullets.append(f"{home} ({hw}-{hl} last {hw+hl}) | {away} ({aw}-{al} last {aw+al})")
+        # Both form records
+        if hw + hl >= 5 and aw + al >= 5:
+            bullets.append(f"Form L10 — {home}: {hw}-{hl}  |  {away}: {aw}-{al}")
 
-        # Rolling PPG comparison
-        h_ppg = home_f.get("rolling_ppg")
-        a_ppg = away_f.get("rolling_ppg")
-        if h_ppg and a_ppg:
-            bullets.append(f"Rolling PPG — {home}: {h_ppg:.0f} | {away}: {a_ppg:.0f}")
+        # H2H record
+        total_h2h = h2h.get("total", 0)
+        wins_a    = h2h.get("wins_a", 0)
+        if total_h2h >= 2:
+            bullets.append(f"H2H ({total_h2h} games): {home} leads {wins_a}-{h2h.get('losses_a', 0)}")
 
-        # Model total vs typical
+        # Defense rank note
+        hr = hs.get("opp_pts_rank", 15)
+        ar = as_.get("opp_pts_rank", 15)
+        if hr <= 5:
+            bullets.append(f"{home} elite defense — #{hr} in pts allowed ({hs['opp_ppg']:.0f} PPG)")
+        elif ar <= 5:
+            bullets.append(f"{away} elite defense — #{ar} in pts allowed ({as_['opp_ppg']:.0f} PPG)")
+
+        # Total projection flavour
         if pt < 215:
-            bullets.append(f"Model projects low-scoring game ({pt:.0f} total) — defensive matchup")
-        elif pt > 230:
-            bullets.append(f"Model projects high-scoring game ({pt:.0f} total) — fast-paced matchup")
+            bullets.append(f"Low total projected ({pt:.0f}) — defensive grind expected")
+        elif pt > 232:
+            bullets.append(f"High total projected ({pt:.0f}) — uptempo matchup, pace-on-pace")
 
         return bullets[:4]

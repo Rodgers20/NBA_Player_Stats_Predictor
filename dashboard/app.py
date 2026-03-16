@@ -61,7 +61,7 @@ PREVIOUS_SEASON = get_previous_nba_season()
 print(f"Current season: {CURRENT_SEASON}, Previous season: {PREVIOUS_SEASON}")
 
 from utils.feature_engineering import engineer_features
-from utils.injury_news import get_player_injury_status
+from utils.injury_news import get_player_injury_status, get_team_injuries
 from utils.prop_calculator import generate_best_props, calculate_hit_probability
 from utils.data_fetch import get_todays_games, get_teams_playing_today, get_next_opponent_for_team
 from utils.prop_scorer import calculate_smart_prop_score, detect_player_role
@@ -269,7 +269,12 @@ def merge_new_games(new_games_df):
                 try:
                     data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
                     parquet_path = os.path.join(data_dir, "engineered_data.parquet")
-                    DF.to_parquet(parquet_path, index=False)
+                    df_to_save = DF.copy()
+                    # Coerce numeric columns that arrive as strings from live API
+                    for col in ["MIN", "PTS", "REB", "AST", "FG3M", "FGM", "FGA", "FG3A", "FTM", "FTA"]:
+                        if col in df_to_save.columns:
+                            df_to_save[col] = pd.to_numeric(df_to_save[col], errors="coerce")
+                    df_to_save.to_parquet(parquet_path, index=False)
                     print(f"[App] Parquet cache updated")
                 except Exception as pe:
                     print(f"[App] Could not update Parquet cache: {pe}")
@@ -827,6 +832,194 @@ def _form_dots(wl_list: list) -> html.Div:
     return html.Div(dots, style={"display": "flex", "alignItems": "center", "flexWrap": "nowrap"})
 
 
+def _h2h_section(h2h: dict, home: str, away: str):
+    """Render head-to-head record between two teams."""
+    if not h2h or not h2h.get("total"):
+        return None
+    wins_home  = h2h.get("wins_a", 0)   # wins_a = home wins vs away
+    wins_away  = h2h.get("losses_a", 0) # losses_a = away wins vs home
+    total      = h2h.get("total", 0)
+    if total == 0:
+        return None
+
+    if wins_home > wins_away:
+        leader = f"{home} leads {wins_home}–{wins_away}"
+        leader_color = "var(--teal-400, #2dd4bf)"
+    elif wins_away > wins_home:
+        leader = f"{away} leads {wins_away}–{wins_home}"
+        leader_color = "#f59e0b"
+    else:
+        leader = f"Series tied {wins_home}–{wins_away}"
+        leader_color = "var(--text-secondary)"
+
+    return html.Div([
+        html.Div("H2H THIS SEASON", style={
+            "fontSize": "0.62rem", "fontWeight": "700", "letterSpacing": "0.1em",
+            "color": "var(--text-muted)", "marginBottom": "6px",
+        }),
+        html.Div(leader, style={
+            "fontSize": "0.88rem", "fontWeight": "700", "color": leader_color,
+        }),
+        html.Div(f"({total} game{'s' if total != 1 else ''})", style={
+            "fontSize": "0.72rem", "color": "var(--text-muted)", "marginTop": "2px",
+        }),
+    ], style={
+        "padding": "10px 14px",
+        "background": "rgba(255,255,255,0.025)",
+        "borderRadius": "10px",
+        "border": "1px solid rgba(255,255,255,0.05)",
+        "marginTop": "10px",
+    })
+
+
+def _l10_section(last10_away: list, last10_home: list, away_abbr: str, home_abbr: str):
+    """Expandable last-10-games log for both teams."""
+    if not last10_away and not last10_home:
+        return None
+
+    def _game_rows(games: list, abbr: str) -> list:
+        if not games:
+            return [html.Div("No data", style={"color": "var(--text-muted)", "fontSize": "0.75rem"})]
+        rows = []
+        for g in games:
+            wl    = g.get("wl", "?")
+            date  = g.get("date", "")[:10] if g.get("date") else "—"
+            opp   = g.get("opponent", "—")
+            t_pts = g.get("team_pts", "—")
+            o_pts = g.get("opp_pts", "—")
+            ha    = "@" if g.get("home_away") == "AWAY" else "vs"
+            wl_color = "#22c55e" if wl == "W" else "#f43f5e"
+            rows.append(html.Div([
+                html.Span(wl, style={
+                    "fontWeight": "800", "color": wl_color, "fontSize": "0.72rem",
+                    "minWidth": "14px", "display": "inline-block",
+                }),
+                html.Span(f"{abbr} {ha} {opp}", style={
+                    "fontSize": "0.72rem", "color": "var(--text-secondary)",
+                    "margin": "0 8px", "minWidth": "100px", "display": "inline-block",
+                }),
+                html.Span(f"{t_pts}–{o_pts}", style={
+                    "fontSize": "0.72rem", "fontFamily": "var(--font-mono)",
+                    "color": "var(--text-muted)",
+                }),
+                html.Span(date, style={
+                    "fontSize": "0.65rem", "color": "var(--text-muted)",
+                    "marginLeft": "auto",
+                }),
+            ], style={
+                "display": "flex", "alignItems": "center",
+                "padding": "3px 0",
+                "borderBottom": "1px solid rgba(255,255,255,0.03)",
+            }))
+        return rows
+
+    away_rows = _game_rows(last10_away, away_abbr)
+    home_rows = _game_rows(last10_home, home_abbr)
+
+    return html.Details([
+        html.Summary([
+            html.Span("LAST 10 GAMES", style={
+                "fontSize": "0.62rem", "fontWeight": "700", "letterSpacing": "0.1em",
+                "color": "var(--text-muted)", "cursor": "pointer",
+            }),
+            html.Span(" ▾", style={"fontSize": "0.6rem", "color": "var(--text-muted)"}),
+        ], style={"listStyle": "none", "outline": "none", "cursor": "pointer"}),
+
+        html.Div([
+            # Away team games
+            html.Div([
+                html.Div(away_abbr, style={
+                    "fontSize": "0.65rem", "fontWeight": "700", "letterSpacing": "0.08em",
+                    "color": "var(--text-secondary)", "marginBottom": "4px", "marginTop": "10px",
+                }),
+                *away_rows,
+            ]),
+            # Home team games
+            html.Div([
+                html.Div(home_abbr, style={
+                    "fontSize": "0.65rem", "fontWeight": "700", "letterSpacing": "0.08em",
+                    "color": "var(--teal-400, #2dd4bf)", "marginBottom": "4px", "marginTop": "10px",
+                }),
+                *home_rows,
+            ]),
+        ]),
+    ], style={
+        "padding": "10px 14px",
+        "background": "rgba(255,255,255,0.02)",
+        "borderRadius": "10px",
+        "border": "1px solid rgba(255,255,255,0.05)",
+        "marginTop": "10px",
+    })
+
+
+def _injury_panel(home_team: str, away_team: str):
+    """Render injury report for both teams in a game card."""
+    _STATUS_COLOR = {
+        "OUT":          ("#f43f5e", "rgba(244,63,94,0.12)",  "rgba(244,63,94,0.25)"),
+        "DOUBTFUL":     ("#f97316", "rgba(249,115,22,0.10)", "rgba(249,115,22,0.25)"),
+        "QUESTIONABLE": ("#f59e0b", "rgba(245,158,11,0.08)", "rgba(245,158,11,0.2)"),
+        "PROBABLE":     ("#a3e635", "rgba(163,230,53,0.06)", "rgba(163,230,53,0.18)"),
+    }
+
+    def _player_chip(player: dict):
+        status = player["status"]
+        color, bg, border = _STATUS_COLOR.get(status, ("#94a3b8", "rgba(148,163,184,0.06)", "rgba(148,163,184,0.15)"))
+        reason = player.get("reason", "")
+        return html.Div([
+            html.Span(player["name"], style={
+                "fontSize": "0.78rem", "fontWeight": "600",
+                "color": "var(--text-primary)", "marginRight": "6px",
+            }),
+            html.Span(status, style={
+                "fontSize": "0.6rem", "fontWeight": "700", "letterSpacing": "0.06em",
+                "color": color, "background": bg, "border": f"1px solid {border}",
+                "borderRadius": "4px", "padding": "1px 5px",
+            }),
+            html.Span(f" · {reason}", style={
+                "fontSize": "0.7rem", "color": "var(--text-muted)",
+                "marginLeft": "4px", "fontStyle": "italic",
+            }) if reason else None,
+        ], style={
+            "display": "flex", "alignItems": "center", "flexWrap": "wrap",
+            "padding": "4px 0", "borderBottom": "1px solid rgba(255,255,255,0.03)",
+        })
+
+    def _team_block(abbr: str):
+        try:
+            players = get_team_injuries(abbr)
+        except Exception:
+            players = []
+
+        if not players:
+            return html.Div([
+                html.Span(abbr, style={"fontSize": "0.65rem", "fontWeight": "700", "color": "var(--text-secondary)", "marginRight": "8px"}),
+                html.Span("No injuries reported", style={"fontSize": "0.72rem", "color": "var(--text-muted)", "fontStyle": "italic"}),
+            ], style={"marginBottom": "6px"})
+
+        return html.Div([
+            html.Div(abbr, style={
+                "fontSize": "0.65rem", "fontWeight": "700", "letterSpacing": "0.08em",
+                "color": "var(--text-secondary)", "marginBottom": "4px",
+            }),
+            *[_player_chip(p) for p in players],
+        ], style={"marginBottom": "8px"})
+
+    return html.Div([
+        html.Div("INJURY REPORT", style={
+            "fontSize": "0.62rem", "fontWeight": "700", "letterSpacing": "0.1em",
+            "color": "var(--text-muted)", "marginBottom": "8px",
+        }),
+        _team_block(away_team),
+        _team_block(home_team),
+    ], style={
+        "padding": "10px 14px",
+        "background": "rgba(244,63,94,0.03)",
+        "borderRadius": "10px",
+        "border": "1px solid rgba(244,63,94,0.08)",
+        "marginTop": "10px",
+    })
+
+
 def create_todays_games_page():
     """Premium Today's Games page: team matchup cards with live odds + model predictions."""
     from utils.data_fetch import get_todays_games
@@ -859,11 +1052,18 @@ def create_todays_games_page():
         ])
 
     # ── Build game cards ─────────────────────────────────────────────────────
+    # ESPN/API abbreviation → internal data abbreviation (must match game_logs/positions CSVs)
+    _ABBR_FIX = {"SAS": "SAN"}
+
     game_cards = []
     for _, game in games.iterrows():
         home_team   = game.get("HOME_TEAM", game.get("HOME_TEAM_ABBREVIATION", ""))
         away_team   = game.get("AWAY_TEAM", game.get("VISITOR_TEAM_ABBREVIATION", game.get("VISITOR_TEAM", "")))
         game_status = game.get("GAME_STATUS_TEXT", "Scheduled")
+
+        # Normalize abbreviations for internal data lookups (predictor, form, etc.)
+        home_team_internal = _ABBR_FIX.get(home_team, home_team)
+        away_team_internal = _ABBR_FIX.get(away_team, away_team)
 
         home_logo = get_team_logo_url(home_team)
         away_logo = get_team_logo_url(away_team)
@@ -894,19 +1094,30 @@ def create_todays_games_page():
 
         # ── Model prediction ─────────────────────────────────────────────────
         try:
-            prediction = GAME_PREDICTOR.predict_game(home_team, away_team)
+            # Always use the latest in-memory DF so recent games are included
+            GAME_PREDICTOR.refresh(get_global_df())
+            prediction = GAME_PREDICTOR.predict_game(home_team_internal, away_team_internal)
             pick       = GAME_PREDICTOR.get_pick(
                 prediction,
+                home=home_team_internal,
+                away=away_team_internal,
                 actual_spread=spread_home_line,
                 actual_total=total_line,
             )
-        except Exception:
+            last10_home = GAME_PREDICTOR.get_team_last_n_games(home_team_internal, 10)
+            last10_away = GAME_PREDICTOR.get_team_last_n_games(away_team_internal, 10)
+            h2h_data    = prediction.get("h2h", {})
+        except Exception as e:
+            logger.warning(f"GamePredictor error for {home_team} vs {away_team}: {e}")
             prediction = {"predicted_home_score": None, "predicted_away_score": None,
                           "predicted_total": None, "predicted_spread": None,
-                          "home_form": {}, "away_form": {}, "intel": [], "confidence": "LOW"}
+                          "winner": None, "winner_margin": None, "winner_confidence": "LOW",
+                          "home_form": {}, "away_form": {}, "h2h": {}, "intel": []}
             pick = {"spread_pick": None, "spread_confidence": "LOW",
                     "total_pick": None, "total_confidence": "LOW",
+                    "winner_pick": None, "winner_confidence": "LOW",
                     "model_spread": None, "model_total": None}
+            last10_home, last10_away, h2h_data = [], [], {}
 
         home_form  = prediction.get("home_form", {})
         away_form  = prediction.get("away_form", {})
@@ -914,6 +1125,13 @@ def create_todays_games_page():
         pred_home  = prediction.get("predicted_home_score")
         pred_away  = prediction.get("predicted_away_score")
         pred_total = prediction.get("predicted_total")
+
+        # Reverse-map internal abbrevs back to display abbrevs for pick badges
+        _ABBR_REVERSE = {v: k for k, v in _ABBR_FIX.items()}
+        if pick.get("winner_pick") and pick["winner_pick"] in _ABBR_REVERSE:
+            pick["winner_pick"] = _ABBR_REVERSE[pick["winner_pick"]]
+        if pick.get("spread_team") and pick["spread_team"] in _ABBR_REVERSE:
+            pick["spread_team"] = _ABBR_REVERSE[pick["spread_team"]]
 
         # ── Status badge ─────────────────────────────────────────────────────
         is_live    = "Q" in str(game_status) or "Halftime" in str(game_status)
@@ -1144,7 +1362,11 @@ def create_todays_games_page():
                 _odds_col(
                     "MONEYLINE",
                     ml_main, ml_sub,
-                    html.Div("—", style={"color": "var(--text-muted)", "fontSize": "0.8rem", "textAlign": "center"}),
+                    _pick_badge(pick.get("winner_pick"), pick.get("winner_confidence", "LOW"), home_team, away_team)
+                    if pick.get("winner_pick") else html.Div([
+                        html.Div(f"Model: {pred_home:.0f}-{pred_away:.0f}" if pred_home else "—",
+                                 style={"fontSize": "0.78rem", "color": "var(--text-muted)", "textAlign": "center"}),
+                    ]),
                 ),
             ], className="odds-grid"),
 
@@ -1181,6 +1403,15 @@ def create_todays_games_page():
                 "border": "1px solid rgba(20,184,166,0.1)",
                 "marginTop": "10px",
             }) if intel else None,
+
+            # ── ROW 6: H2H Record ─────────────────────────────────────────────
+            _h2h_section(h2h_data, home_team, away_team),
+
+            # ── ROW 7: L10 Game Log (expandable) ─────────────────────────────
+            _l10_section(last10_away, last10_home, away_team, home_team),
+
+            # ── ROW 8: Injury Report ──────────────────────────────────────────
+            _injury_panel(home_team, away_team),
 
         ], className="card game-card-v2")
         game_cards.append(game_card)

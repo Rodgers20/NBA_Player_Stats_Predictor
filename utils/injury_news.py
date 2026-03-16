@@ -219,32 +219,64 @@ _ESPN_STATUS_MAP = {
 }
 
 # Direct ESPN injury data cache (separate from news cache — structured data)
-_espn_injury_cache: dict = {}
+_espn_injury_cache: dict = {}           # {player_name_lower: {status, reason, source, team_abbr}}
+_espn_team_injuries: dict = {}          # {team_abbr_upper: [{name, status, reason}, ...]}
 _espn_injury_timestamp: Optional[datetime] = None
 _ESPN_INJURY_TTL = 14400  # 4 hours
+
+# ESPN full team name → 3-letter abbreviation (mirrors odds_fetcher mapping)
+_ESPN_TEAM_ABBR: dict = {
+    "Atlanta Hawks":          "ATL", "Boston Celtics":        "BOS",
+    "Brooklyn Nets":          "BKN", "Charlotte Hornets":     "CHA",
+    "Chicago Bulls":          "CHI", "Cleveland Cavaliers":   "CLE",
+    "Dallas Mavericks":       "DAL", "Denver Nuggets":        "DEN",
+    "Detroit Pistons":        "DET", "Golden State Warriors": "GSW",
+    "Houston Rockets":        "HOU", "Indiana Pacers":        "IND",
+    "Los Angeles Clippers":   "LAC", "Los Angeles Lakers":    "LAL",
+    "Memphis Grizzlies":      "MEM", "Miami Heat":            "MIA",
+    "Milwaukee Bucks":        "MIL", "Minnesota Timberwolves":"MIN",
+    "New Orleans Pelicans":   "NOP", "New York Knicks":       "NYK",
+    "Oklahoma City Thunder":  "OKC", "Orlando Magic":         "ORL",
+    "Philadelphia 76ers":     "PHI", "Phoenix Suns":          "PHX",
+    "Portland Trail Blazers": "POR", "Sacramento Kings":      "SAC",
+    "San Antonio Spurs":      "SAS", "Toronto Raptors":       "TOR",
+    "Utah Jazz":              "UTA", "Washington Wizards":    "WAS",
+}
 
 
 def _fetch_espn_injury_structured() -> dict:
     """
     Fetch structured injury data from ESPN's public injuries API.
-    Returns {player_name_lower: {"status": str, "reason": str}}
-    No API key required. Endpoint: /apis/site/v2/sports/basketball/nba/injuries
+    Returns {player_name_lower: {"status": str, "reason": str, "team_abbr": str}}
+    Also populates _espn_team_injuries keyed by team abbreviation.
+    No API key required.
     """
-    global _espn_injury_cache, _espn_injury_timestamp
+    global _espn_injury_cache, _espn_team_injuries, _espn_injury_timestamp
 
     now = datetime.now()
     if _espn_injury_timestamp and (now - _espn_injury_timestamp).total_seconds() < _ESPN_INJURY_TTL:
         return _espn_injury_cache
 
-    result = {}
+    by_player: dict = {}
+    by_team: dict = {}
+
     try:
         url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries"
         resp = requests.get(url, headers=HEADERS, timeout=10)
         resp.raise_for_status()
         data = resp.json()
 
-        # Structure: {"injuries": [{"displayName": "TeamName", "injuries": [...]}, ...]}
+        # Structure: {"injuries": [{"displayName": "TeamName", "abbreviation": "ATL", "injuries": [...]}, ...]}
         for team_block in data.get("injuries", []):
+            team_name = team_block.get("displayName", "")
+            team_abbr = (
+                team_block.get("abbreviation")
+                or _ESPN_TEAM_ABBR.get(team_name, "")
+                or team_name[:3].upper()
+            ).upper()
+
+            team_list = []
+
             for inj in team_block.get("injuries", []):
                 athlete = inj.get("athlete", {})
                 display_name = athlete.get("displayName", "")
@@ -257,23 +289,49 @@ def _fetch_espn_injury_structured() -> dict:
                 # Prefer shortComment for brevity, fall back to longComment
                 desc = (inj.get("shortComment") or inj.get("longComment") or raw_status).strip()
 
-                # Also check fantasyStatus for GTD vs OUT distinction
+                # fantasyStatus override
                 fantasy_status = inj.get("details", {}).get("fantasyStatus", {}).get("abbreviation", "")
                 if fantasy_status == "OUT":
                     mapped = "OUT"
                 elif fantasy_status == "GTD" and mapped not in ("OUT", "DOUBTFUL"):
                     mapped = "QUESTIONABLE"
 
-                result[display_name.lower()] = {"status": mapped, "reason": desc, "source": "ESPN"}
+                entry = {"status": mapped, "reason": desc, "source": "ESPN", "team_abbr": team_abbr}
+                by_player[display_name.lower()] = entry
 
-        print(f"[Injury] ESPN structured: {len(result)} players with injury info")
+                # Only include non-active players in the team injury list
+                if mapped != "ACTIVE":
+                    team_list.append({"name": display_name, "status": mapped, "reason": desc})
+
+            if team_list:
+                by_team[team_abbr] = team_list
+
+        print(f"[Injury] ESPN structured: {len(by_player)} players with injury info")
 
     except Exception as e:
         print(f"[Injury] ESPN structured fetch failed: {e}")
 
-    _espn_injury_cache = result
+    _espn_injury_cache = by_player
+    _espn_team_injuries = by_team
     _espn_injury_timestamp = now
-    return result
+    return by_player
+
+
+def get_team_injuries(team_abbr: str) -> list[dict]:
+    """
+    Return injured/questionable players for a specific team.
+
+    Calls _fetch_espn_injury_structured() (cached 4 hrs) then filters by team.
+
+    Returns list of:
+      {"name": str, "status": "OUT"|"DOUBTFUL"|"QUESTIONABLE"|"PROBABLE", "reason": str}
+    sorted OUT first.
+    """
+    _fetch_espn_injury_structured()   # ensure cache is warm
+    players = _espn_team_injuries.get(team_abbr.upper(), [])
+
+    STATUS_ORDER = {"OUT": 0, "DOUBTFUL": 1, "QUESTIONABLE": 2, "PROBABLE": 3}
+    return sorted(players, key=lambda p: STATUS_ORDER.get(p["status"], 9))
 
 
 def get_nba_injury_news(limit: int = 50) -> list[dict]:
