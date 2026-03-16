@@ -58,6 +58,29 @@ _cache: dict = {}          # player_name → {stat → odds_dict}
 _cache_ts: float = 0.0     # unix timestamp of last fetch
 _requests_remaining: int | None = None  # track quota from response headers
 
+# ── Game odds cache ──────────────────────────────────────────────────────────
+_game_odds_cache: dict = {}   # "(away_abbr)@(home_abbr)" → odds dict
+_game_odds_ts: float = 0.0
+
+# The Odds API full team names → our ESPN abbreviations
+_TEAM_NAME_TO_ABBR: dict = {
+    "Atlanta Hawks":          "ATL", "Boston Celtics":        "BOS",
+    "Brooklyn Nets":          "BKN", "Charlotte Hornets":     "CHA",
+    "Chicago Bulls":          "CHI", "Cleveland Cavaliers":   "CLE",
+    "Dallas Mavericks":       "DAL", "Denver Nuggets":        "DEN",
+    "Detroit Pistons":        "DET", "Golden State Warriors": "GSW",
+    "Houston Rockets":        "HOU", "Indiana Pacers":        "IND",
+    "Los Angeles Clippers":   "LAC", "Los Angeles Lakers":    "LAL",
+    "Memphis Grizzlies":      "MEM", "Miami Heat":            "MIA",
+    "Milwaukee Bucks":        "MIL", "Minnesota Timberwolves":"MIN",
+    "New Orleans Pelicans":   "NOP", "New York Knicks":       "NYK",
+    "Oklahoma City Thunder":  "OKC", "Orlando Magic":         "ORL",
+    "Philadelphia 76ers":     "PHI", "Phoenix Suns":          "PHX",
+    "Portland Trail Blazers": "POR", "Sacramento Kings":      "SAC",
+    "San Antonio Spurs":      "SAS", "Toronto Raptors":       "TOR",
+    "Utah Jazz":              "UTA", "Washington Wizards":    "WAS",
+}
+
 
 # ── Public API ──────────────────────────────────────────────────────────────
 
@@ -130,6 +153,141 @@ def get_player_odds(player_name: str, stat: str) -> dict | None:
 def get_requests_remaining() -> int | None:
     """Return the number of The Odds API requests remaining this month."""
     return _requests_remaining
+
+
+def get_game_odds(force_refresh: bool = False) -> dict:
+    """
+    Fetch spread, total (over/under), and moneyline odds for today's NBA games.
+
+    Uses a 30-minute in-memory cache. Returns empty dict on API failure.
+
+    Returns:
+        {
+          "GSW@LAL": {
+            "home_team":   "LAL",
+            "away_team":   "GSW",
+            "spread": {
+              "home_line":   -6.5,       # negative = home favored
+              "home_price":  -110,
+              "away_line":    6.5,
+              "away_price":  -110,
+            },
+            "total": {
+              "line":        224.5,
+              "over_price":  -110,
+              "under_price": -110,
+            },
+            "h2h": {
+              "home_price":  -280,
+              "away_price":  +230,
+            },
+            "bookmaker": "FanDuel",
+          },
+          ...
+        }
+    """
+    global _game_odds_cache, _game_odds_ts
+
+    if not API_KEY:
+        logger.debug("[OddsFetcher] THE_ODDS_API_KEY not set — skipping game odds")
+        return {}
+
+    if not force_refresh and _game_odds_cache and (time.time() - _game_odds_ts) < _CACHE_TTL:
+        return _game_odds_cache
+
+    logger.info("[OddsFetcher] Fetching game odds (spreads + totals + h2h) …")
+    try:
+        url = f"{BASE_URL}/sports/{SPORT}/odds"
+        params = {
+            "apiKey":    API_KEY,
+            "regions":   "us",
+            "markets":   "spreads,totals,h2h",
+            "oddsFormat": "american",
+        }
+        resp = _get(url, params)
+        if resp is None:
+            return _game_odds_cache
+
+        _track_quota(resp)
+        events = resp.json()
+        fresh = {}
+
+        for event in events:
+            home_name = event.get("home_team", "")
+            away_name = event.get("away_team", "")
+            home_abbr = _TEAM_NAME_TO_ABBR.get(home_name, home_name[:3].upper())
+            away_abbr = _TEAM_NAME_TO_ABBR.get(away_name, away_name[:3].upper())
+            key = f"{away_abbr}@{home_abbr}"
+
+            game_odds: dict = {
+                "home_team": home_abbr,
+                "away_team": away_abbr,
+                "spread":    None,
+                "total":     None,
+                "h2h":       None,
+                "bookmaker": None,
+            }
+
+            bookmakers = event.get("bookmakers", [])
+
+            def _book_rank(b):
+                k = b.get("key", "")
+                return PREFERRED_BOOKS.index(k) if k in PREFERRED_BOOKS else 99
+
+            for book in sorted(bookmakers, key=_book_rank):
+                book_name = book.get("title", book.get("key", "Unknown"))
+                for market in book.get("markets", []):
+                    mkey = market.get("key", "")
+                    outcomes = market.get("outcomes", [])
+
+                    if mkey == "spreads" and game_odds["spread"] is None:
+                        home_out = next((o for o in outcomes if o.get("name") == home_name), None)
+                        away_out = next((o for o in outcomes if o.get("name") == away_name), None)
+                        if home_out and away_out:
+                            game_odds["spread"] = {
+                                "home_line":  float(home_out.get("point", 0)),
+                                "home_price": int(home_out.get("price", -110)),
+                                "away_line":  float(away_out.get("point", 0)),
+                                "away_price": int(away_out.get("price", -110)),
+                            }
+                            game_odds["bookmaker"] = book_name
+
+                    elif mkey == "totals" and game_odds["total"] is None:
+                        over_out  = next((o for o in outcomes if o.get("name") == "Over"),  None)
+                        under_out = next((o for o in outcomes if o.get("name") == "Under"), None)
+                        if over_out:
+                            game_odds["total"] = {
+                                "line":        float(over_out.get("point", 220)),
+                                "over_price":  int(over_out.get("price",  -110)),
+                                "under_price": int(under_out.get("price", -110)) if under_out else -110,
+                            }
+
+                    elif mkey == "h2h" and game_odds["h2h"] is None:
+                        home_out = next((o for o in outcomes if o.get("name") == home_name), None)
+                        away_out = next((o for o in outcomes if o.get("name") == away_name), None)
+                        if home_out and away_out:
+                            game_odds["h2h"] = {
+                                "home_price": int(home_out.get("price", -110)),
+                                "away_price": int(away_out.get("price", +100)),
+                            }
+
+            fresh[key] = game_odds
+
+        _game_odds_cache = fresh
+        _game_odds_ts = time.time()
+        logger.info(f"[OddsFetcher] Cached game odds for {len(fresh)} games")
+        return _game_odds_cache
+
+    except Exception as exc:
+        logger.warning(f"[OddsFetcher] Failed to fetch game odds: {exc}")
+        return _game_odds_cache
+
+
+def format_american_odds(price: int) -> str:
+    """Format American odds with sign: -110 → '-110', +230 → '+230'."""
+    if price is None:
+        return "N/A"
+    return f"+{price}" if price > 0 else str(price)
 
 
 # ── Internal helpers ─────────────────────────────────────────────────────────
