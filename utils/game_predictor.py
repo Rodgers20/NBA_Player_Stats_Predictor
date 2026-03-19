@@ -47,24 +47,26 @@ class GamePredictor:
 
     # ── Public API ────────────────────────────────────────────────────────
 
-    def predict_game(self, home: str, away: str) -> dict:
+    def predict_game(self, home: str, away: str,
+                     home_injuries: list | None = None,
+                     away_injuries: list | None = None) -> dict:
         """
-        Full game prediction.
+        Full game prediction, optionally adjusted for known injuries.
+
+        Args:
+            home: home team abbreviation
+            away: away team abbreviation
+            home_injuries: list of {name, status, reason} dicts for home team
+            away_injuries: list of {name, status, reason} dicts for away team
 
         Returns
         -------
         {
-          predicted_home_score: float,
-          predicted_away_score: float,
-          predicted_total:      float,
-          predicted_spread:     float,   # home - away  (neg = home favored)
-          winner:               str,     # team abbrev of predicted winner
-          winner_margin:        float,
-          winner_confidence:    str,     # HIGH / MEDIUM / LOW
-          home_form:            dict,
-          away_form:            dict,
-          h2h:                  dict,
-          intel:                list[str],
+          predicted_home_score, predicted_away_score, predicted_total,
+          predicted_spread, winner, winner_margin, winner_confidence,
+          home_form, away_form, h2h, home_season, away_season,
+          intel, home_missing, away_missing,
+          reasoning: {winner_reason, total_reason, spread_reason, key_factors}
         }
         """
         home_form   = self._get_form(home)
@@ -74,28 +76,25 @@ class GamePredictor:
         h2h         = self.get_h2h(home, away)
 
         # ── Offensive estimate per team ───────────────────────────────────
-        # Primary: rolling form PPG.  Fallback: season derivation.
         home_off_raw = home_form.get("rolling_ppg") or home_season.get("ppg", 112.0)
         away_off_raw = away_form.get("rolling_ppg") or away_season.get("ppg", 112.0)
 
-        home_def_raw = home_season.get("opp_ppg", 112.0)   # pts allowed / game
+        home_def_raw = home_season.get("opp_ppg", 112.0)
         away_def_raw = away_season.get("opp_ppg", 112.0)
 
         # Blend form vs season defense
         pred_home = (home_off_raw * FORM_WEIGHT + away_def_raw * SEASON_WEIGHT)
         pred_away = (away_off_raw * FORM_WEIGHT + home_def_raw * SEASON_WEIGHT)
 
-        # Form momentum: recent win% vs season win% → ±points adjustment
-        home_form_wp = home_form.get("wins", 0) / max(home_form.get("wins", 0) + home_form.get("losses", 0), 1)
-        away_form_wp = away_form.get("wins", 0) / max(away_form.get("wins", 0) + away_form.get("losses", 0), 1)
+        # Form momentum
+        home_form_wp   = home_form.get("wins", 0) / max(home_form.get("wins", 0) + home_form.get("losses", 0), 1)
+        away_form_wp   = away_form.get("wins", 0) / max(away_form.get("wins", 0) + away_form.get("losses", 0), 1)
         home_season_wp = home_season.get("w_pct", 0.5)
         away_season_wp = away_season.get("w_pct", 0.5)
-        home_momentum = (home_form_wp - home_season_wp) * 4.0  # max ±2 pts
-        away_momentum = (away_form_wp - away_season_wp) * 4.0
-        pred_home += home_momentum
-        pred_away += away_momentum
+        pred_home += (home_form_wp - home_season_wp) * 4.0
+        pred_away += (away_form_wp - away_season_wp) * 4.0
 
-        # H2H momentum: if one team dominates the head-to-head
+        # H2H boost
         h2h_boost = self._h2h_boost(h2h, home, away)
         pred_home += h2h_boost
         pred_away -= h2h_boost
@@ -104,31 +103,38 @@ class GamePredictor:
         pred_home += HOME_COURT_ADV
 
         # Pace adjustment
-        home_pace = home_season.get("pace", LEAGUE_AVG_PACE)
-        away_pace = away_season.get("pace", LEAGUE_AVG_PACE)
+        home_pace   = home_season.get("pace", LEAGUE_AVG_PACE)
+        away_pace   = away_season.get("pace", LEAGUE_AVG_PACE)
         pace_factor = ((home_pace + away_pace) / 2) / LEAGUE_AVG_PACE
-        pred_home = round(pred_home * pace_factor, 1)
-        pred_away = round(pred_away * pace_factor, 1)
+        pred_home   = round(pred_home * pace_factor, 1)
+        pred_away   = round(pred_away * pace_factor, 1)
+
+        # ── Injury adjustments ───────────────────────────────────────────
+        home_missing, away_missing = [], []
+        if home_injuries:
+            pred_home, home_missing = self._apply_injury_penalty(pred_home, home_injuries)
+        if away_injuries:
+            pred_away, away_missing = self._apply_injury_penalty(pred_away, away_injuries)
 
         pred_total  = round(pred_home + pred_away, 1)
-        pred_spread = round(pred_home - pred_away, 1)    # home - away
+        pred_spread = round(pred_home - pred_away, 1)
 
-        # Winner
         margin = abs(pred_spread)
-        if margin >= 8:
-            winner_conf = "HIGH"
-        elif margin >= 4:
-            winner_conf = "MEDIUM"
-        else:
-            winner_conf = "LOW"
-
-        winner = home if pred_home >= pred_away else away
+        winner_conf = "HIGH" if margin >= 8 else "MEDIUM" if margin >= 4 else "LOW"
+        winner      = home if pred_home >= pred_away else away
 
         intel = self._build_intel(
-            home, away,
-            home_form, away_form,
-            home_season, away_season,
-            h2h, pred_home, pred_away, pred_total,
+            home, away, home_form, away_form,
+            home_season, away_season, h2h,
+            pred_home, pred_away, pred_total,
+            home_missing, away_missing,
+        )
+
+        reasoning = self._build_reasoning(
+            home, away, home_form, away_form,
+            home_season, away_season, h2h,
+            pred_home, pred_away, pred_total, pred_spread,
+            winner, winner_conf, home_missing, away_missing,
         )
 
         return {
@@ -145,11 +151,14 @@ class GamePredictor:
             "home_season":          home_season,
             "away_season":          away_season,
             "intel":                intel,
+            "home_missing":         home_missing,
+            "away_missing":         away_missing,
+            "reasoning":            reasoning,
         }
 
     def get_pick(self, prediction: dict, home: str, away: str,
-                 actual_spread: float | None,
-                 actual_total:  float | None) -> dict:
+                 actual_spread: float | None = None,
+                 actual_total:  float | None = None) -> dict:
         """
         Compare model to sportsbook line and return picks.
 
@@ -289,6 +298,150 @@ class GamePredictor:
 
     # ── Internal helpers ──────────────────────────────────────────────────
 
+    def _apply_injury_penalty(self, raw_score: float, injuries: list) -> tuple:
+        """
+        Deduct estimated scoring contribution of OUT/DOUBTFUL players.
+
+        Returns (adjusted_score, missing_list)
+        missing_list items: {"name": str, "ppg": float, "status": str}
+        """
+        penalty  = 0.0
+        missing  = []
+        for player in injuries:
+            status = player.get("status", "")
+            if status not in ("OUT", "DOUBTFUL"):
+                continue
+            name     = player.get("name", "")
+            # Look up player's L10 PPG
+            player_rows = self.logs[self.logs["PLAYER_NAME"] == name]
+            if len(player_rows) < 3:
+                continue
+            ppg = float(
+                player_rows.sort_values("_date", ascending=False)
+                .head(10)["PTS"]
+                .mean()
+            )
+            if ppg < 5:           # skip non-scorers
+                continue
+            weight   = 0.70 if status == "OUT" else 0.35
+            penalty += ppg * weight
+            missing.append({"name": name, "ppg": round(ppg, 1), "status": status})
+
+        # Floor: never reduce below 75 % of the original projection
+        adjusted = max(raw_score - penalty, raw_score * 0.75)
+        return round(adjusted, 1), missing
+
+    def _build_reasoning(self, home: str, away: str,
+                          hf: dict, af: dict,
+                          hs: dict, as_: dict,
+                          h2h: dict,
+                          ph: float, pa: float, pt: float, ps: float,
+                          winner: str, winner_conf: str,
+                          home_missing: list, away_missing: list) -> dict:
+        """
+        Build natural-language explanations for each pick.
+
+        Returns dict with winner_reason, total_reason, spread_reason, key_factors.
+        """
+        loser   = away if winner == home else home
+        margin  = abs(ps)
+
+        # ── Winner reason ─────────────────────────────────────────────────
+        hw, hl = hf.get("wins", 0), hf.get("losses", 0)
+        aw, al = af.get("wins", 0), af.get("losses", 0)
+        home_ppg_l10 = hf.get("rolling_ppg") or hs.get("ppg", 0)
+        away_ppg_l10 = af.get("rolling_ppg") or as_.get("ppg", 0)
+
+        winner_form = (hw, hl) if winner == home else (aw, al)
+        winner_ppg  = home_ppg_l10 if winner == home else away_ppg_l10
+        loser_form  = (aw, al) if winner == home else (hw, hl)
+        loser_ppg   = away_ppg_l10 if winner == home else home_ppg_l10
+
+        winner_reason = (
+            f"{winner} projected to win {ph:.0f}–{pa:.0f} "
+            f"(margin {margin:.1f} pts, {winner_conf.lower()} conf). "
+            f"{winner} L10: {winner_form[0]}-{winner_form[1]}, {winner_ppg:.0f} PPG avg. "
+            f"{loser} L10: {loser_form[0]}-{loser_form[1]}, {loser_ppg:.0f} PPG avg."
+        )
+
+        # Injury note in winner reason
+        missing_on_loser = away_missing if winner == home else home_missing
+        for m in missing_on_loser[:2]:
+            winner_reason += f" {loser} missing {m['name']} ({m['ppg']:.0f} PPG, {m['status']})."
+
+        # ── Total reason ──────────────────────────────────────────────────
+        pace_note = ""
+        home_pace = hs.get("pace", LEAGUE_AVG_PACE)
+        away_pace = as_.get("pace", LEAGUE_AVG_PACE)
+        avg_pace  = (home_pace + away_pace) / 2
+        if avg_pace > LEAGUE_AVG_PACE + 2:
+            pace_note = f" Both teams play fast (avg pace {avg_pace:.0f} vs league {LEAGUE_AVG_PACE:.0f})."
+        elif avg_pace < LEAGUE_AVG_PACE - 2:
+            pace_note = f" Slow-pace matchup (avg {avg_pace:.0f})."
+
+        total_reason = (
+            f"Model projects {pt:.0f} combined pts "
+            f"({home} {ph:.0f} + {away} {pa:.0f})."
+            f" {home} allows {hs.get('opp_ppg', 0):.0f} PPG, "
+            f"{away} allows {as_.get('opp_ppg', 0):.0f} PPG.{pace_note}"
+        )
+
+        # ── Spread reason ─────────────────────────────────────────────────
+        home_def_rank = hs.get("opp_pts_rank", 15)
+        away_def_rank = as_.get("opp_pts_rank", 15)
+        spread_reason = (
+            f"Model spread: {home} {ps:+.1f}. "
+            f"{home} defense #{home_def_rank} (allows {hs.get('opp_ppg', 0):.0f} PPG), "
+            f"{away} defense #{away_def_rank} (allows {as_.get('opp_ppg', 0):.0f} PPG). "
+            f"H2H: {home} leads {h2h.get('wins_a', 0)}-{h2h.get('losses_a', 0)} "
+            f"in {h2h.get('total', 0)} meetings."
+        ) if h2h.get("total", 0) >= 1 else (
+            f"Model spread: {home} {ps:+.1f}. "
+            f"{home} #{home_def_rank} defense, {away} #{away_def_rank} defense."
+        )
+
+        # ── Key factors (3-5 bullets for UI) ─────────────────────────────
+        key_factors = []
+
+        # Form
+        if hw + hl >= 5 and aw + al >= 5:
+            key_factors.append(
+                f"Form L10: {home} {hw}-{hl} ({home_ppg_l10:.0f} PPG)  ·  "
+                f"{away} {aw}-{al} ({away_ppg_l10:.0f} PPG)"
+            )
+
+        # Injuries on either side
+        for m in (home_missing + away_missing)[:3]:
+            team = home if m in home_missing else away
+            key_factors.append(
+                f"🚑 {m['name']} ({team}) — {m['status']} ({m['ppg']:.0f} PPG missing)"
+            )
+
+        # H2H note
+        if h2h.get("total", 0) >= 3:
+            key_factors.append(
+                f"H2H last {h2h['total']} games: {home} {h2h['wins_a']}-{h2h['losses_a']}"
+            )
+
+        # Defense / pace
+        if home_def_rank <= 5:
+            key_factors.append(f"{home} elite D — #{home_def_rank} in pts allowed")
+        elif away_def_rank <= 5:
+            key_factors.append(f"{away} elite D — #{away_def_rank} in pts allowed")
+        if pace_note:
+            key_factors.append(pace_note.strip())
+
+        # Winner context
+        if margin >= 6:
+            key_factors.append(f"{winner} projected to win by {margin:.0f} pts")
+
+        return {
+            "winner_reason": winner_reason,
+            "total_reason":  total_reason,
+            "spread_reason": spread_reason,
+            "key_factors":   key_factors[:5],
+        }
+
     def _build_scores(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Aggregate player logs into team-level per-game scores.
@@ -395,17 +548,28 @@ class GamePredictor:
                      hf: dict, af: dict,
                      hs: dict, as_: dict,
                      h2h: dict,
-                     ph: float, pa: float, pt: float) -> list[str]:
-        """2-5 data-driven insight bullets."""
+                     ph: float, pa: float, pt: float,
+                     home_missing: list | None = None,
+                     away_missing: list | None = None) -> list[str]:
+        """2-5 data-driven insight bullets (shown in MATCHUP INTEL card)."""
         bullets = []
+        home_missing = home_missing or []
+        away_missing = away_missing or []
 
-        # Form streak highlight
+        # Injury alerts — highest priority
+        for m in home_missing[:2]:
+            bullets.append(f"🚑 {home} missing {m['name']} ({m['ppg']:.0f} PPG, {m['status']})")
+        for m in away_missing[:2]:
+            bullets.append(f"🚑 {away} missing {m['name']} ({m['ppg']:.0f} PPG, {m['status']})")
+
         hw, hl = hf.get("wins", 0), hf.get("losses", 0)
         aw, al = af.get("wins", 0), af.get("losses", 0)
+
+        # Form streak
         if hw >= 7:
-            bullets.append(f"{home} on a hot streak — {hw}-{hl} in last {hw+hl} games")
+            bullets.append(f"{home} on a hot streak — {hw}-{hl} in last {hw+hl}")
         if aw >= 7:
-            bullets.append(f"{away} on a hot streak — {aw}-{al} in last {aw+al} games")
+            bullets.append(f"{away} on a hot streak — {aw}-{al} in last {aw+al}")
 
         # Both form records
         if hw + hl >= 5 and aw + al >= 5:
@@ -417,7 +581,7 @@ class GamePredictor:
         if total_h2h >= 2:
             bullets.append(f"H2H ({total_h2h} games): {home} leads {wins_a}-{h2h.get('losses_a', 0)}")
 
-        # Defense rank note
+        # Defense rank
         hr = hs.get("opp_pts_rank", 15)
         ar = as_.get("opp_pts_rank", 15)
         if hr <= 5:
@@ -425,10 +589,10 @@ class GamePredictor:
         elif ar <= 5:
             bullets.append(f"{away} elite defense — #{ar} in pts allowed ({as_['opp_ppg']:.0f} PPG)")
 
-        # Total projection flavour
+        # Total projection
         if pt < 215:
             bullets.append(f"Low total projected ({pt:.0f}) — defensive grind expected")
         elif pt > 232:
-            bullets.append(f"High total projected ({pt:.0f}) — uptempo matchup, pace-on-pace")
+            bullets.append(f"High total projected ({pt:.0f}) — uptempo matchup")
 
-        return bullets[:4]
+        return bullets[:5]

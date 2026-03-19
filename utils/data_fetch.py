@@ -280,10 +280,12 @@ def _get_games_from_espn(date_str: str) -> pd.DataFrame:
                 else:
                     away_team = abbrev
 
-            game_date = event.get("date", "")[:10]  # "2026-03-07T..."
+            raw_date = event.get("date", "")  # "2026-03-07T23:30:00Z"
+            game_date = raw_date[:10]
             rows.append({
                 "GAME_ID": event["id"],
                 "GAME_DATE_EST": game_date,
+                "GAME_TIME": raw_date,  # full ISO timestamp for tip-off display
                 "HOME_TEAM": home_team,
                 "AWAY_TEAM": away_team,
                 "GAME_STATUS_TEXT": event["status"]["type"]["description"],

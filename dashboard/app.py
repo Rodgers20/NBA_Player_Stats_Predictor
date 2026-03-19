@@ -978,8 +978,96 @@ def _l10_section(last10_away: list, last10_home: list, away_abbr: str, home_abbr
     })
 
 
+def _format_game_time(raw: str) -> str:
+    """Convert ESPN ISO timestamp or status text to a readable tip-off time."""
+    if not raw:
+        return ""
+    # If it looks like an ISO timestamp, parse it
+    if "T" in raw and raw.endswith("Z"):
+        try:
+            from datetime import timezone
+            dt_utc = datetime.strptime(raw, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            # Convert to Eastern time (UTC-5 standard, UTC-4 daylight)
+            import time as _time
+            # Simple daylight saving heuristic: Mar–Nov = EDT (UTC-4), else EST (UTC-5)
+            month = dt_utc.month
+            offset_hours = -4 if 3 <= month <= 11 else -5
+            from datetime import timedelta as _td
+            dt_et = dt_utc + _td(hours=offset_hours)
+            suffix = "PM" if dt_et.hour >= 12 else "AM"
+            hour = dt_et.hour % 12 or 12
+            tz_label = "EDT" if offset_hours == -4 else "EST"
+            return f"{hour}:{dt_et.minute:02d} {suffix} {tz_label}"
+        except Exception:
+            pass
+    # Fall back to returning the raw string (e.g., "7:30 pm ET" from ESPN status)
+    return raw
+
+
+def _reasoning_section(reasoning: dict, intel: list) -> "html.Div | None":
+    """Render the model's pick reasoning as a collapsible section."""
+    if not reasoning:
+        return None
+
+    winner_reason = reasoning.get("winner_reason", "")
+    total_reason  = reasoning.get("total_reason", "")
+    spread_reason = reasoning.get("spread_reason", "")
+    key_factors   = reasoning.get("key_factors", [])
+
+    rows = []
+    for label, text, color in [
+        ("WINNER", winner_reason, "#a78bfa"),
+        ("TOTAL",  total_reason,  "#34d399"),
+        ("SPREAD", spread_reason, "#60a5fa"),
+    ]:
+        if text:
+            rows.append(html.Div([
+                html.Span(label, style={
+                    "fontSize": "0.58rem", "fontWeight": "700", "letterSpacing": "0.08em",
+                    "color": color, "marginRight": "6px", "minWidth": "48px",
+                }),
+                html.Span(text, style={
+                    "fontSize": "0.72rem", "color": "var(--text-secondary)", "lineHeight": "1.45",
+                }),
+            ], style={
+                "display": "flex", "alignItems": "flex-start",
+                "padding": "4px 0", "borderBottom": "1px solid rgba(255,255,255,0.04)",
+            }))
+
+    if key_factors:
+        factor_chips = [
+            html.Span(f"· {f}", style={
+                "fontSize": "0.68rem", "color": "var(--text-muted)",
+                "marginRight": "8px", "lineHeight": "1.6",
+            }) for f in key_factors[:5]
+        ]
+        rows.append(html.Div(factor_chips, style={
+            "paddingTop": "6px", "flexWrap": "wrap", "display": "flex",
+        }))
+
+    if not rows:
+        return None
+
+    return html.Details([
+        html.Summary([
+            html.Span("WHY THIS PICK?", style={
+                "fontSize": "0.62rem", "fontWeight": "700", "letterSpacing": "0.1em",
+                "color": "var(--text-muted)", "cursor": "pointer",
+            }),
+            html.Span(" ▾", style={"fontSize": "0.6rem", "color": "var(--text-muted)"}),
+        ], style={"listStyle": "none", "outline": "none", "cursor": "pointer"}),
+        html.Div(rows, style={"marginTop": "8px"}),
+    ], style={
+        "padding": "10px 14px",
+        "background": "rgba(167,139,250,0.03)",
+        "borderRadius": "10px",
+        "border": "1px solid rgba(167,139,250,0.10)",
+        "marginTop": "10px",
+    })
+
+
 def _injury_panel(home_team: str, away_team: str):
-    """Render injury report for both teams in a game card."""
+    """Render injury report for both teams in a collapsible dropdown."""
     _STATUS_COLOR = {
         "OUT":          ("#f43f5e", "rgba(244,63,94,0.12)",  "rgba(244,63,94,0.25)"),
         "DOUBTFUL":     ("#f97316", "rgba(249,115,22,0.10)", "rgba(249,115,22,0.25)"),
@@ -1030,13 +1118,25 @@ def _injury_panel(home_team: str, away_team: str):
             *[_player_chip(p) for p in players],
         ], style={"marginBottom": "8px"})
 
-    return html.Div([
-        html.Div("INJURY REPORT", style={
-            "fontSize": "0.62rem", "fontWeight": "700", "letterSpacing": "0.1em",
-            "color": "var(--text-muted)", "marginBottom": "8px",
-        }),
-        _team_block(away_team),
-        _team_block(home_team),
+    # Count total injured players for the badge
+    try:
+        total_injured = len(get_team_injuries(away_team)) + len(get_team_injuries(home_team))
+    except Exception:
+        total_injured = 0
+    badge = f" ({total_injured})" if total_injured else ""
+
+    return html.Details([
+        html.Summary([
+            html.Span(f"INJURY REPORT{badge}", style={
+                "fontSize": "0.62rem", "fontWeight": "700", "letterSpacing": "0.1em",
+                "color": "var(--text-muted)", "cursor": "pointer",
+            }),
+            html.Span(" ▾", style={"fontSize": "0.6rem", "color": "var(--text-muted)"}),
+        ], style={"listStyle": "none", "outline": "none", "cursor": "pointer"}),
+        html.Div([
+            _team_block(away_team),
+            _team_block(home_team),
+        ], style={"marginTop": "8px"}),
     ], style={
         "padding": "10px 14px",
         "background": "rgba(244,63,94,0.03)",
@@ -1121,9 +1221,15 @@ def create_todays_games_page():
             if line is None: return "N/A"
             return f"+{line}" if line > 0 else str(line)
 
-        # ── Model prediction ─────────────────────────────────────────────────
+        # ── Model prediction (injury-aware) ──────────────────────────────────
         try:
-            prediction = GAME_PREDICTOR.predict_game(home_team_internal, away_team_internal)
+            home_inj = get_team_injuries(home_team_internal)
+            away_inj = get_team_injuries(away_team_internal)
+            prediction = GAME_PREDICTOR.predict_game(
+                home_team_internal, away_team_internal,
+                home_injuries=home_inj,
+                away_injuries=away_inj,
+            )
             pick       = GAME_PREDICTOR.get_pick(
                 prediction,
                 home=home_team_internal,
@@ -1139,7 +1245,8 @@ def create_todays_games_page():
             prediction = {"predicted_home_score": None, "predicted_away_score": None,
                           "predicted_total": None, "predicted_spread": None,
                           "winner": None, "winner_margin": None, "winner_confidence": "LOW",
-                          "home_form": {}, "away_form": {}, "h2h": {}, "intel": []}
+                          "home_form": {}, "away_form": {}, "h2h": {}, "intel": [],
+                          "reasoning": {}}
             pick = {"spread_pick": None, "spread_confidence": "LOW",
                     "total_pick": None, "total_confidence": "LOW",
                     "winner_pick": None, "winner_confidence": "LOW",
@@ -1149,6 +1256,7 @@ def create_todays_games_page():
         home_form  = prediction.get("home_form", {})
         away_form  = prediction.get("away_form", {})
         intel      = prediction.get("intel", [])
+        reasoning  = prediction.get("reasoning", {})
         pred_home  = prediction.get("predicted_home_score")
         pred_away  = prediction.get("predicted_away_score")
         pred_total = prediction.get("predicted_total")
@@ -1295,7 +1403,7 @@ def create_todays_games_page():
                     status_el,
                 ], style={"display": "flex", "alignItems": "center"}),
                 html.Div(
-                    datetime.now().strftime("%-I:%M %p ET") if not is_live else "",
+                    _format_game_time(game.get("GAME_TIME", game.get("GAME_STATUS_TEXT", ""))) if not is_live else "",
                     style={"fontSize": "0.75rem", "color": "var(--text-muted)"},
                 ),
             ], style={
@@ -1413,23 +1521,8 @@ def create_todays_games_page():
                 "marginTop": "14px",
             }) if (home_wl or away_wl) else None,
 
-            # ── ROW 5: Matchup Intel ──────────────────────────────────────────
-            html.Div([
-                html.Div("MATCHUP INTEL", style={
-                    "fontSize": "0.62rem", "fontWeight": "700", "letterSpacing": "0.1em",
-                    "color": "var(--text-muted)", "marginBottom": "8px",
-                }),
-                *[html.Div([
-                    html.Span("●", style={"color": "var(--teal-500, #14b8a6)", "marginRight": "7px", "fontSize": "0.5rem", "verticalAlign": "middle"}),
-                    html.Span(bullet, style={"fontSize": "0.82rem", "color": "var(--text-secondary)"}),
-                ], style={"marginBottom": "4px"}) for bullet in intel],
-            ], style={
-                "padding": "12px 14px",
-                "background": "rgba(20,184,166,0.04)",
-                "borderRadius": "10px",
-                "border": "1px solid rgba(20,184,166,0.1)",
-                "marginTop": "10px",
-            }) if intel else None,
+            # ── ROW 5: Model Reasoning ────────────────────────────────────────
+            _reasoning_section(reasoning, intel),
 
             # ── ROW 6: H2H Record ─────────────────────────────────────────────
             _h2h_section(h2h_data, home_team, away_team),
@@ -1437,7 +1530,7 @@ def create_todays_games_page():
             # ── ROW 7: L10 Game Log (expandable) ─────────────────────────────
             _l10_section(last10_away, last10_home, away_team, home_team),
 
-            # ── ROW 8: Injury Report ──────────────────────────────────────────
+            # ── ROW 8: Injury Report (collapsible dropdown) ───────────────────
             _injury_panel(home_team, away_team),
 
         ], className="card game-card-v2")
