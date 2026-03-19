@@ -771,6 +771,31 @@ def create_player_analysis_page():
                     # Store for average/median selection
                     dcc.Store(id="supporting-stat-mode", data="average"),
 
+                    # ── Trend Insight — moved to TOP ───────────────────────────
+                    html.Div([
+                        html.Div([
+                            html.Span("💡", style={"fontSize": "15px", "marginRight": "8px"}),
+                            html.Span("TREND INSIGHT", style={
+                                "fontSize": "11px",
+                                "fontWeight": "700",
+                                "letterSpacing": "1.5px",
+                                "color": "#34d399",
+                            }),
+                        ], style={"marginBottom": "10px", "display": "flex", "alignItems": "center"}),
+                        html.Div(id="player-insights", style={
+                            "color": "rgba(255,255,255,0.90)",
+                            "fontSize": "0.92rem",
+                            "lineHeight": "1.75",
+                        })
+                    ], style={
+                        "background": "linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(6,182,212,0.08) 100%)",
+                        "border": "1px solid rgba(52,211,153,0.25)",
+                        "borderLeft": "3px solid #34d399",
+                        "borderRadius": "10px",
+                        "padding": "14px 18px",
+                        "marginBottom": "20px",
+                    }),
+
                     # Supporting stats cards
                     html.Div(id="supporting-stats-cards", style={
                         "display": "flex",
@@ -786,25 +811,6 @@ def create_player_analysis_page():
                     html.Div([
                         dcc.Graph(id="shooting-breakdown-chart", config={"displayModeBar": False})
                     ]),
-
-                    # Insights section
-                    html.Div([
-                        html.Div("Insights", style={
-                            "fontSize": "1.1rem",
-                            "fontWeight": "700",
-                            "marginBottom": "14px",
-                            "marginTop": "24px",
-                        }),
-                        html.Div(id="player-insights", style={
-                            "color": "var(--text-secondary)",
-                            "fontSize": "0.95rem",
-                            "lineHeight": "1.7",
-                            "padding": "18px",
-                            "backgroundColor": "var(--bg-primary)",
-                            "borderRadius": "var(--radius-md)",
-                            "borderLeft": "4px solid var(--accent-primary)"
-                        })
-                    ])
                 ], className="card"),
 
 
@@ -3264,7 +3270,24 @@ def generate_player_insights(player_name, period, season, h2h_mode, location):
             hits = (recent["PTS"] > line).sum()
             insights.append(f"Over {line} points in {hits} of last {len(recent)} games ({pts_avg:.1f} PPG).")
 
-    return " ".join(insights)
+    if not insights:
+        return html.Span("No trend patterns detected yet.", style={"color": "rgba(255,255,255,0.45)", "fontStyle": "italic"})
+
+    return html.Div([
+        html.Div(
+            insight,
+            style={
+                "display": "flex",
+                "alignItems": "flex-start",
+                "gap": "8px",
+                "padding": "6px 0",
+                "borderBottom": "1px solid rgba(52,211,153,0.12)" if i < len(insights) - 1 else "none",
+                "color": "rgba(255,255,255,0.88)",
+                "fontSize": "0.91rem",
+                "lineHeight": "1.65",
+            }
+        ) for i, insight in enumerate(insights)
+    ])
 
 
 def create_matchup_content(player_name, stat):
@@ -3686,6 +3709,7 @@ def create_injuries_content(player_name):
                     "marginLeft": "8px"
                 })
             ], style={"marginBottom": "16px"}),
+            *news_elements,
         ], style=CARD),
     ])
 
@@ -3982,27 +4006,7 @@ def create_insights_content(player_name, _stat=None):
 
     # Build the UI
     return html.Div([
-        # AI Expert Insight Header
-        html.Div([
-            html.Div([
-                html.Span("⚡", style={"fontSize": "28px", "marginRight": "14px"}),
-                html.Span("AI EXPERT INSIGHT", style={
-                    "color": COLORS["text"],
-                    "fontSize": "16px",
-                    "fontWeight": "800",
-                    "letterSpacing": "2.5px"
-                })
-            ], style={
-                "display": "flex",
-                "alignItems": "center",
-                "justifyContent": "center",
-                "padding": "24px",
-                "background": "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
-                "borderRadius": "16px 16px 0 0"
-            })
-        ]),
-
-        # Deep Intelligence Report with Matchup Analysis
+        # Deep Intelligence Report — FIRST (moved to top)
         html.Div([
             html.Div([
                 html.Span("⚡", style={"color": COLORS["accent"], "marginRight": "10px", "fontSize": "16px"}),
@@ -4025,7 +4029,26 @@ def create_insights_content(player_name, _stat=None):
                     "margin": "0"
                 }
             )
-        ], style={**CARD, "marginTop": "0", "borderRadius": "0", "padding": "24px"}),
+        ], style={**CARD, "marginTop": "0", "borderRadius": "16px 16px 0 0", "padding": "24px"}),
+
+        # AI Expert Insight Header
+        html.Div([
+            html.Div([
+                html.Span("⚡", style={"fontSize": "28px", "marginRight": "14px"}),
+                html.Span("AI EXPERT INSIGHT", style={
+                    "color": COLORS["text"],
+                    "fontSize": "16px",
+                    "fontWeight": "800",
+                    "letterSpacing": "2.5px"
+                })
+            ], style={
+                "display": "flex",
+                "alignItems": "center",
+                "justifyContent": "center",
+                "padding": "20px 24px",
+                "background": "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+            })
+        ]),
 
         # Bullish Indicators
         html.Div([

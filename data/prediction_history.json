@@ -1,0 +1,276 @@
+{
+  "2026-03-19": {
+    "generated_at": "2026-03-19T08:30:11.655121+00:00",
+    "graded_at": null,
+    "games": [
+      {
+        "game_id": "ORL@CHA",
+        "home": "CHA",
+        "away": "ORL",
+        "game_time": "2026-03-19T23:00Z",
+        "predictions": {
+          "winner_pick": "CHA",
+          "winner_confidence": "LOW",
+          "spread_pick": "HOME",
+          "spread_team": "CHA",
+          "spread_line": -5.0,
+          "spread_confidence": "HIGH",
+          "total_pick": "OVER",
+          "total_line": 226.5,
+          "total_confidence": "HIGH",
+          "model_home_score": 120.8,
+          "model_away_score": 117.4,
+          "model_total": 238.2,
+          "reasoning": {
+            "winner_reason": "CHA projected to win 121\u2013117 (margin 3.4 pts, low conf). CHA L10: 7-3, 115 PPG avg. ORL L10: 7-3, 119 PPG avg. ORL missing Anthony Black (12 PPG, OUT). ORL missing Franz Wagner (16 PPG, OUT).",
+            "total_reason": "Model projects 238 combined pts (CHA 121 + ORL 117). CHA allows 105 PPG L10, ORL allows 112 PPG L10.",
+            "spread_reason": "Model line: CHA -3.4 (favored). CHA defense #10 (allows 105 PPG L10), ORL defense #12 (allows 112 PPG L10). H2H: CHA 3-8 in last 11 meetings.",
+            "key_factors": [
+              "Form L10: CHA 7-3 (115 PPG)  \u00b7  ORL 7-3 (119 PPG)",
+              "\ud83d\ude91 Anthony Black (ORL) \u2014 OUT (12 PPG missing)",
+              "\ud83d\ude91 Franz Wagner (ORL) \u2014 OUT (16 PPG missing)",
+              "H2H last 11 games: CHA 3-8"
+            ]
+          }
+        },
+        "actuals": {},
+        "grades": {}
+      },
+      {
+        "game_id": "DET@WAS",
+        "home": "WAS",
+        "away": "DET",
+        "game_time": "2026-03-19T23:00Z",
+        "predictions": {
+          "winner_pick": "DET",
+          "winner_confidence": "HIGH",
+          "spread_pick": "AWAY",
+          "spread_team": "DET",
+          "spread_line": 16.0,
+          "spread_confidence": "HIGH",
+          "total_pick": null,
+          "total_line": 229.5,
+          "total_confidence": "LOW",
+          "model_home_score": 109.8,
+          "model_away_score": 118.0,
+          "model_total": 227.8,
+          "reasoning": {
+            "winner_reason": "DET projected to win 118\u2013110 (margin 8.2 pts, high conf). DET L10: 5-5, 117 PPG avg. WAS L10: 0-10, 118 PPG avg. WAS missing Leaky Black (6 PPG, OUT). WAS missing Trae Young (8 PPG, OUT).",
+            "total_reason": "Model projects 228 combined pts (WAS 110 + DET 118). WAS allows 130 PPG L10, DET allows 111 PPG L10.",
+            "spread_reason": "Model line: DET -8.2 (favored). WAS defense #29 (allows 130 PPG L10), DET defense #4 (allows 111 PPG L10). H2H: WAS 4-6 in last 10 meetings.",
+            "key_factors": [
+              "Form L10: WAS 0-10 (118 PPG)  \u00b7  DET 5-5 (117 PPG)",
+              "\ud83d\ude91 Leaky Black (WAS) \u2014 OUT (6 PPG missing)",
+              "\ud83d\ude91 Trae Young (WAS) \u2014 OUT (8 PPG missing)",
+              "\ud83d\ude91 Anthony Davis (WAS) \u2014 OUT (21 PPG missing)",
+              "H2H last 10 games: WAS 4-6"
+            ]
+          }
+        },
+        "actuals": {},
+        "grades": {}
+      },
+      {
+        "game_id": "LAL@MIA",
+        "home": "MIA",
+        "away": "LAL",
+        "game_time": "2026-03-20T00:00Z",
+        "predictions": {
+          "winner_pick": "LAL",
+          "winner_confidence": "LOW",
+          "spread_pick": "HOME",
+          "spread_team": "MIA",
+          "spread_line": -3.5,
+          "spread_confidence": "MEDIUM",
+          "total_pick": "OVER",
+          "total_line": 239.5,
+          "total_confidence": "HIGH",
+          "model_home_score": 123.3,
+          "model_away_score": 124.4,
+          "model_total": 247.7,
+          "reasoning": {
+            "winner_reason": "LAL projected to win 124\u2013123 (margin 1.1 pts, low conf). LAL L10: 9-1, 120 PPG avg. MIA L10: 7-3, 122 PPG avg. MIA missing Andrew Wiggins (11 PPG, OUT).",
+            "total_reason": "Model projects 248 combined pts (MIA 123 + LAL 124). MIA allows 116 PPG L10, LAL allows 111 PPG L10.",
+            "spread_reason": "Model line: LAL -1.1 (favored). MIA defense #20 (allows 116 PPG L10), LAL defense #15 (allows 111 PPG L10). H2H: MIA 3-2 in last 5 meetings.",
+            "key_factors": [
+              "Form L10: MIA 7-3 (122 PPG)  \u00b7  LAL 9-1 (120 PPG)",
+              "\ud83d\ude91 Andrew Wiggins (MIA) \u2014 OUT (11 PPG missing)",
+              "H2H last 5 games: MIA 3-2"
+            ]
+          }
+        },
+        "actuals": {},
+        "grades": {}
+      },
+      {
+        "game_id": "CLE@CHI",
+        "home": "CHI",
+        "away": "CLE",
+        "game_time": "2026-03-20T00:00Z",
+        "predictions": {
+          "winner_pick": "CLE",
+          "winner_confidence": "LOW",
+          "spread_pick": "AWAY",
+          "spread_team": "CLE",
+          "spread_line": 13.5,
+          "spread_confidence": "HIGH",
+          "total_pick": "UNDER",
+          "total_line": 240.5,
+          "total_confidence": "HIGH",
+          "model_home_score": 115.2,
+          "model_away_score": 117.6,
+          "model_total": 232.8,
+          "reasoning": {
+            "winner_reason": "CLE projected to win 118\u2013115 (margin 2.4 pts, low conf). CLE L10: 5-5, 117 PPG avg. CHI L10: 4-6, 116 PPG avg. CHI missing Jaden Ivey (8 PPG, OUT). CHI missing Anfernee Simons (15 PPG, OUT).",
+            "total_reason": "Model projects 233 combined pts (CHI 115 + CLE 118). CHI allows 119 PPG L10, CLE allows 114 PPG L10.",
+            "spread_reason": "Model line: CLE -2.4 (favored). CHI defense #25 (allows 119 PPG L10), CLE defense #14 (allows 114 PPG L10). H2H: CHI 3-8 in last 11 meetings.",
+            "key_factors": [
+              "Form L10: CHI 4-6 (116 PPG)  \u00b7  CLE 5-5 (117 PPG)",
+              "\ud83d\ude91 Jaden Ivey (CHI) \u2014 OUT (8 PPG missing)",
+              "\ud83d\ude91 Anfernee Simons (CHI) \u2014 OUT (15 PPG missing)",
+              "\ud83d\ude91 Zach Collins (CHI) \u2014 OUT (9 PPG missing)",
+              "H2H last 11 games: CHI 3-8"
+            ]
+          }
+        },
+        "actuals": {},
+        "grades": {}
+      },
+      {
+        "game_id": "LAC@NOP",
+        "home": "NOP",
+        "away": "LAC",
+        "game_time": "2026-03-20T00:00Z",
+        "predictions": {
+          "winner_pick": "NOP",
+          "winner_confidence": "LOW",
+          "spread_pick": "HOME",
+          "spread_team": "NOP",
+          "spread_line": -1.5,
+          "spread_confidence": "HIGH",
+          "total_pick": "OVER",
+          "total_line": 233.5,
+          "total_confidence": "HIGH",
+          "model_home_score": 125.4,
+          "model_away_score": 121.6,
+          "model_total": 247.0,
+          "reasoning": {
+            "winner_reason": "NOP projected to win 125\u2013122 (margin 3.8 pts, low conf). NOP L10: 6-4, 120 PPG avg. LAC L10: 6-4, 121 PPG avg.",
+            "total_reason": "Model projects 247 combined pts (NOP 125 + LAC 122). NOP allows 115 PPG L10, LAC allows 116 PPG L10.",
+            "spread_reason": "Model line: NOP -3.8 (favored). NOP defense #27 (allows 115 PPG L10), LAC defense #9 (allows 116 PPG L10). H2H: NOP 4-5 in last 9 meetings.",
+            "key_factors": [
+              "Form L10: NOP 6-4 (120 PPG)  \u00b7  LAC 6-4 (121 PPG)",
+              "\ud83d\ude91 Bryce McGowens (NOP) \u2014 OUT (9 PPG missing)",
+              "H2H last 9 games: NOP 4-5"
+            ]
+          }
+        },
+        "actuals": {},
+        "grades": {}
+      },
+      {
+        "game_id": "PHX@SAS",
+        "home": "SAS",
+        "away": "PHX",
+        "game_time": "2026-03-20T00:00Z",
+        "predictions": {
+          "winner_pick": "SAS",
+          "winner_confidence": "HIGH",
+          "spread_pick": "HOME",
+          "spread_team": "SAS",
+          "spread_line": -9.5,
+          "spread_confidence": "HIGH",
+          "total_pick": "OVER",
+          "total_line": 227.5,
+          "total_confidence": "HIGH",
+          "model_home_score": 125.0,
+          "model_away_score": 113.3,
+          "model_total": 238.3,
+          "reasoning": {
+            "winner_reason": "SAN projected to win 125\u2013113 (margin 11.7 pts, high conf). SAN L10: 8-2, 122 PPG avg. PHX L10: 6-4, 114 PPG avg. PHX missing Dillon Brooks (20 PPG, OUT). PHX missing Mark Williams (8 PPG, OUT).",
+            "total_reason": "Model projects 238 combined pts (SAN 125 + PHX 113). SAN allows 112 PPG L10, PHX allows 111 PPG L10.",
+            "spread_reason": "Model line: SAN -11.7 (favored). SAN defense #7 (allows 112 PPG L10), PHX defense #6 (allows 111 PPG L10). H2H: SAN 5-5 in last 10 meetings.",
+            "key_factors": [
+              "Form L10: SAN 8-2 (122 PPG)  \u00b7  PHX 6-4 (114 PPG)",
+              "\ud83d\ude91 Dillon Brooks (PHX) \u2014 OUT (20 PPG missing)",
+              "\ud83d\ude91 Mark Williams (PHX) \u2014 OUT (8 PPG missing)",
+              "H2H last 10 games: SAN 5-5",
+              "SAN projected to win by 12 pts"
+            ]
+          }
+        },
+        "actuals": {},
+        "grades": {}
+      },
+      {
+        "game_id": "MIL@UTA",
+        "home": "UTA",
+        "away": "MIL",
+        "game_time": "2026-03-20T01:00Z",
+        "predictions": {
+          "winner_pick": "UTA",
+          "winner_confidence": "MEDIUM",
+          "spread_pick": "HOME",
+          "spread_team": "UTA",
+          "spread_line": 4.5,
+          "spread_confidence": "MEDIUM",
+          "total_pick": "UNDER",
+          "total_line": 228.5,
+          "total_confidence": "HIGH",
+          "model_home_score": 109.7,
+          "model_away_score": 101.9,
+          "model_total": 211.6,
+          "reasoning": {
+            "winner_reason": "UTA projected to win 110\u2013102 (margin 7.8 pts, medium conf). UTA L10: 2-8, 112 PPG avg. MIL L10: 2-8, 106 PPG avg. MIL missing Giannis Antetokounmpo (24 PPG, OUT).",
+            "total_reason": "Model projects 212 combined pts (UTA 110 + MIL 102). UTA allows 121 PPG L10, MIL allows 120 PPG L10.",
+            "spread_reason": "Model line: UTA -7.8 (favored). UTA defense #30 (allows 121 PPG L10), MIL defense #17 (allows 120 PPG L10). H2H: UTA 2-3 in last 5 meetings.",
+            "key_factors": [
+              "Form L10: UTA 2-8 (112 PPG)  \u00b7  MIL 2-8 (106 PPG)",
+              "\ud83d\ude91 Keyonte George (UTA) \u2014 OUT (16 PPG missing)",
+              "\ud83d\ude91 Lauri Markkanen (UTA) \u2014 OUT (20 PPG missing)",
+              "\ud83d\ude91 Jusuf Nurkic (UTA) \u2014 OUT (8 PPG missing)",
+              "H2H last 5 games: UTA 2-3"
+            ]
+          }
+        },
+        "actuals": {},
+        "grades": {}
+      },
+      {
+        "game_id": "PHI@SAC",
+        "home": "SAC",
+        "away": "PHI",
+        "game_time": "2026-03-20T02:00Z",
+        "predictions": {
+          "winner_pick": "SAC",
+          "winner_confidence": "HIGH",
+          "spread_pick": "HOME",
+          "spread_team": "SAC",
+          "spread_line": 3.5,
+          "spread_confidence": "HIGH",
+          "total_pick": "UNDER",
+          "total_line": 230.5,
+          "total_confidence": "HIGH",
+          "model_home_score": 118.2,
+          "model_away_score": 101.1,
+          "model_total": 219.3,
+          "reasoning": {
+            "winner_reason": "SAC projected to win 118\u2013101 (margin 17.1 pts, high conf). SAC L10: 5-5, 115 PPG avg. PHI L10: 4-6, 107 PPG avg. PHI missing Joel Embiid (29 PPG, OUT). PHI missing Kelly Oubre Jr. (16 PPG, OUT).",
+            "total_reason": "Model projects 219 combined pts (SAC 118 + PHI 101). SAC allows 118 PPG L10, PHI allows 117 PPG L10.",
+            "spread_reason": "Model line: SAC -17.1 (favored). SAC defense #28 (allows 118 PPG L10), PHI defense #18 (allows 117 PPG L10). H2H: SAC 2-3 in last 5 meetings.",
+            "key_factors": [
+              "Form L10: SAC 5-5 (115 PPG)  \u00b7  PHI 4-6 (107 PPG)",
+              "\ud83d\ude91 Malik Monk (SAC) \u2014 OUT (9 PPG missing)",
+              "\ud83d\ude91 Devin Carter (SAC) \u2014 OUT (5 PPG missing)",
+              "\ud83d\ude91 Drew Eubanks (SAC) \u2014 OUT (5 PPG missing)",
+              "H2H last 5 games: SAC 2-3"
+            ]
+          }
+        },
+        "actuals": {},
+        "grades": {}
+      }
+    ],
+    "summary": {}
+  }
+}

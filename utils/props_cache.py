@@ -224,7 +224,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             def_rank = int(opp_def.iloc[0].get(rank_col, 15)) if not opp_def.empty else None
 
             ev_value = calculate_ev(hit_rate_all)
-            is_lock = (hit_rate_all == 1.0 and len(recent_stats) >= 5)
+            is_lock = (hit_rate_all >= 0.80 and len(recent_stats) >= 5)
 
             # Include props with hit_rate >= 0.5 (positive edge)
             if hit_rate_all >= 0.5:
@@ -288,7 +288,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 continue  # higher bar for combo props
 
             ev_combo = calculate_ev(hit_rate_combo)
-            is_lock_combo = (hit_rate_combo == 1.0 and len(raw_combo) >= 5)
+            is_lock_combo = (hit_rate_combo >= 0.80 and len(raw_combo) >= 5)
 
             insight_combo = (
                 f"{player_name} averages "
