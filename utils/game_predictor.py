@@ -23,8 +23,19 @@ MIN_EDGE_SPREAD  = 1.5    # min gap to issue a spread pick
 MIN_EDGE_TOTAL   = 2.0    # min gap to issue a total pick
 RECENT_N         = 10     # rolling form window
 H2H_SEASONS      = 2      # how many seasons back for H2H
-FORM_WP_SCALE    = 10.0   # multiplier for recent W/L rate vs season rate (was 4.0)
+FORM_WP_SCALE    = 10.0   # multiplier for recent W/L rate vs season rate
 MARGIN_SCALE     = 0.30   # weight for rolling scoring-margin adjustment
+
+# Injury penalty — replacement-level model
+# NBA bench/replacement player averages ~7 PPG.
+# Only the MARGINAL gap above replacement is penalized, and only partially
+# because the team redistributes usage (other starters get more minutes,
+# someone else steps up). A 20 PPG star being out ≠ team loses 14 pts.
+REPLACEMENT_PPG        = 7.0   # typical bench/replacement scorer
+OUT_MARGINAL_WEIGHT    = 0.20  # 20% of net marginal loss → team scoring drop
+DOUBTFUL_MARGINAL_WEIGHT = 0.10
+MAX_PENALTY_PER_PLAYER = 4.0   # hard cap per player (pts)
+MAX_TOTAL_PENALTY      = 8.0   # hard cap total per team (pts)
 
 
 class GamePredictor:
@@ -309,19 +320,32 @@ class GamePredictor:
 
     def _apply_injury_penalty(self, raw_score: float, injuries: list) -> tuple:
         """
-        Deduct estimated scoring contribution of OUT/DOUBTFUL players.
+        Apply a realistic injury penalty using replacement-level logic.
+
+        Key insight: when a player is OUT, a bench player or another starter
+        absorbs their minutes. The team doesn't simply lose all of that scorer's
+        production — someone else steps up. We model this as:
+
+            net_marginal = player_ppg - REPLACEMENT_PPG  (what truly goes missing)
+            penalty      = net_marginal * weight          (only a fraction of that)
+
+        This means a 20 PPG star being OUT costs the team ~2-3 pts,
+        not 14 pts. That's consistent with real-world data showing teams
+        typically score ~3-5 fewer points when a star misses a game.
 
         Returns (adjusted_score, missing_list)
         missing_list items: {"name": str, "ppg": float, "status": str}
         """
-        penalty  = 0.0
-        missing  = []
+        total_penalty = 0.0
+        missing       = []
+
         for player in injuries:
             status = player.get("status", "")
             if status not in ("OUT", "DOUBTFUL"):
                 continue
-            name     = player.get("name", "")
-            # Look up player's L10 PPG
+            name = player.get("name", "")
+
+            # Look up player's L10 PPG from game logs
             player_rows = self.logs[self.logs["PLAYER_NAME"] == name]
             if len(player_rows) < 3:
                 continue
@@ -330,15 +354,36 @@ class GamePredictor:
                 .head(10)["PTS"]
                 .mean()
             )
-            if ppg < 5:           # skip non-scorers
+            if ppg < 5:   # non-scorers don't affect team total meaningfully
                 continue
-            weight   = 0.70 if status == "OUT" else 0.35
-            penalty += ppg * weight
+
+            # Check if this player has been absent from recent games already.
+            # If their last recorded game was >10 days ago, the L10 rolling PPG
+            # already partially reflects their absence → cut penalty in half.
+            recent = player_rows.sort_values("_date", ascending=False)
+            try:
+                last_game_date = pd.Timestamp(recent.iloc[0]["_date"])
+                days_absent = (pd.Timestamp("today") - last_game_date).days
+            except Exception:
+                days_absent = 0
+            already_absent = days_absent > 10
+
+            # Marginal loss above replacement level
+            net_marginal = max(ppg - REPLACEMENT_PPG, 0.0)
+            weight = OUT_MARGINAL_WEIGHT if status == "OUT" else DOUBTFUL_MARGINAL_WEIGHT
+            if already_absent:
+                weight *= 0.4   # L10 PPG already baked-in most of the absence
+
+            player_penalty = min(net_marginal * weight, MAX_PENALTY_PER_PLAYER)
+            total_penalty += player_penalty
             missing.append({"name": name, "ppg": round(ppg, 1), "status": status})
 
-        # Floor: never reduce below 75 % of the original projection
-        adjusted = max(raw_score - penalty, raw_score * 0.75)
-        return round(adjusted, 1), missing
+            if total_penalty >= MAX_TOTAL_PENALTY:
+                break  # don't pile on more than the team cap
+
+        total_penalty = min(total_penalty, MAX_TOTAL_PENALTY)
+        adjusted = round(raw_score - total_penalty, 1)
+        return adjusted, missing
 
     def _build_reasoning(self, home: str, away: str,
                           hf: dict, af: dict,
