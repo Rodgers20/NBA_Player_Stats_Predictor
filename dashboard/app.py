@@ -317,8 +317,28 @@ try:
         replace_existing=True,
         max_instances=1
     )
+    def _scheduled_grade():
+        from datetime import date as _date
+        from utils.prediction_tracker import grade_predictions
+        yesterday = (_date.today() - __import__("datetime").timedelta(days=1)).strftime("%Y-%m-%d")
+        today     = _date.today().strftime("%Y-%m-%d")
+        for d in (yesterday, today):
+            try:
+                grade_predictions(d)
+            except Exception as exc:
+                print(f"[App] Grade predictions failed for {d}: {exc}")
+
+    scheduler.add_job(
+        _scheduled_grade,
+        'cron',
+        hour=1,
+        minute=0,
+        id='grade_predictions',
+        replace_existing=True,
+        max_instances=1,
+    )
     scheduler.start()
-    print("[App] Background schedulers started (data + props cache every 30 min)")
+    print("[App] Background schedulers started (data + props cache every 30 min, grade at 1 AM)")
 
     # Trigger an immediate update at startup so data is fresh on first load
     # (don't wait 30 minutes for the first scheduled run)
@@ -519,6 +539,19 @@ STAT_TYPES = [
 
 app = Dash(__name__, suppress_callback_exceptions=True)
 server = app.server
+
+
+@server.route("/download-report")
+def download_report():
+    """Download prediction history as Excel file."""
+    from flask import send_file, abort
+    from utils.prediction_tracker import export_to_excel
+    try:
+        path = export_to_excel()
+        return send_file(path, as_attachment=True, download_name="nba_predictions.xlsx")
+    except Exception as e:
+        print(f"[Download] Report error: {e}")
+        abort(500)
 
 # =============================================================================
 # SHARED HELPER FUNCTIONS
@@ -1185,6 +1218,7 @@ def create_todays_games_page():
     GAME_PREDICTOR.refresh(get_global_df())
 
     game_cards = []
+    _predictions_for_tracker: list[dict] = []  # accumulate for save_daily_predictions
     for _, game in games.iterrows():
         home_team   = game.get("HOME_TEAM", game.get("HOME_TEAM_ABBREVIATION", ""))
         away_team   = game.get("AWAY_TEAM", game.get("VISITOR_TEAM_ABBREVIATION", game.get("VISITOR_TEAM", "")))
@@ -1267,6 +1301,29 @@ def create_todays_games_page():
             pick["winner_pick"] = _ABBR_REVERSE[pick["winner_pick"]]
         if pick.get("spread_team") and pick["spread_team"] in _ABBR_REVERSE:
             pick["spread_team"] = _ABBR_REVERSE[pick["spread_team"]]
+
+        # Collect for daily prediction tracking
+        _predictions_for_tracker.append({
+            "game_id":   f"{away_team}@{home_team}",
+            "home":      home_team,
+            "away":      away_team,
+            "game_time": game.get("GAME_TIME", game.get("GAME_STATUS_TEXT", "")),
+            "predictions": {
+                "winner_pick":        pick.get("winner_pick"),
+                "winner_confidence":  pick.get("winner_confidence"),
+                "spread_pick":        pick.get("spread_pick"),
+                "spread_team":        pick.get("spread_team"),
+                "spread_line":        spread_home_line,
+                "spread_confidence":  pick.get("spread_confidence"),
+                "total_pick":         pick.get("total_pick"),
+                "total_line":         total_line,
+                "total_confidence":   pick.get("total_confidence"),
+                "model_home_score":   pred_home,
+                "model_away_score":   pred_away,
+                "model_total":        pred_total,
+                "reasoning":          reasoning,
+            },
+        })
 
         # ── Status badge ─────────────────────────────────────────────────────
         is_live    = "Q" in str(game_status) or "Halftime" in str(game_status)
@@ -1536,9 +1593,31 @@ def create_todays_games_page():
         ], className="card game-card-v2")
         game_cards.append(game_card)
 
+    # Save today's predictions asynchronously (fire-and-forget)
+    if _predictions_for_tracker:
+        import threading as _t
+        _date_str = datetime.now().strftime("%Y-%m-%d")
+        _t.Thread(
+            target=lambda: __import__("utils.prediction_tracker", fromlist=["save_daily_predictions"])
+                           .save_daily_predictions(_date_str, _predictions_for_tracker),
+            daemon=True, name="save-predictions",
+        ).start()
+
     return html.Div([
         html.Div([
-            html.Div("TODAY'S GAMES", style=_PAGE_TITLE_STYLE),
+            html.Div([
+                html.Div("TODAY'S GAMES", style=_PAGE_TITLE_STYLE),
+                html.A(
+                    "⬇ Download Report",
+                    href="/download-report",
+                    style={
+                        "fontSize": "0.72rem", "fontWeight": "600", "letterSpacing": "0.05em",
+                        "color": "var(--teal-400, #2dd4bf)", "border": "1px solid var(--teal-400, #2dd4bf)",
+                        "borderRadius": "6px", "padding": "5px 12px", "textDecoration": "none",
+                        "opacity": "0.8",
+                    },
+                ),
+            ], style={"display": "flex", "alignItems": "center", "justifyContent": "space-between", "marginBottom": "4px"}),
             html.Div([
                 html.Span(datetime.now().strftime("%A, %B %d, %Y"),
                           style={"color": "var(--text-muted, #4a5a75)", "fontSize": "0.9rem"}),
