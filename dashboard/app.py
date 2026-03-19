@@ -326,6 +326,32 @@ try:
     _startup_thread = _threading.Thread(target=scheduled_update, daemon=True, name="startup-update")
     _startup_thread.start()
     print("[App] Startup data refresh triggered in background")
+
+    # Pre-warm props cache and Today's Games API caches immediately at startup.
+    # This runs at module-import time so it works under gunicorn (HuggingFace)
+    # as well as direct `python app.py` invocation.
+    def _warmup_caches():
+        # 1. Pre-fetch games + odds so first page visit hits in-memory cache
+        try:
+            from utils.data_fetch import get_todays_games
+            from utils.odds_fetcher import get_game_odds, get_live_odds
+            get_todays_games()
+            get_game_odds()
+            get_live_odds()
+            print("[App] Today's Games + Odds caches warmed")
+        except Exception as e:
+            print(f"[App] Games/Odds warm failed: {e}")
+
+        # 2. Pre-compute Best Props (most expensive — do after games are warmed)
+        try:
+            from utils.props_cache import refresh_props_cache
+            refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predictor_fn=get_predictor)
+        except Exception as e:
+            print(f"[App] Props cache warm failed (will retry in 30 min): {e}")
+
+    _warmup_thread = _threading.Thread(target=_warmup_caches, daemon=True, name="startup-warmup")
+    _warmup_thread.start()
+    print("[App] Startup cache warmup triggered in background")
 except Exception as e:
     print(f"[App] Warning: Could not start scheduler: {e}")
 
@@ -1055,6 +1081,9 @@ def create_todays_games_page():
     # ESPN/API abbreviation → internal data abbreviation (must match game_logs/positions CSVs)
     _ABBR_FIX = {"SAS": "SAN"}
 
+    # Refresh predictor ONCE before the loop (not per-game — avoids N×DF copy)
+    GAME_PREDICTOR.refresh(get_global_df())
+
     game_cards = []
     for _, game in games.iterrows():
         home_team   = game.get("HOME_TEAM", game.get("HOME_TEAM_ABBREVIATION", ""))
@@ -1094,8 +1123,6 @@ def create_todays_games_page():
 
         # ── Model prediction ─────────────────────────────────────────────────
         try:
-            # Always use the latest in-memory DF so recent games are included
-            GAME_PREDICTOR.refresh(get_global_df())
             prediction = GAME_PREDICTOR.predict_game(home_team_internal, away_team_internal)
             pick       = GAME_PREDICTOR.get_pick(
                 prediction,
@@ -4204,24 +4231,9 @@ def create_hit_rates_table(player_name):
 # =============================================================================
 
 if __name__ == "__main__":
-    import threading
-
     print("\n" + "=" * 50)
     print("NBA Props Dashboard")
     print("=" * 50)
-
-    # Warm the props cache in a background thread (non-blocking)
-    def _startup_cache_warm():
-        from utils.props_cache import refresh_props_cache
-        try:
-            refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predictor_fn=get_predictor)
-        except Exception as e:
-            print(f"[App] Props cache warm failed (will retry in 30 min): {e}")
-
-    cache_thread = threading.Thread(target=_startup_cache_warm, daemon=True)
-    cache_thread.start()
-    print("[App] Props cache warming in background...")
-
     print("\nOpen: http://127.0.0.1:8050")
     print("Press Ctrl+C to stop\n")
 
