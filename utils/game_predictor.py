@@ -23,6 +23,8 @@ MIN_EDGE_SPREAD  = 1.5    # min gap to issue a spread pick
 MIN_EDGE_TOTAL   = 2.0    # min gap to issue a total pick
 RECENT_N         = 10     # rolling form window
 H2H_SEASONS      = 2      # how many seasons back for H2H
+FORM_WP_SCALE    = 10.0   # multiplier for recent W/L rate vs season rate (was 4.0)
+MARGIN_SCALE     = 0.30   # weight for rolling scoring-margin adjustment
 
 
 class GamePredictor:
@@ -79,20 +81,27 @@ class GamePredictor:
         home_off_raw = home_form.get("rolling_ppg") or home_season.get("ppg", 112.0)
         away_off_raw = away_form.get("rolling_ppg") or away_season.get("ppg", 112.0)
 
-        home_def_raw = home_season.get("opp_ppg", 112.0)
-        away_def_raw = away_season.get("opp_ppg", 112.0)
+        # Prefer rolling defensive PPG over season average — captures recent hot/cold
+        # streaks like a 0-10 team allowing 130 PPG in last 10 games
+        home_def_raw = home_form.get("rolling_opp_ppg") or home_season.get("opp_ppg", 112.0)
+        away_def_raw = away_form.get("rolling_opp_ppg") or away_season.get("opp_ppg", 112.0)
 
-        # Blend form vs season defense
+        # Blend form offense vs opponent's recent defense
         pred_home = (home_off_raw * FORM_WEIGHT + away_def_raw * SEASON_WEIGHT)
         pred_away = (away_off_raw * FORM_WEIGHT + home_def_raw * SEASON_WEIGHT)
 
-        # Form momentum
+        # Form momentum (W/L rate vs season baseline) — scaled by FORM_WP_SCALE
         home_form_wp   = home_form.get("wins", 0) / max(home_form.get("wins", 0) + home_form.get("losses", 0), 1)
         away_form_wp   = away_form.get("wins", 0) / max(away_form.get("wins", 0) + away_form.get("losses", 0), 1)
         home_season_wp = home_season.get("w_pct", 0.5)
         away_season_wp = away_season.get("w_pct", 0.5)
-        pred_home += (home_form_wp - home_season_wp) * 4.0
-        pred_away += (away_form_wp - away_season_wp) * 4.0
+        pred_home += (home_form_wp - home_season_wp) * FORM_WP_SCALE
+        pred_away += (away_form_wp - away_season_wp) * FORM_WP_SCALE
+
+        # Rolling scoring-margin adjustment — teams that are getting crushed
+        # even while scoring (e.g. 0-10 despite 118 PPG) get penalized here
+        pred_home += home_form.get("rolling_margin", 0.0) * MARGIN_SCALE
+        pred_away += away_form.get("rolling_margin", 0.0) * MARGIN_SCALE
 
         # H2H boost
         h2h_boost = self._h2h_boost(h2h, home, away)
@@ -357,8 +366,11 @@ class GamePredictor:
         loser_form  = (aw, al) if winner == home else (hw, hl)
         loser_ppg   = away_ppg_l10 if winner == home else home_ppg_l10
 
+        # Show winner's score first so "DET projected to win 99–87" reads correctly
+        winner_score = ph if winner == home else pa
+        loser_score  = pa if winner == home else ph
         winner_reason = (
-            f"{winner} projected to win {ph:.0f}–{pa:.0f} "
+            f"{winner} projected to win {winner_score:.0f}–{loser_score:.0f} "
             f"(margin {margin:.1f} pts, {winner_conf.lower()} conf). "
             f"{winner} L10: {winner_form[0]}-{winner_form[1]}, {winner_ppg:.0f} PPG avg. "
             f"{loser} L10: {loser_form[0]}-{loser_form[1]}, {loser_ppg:.0f} PPG avg."
@@ -379,24 +391,40 @@ class GamePredictor:
         elif avg_pace < LEAGUE_AVG_PACE - 2:
             pace_note = f" Slow-pace matchup (avg {avg_pace:.0f})."
 
+        home_def_l10 = hf.get("rolling_opp_ppg") or hs.get("opp_ppg", 0)
+        away_def_l10 = af.get("rolling_opp_ppg") or as_.get("opp_ppg", 0)
         total_reason = (
             f"Model projects {pt:.0f} combined pts "
             f"({home} {ph:.0f} + {away} {pa:.0f})."
-            f" {home} allows {hs.get('opp_ppg', 0):.0f} PPG, "
-            f"{away} allows {as_.get('opp_ppg', 0):.0f} PPG.{pace_note}"
+            f" {home} allows {home_def_l10:.0f} PPG L10, "
+            f"{away} allows {away_def_l10:.0f} PPG L10.{pace_note}"
         )
 
         # ── Spread reason ─────────────────────────────────────────────────
         home_def_rank = hs.get("opp_pts_rank", 15)
         away_def_rank = as_.get("opp_pts_rank", 15)
+
+        # Express spread from the FAVORED team's perspective:
+        # ps = pred_home - pred_away. Negative → away team favored.
+        # Convention: favorite gets the negative number (e.g. "DET -11.7").
+        if ps >= 0:
+            fav_team   = home
+            fav_spread = f"-{ps:.1f}"      # home wins → "HOME -X.X"
+        else:
+            fav_team   = away
+            fav_spread = f"{ps:.1f}"       # ps already negative → "AWAY -X.X"
+
+        home_def_ppg = hf.get("rolling_opp_ppg") or hs.get("opp_ppg", 0)
+        away_def_ppg = af.get("rolling_opp_ppg") or as_.get("opp_ppg", 0)
+
         spread_reason = (
-            f"Model spread: {home} {ps:+.1f}. "
-            f"{home} defense #{home_def_rank} (allows {hs.get('opp_ppg', 0):.0f} PPG), "
-            f"{away} defense #{away_def_rank} (allows {as_.get('opp_ppg', 0):.0f} PPG). "
-            f"H2H: {home} leads {h2h.get('wins_a', 0)}-{h2h.get('losses_a', 0)} "
-            f"in {h2h.get('total', 0)} meetings."
+            f"Model line: {fav_team} {fav_spread} (favored). "
+            f"{home} defense #{home_def_rank} (allows {home_def_ppg:.0f} PPG L10), "
+            f"{away} defense #{away_def_rank} (allows {away_def_ppg:.0f} PPG L10). "
+            f"H2H: {home} {h2h.get('wins_a', 0)}-{h2h.get('losses_a', 0)} "
+            f"in last {h2h.get('total', 0)} meetings."
         ) if h2h.get("total", 0) >= 1 else (
-            f"Model spread: {home} {ps:+.1f}. "
+            f"Model line: {fav_team} {fav_spread} (favored). "
             f"{home} #{home_def_rank} defense, {away} #{away_def_rank} defense."
         )
 
@@ -475,9 +503,12 @@ class GamePredictor:
         return agg
 
     def _get_form(self, team: str, n: int = RECENT_N) -> dict:
-        """Rolling form for last n games."""
+        """Rolling form for last n games, including defensive PPG and scoring margin."""
         if self._scores.empty:
-            return {"wins": 0, "losses": 0, "rolling_ppg": None, "wl_list": [], "games": 0}
+            return {
+                "wins": 0, "losses": 0, "rolling_ppg": None, "wl_list": [], "games": 0,
+                "rolling_opp_ppg": None, "rolling_margin": 0.0,
+            }
 
         rows = (
             self._scores[self._scores["team"] == team]
@@ -486,19 +517,43 @@ class GamePredictor:
         )
 
         if rows.empty:
-            return {"wins": 0, "losses": 0, "rolling_ppg": None, "wl_list": [], "games": 0}
+            return {
+                "wins": 0, "losses": 0, "rolling_ppg": None, "wl_list": [], "games": 0,
+                "rolling_opp_ppg": None, "rolling_margin": 0.0,
+            }
 
         wins   = int((rows["wl"] == "W").sum())
         losses = int((rows["wl"] == "L").sum())
         rolling_ppg = round(float(rows["team_pts"].mean()), 1) if len(rows) >= 3 else None
         wl_list = rows["wl"].tolist()
 
+        # Build rolling defensive stats by looking up each opponent's pts on same date
+        opp_pts_list: list[float] = []
+        for _, row in rows.iterrows():
+            opp  = row.get("opponent", "")
+            date = row["_date"]
+            opp_game = self._scores[
+                (self._scores["team"] == opp) & (self._scores["_date"] == date)
+            ]
+            if not opp_game.empty:
+                opp_pts_list.append(float(opp_game["team_pts"].iloc[0]))
+
+        rolling_opp_ppg = round(sum(opp_pts_list) / len(opp_pts_list), 1) if opp_pts_list else None
+
+        # Rolling scoring margin (positive = team winning on avg, negative = losing)
+        if rolling_ppg is not None and rolling_opp_ppg is not None:
+            rolling_margin = round(rolling_ppg - rolling_opp_ppg, 1)
+        else:
+            rolling_margin = 0.0
+
         return {
-            "wins":        wins,
-            "losses":      losses,
-            "rolling_ppg": rolling_ppg,
-            "wl_list":     wl_list,
-            "games":       len(rows),
+            "wins":             wins,
+            "losses":           losses,
+            "rolling_ppg":      rolling_ppg,
+            "rolling_opp_ppg":  rolling_opp_ppg,
+            "rolling_margin":   rolling_margin,
+            "wl_list":          wl_list,
+            "games":            len(rows),
         }
 
     def _get_season(self, team: str) -> dict:
