@@ -1675,12 +1675,17 @@ def create_best_props_page():
 
             # Row 1: Stat type filter
             html.Div([
-                html.Div("All Stats", id="props-filter-all", n_clicks=0, className="tab active"),
-                html.Div("Points",    id="props-filter-pts", n_clicks=0, className="tab"),
-                html.Div("Assists",   id="props-filter-ast", n_clicks=0, className="tab"),
-                html.Div("Rebounds",  id="props-filter-reb", n_clicks=0, className="tab"),
-                html.Div("3-Pointers",id="props-filter-3pm", n_clicks=0, className="tab"),
-            ], className="tab-group", style={"marginBottom": "12px"}),
+                html.Div("All Stats",  id="props-filter-all",  n_clicks=0, className="tab active"),
+                html.Div("Points",     id="props-filter-pts",  n_clicks=0, className="tab"),
+                html.Div("Assists",    id="props-filter-ast",  n_clicks=0, className="tab"),
+                html.Div("Rebounds",   id="props-filter-reb",  n_clicks=0, className="tab"),
+                html.Div("3-Pointers", id="props-filter-3pm",  n_clicks=0, className="tab"),
+                html.Div("Pts+Ast",    id="props-filter-pa",   n_clicks=0, className="tab"),
+                html.Div("Pts+Reb",    id="props-filter-pr",   n_clicks=0, className="tab"),
+                html.Div("Ast+Reb",    id="props-filter-ar",   n_clicks=0, className="tab"),
+                html.Div("PTS+AST+REB",id="props-filter-pra",  n_clicks=0, className="tab"),
+                html.Div("🔒 LOCKS",   id="props-filter-lock", n_clicks=0, className="tab"),
+            ], className="tab-group", style={"marginBottom": "12px", "flexWrap": "wrap"}),
 
             # Row 2: Location | Game | Sort — all on one line
             html.Div([
@@ -1925,30 +1930,51 @@ def update_location_filter(all_clicks, home_clicks, away_clicks):
 
 @callback(
     [Output("props-stat-filter", "data"),
-     Output("props-filter-all", "className"),
-     Output("props-filter-pts", "className"),
-     Output("props-filter-ast", "className"),
-     Output("props-filter-reb", "className"),
-     Output("props-filter-3pm", "className")],
-    [Input("props-filter-all", "n_clicks"),
-     Input("props-filter-pts", "n_clicks"),
-     Input("props-filter-ast", "n_clicks"),
-     Input("props-filter-reb", "n_clicks"),
-     Input("props-filter-3pm", "n_clicks")],
+     Output("props-filter-all",  "className"),
+     Output("props-filter-pts",  "className"),
+     Output("props-filter-ast",  "className"),
+     Output("props-filter-reb",  "className"),
+     Output("props-filter-3pm",  "className"),
+     Output("props-filter-pa",   "className"),
+     Output("props-filter-pr",   "className"),
+     Output("props-filter-ar",   "className"),
+     Output("props-filter-pra",  "className"),
+     Output("props-filter-lock", "className")],
+    [Input("props-filter-all",  "n_clicks"),
+     Input("props-filter-pts",  "n_clicks"),
+     Input("props-filter-ast",  "n_clicks"),
+     Input("props-filter-reb",  "n_clicks"),
+     Input("props-filter-3pm",  "n_clicks"),
+     Input("props-filter-pa",   "n_clicks"),
+     Input("props-filter-pr",   "n_clicks"),
+     Input("props-filter-ar",   "n_clicks"),
+     Input("props-filter-pra",  "n_clicks"),
+     Input("props-filter-lock", "n_clicks")],
     prevent_initial_call=True,
 )
 def update_stat_filter(*_):
     from dash import ctx
     triggered = ctx.triggered_id
-    active = "tab active"
+    active   = "tab active"
     inactive = "tab"
+    n = 10  # total number of tabs
+    def _cls(active_idx):
+        return [active if i == active_idx else inactive for i in range(n)]
     mapping = {
-        "props-filter-pts":  ["PTS",  inactive, active,   inactive, inactive, inactive],
-        "props-filter-ast":  ["AST",  inactive, inactive, active,   inactive, inactive],
-        "props-filter-reb":  ["REB",  inactive, inactive, inactive, active,   inactive],
-        "props-filter-3pm":  ["FG3M", inactive, inactive, inactive, inactive, active  ],
+        "props-filter-pts":  ("PTS",         1),
+        "props-filter-ast":  ("AST",         2),
+        "props-filter-reb":  ("REB",         3),
+        "props-filter-3pm":  ("FG3M",        4),
+        "props-filter-pa":   ("PTS+AST",     5),
+        "props-filter-pr":   ("PTS+REB",     6),
+        "props-filter-ar":   ("AST+REB",     7),
+        "props-filter-pra":  ("PTS+AST+REB", 8),
+        "props-filter-lock": ("LOCK",        9),
     }
-    return mapping.get(triggered, ["all", active, inactive, inactive, inactive, inactive])
+    if triggered in mapping:
+        val, idx = mapping[triggered]
+        return [val] + _cls(idx)
+    return ["all"] + _cls(0)
 
 
 @callback(
@@ -2045,7 +2071,10 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
 
     # Filter by stat type
     if stat_filter and stat_filter != "all":
-        props_data = [p for p in props_data if p.get("stat") == stat_filter]
+        if stat_filter == "LOCK":
+            props_data = [p for p in props_data if p.get("is_lock")]
+        else:
+            props_data = [p for p in props_data if p.get("stat") == stat_filter]
 
     # Filter props based on game
     game_filtered = []
@@ -2131,7 +2160,11 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
         location_label = "At Home" if location_filter == "home" else "On Road" if location_filter == "away" else "Overall"
 
         # Pull insight data from pre-computed cache
-        insight_data = prop.get("insight") or {}
+        _raw_insight = prop.get("insight") or {}
+        if isinstance(_raw_insight, str):
+            insight_data = {"narrative": _raw_insight, "factors": [], "matchup_grade": "C", "trend": "neutral"}
+        else:
+            insight_data = _raw_insight
         narrative = insight_data.get("narrative", "")
         factors = insight_data.get("factors", [])
         matchup_grade = insight_data.get("matchup_grade", "C")

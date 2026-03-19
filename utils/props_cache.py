@@ -246,7 +246,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "ev": ev_value,
                     "is_lock": is_lock,
                     "is_combo": False,
-                    "game_matchup": f"{opponent} @ {player_team}" if is_home_today else f"{player_team} @ {opponent}",
+                    "game_matchup": f"{opponent} @ {_normalize_abbr(player_team)}" if is_home_today else f"{_normalize_abbr(player_team)} @ {opponent}",
                     "hit_rate_home": (home_games[stat_type] >= line).sum() / len(home_games) if not home_games.empty else 0,
                     "hit_rate_away": (away_games[stat_type] >= line).sum() / len(away_games) if not away_games.empty else 0,
                     "hits_home": (home_games[stat_type] >= line).sum() if not home_games.empty else 0,
