@@ -2188,6 +2188,16 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
                             "marginLeft": "6px", "padding": "2px 6px",
                             "border": f"1px solid {grade_color}", "borderRadius": "4px"
                         }) if matchup_grade != "C" else None,
+                        html.Span("LOCK", style={
+                            "fontSize": "0.65rem", "fontWeight": "800", "letterSpacing": "0.06em",
+                            "color": "#fff", "background": "linear-gradient(90deg,#f59e0b,#ef4444)",
+                            "borderRadius": "4px", "padding": "2px 7px", "marginLeft": "8px",
+                        }) if prop.get("is_lock") else None,
+                        html.Span("COMBO", style={
+                            "fontSize": "0.6rem", "fontWeight": "700", "letterSpacing": "0.06em",
+                            "color": "#a78bfa", "border": "1px solid #a78bfa",
+                            "borderRadius": "4px", "padding": "1px 5px", "marginLeft": "6px",
+                        }) if prop.get("is_combo") else None,
                     ]),
                     html.Div(f"{prop.get('team', '')} • {prop.get('position', '')}", style={"fontSize": "0.85rem", "color": "var(--text-muted)"})
                 ], style={"flex": "1"}),

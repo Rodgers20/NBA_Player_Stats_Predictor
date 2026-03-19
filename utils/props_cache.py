@@ -127,6 +127,18 @@ def _resolve_opponent(player_name, player_team, player_df, game_info):
     return ""
 
 
+# Stat contribution weights for combo prop evaluation
+_STAT_WEIGHTS: dict[str, float] = {"PTS": 1.0, "AST": 0.7, "REB": 0.6, "FG3M": 0.8}
+
+# Combo definitions: (stat_list, label)
+_COMBO_DEFS: list[tuple[list[str], str]] = [
+    (["PTS", "AST"],        "Pts+Ast"),
+    (["PTS", "REB"],        "Pts+Reb"),
+    (["AST", "REB"],        "Ast+Reb"),
+    (["PTS", "AST", "REB"], "Pts+Ast+Reb"),
+]
+
+
 def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze):
     """Compute props data for the main Best Props page.
 
@@ -212,6 +224,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             def_rank = int(opp_def.iloc[0].get(rank_col, 15)) if not opp_def.empty else None
 
             ev_value = calculate_ev(hit_rate_all)
+            is_lock = (hit_rate_all == 1.0 and len(recent_stats) >= 5)
 
             # Include props with hit_rate >= 0.5 (positive edge)
             if hit_rate_all >= 0.5:
@@ -231,6 +244,8 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "hit_rate": hit_rate_all, "hits": hits_all, "total": len(recent_stats),
                     "def_rank": def_rank, "is_home_today": is_home_today,
                     "ev": ev_value,
+                    "is_lock": is_lock,
+                    "is_combo": False,
                     "game_matchup": f"{opponent} @ {player_team}" if is_home_today else f"{player_team} @ {opponent}",
                     "hit_rate_home": (home_games[stat_type] >= line).sum() / len(home_games) if not home_games.empty else 0,
                     "hit_rate_away": (away_games[stat_type] >= line).sum() / len(away_games) if not away_games.empty else 0,
@@ -241,6 +256,73 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "avg_away": round(away_games[stat_type].mean(), 1) if not away_games.empty else 0,
                     "insight": insight,
                 })
+
+        # ── Combo props ───────────────────────────────────────────────────────
+        for combo_stats, combo_label in _COMBO_DEFS:
+            if not all(s in recent_10.columns for s in combo_stats):
+                continue
+
+            avgs = {s: recent_10[s].mean() for s in combo_stats}
+            total_avg = sum(avgs.values())
+            if total_avg < 2:
+                continue
+
+            # Weighted total: used to derive a meaningful line
+            weighted_total = sum(avgs[s] * _STAT_WEIGHTS[s] for s in combo_stats)
+
+            # Skip combo if one stat contributes > 65% of the weighted total
+            # (e.g. a scorer with 25 PTS and 2 REB — just predict points)
+            dominant = any(
+                (avgs[s] * _STAT_WEIGHTS[s]) / weighted_total > 0.65
+                for s in combo_stats
+            )
+            if dominant:
+                continue
+
+            raw_combo = recent_10[combo_stats].sum(axis=1)
+            line_combo = round(raw_combo.mean() - 0.5) + 0.5
+            hits_combo = (raw_combo >= line_combo).sum()
+            hit_rate_combo = hits_combo / len(raw_combo) if len(raw_combo) > 0 else 0
+
+            if hit_rate_combo < 0.6:
+                continue  # higher bar for combo props
+
+            ev_combo = calculate_ev(hit_rate_combo)
+            is_lock_combo = (hit_rate_combo == 1.0 and len(raw_combo) >= 5)
+
+            insight_combo = (
+                f"{player_name} averages "
+                + " + ".join(f"{avgs[s]:.1f} {s}" for s in combo_stats)
+                + f" = {total_avg:.1f} combined (line {line_combo}). "
+                + f"Hit {hits_combo}/{len(raw_combo)} L{len(raw_combo)}."
+            )
+            props_data.append({
+                "player":       player_name,
+                "team":         player_team,
+                "opponent":     opponent,
+                "position":     position,
+                "stat":         "+".join(combo_stats),
+                "stat_label":   combo_label,
+                "line":         line_combo,
+                "avg":          round(total_avg, 1),
+                "hit_rate":     hit_rate_combo,
+                "hits":         hits_combo,
+                "total":        len(raw_combo),
+                "def_rank":     None,
+                "is_home_today": is_home_today,
+                "ev":           ev_combo,
+                "is_lock":      is_lock_combo,
+                "is_combo":     True,
+                "game_matchup": f"{opponent} @ {player_team}" if is_home_today else f"{player_team} @ {opponent}",
+                "hit_rate_home": 0, "hit_rate_away": 0,
+                "hits_home": 0, "hits_away": 0,
+                "total_home": 0, "total_away": 0,
+                "avg_home": 0, "avg_away": 0,
+                "insight": insight_combo,
+                "has_live_odds": False,
+                "live_line": None, "live_over_price": None,
+                "live_under_price": None, "live_bookmaker": None,
+            })
 
     # ── Enrich with live sportsbook odds ─────────────────────────────────
     live_odds = get_live_odds()
@@ -269,8 +351,8 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             prop["live_under_price"] = None
             prop["live_bookmaker"]   = None
 
-    # Sort everything by EV (best props first)
-    props_data.sort(key=lambda x: x["ev"], reverse=True)
+    # Sort: LOCKs first (within stat category), then by EV
+    props_data.sort(key=lambda x: (not x.get("is_lock", False), -x["ev"]))
 
     # Guarantee at least the top prop per team is represented in the final list.
     # This ensures games with weaker overall EVs still show up.
