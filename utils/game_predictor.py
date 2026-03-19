@@ -136,6 +136,15 @@ class GamePredictor:
         if away_injuries:
             pred_away, away_missing = self._apply_injury_penalty(pred_away, away_injuries)
 
+        # ── Calibration bias correction (self-learning) ──────────────────
+        try:
+            from utils.prediction_tracker import load_calibration
+            calib = load_calibration()
+            pred_home = round(pred_home - calib.get("home_score_bias", 0.0), 1)
+            pred_away = round(pred_away - calib.get("away_score_bias", 0.0), 1)
+        except Exception:
+            pass  # no calibration file yet — skip silently
+
         pred_total  = round(pred_home + pred_away, 1)
         pred_spread = round(pred_home - pred_away, 1)
 
