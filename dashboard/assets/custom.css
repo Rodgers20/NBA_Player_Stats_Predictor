@@ -464,18 +464,18 @@ body::before {
     margin-bottom: 1.25rem;
     background: rgba(255,255,255,0.025);
     border: 1px solid var(--border-subtle);
-    padding: 0.25rem;
+    padding: 0.3rem;
     border-radius: var(--radius-full);
-    width: fit-content;
+    width: 100%;
 }
 
 .tab {
     background: transparent;
     color: var(--text-muted);
-    padding: 0.4rem 1.1rem;
+    padding: 0.38rem 0.85rem;
     border-radius: var(--radius-full);
     border: 1px solid transparent;   /* reserve border space so active border doesn't shift layout */
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
     transition: all var(--t-base) var(--ease-out);

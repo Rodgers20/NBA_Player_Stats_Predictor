@@ -1689,7 +1689,7 @@ def create_best_props_page():
                 html.Div("Pts+Ast",    id="props-filter-pa",   n_clicks=0, className="tab"),
                 html.Div("Pts+Reb",    id="props-filter-pr",   n_clicks=0, className="tab"),
                 html.Div("Ast+Reb",    id="props-filter-ar",   n_clicks=0, className="tab"),
-                html.Div("PTS+AST+REB",id="props-filter-pra",  n_clicks=0, className="tab"),
+                html.Div("PRA",         id="props-filter-pra",  n_clicks=0, className="tab"),
                 html.Div("🔒 LOCKS",   id="props-filter-lock", n_clicks=0, className="tab"),
             ], className="tab-group", style={"marginBottom": "12px", "flexWrap": "wrap"}),
 
