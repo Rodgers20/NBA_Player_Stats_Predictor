@@ -2735,6 +2735,8 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
     elif period:
         player_df = player_df.head(period)
 
+    # Cap at 20 games max for readability — fewer is better than crowded
+    player_df = player_df.head(20)
     player_df = player_df.iloc[::-1]  # Reverse for chronological order
 
     if len(player_df) == 0:
@@ -2745,6 +2747,8 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
             height=300
         )
         return fig
+
+    n_games = len(player_df)
 
     # Build x-axis labels (date + opponent)
     labels = []
@@ -2762,6 +2766,16 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
             opp = ""
         labels.append(f"{date_str}<br>{opp}")
 
+    # Distinct colors per stat type
+    _STAT_COLORS = {
+        "FG":  ("#fbbf24", "#78350f"),   # amber made / dark missed
+        "FG3": ("#60a5fa", "#1e3a5f"),   # blue made / dark missed
+        "FT":  ("#34d399", "#064e3b"),   # green made / dark missed
+        "MIN": "#94a3b8",                # slate
+        "AST": "#f97066",                # coral
+        "PF":  "#fb923c",                # orange
+    }
+
     # Check if this is a shooting stat (stacked) or simple stat
     shooting_stats = {
         "FG": ("FGM", "FGA", "Field Goals"),
@@ -2776,86 +2790,70 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
     }
 
     if selected_stat in shooting_stats:
-        # Stacked bar chart for shooting stats
         made_col, attempts_col, title = shooting_stats[selected_stat]
 
         if made_col not in player_df.columns or attempts_col not in player_df.columns:
             return fig
 
-        made = player_df[made_col].fillna(0).astype(int)
-        attempts = player_df[attempts_col].fillna(0).astype(int)
-        missed = attempts - made
-        pct = (made / attempts * 100).replace([np.inf, -np.inf], 0).fillna(0)
+        made_color, missed_color = _STAT_COLORS.get(selected_stat, ("#4a5568", "#718096"))
+        made     = pd.to_numeric(player_df[made_col],     errors="coerce").fillna(0).astype(int)
+        attempts = pd.to_numeric(player_df[attempts_col], errors="coerce").fillna(0).astype(int)
+        missed   = (attempts - made).clip(lower=0)
+        pct      = (made / attempts.replace(0, np.nan) * 100).fillna(0)
 
-        # Made bars (bottom)
         fig.add_trace(go.Bar(
-            x=list(range(len(player_df))),
-            y=made,
-            name="Made",
-            marker_color="#4a5568",
-            text=[f"{m}<br>Made" for m in made],
+            x=list(range(n_games)), y=made, name="Made",
+            marker_color=made_color,
+            text=[f"{m}" for m in made],
             textposition="inside",
             textfont=dict(size=10, color="white"),
             hovertemplate="Made: %{y}<extra></extra>"
         ))
-
-        # Missed bars (top, stacked)
         fig.add_trace(go.Bar(
-            x=list(range(len(player_df))),
-            y=missed,
-            name="Missed",
-            marker_color="#718096",
+            x=list(range(n_games)), y=missed, name="Missed",
+            marker_color=missed_color,
             text=[f"{int(p)}%" for p in pct],
             textposition="inside",
             textfont=dict(size=10, color="white"),
             hovertemplate="Missed: %{y}<extra></extra>"
         ))
-
-        # Add total labels on top
         fig.add_trace(go.Scatter(
-            x=list(range(len(player_df))),
-            y=attempts + 0.5,
-            mode="text",
-            text=[str(a) for a in attempts],
+            x=list(range(n_games)), y=attempts + 0.5,
+            mode="text", text=[str(a) for a in attempts],
             textposition="top center",
-            textfont=dict(size=12, color=COLORS["text"]),
-            hoverinfo="skip",
-            showlegend=False
+            textfont=dict(size=11, color=COLORS["text"]),
+            hoverinfo="skip", showlegend=False
         ))
-
         fig.update_layout(barmode="stack")
 
     elif selected_stat in simple_stats:
-        # Simple bar chart for non-shooting stats
         col, title = simple_stats[selected_stat]
 
         if col not in player_df.columns:
             return fig
 
-        values = player_df[col].fillna(0)
+        # Coerce to numeric (handles "35:20" MIN strings → NaN → 0)
+        values  = pd.to_numeric(player_df[col], errors="coerce").fillna(0)
         avg_val = values.mean()
+        bar_color = _STAT_COLORS.get(selected_stat, "#64748b")
 
-        # Color bars based on above/below average
-        bar_colors = [COLORS["hit_high"] if v >= avg_val else COLORS["hit_low"] for v in values]
+        # Above avg = stat color, below = dimmed version
+        bar_colors = [bar_color if v >= avg_val else "rgba(100,116,139,0.45)" for v in values]
+        fmt = ".1f" if col == "MIN" else ".0f"
 
         fig.add_trace(go.Bar(
-            x=list(range(len(player_df))),
-            y=values,
+            x=list(range(n_games)), y=values,
             marker_color=bar_colors,
-            text=[f"{v:.0f}" if col != "MIN" else f"{v:.1f}" for v in values],
+            text=[f"{v:{fmt}}" for v in values],
             textposition="outside",
             textfont=dict(size=11, color=COLORS["text"]),
-            hovertemplate=f"{title}: %{{y}}<extra></extra>"
+            hovertemplate=f"{title}: %{{y:{fmt}}}<extra></extra>"
         ))
-
-        # Add average line
         fig.add_hline(
-            y=avg_val,
-            line_dash="dash",
-            line_color=COLORS["text_secondary"],
-            line_width=2,
-            annotation_text=f"Avg: {avg_val:.1f}",
-            annotation_position="left",
+            y=avg_val, line_dash="dash",
+            line_color=COLORS["text_secondary"], line_width=2,
+            annotation_text=f"Avg {avg_val:{fmt}}",
+            annotation_position="top left",
             annotation_font_color=COLORS["text_secondary"]
         )
     else:
@@ -2866,22 +2864,23 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
         template="plotly_dark",
         paper_bgcolor=COLORS["card"],
         plot_bgcolor=COLORS["card"],
-        margin=dict(l=40, r=20, t=40, b=60),
+        margin=dict(l=40, r=20, t=40, b=70 if n_games > 10 else 50),
         height=320,
         showlegend=False,
         xaxis=dict(
             tickmode="array",
-            tickvals=list(range(len(player_df))),
+            tickvals=list(range(n_games)),
             ticktext=labels,
-            tickfont=dict(size=10, color=COLORS["text_muted"]),
-            showgrid=False
+            tickfont=dict(size=9 if n_games > 12 else 10, color=COLORS["text_muted"]),
+            tickangle=-40 if n_games > 10 else 0,
+            showgrid=False,
         ),
         yaxis=dict(
             gridcolor=COLORS["border"],
             tickfont=dict(size=10, color=COLORS["text_muted"]),
-            showgrid=True
+            showgrid=True,
         ),
-        bargap=0.3
+        bargap=0.25,
     )
 
     return fig
@@ -3344,21 +3343,23 @@ def create_injuries_content(player_name):
         news = status.get("news", [])
         injury_type = status.get("injury_type", "")
 
-        if status_text in ["UNKNOWN", "HEALTHY"]:
+        if status_text == "HEALTHY":
             status_text = "ACTIVE"
+        # UNKNOWN stays UNKNOWN — don't pretend player is active when we don't know
     except Exception:
-        status_text = "ACTIVE"
+        status_text = "UNKNOWN"
         reason = ""
         news = []
         injury_type = ""
 
     # Status colors and labels
     status_config = {
-        "ACTIVE": {"color": COLORS["hit_high"], "label": "ACTIVE", "icon": "✓"},
-        "PROBABLE": {"color": COLORS["hit_high"], "label": "PROBABLE", "icon": "●"},
-        "QUESTIONABLE": {"color": COLORS["hit_mid"], "label": "QUESTIONABLE", "icon": "?"},
-        "DOUBTFUL": {"color": COLORS["hit_low"], "label": "DOUBTFUL", "icon": "!"},
-        "OUT": {"color": COLORS["hit_low"], "label": "OUT", "icon": "✕"},
+        "ACTIVE":       {"color": "#22c55e",  "label": "ACTIVE",       "icon": "✓"},
+        "PROBABLE":     {"color": "#a3e635",  "label": "PROBABLE",     "icon": "●"},
+        "QUESTIONABLE": {"color": "#f59e0b",  "label": "QUESTIONABLE", "icon": "?"},
+        "DOUBTFUL":     {"color": "#f97316",  "label": "DOUBTFUL",     "icon": "!"},
+        "OUT":          {"color": "#f43f5e",  "label": "OUT",          "icon": "✕"},
+        "UNKNOWN":      {"color": "#64748b",  "label": "STATUS UNAVAILABLE", "icon": "—"},
     }
     config = status_config.get(status_text, status_config["ACTIVE"])
 
