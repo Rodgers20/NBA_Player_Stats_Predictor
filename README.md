@@ -1,6 +1,6 @@
 ---
 title: Nba Player Predictor
-emoji: 🐢
+emoji: 🏀
 colorFrom: gray
 colorTo: purple
 sdk: docker
@@ -9,181 +9,212 @@ pinned: false
 
 # NBA Player Stats Predictor 🏀
 
-An ML-powered application that predicts NBA player performance (points, assists, rebounds) and provides an interactive dashboard for analyzing player trends and matchups.
+A full-stack NBA analytics dashboard that gives you **game predictions, player prop analysis, live injury reports, and sportsbook odds** — all in one place. Built with Python, Dash, and real-time data feeds.
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
+![Dash](https://img.shields.io/badge/Dash-2.14-cyan)
 ![License](https://img.shields.io/badge/License-MIT-green)
 [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/kingzman20/nba-player-predictor)
 
 ## Live Demo
 
-[**View Live Dashboard**](https://huggingface.co/spaces/kingzman20/nba-player-predictor)
+**[View Live Dashboard →](https://huggingface.co/spaces/kingzman20/nba-player-predictor)**
 
-## Features
+---
 
-- **ML Predictions**: Predict points, assists, and rebounds for any NBA player
-- **Interactive Dashboard**: Built with Dash/Plotly for real-time analysis
-- **Performance Trends**: Season charts with rolling averages
-- **Matchup Analysis**: Home/away splits, opponent performance breakdowns
-- **Injury Tracking**: Real-time news and injury status integration
+## What It Does
 
-## Demo
+### Today's Games
+- Shows every NBA game scheduled for today (or tomorrow if all today's games are done)
+- Live tip-off times, home/away matchups, and game status
+- **Real-time sportsbook odds** (moneyline, spread, over/under) pulled from The Odds API
+- Injury report panel per game — shows which players are OUT or DOUBTFUL with reasons
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  🏀 NBA Player Stats Predictor                         │
-├─────────────────────────────────────────────────────────┤
-│  [Search Player: LeBron James            ▼]            │
-├────────────┬────────────┬────────────┬─────────────────┤
-│   26.1     │    7.3     │    7.8     │      70         │
-│   PPG      │    APG     │    RPG     │    Games        │
-├─────────────────────────────────────┬──────────────────┤
-│  Season Trend Chart                 │  Predictions     │
-│  ▄▅▆▇█▇▆▅▄▃▄▅▆▇█                   │  PTS: 27.2 ●HIGH │
-│  ─────────────────                  │  AST: 7.5  ●MED  │
-│  Points ── 10-Game Avg              │  REB: 8.1  ●HIGH │
-├───────────────────┬─────────────────┴──────────────────┤
-│  Home vs Away     │  Best Matchups                     │
-│  █████ Home 26.5  │  vs UTA  32.5 pts                  │
-│  ████  Away 25.0  │  vs POR  29.8 pts                  │
-└───────────────────┴────────────────────────────────────┘
-```
+### Game Predictions
+For every game on the slate, the model predicts:
+- **Winner** with confidence level (HIGH / MEDIUM / LOW)
+- **Projected score** for both teams (e.g. "LAL 112 – BOS 108")
+- **Spread** expressed from the favored team's perspective
+- **Total** (over/under) with a pick direction
+- A full **reasoning section** — why the model is picking this way, what the form says, key injury impacts
 
-## Installation
+The prediction engine uses:
+- Rolling 10-game team offensive/defensive form
+- Recent win/loss momentum vs season baseline
+- Head-to-head history (last 2 seasons)
+- Home court advantage
+- Pace adjustment
+- **Replacement-level injury modeling** — injured player penalties are capped and realistic (missing a 20 PPG player doesn't mean the team loses 20 pts; other players step up)
+- **Self-learning calibration** — after each game finishes, the model grades itself, detects systematic bias, and corrects future predictions automatically
 
-```bash
-# Clone the repository
-git clone https://github.com/Rodgers20/NBA_Player_Stats_Predictor.git
-cd NBA_Player_Stats_Predictor
+### Player Analysis
+Deep dive on any NBA player (300+ players supported):
+- **Stat tabs**: PTS, AST, REB, PTS+AST, PTS+REB, AST+REB, PRA, 3PM, BLK, STL, STL+BLK
+- **Time periods**: L5, L10, L20, H2H (vs today's opponent), H/W (home/away), 2025, 2024
+- **Performance chart**: Bar chart with hit-rate overlays showing when the player exceeded their line
+- **Supporting stats**: Minutes, fouls, field goals, 3-pointers, free throws — with Average/Median toggle
+- **Trend insights**: Auto-generated analysis of recent performance patterns (moved to top of card)
+- **Sidebar**: Matchup analysis, injury status, AI Expert Insight, Best Props for that player
 
-# Create virtual environment
-python3 -m venv env
-source env/bin/activate  # On Windows: env\Scripts\activate
+### Best Props
+The crown feature — surfaces the best player prop bets across all of today's games:
 
-# Install dependencies
-pip install -r requirements.txt
-```
+- **364+ props analyzed** every day across all stat types
+- Ranked by **Expected Value (EV)** — not just hit rate
+- Filter by: All Stats / Points / Assists / Rebounds / 3-Pointers / Pts+Ast / Pts+Reb / Ast+Reb / PTS+AST+REB (PRA) / **LOCKS**
+- **LOCK props** = 80%+ hit rate over last 10 games (these are your strongest bets)
+- **Combo props** — e.g. if a player averages 25 pts + 8 ast, you get a PTS+AST combo line with its own hit rate
+- Home/Away filter, Game filter (see only props for a specific matchup), Sort by EV or Hit Rate
+- Each prop card shows: line, hit rate, average, home vs away splits, EV, and AI-generated insight explaining why this prop has edge
 
-## Quick Start
+### AI Expert Insight
+Per-player analysis panel with:
+- **Deep Intelligence Report** — narrative summary at the top
+- **Bullish Indicators** — reasons to bet the over
+- **Risk Factors** — reasons to be cautious
+- **Final Recommendation** — plain-English betting call
 
-### 1. Run the Dashboard
+### Self-Learning Model Record
+The model grades itself every night at 1 AM after games finish:
+- Checks ESPN final scores against its predictions
+- Records correct/wrong for Moneyline, Spread, and Over/Under
+- Detects systematic bias (e.g. "I've been projecting totals 5 pts too high")
+- Saves calibration offsets that automatically adjust the next day's predictions
+- **Download Report** button exports an Excel file (5 sheets) with:
+  - Model Record dashboard — all-time W/L/win% for ML, Spread, O/U, Overall
+  - Daily summary
+  - Moneyline, Spread, Total breakdowns with error analysis per game
 
-```bash
-python3 dashboard/app.py
-```
+---
 
-Open http://127.0.0.1:8050 in your browser.
+## Tech Stack
 
-### 2. Make Predictions via Code
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Dash (Plotly), custom CSS, glassmorphism dark theme |
+| Backend | Python 3.12, Flask (served via Dash) |
+| Data | Kaggle NBA dataset (historical), ESPN API (live games), The Odds API (sportsbook odds) |
+| Injuries | ESPN injury feed + RSS parsing (CBS Sports, RotoWire) |
+| Predictions | Custom rolling-form engine (no ML black box — explainable math) |
+| Scheduling | APScheduler (background jobs for grading + cache refresh) |
+| Deployment | Docker → HuggingFace Spaces |
+| Export | openpyxl (Excel reports) |
 
-```python
-from models.predictor import NBAPredictor
-import pandas as pd
-from utils.feature_engineering import engineer_features
-
-# Load data
-df = pd.read_csv("data/player_game_logs.csv")
-team_def = pd.read_csv("data/team_defensive_stats.csv")
-features = engineer_features(df, team_def)
-
-# Load trained model
-predictor = NBAPredictor.load("models/pts_predictor.pkl")
-
-# Predict for a player
-result = predictor.predict_player_game("LeBron James", features)
-print(f"Predicted points: {result['predicted_pts']}")
-```
-
-### 3. Collect Fresh Data
-
-```bash
-# Sample data (20 players, ~3 mins)
-python3 scripts/collect_sample_data.py
-
-# Full dataset (300+ players, ~30 mins)
-python3 scripts/collect_training_data.py
-```
+---
 
 ## Project Structure
 
 ```
 NBA_Player_Stats_Predictor/
 ├── dashboard/
-│   └── app.py              # Dash web application
-├── data/
-│   ├── player_game_logs.csv    # Game-by-game player stats
-│   ├── team_stats.csv          # Team offensive stats
-│   └── team_defensive_stats.csv # Team defensive ratings
-├── models/
-│   ├── predictor.py        # ML model classes
-│   ├── pts_predictor.pkl   # Trained points model
-│   ├── ast_predictor.pkl   # Trained assists model
-│   └── reb_predictor.pkl   # Trained rebounds model
-├── scripts/
-│   ├── collect_sample_data.py  # Quick data collection
-│   └── collect_training_data.py # Full data collection
+│   ├── app.py                    # Main Dash app — all pages, callbacks, layout
+│   └── assets/
+│       └── custom.css            # Dark glassmorphism theme
 ├── utils/
-│   ├── data_fetch.py       # NBA API integration
-│   ├── feature_engineering.py # Feature creation
-│   └── injury_news.py      # News/injury tracking
-└── tests/
-│   └── ...                 # Unit tests
+│   ├── data_fetch.py             # ESPN live game schedule + team lookups
+│   ├── game_predictor.py         # Game prediction engine (spread, total, winner)
+│   ├── prediction_tracker.py     # Self-grading, calibration, Excel export
+│   ├── props_cache.py            # Best props computation and caching
+│   ├── injury_news.py            # Live injury status from news feeds
+│   └── kaggle_loader.py          # Historical player/team stats from Kaggle
+├── data/
+│   ├── engineered_data.parquet   # Cached player game logs (fast load)
+│   ├── player_positions.csv      # Player position lookup
+│   └── .last_kaggle_download     # Cache freshness marker
+├── Dockerfile                    # Docker build for HuggingFace deployment
+├── requirements.txt              # Python dependencies
+└── .env.example                  # Required environment variables
 ```
 
-## How It Works
+---
 
-### Data Pipeline
+## Running Locally
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/Rodgers20/NBA_Player_Stats_Predictor.git
+cd NBA_Player_Stats_Predictor
+```
+
+### 2. Create virtual environment
+
+```bash
+python3 -m venv env
+source env/bin/activate        # Mac/Linux
+# env\Scripts\activate         # Windows
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Set up environment variables
+
+```bash
+cp .env.example .env
+# Edit .env and add your API keys
+```
+
+Required keys in `.env`:
+```
+ODDS_API_KEY=your_odds_api_key_here   # Get free at the-odds-api.com
+```
+
+### 5. Run the dashboard
+
+```bash
+python3 dashboard/app.py
+```
+
+Open **http://127.0.0.1:8050** in your browser.
+
+---
+
+## Environment Variables
+
+| Variable | Required | Where to get it |
+|----------|----------|-----------------|
+| `ODDS_API_KEY` | Yes | [the-odds-api.com](https://the-odds-api.com) — free tier available |
+
+---
+
+## How Predictions Work
 
 ```
-NBA API → Raw Game Logs → Feature Engineering → ML Model → Prediction
+Team A Rolling Form (10 games)
+  ├── Offensive PPG          ─┐
+  ├── Defensive PPG allowed   ├── Blended score estimate
+  ├── Win/Loss momentum       ├── + Home court adj (+2.5 pts)
+  ├── Scoring margin trend    ├── + Pace factor
+  └── Injury adjustments     ─┘
+         │
+         ▼ replacement-level penalty only
+         (missing 20 PPG star ≠ -14 pts; actual impact ~2-3 pts)
+         │
+         ▼ Calibration offset applied
+         (model corrects its own systematic bias daily)
+         │
+         ▼ Final prediction + reasoning
 ```
 
-### Features Used for Predictions
-
-| Feature               | Description                     |
-| --------------------- | ------------------------------- |
-| `rolling_avg_pts_5`   | Average points in last 5 games  |
-| `rolling_avg_pts_10`  | Average points in last 10 games |
-| `rolling_avg_pts_20`  | Average points in last 20 games |
-| `is_home`             | Home (1) or Away (0) game       |
-| `days_rest`           | Days since last game            |
-| `opp_def_pts_allowed` | Opponent's defensive rating     |
-| `minutes_trend`       | Recent minutes trend            |
-| `season_avg_pts`      | Season average                  |
-
-### Model Performance
-
-| Target   | MAE | R²   | Interpretation              |
-| -------- | --- | ---- | --------------------------- |
-| Points   | 6.3 | 0.22 | Predictions within ±6.3 pts |
-| Assists  | 2.1 | 0.40 | Predictions within ±2.1 ast |
-| Rebounds | 2.4 | 0.43 | Predictions within ±2.4 reb |
-
-## Technologies Used
-
-- **Data**: NBA API, pandas, NumPy
-- **ML**: scikit-learn (Random Forest)
-- **Visualization**: Plotly, Dash
-- **News**: RSS feed parsing (ESPN, CBS Sports)
-
-## Future Improvements
-
-- [ ] Add XGBoost/neural network models for better accuracy
-- [ ] Implement first basket scorer prediction
-- [ ] Add player prop betting lines comparison
-- [ ] Deploy to cloud (Heroku/AWS)
-- [ ] Add more historical seasons
+---
 
 ## Author
 
 **Rodgers Bahati**
 
 - GitHub: [@Rodgers20](https://github.com/Rodgers20)
-
-## License
-
-This project is open source and available under the MIT License.
+- Live App: [huggingface.co/spaces/kingzman20/nba-player-predictor](https://huggingface.co/spaces/kingzman20/nba-player-predictor)
 
 ---
 
-_Built with Python, scikit-learn, Dash, and the NBA API_
+## License
+
+MIT License — open source, use it however you want.
+
+---
+
+*Built with Python · Dash · ESPN API · The Odds API · HuggingFace Spaces*

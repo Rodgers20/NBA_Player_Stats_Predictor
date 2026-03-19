@@ -31,9 +31,10 @@ Thumbs.db
 .env
 .env.local
 
-# Data files (optional - uncomment if you don't want to track large data files)
-# data/*.csv
-# data/*.json
+# Private data files — never push to GitHub
+data/prediction_report.xlsx
+data/prediction_history.json
+data/model_calibration.json
 
 # Model files (large binary files)
 # models/*.pkl
