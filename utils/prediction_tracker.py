@@ -595,7 +595,7 @@ def export_to_excel(output_path: str | None = None) -> str:
     ])
     _col_widths(ws_sp, [12, 14, 10, 10, 11, 8, 12, 11, 10, 9])
 
-    ws_ou = _make_sheet("Total (O/U)", [
+    ws_ou = _make_sheet("Total Over-Under", [
         "Date", "Game", "Pick", "Book Line", "Model Total", "Edge",
         "Actual Total", "Notes", "Correct",
     ])

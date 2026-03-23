@@ -347,6 +347,30 @@ try:
     _startup_thread.start()
     print("[App] Startup data refresh triggered in background")
 
+    # Catch-up grading: grade any past dates that were never graded because the
+    # app wasn't running at 1 AM (e.g. Mac was sleeping, app was closed).
+    def _catchup_grade():
+        from utils.prediction_tracker import grade_predictions, _load_history
+        from datetime import date as _date, timedelta as _td
+        history = _load_history()
+        today = _date.today().isoformat()
+        missed = [
+            d for d, v in history.items()
+            if d < today and not v.get("graded_at")
+        ]
+        if missed:
+            print(f"[App] Catch-up grading {len(missed)} ungraded date(s): {missed}")
+            for d in sorted(missed):
+                try:
+                    grade_predictions(d)
+                except Exception as exc:
+                    print(f"[App] Catch-up grade failed for {d}: {exc}")
+        else:
+            print("[App] Catch-up grading: all past dates already graded")
+
+    _catchup_thread = _threading.Thread(target=_catchup_grade, daemon=True, name="catchup-grade")
+    _catchup_thread.start()
+
     # Pre-warm props cache and Today's Games API caches immediately at startup.
     # This runs at module-import time so it works under gunicorn (HuggingFace)
     # as well as direct `python app.py` invocation.
