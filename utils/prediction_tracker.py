@@ -222,6 +222,13 @@ def grade_predictions(date: str) -> dict:
 
     # Auto-update calibration after every graded day
     analyze_and_calibrate()
+
+    # Auto-export Excel so the file is always up to date
+    try:
+        export_to_excel()
+    except Exception as _e:
+        print(f"[Tracker] Excel export failed: {_e}")
+
     return summary
 
 
