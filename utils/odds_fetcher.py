@@ -58,6 +58,10 @@ _cache: dict = {}          # player_name → {stat → odds_dict}
 _cache_ts: float = 0.0     # unix timestamp of last fetch
 _requests_remaining: int | None = None  # track quota from response headers
 
+# Circuit breaker: if the player-props endpoint returns 401 (paid plan required)
+# stop making per-event calls for the rest of the session.
+_player_props_unavailable: bool = False
+
 # ── Game odds cache ──────────────────────────────────────────────────────────
 _game_odds_cache: dict = {}   # "(away_abbr)@(home_abbr)" → odds dict
 _game_odds_ts: float = 0.0
@@ -107,6 +111,12 @@ def get_live_odds(force_refresh: bool = False) -> dict:
     if not force_refresh and _cache and (time.time() - _cache_ts) < _CACHE_TTL:
         return _cache
 
+    global _player_props_unavailable
+
+    if _player_props_unavailable:
+        logger.debug("[OddsFetcher] Player props not available on current plan — skipping")
+        return _cache
+
     logger.info("[OddsFetcher] Fetching fresh odds from The Odds API …")
     try:
         event_ids = _fetch_event_ids()
@@ -118,9 +128,12 @@ def get_live_odds(force_refresh: bool = False) -> dict:
         markets = ",".join(MARKET_TO_STAT.keys())
 
         for event_id in event_ids:
+            if _player_props_unavailable:
+                break   # circuit breaker tripped mid-loop
             odds_data = _fetch_event_odds(event_id, markets)
             if odds_data:
                 _parse_event_odds(odds_data, fresh)
+            time.sleep(0.3)  # avoid 429 burst
 
         _cache = fresh
         _cache_ts = time.time()
@@ -371,15 +384,28 @@ def _parse_event_odds(event_data: dict, out: dict) -> None:
 
 def _get(url: str, params: dict) -> requests.Response | None:
     """GET with error handling — returns None on failure."""
+    global _player_props_unavailable
     try:
         resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()
         return resp
     except requests.HTTPError as e:
-        if e.response is not None and e.response.status_code == 401:
-            logger.error("[OddsFetcher] Invalid API key — check THE_ODDS_API_KEY")
-        elif e.response is not None and e.response.status_code == 422:
-            logger.debug(f"[OddsFetcher] No props available for event (422)")
+        status = e.response.status_code if e.response is not None else None
+        if status == 401:
+            # Check whether this is a per-event player props call (paid plan required)
+            if "/events/" in url and "/odds" in url:
+                if not _player_props_unavailable:
+                    logger.warning(
+                        "[OddsFetcher] Player props (per-event) require a paid plan — "
+                        "disabling for this session. Game odds (spreads/totals) still work."
+                    )
+                    _player_props_unavailable = True
+            else:
+                logger.error("[OddsFetcher] Invalid API key — check THE_ODDS_API_KEY in .env")
+        elif status == 422:
+            logger.debug("[OddsFetcher] No props available for event (422)")
+        elif status == 429:
+            logger.warning("[OddsFetcher] Rate limited (429) — too many requests in a short window")
         else:
             logger.warning(f"[OddsFetcher] HTTP error {e}")
         return None
