@@ -1662,84 +1662,100 @@ def create_best_props_page():
         date_note = label_date
 
     return html.Div([
+        # ── Flex row: left panel (hidden by default) + right props list ──────
         html.Div([
-            # Page header
+
+            # LEFT: player performance panel (starts collapsed)
+            html.Div(id="props-player-panel", style={
+                "width": "0px", "minWidth": "0px", "overflow": "hidden",
+                "transition": "width 0.35s ease, min-width 0.35s ease",
+                "flexShrink": "0",
+            }),
+
+            # RIGHT: existing props content
             html.Div([
-                html.Div("BEST PROPS" if has_todays_games else "BEST PROPS", style={
-                    "fontSize": "1.6rem", "fontWeight": "800", "marginBottom": "6px",
-                    "letterSpacing": "-0.02em",
-                    "background": "linear-gradient(135deg, #f0f4ff 40%, #8ca0c0 100%)",
-                    "WebkitBackgroundClip": "text", "WebkitTextFillColor": "transparent",
-                    "backgroundClip": "text"
-                }),
+                # Page header
                 html.Div([
-                    html.Span(date_note, style={"color": "var(--text-muted, #4a5a75)", "fontSize": "0.9rem"}),
-                    html.Span(f" • {len(props_data)} picks", style={"color": "var(--teal-400, #2dd4bf)", "marginLeft": "8px", "fontSize": "0.9rem", "fontWeight": "600"})
-                ], style={"marginBottom": "6px"}),
-                html.Div("Top value player props ranked by Expected Value — upcoming games only", style={"color": "var(--text-secondary, #8ca0c0)", "fontSize": "0.875rem", "marginBottom": "24px"}),
-            ]),
+                    html.Div("BEST PROPS", style={
+                        "fontSize": "1.6rem", "fontWeight": "800", "marginBottom": "6px",
+                        "letterSpacing": "-0.02em",
+                        "background": "linear-gradient(135deg, #f0f4ff 40%, #8ca0c0 100%)",
+                        "WebkitBackgroundClip": "text", "WebkitTextFillColor": "transparent",
+                        "backgroundClip": "text"
+                    }),
+                    html.Div([
+                        html.Span(date_note, style={"color": "var(--text-muted, #4a5a75)", "fontSize": "0.9rem"}),
+                        html.Span(f" • {len(props_data)} picks", style={"color": "var(--teal-400, #2dd4bf)", "marginLeft": "8px", "fontSize": "0.9rem", "fontWeight": "600"})
+                    ], style={"marginBottom": "6px"}),
+                    html.Div("Top value player props ranked by Expected Value — upcoming games only", style={"color": "var(--text-secondary, #8ca0c0)", "fontSize": "0.875rem", "marginBottom": "24px"}),
+                ]),
 
-            # Row 1: Stat type filter
-            html.Div([
-                html.Div("All Stats",  id="props-filter-all",  n_clicks=0, className="tab active"),
-                html.Div("Points",     id="props-filter-pts",  n_clicks=0, className="tab"),
-                html.Div("Assists",    id="props-filter-ast",  n_clicks=0, className="tab"),
-                html.Div("Rebounds",   id="props-filter-reb",  n_clicks=0, className="tab"),
-                html.Div("3-Pointers", id="props-filter-3pm",  n_clicks=0, className="tab"),
-                html.Div("Pts+Ast",    id="props-filter-pa",   n_clicks=0, className="tab"),
-                html.Div("Pts+Reb",    id="props-filter-pr",   n_clicks=0, className="tab"),
-                html.Div("Ast+Reb",    id="props-filter-ar",   n_clicks=0, className="tab"),
-                html.Div("PRA",         id="props-filter-pra",  n_clicks=0, className="tab"),
-                html.Div("🔒 LOCKS",   id="props-filter-lock", n_clicks=0, className="tab"),
-            ], className="tab-group", style={"marginBottom": "12px", "flexWrap": "wrap"}),
-
-            # Row 2: Location | Game | Sort — all on one line
-            html.Div([
-                html.Div("All", id="props-loc-all",  n_clicks=0, className="tab active"),
-                html.Div("Home",id="props-loc-home", n_clicks=0, className="tab"),
-                html.Div("Away",id="props-loc-away", n_clicks=0, className="tab"),
-
-                html.Div(style={"flex": "1"}),  # spacer
-
+                # Row 1: Stat type filter
                 html.Div([
-                    html.Span("Game:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
-                    dcc.Dropdown(
-                        id="props-game-filter",
-                        options=[{"label": "All Games", "value": "all"}] + [{"label": m, "value": m} for m in game_matchups],
-                        value="all",
-                        clearable=False,
-                        style={"width": "185px"},
-                        className="game-filter-dropdown"
-                    ),
-                ], style={"display": "flex" if game_matchups else "none", "alignItems": "center", "gap": "0"}),
+                    html.Div("All Stats",  id="props-filter-all",  n_clicks=0, className="tab active"),
+                    html.Div("Points",     id="props-filter-pts",  n_clicks=0, className="tab"),
+                    html.Div("Assists",    id="props-filter-ast",  n_clicks=0, className="tab"),
+                    html.Div("Rebounds",   id="props-filter-reb",  n_clicks=0, className="tab"),
+                    html.Div("3-Pointers", id="props-filter-3pm",  n_clicks=0, className="tab"),
+                    html.Div("Pts+Ast",    id="props-filter-pa",   n_clicks=0, className="tab"),
+                    html.Div("Pts+Reb",    id="props-filter-pr",   n_clicks=0, className="tab"),
+                    html.Div("Ast+Reb",    id="props-filter-ar",   n_clicks=0, className="tab"),
+                    html.Div("PRA",         id="props-filter-pra",  n_clicks=0, className="tab"),
+                    html.Div("🔒 LOCKS",   id="props-filter-lock", n_clicks=0, className="tab"),
+                ], className="tab-group", style={"marginBottom": "12px", "flexWrap": "wrap"}),
 
+                # Row 2: Location | Game | Sort — all on one line
                 html.Div([
-                    html.Span("Sort:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
-                    dcc.Dropdown(
-                        id="props-sort-dropdown",
-                        options=[
-                            {"label": "Highest EV",       "value": "ev"},
-                            {"label": "Highest Hit Rate", "value": "hit_rate"}
-                        ],
-                        value="ev",
-                        clearable=False,
-                        style={"width": "160px"},
-                        className="game-filter-dropdown"
-                    ),
-                ], style={"display": "flex", "alignItems": "center", "gap": "0"}),
+                    html.Div("All", id="props-loc-all",  n_clicks=0, className="tab active"),
+                    html.Div("Home",id="props-loc-home", n_clicks=0, className="tab"),
+                    html.Div("Away",id="props-loc-away", n_clicks=0, className="tab"),
 
-            ], style={"display": "flex", "alignItems": "center", "gap": "8px", "marginBottom": "24px", "flexWrap": "wrap"}),
+                    html.Div(style={"flex": "1"}),  # spacer
 
-            dcc.Store(id="props-data-store", data=props_data),
-            dcc.Store(id="props-location-filter", data="all"),
-            dcc.Store(id="props-stat-filter", data="all"),
+                    html.Div([
+                        html.Span("Game:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
+                        dcc.Dropdown(
+                            id="props-game-filter",
+                            options=[{"label": "All Games", "value": "all"}] + [{"label": m, "value": m} for m in game_matchups],
+                            value="all",
+                            clearable=False,
+                            style={"width": "185px"},
+                            className="game-filter-dropdown"
+                        ),
+                    ], style={"display": "flex" if game_matchups else "none", "alignItems": "center", "gap": "0"}),
 
-            # Prop cards container (populated by callback)
-            html.Div(id="props-list"),
+                    html.Div([
+                        html.Span("Sort:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
+                        dcc.Dropdown(
+                            id="props-sort-dropdown",
+                            options=[
+                                {"label": "Highest EV",       "value": "ev"},
+                                {"label": "Highest Hit Rate", "value": "hit_rate"}
+                            ],
+                            value="ev",
+                            clearable=False,
+                            style={"width": "160px"},
+                            className="game-filter-dropdown"
+                        ),
+                    ], style={"display": "flex", "alignItems": "center", "gap": "0"}),
 
-            html.Div(f"Last updated: {datetime.now().strftime('%I:%M %p')}", style={"color": "var(--text-muted)", "fontSize": "0.8rem", "textAlign": "center", "marginTop": "24px"})
+                ], style={"display": "flex", "alignItems": "center", "gap": "8px", "marginBottom": "24px", "flexWrap": "wrap"}),
 
-        ], style={"maxWidth": "800px", "margin": "0 auto"})
+                dcc.Store(id="props-data-store", data=props_data),
+                dcc.Store(id="props-location-filter", data="all"),
+                dcc.Store(id="props-stat-filter", data="all"),
+                dcc.Store(id="props-panel-store", data=None),
+                dcc.Store(id="props-panel-stat", data=None),
+
+                # Prop cards container (populated by callback)
+                html.Div(id="props-list"),
+
+                html.Div(f"Last updated: {datetime.now().strftime('%I:%M %p')}", style={"color": "var(--text-muted)", "fontSize": "0.8rem", "textAlign": "center", "marginTop": "24px"})
+
+            ], style={"flex": "1", "minWidth": "0", "maxWidth": "800px"}),
+
+        ], style={"display": "flex", "gap": "20px", "alignItems": "flex-start",
+                  "maxWidth": "1280px", "margin": "0 auto"}),
     ])
 
 
@@ -1984,22 +2000,30 @@ def update_stat_filter(*_):
 
 
 @callback(
-    [Output("player-dropdown", "value"),
-     Output("url", "pathname")],
-    Input({"type": "prop-player-name", "index": ALL}, "n_clicks"),
+    Output("props-panel-store", "data"),
+    Input({"type": "prop-player-name",  "index": ALL}, "n_clicks"),
+    Input({"type": "prop-player-photo", "index": ALL}, "n_clicks"),
     prevent_initial_call=True,
 )
-def select_player_from_prop(n_clicks_list):
-    """Navigate to player analysis page when a prop card player name is clicked."""
+def open_props_player_panel(name_clicks, photo_clicks):
+    """Open the left performance panel when a player photo or name is clicked."""
     from dash import ctx
-    if not any(n_clicks_list):
+    all_clicks = (name_clicks or []) + (photo_clicks or [])
+    if not any(all_clicks):
         from dash.exceptions import PreventUpdate
         raise PreventUpdate
     triggered = ctx.triggered_id
-    if triggered and isinstance(triggered, dict):
-        return triggered["index"], "/"
-    from dash.exceptions import PreventUpdate
-    raise PreventUpdate
+    if not (triggered and isinstance(triggered, dict)):
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    raw = triggered["index"]                    # "Matisse Thybulle|FG3M"
+    parts = raw.split("|", 1)
+    player      = parts[0]
+    default_stat = parts[1] if len(parts) > 1 else "PTS"
+    # Normalise combo stats to the first component for the chart default
+    if "+" in default_stat:
+        default_stat = default_stat.split("+")[0]
+    return {"player": player, "default_stat": default_stat, "active_stat": default_stat}
 
 
 def _build_odds_row(prop: dict, stat_color: str, avg: float, location_label: str, hit_pct: int) -> list:
@@ -2195,7 +2219,8 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
         prop_card = html.Div([
             # ── Header row: photo / name / matchup badge / hit% / EV ──────────
             html.Div([
-                html.Div([
+                # Clickable photo — opens the left panel
+                html.Div(
                     html.Img(src=player_photo, style={
                         "width": "52px", "height": "52px", "borderRadius": "50%",
                         "objectFit": "cover", "backgroundColor": "var(--bg-tertiary)",
@@ -2205,13 +2230,16 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
                         "width": "52px", "height": "52px", "borderRadius": "50%",
                         "background": "linear-gradient(135deg, rgba(20,184,166,0.15), rgba(139,92,246,0.15))",
                         "border": "2px solid rgba(20,184,166,0.25)"
-                    })
-                ], style={"marginRight": "14px", "flexShrink": "0"}),
+                    }),
+                    id={"type": "prop-player-photo", "index": f"{prop.get('player','')}|{prop.get('stat','PTS')}"},
+                    n_clicks=0,
+                    style={"marginRight": "14px", "flexShrink": "0", "cursor": "pointer"},
+                ),
                 html.Div([
                     html.Div([
                         html.Span(
                             prop.get("player", ""),
-                            id={"type": "prop-player-name", "index": prop.get("player", "")},
+                            id={"type": "prop-player-name", "index": f"{prop.get('player','')}|{prop.get('stat','PTS')}"},
                             n_clicks=0,
                             style={"fontWeight": "700", "fontSize": "1.1rem", "cursor": "pointer",
                                    "borderBottom": "1px dashed var(--text-muted)"}
@@ -3105,6 +3133,220 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
     )
 
     return fig
+
+
+def _build_props_panel_chart(player_name: str, stat: str, n_games: int = 10):
+    """Bar chart for the Best Props player panel — last N games, avg line."""
+    _VALID_STATS = {"PTS", "AST", "REB", "FG3M", "STL", "BLK", "PF", "MIN"}
+    if stat not in _VALID_STATS:
+        stat = "PTS"
+
+    player_df = (
+        DF[DF["PLAYER_NAME"] == player_name]
+        .sort_values("_date", ascending=False)
+        .head(n_games)
+        .iloc[::-1]   # chronological
+    )
+
+    fig = go.Figure()
+    empty_layout = dict(
+        template="plotly_dark",
+        paper_bgcolor=COLORS["card"],
+        plot_bgcolor=COLORS["card"],
+        height=260,
+        margin=dict(l=30, r=10, t=10, b=10),
+    )
+    if player_df.empty or stat not in player_df.columns:
+        fig.update_layout(**empty_layout)
+        return fig
+
+    # x-axis labels: date + opponent
+    labels = []
+    for _, row in player_df.iterrows():
+        date_str = row["_date"].strftime("%-m/%d") if pd.notna(row["_date"]) else ""
+        matchup  = str(row.get("MATCHUP", ""))
+        if "@" in matchup:
+            opp = "@ " + matchup.split("@")[-1].strip()[:3]
+        elif "vs." in matchup:
+            opp = "vs " + matchup.split("vs.")[-1].strip()[:3]
+        else:
+            opp = ""
+        labels.append(f"{date_str}<br>{opp}")
+
+    values  = pd.to_numeric(player_df[stat], errors="coerce").fillna(0)
+    avg_val = values.mean()
+    color   = get_stat_color(stat)
+    bar_colors = [color if v >= avg_val else "rgba(100,116,139,0.4)" for v in values]
+
+    fig.add_trace(go.Bar(
+        x=list(range(len(player_df))),
+        y=values,
+        marker_color=bar_colors,
+        text=[f"{int(v)}" for v in values],
+        textposition="outside",
+        textfont=dict(size=11, color=COLORS["text"]),
+        hovertemplate=f"{stat}: %{{y}}<extra></extra>",
+    ))
+    fig.add_hline(
+        y=avg_val, line_dash="dash", line_color=COLORS["text_secondary"], line_width=1.5,
+        annotation_text=f"Avg {avg_val:.1f}",
+        annotation_position="top left",
+        annotation_font_color=COLORS["text_secondary"],
+    )
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor=COLORS["card"],
+        plot_bgcolor=COLORS["card"],
+        margin=dict(l=30, r=10, t=20, b=60),
+        height=260,
+        showlegend=False,
+        xaxis=dict(
+            tickmode="array", tickvals=list(range(len(player_df))), ticktext=labels,
+            tickfont=dict(size=9, color=COLORS["text_muted"]),
+            tickangle=-40, showgrid=False,
+        ),
+        yaxis=dict(gridcolor=COLORS["border"], tickfont=dict(size=10, color=COLORS["text_muted"]), showgrid=True),
+        bargap=0.25,
+    )
+    return fig
+
+
+# ── Best Props player panel callbacks ────────────────────────────────────────
+
+@callback(
+    [Output("props-player-panel", "children"),
+     Output("props-player-panel", "style")],
+    [Input("props-panel-store", "data"),
+     Input("props-panel-stat",  "data")],
+    prevent_initial_call=True,
+)
+def render_props_player_panel(store_data, active_stat_override):
+    """Render (or hide) the left player performance panel."""
+    _hidden = {"width": "0px", "minWidth": "0px", "overflow": "hidden",
+               "transition": "width 0.35s ease, min-width 0.35s ease", "flexShrink": "0"}
+    if not store_data:
+        return None, _hidden
+
+    player      = store_data["player"]
+    default_stat = store_data.get("default_stat", "PTS")
+    active       = active_stat_override or default_stat
+
+    # Stat tab order: prop stat first, then the standard set
+    _BASE_STATS = ["PTS", "AST", "REB", "FG3M", "STL", "BLK"]
+    panel_stats = [default_stat] + [s for s in _BASE_STATS if s != default_stat]
+
+    stat_tabs = [
+        html.Div(
+            s,
+            id={"type": "props-panel-stat-tab", "index": s},
+            n_clicks=0,
+            className="tab active" if s == active else "tab",
+            style={"fontSize": "0.75rem", "padding": "4px 10px"},
+        )
+        for s in panel_stats
+    ]
+
+    player_id = PLAYER_IDS.get(player, "")
+    photo_url = f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_id}.png" if player_id else ""
+    chart_fig = _build_props_panel_chart(player, active, n_games=10)
+
+    content = html.Div([
+        # Header: photo | name | close
+        html.Div([
+            html.Img(src=photo_url, style={
+                "width": "42px", "height": "42px", "borderRadius": "50%",
+                "objectFit": "cover", "border": "2px solid rgba(20,184,166,0.4)",
+                "flexShrink": "0",
+            }) if photo_url else None,
+            html.Div([
+                html.Div(player, style={"fontWeight": "700", "fontSize": "0.95rem", "color": COLORS["text"]}),
+                html.Div("Last 10 games", style={"fontSize": "0.75rem", "color": COLORS["text_muted"]}),
+            ], style={"flex": "1", "marginLeft": "10px", "minWidth": "0"}),
+            # Full analysis link
+            html.Span(
+                "↗",
+                id="props-panel-goto",
+                n_clicks=0,
+                title="Open full player analysis",
+                style={"color": "var(--accent-primary)", "fontSize": "1.1rem",
+                       "cursor": "pointer", "marginRight": "10px"},
+            ),
+            # Close button
+            html.Span(
+                "×",
+                id="props-panel-close",
+                n_clicks=0,
+                style={"cursor": "pointer", "fontSize": "1.5rem", "lineHeight": "1",
+                       "color": COLORS["text_muted"], "padding": "0 2px"},
+            ),
+        ], style={"display": "flex", "alignItems": "center", "marginBottom": "12px"}),
+
+        # Stat tabs
+        html.Div(stat_tabs, className="tab-group",
+                 style={"marginBottom": "10px", "flexWrap": "wrap", "gap": "4px"}),
+
+        # Chart
+        dcc.Graph(id="props-panel-chart", figure=chart_fig,
+                  config={"displayModeBar": False}),
+
+    ], style={"padding": "14px"}, className="card")
+
+    _visible = {
+        "width": "400px", "minWidth": "400px",
+        "overflow": "hidden",
+        "transition": "width 0.35s ease, min-width 0.35s ease",
+        "flexShrink": "0",
+        "position": "sticky", "top": "72px",
+        "maxHeight": "calc(100vh - 90px)", "overflowY": "auto",
+        "alignSelf": "flex-start",
+    }
+    return content, _visible
+
+
+@callback(
+    Output("props-panel-stat", "data"),
+    Input({"type": "props-panel-stat-tab", "index": ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def switch_props_panel_stat(n_clicks_list):
+    """Switch the active stat tab in the player panel."""
+    from dash import ctx
+    if not any(n or 0 for n in n_clicks_list):
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    triggered = ctx.triggered_id
+    if triggered and isinstance(triggered, dict):
+        return triggered["index"]
+    from dash.exceptions import PreventUpdate
+    raise PreventUpdate
+
+
+@callback(
+    Output("props-panel-store", "data", allow_duplicate=True),
+    Input("props-panel-close", "n_clicks"),
+    prevent_initial_call=True,
+)
+def close_props_panel(n_clicks):
+    """Dismiss the player panel."""
+    if n_clicks:
+        return None
+    from dash.exceptions import PreventUpdate
+    raise PreventUpdate
+
+
+@callback(
+    [Output("player-dropdown", "value", allow_duplicate=True),
+     Output("url", "pathname", allow_duplicate=True)],
+    Input("props-panel-goto", "n_clicks"),
+    State("props-panel-store", "data"),
+    prevent_initial_call=True,
+)
+def goto_full_analysis_from_panel(n_clicks, store_data):
+    """Navigate to full Player Analysis for the panel's player."""
+    if n_clicks and store_data:
+        return store_data["player"], "/"
+    from dash.exceptions import PreventUpdate
+    raise PreventUpdate
 
 
 @callback(

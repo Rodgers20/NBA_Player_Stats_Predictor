@@ -468,10 +468,9 @@ def _compute_callback_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_
     return best_props
 
 
-def _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn):
+def _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn, availability_map=None):
     """Compute props for create_best_props_content() sidebar."""
     from utils.prop_scorer import calculate_smart_prop_score
-    from utils.injury_news import get_player_injury_status
 
     teams_today = set(game_info["team_to_opponent"].keys())
     has_todays_games = game_info["has_todays_games"]
@@ -498,12 +497,11 @@ def _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_i
         if has_todays_games and player_team not in teams_today:
             continue
 
-        try:
-            injury_status = get_player_injury_status(player_name)
-            if injury_status.get("status") == "OUT":
+        # Skip players who are OUT or DOUBTFUL — use the pre-fetched availability map
+        if availability_map is not None:
+            is_avail, _ = availability_map.get(player_name, (True, ""))
+            if not is_avail:
                 continue
-        except Exception:
-            pass
 
         opponent = game_info["team_to_opponent"].get(player_team, "")
         if not opponent:
@@ -668,7 +666,7 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
     # Compute all 3 data sets
     main_data = _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze)
     callback_data = _compute_callback_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, availability_map)
-    sidebar_data = _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn)
+    sidebar_data = _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn, availability_map=availability_map)
 
     elapsed = (datetime.now() - start).total_seconds()
 

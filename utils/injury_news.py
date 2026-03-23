@@ -222,7 +222,7 @@ _ESPN_STATUS_MAP = {
 _espn_injury_cache: dict = {}           # {player_name_lower: {status, reason, source, team_abbr}}
 _espn_team_injuries: dict = {}          # {team_abbr_upper: [{name, status, reason}, ...]}
 _espn_injury_timestamp: Optional[datetime] = None
-_ESPN_INJURY_TTL = 14400  # 4 hours
+_ESPN_INJURY_TTL = 3600  # 1 hour
 
 # ESPN full team name → 3-letter abbreviation (mirrors odds_fetcher mapping)
 _ESPN_TEAM_ABBR: dict = {
@@ -421,7 +421,8 @@ def search_player_news(player_name: str, news_items: list[dict] = None) -> list[
 OUT_KEYWORDS = [
     "out", "ruled out", "will miss", "sidelined", "will not play",
     "surgery", "inactive", "dnp", "shut down", "out indefinitely",
-    "season-ending", "out for"
+    "season-ending", "out for", "collapsed lung", "pneumothorax",
+    "suffers", "sustains", "fracture", "torn", "rupture",
 ]
 
 DOUBTFUL_KEYWORDS = [
@@ -514,6 +515,9 @@ def get_player_injury_status(player_name: str) -> dict:
     """
     Get the current injury status for a player.
 
+    Checks ESPN structured injury API first (most authoritative), then falls
+    back to news-scraping analysis for players not on the ESPN injury report.
+
     Returns:
         Dictionary with:
         - status: "OUT", "DOUBTFUL", "QUESTIONABLE", "PROBABLE", or "ACTIVE"
@@ -522,22 +526,34 @@ def get_player_injury_status(player_name: str) -> dict:
         - news: List of relevant news items with source links
         - checked_at: Timestamp
     """
-    # Fetch fresh news from all sources
-    all_news = get_nba_injury_news(limit=100)
+    # 1. ESPN structured data is authoritative — check it first
+    espn_data = _fetch_espn_injury_structured()
+    espn_entry = espn_data.get(player_name.lower())
 
-    # Filter for this player
+    # Fetch news regardless (needed for the news feed display)
+    all_news = get_nba_injury_news(limit=100)
     player_news = search_player_news(player_name, all_news)
 
-    # Analyze status
-    analysis = analyze_injury_status(player_news)
+    if espn_entry:
+        status_text = espn_entry["status"]
+        reason = espn_entry["reason"]
+        confidence = 0.95  # ESPN structured data is highly reliable
+        injury_type = extract_injury_type(reason)
+    else:
+        # Fall back to news-scraping analysis
+        analysis = analyze_injury_status(player_news)
+        status_text = analysis["status"]
+        reason = analysis["reason"]
+        confidence = analysis["confidence"]
+        injury_type = analysis.get("injury_type")
 
     return {
         "player": player_name,
-        "status": analysis["status"],
-        "confidence": analysis["confidence"],
-        "reason": analysis["reason"],
-        "injury_type": analysis.get("injury_type"),
-        "news": player_news[:5],  # Return top 5 with links
+        "status": status_text,
+        "confidence": confidence,
+        "reason": reason,
+        "injury_type": injury_type,
+        "news": player_news[:5],
         "checked_at": datetime.now().isoformat()
     }
 
@@ -656,6 +672,9 @@ def extract_injury_type(news_text: str) -> Optional[str]:
         (r"hip\s*(injury|soreness)", "hip"),
         (r"rest|load management", "rest"),
         (r"personal|personal reasons", "personal"),
+        (r"collapsed lung|pneumothorax", "collapsed lung"),
+        (r"rib\s*(injury|fracture|contusion)", "rib"),
+        (r"chest\s*(injury|contusion)", "chest"),
     ]
 
     text_lower = news_text.lower()
