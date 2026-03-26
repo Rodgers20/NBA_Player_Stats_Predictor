@@ -58,9 +58,13 @@ _cache: dict = {}          # player_name → {stat → odds_dict}
 _cache_ts: float = 0.0     # unix timestamp of last fetch
 _requests_remaining: int | None = None  # track quota from response headers
 
+# Player props (per-event odds) require a paid plan and burn many API calls.
+# Set to True to disable entirely — game odds (spread/totals/h2h) still work.
+PLAYER_PROPS_ENABLED: bool = False
+
 # Circuit breaker: if the player-props endpoint returns 401 (paid plan required)
 # stop making per-event calls for the rest of the session.
-_player_props_unavailable: bool = False
+_player_props_unavailable: bool = not PLAYER_PROPS_ENABLED
 
 # ── Game odds cache ──────────────────────────────────────────────────────────
 _game_odds_cache: dict = {}   # "(away_abbr)@(home_abbr)" → odds dict

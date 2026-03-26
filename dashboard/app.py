@@ -207,8 +207,11 @@ if "Player_ID" in DF.columns:
         player_rows = DF[DF["PLAYER_NAME"] == name]
         if len(player_rows) > 0:
             pid = player_rows["Player_ID"].iloc[0]
-            if pid:
-                PLAYER_IDS[name] = int(pid)
+            try:
+                if pid and not (isinstance(pid, float) and pd.isna(pid)):
+                    PLAYER_IDS[name] = int(pid)
+            except (ValueError, TypeError):
+                pass
 
 print(f"Player photos available: {len(PLAYER_IDS)}")
 
@@ -378,11 +381,10 @@ try:
         # 1. Pre-fetch games + odds so first page visit hits in-memory cache
         try:
             from utils.data_fetch import get_todays_games
-            from utils.odds_fetcher import get_game_odds, get_live_odds
+            from utils.odds_fetcher import get_game_odds
             get_todays_games()
             get_game_odds()
-            get_live_odds()
-            print("[App] Today's Games + Odds caches warmed")
+            print("[App] Today's Games + Game Odds caches warmed")
         except Exception as e:
             print(f"[App] Games/Odds warm failed: {e}")
 
@@ -420,8 +422,8 @@ COLORS = {
     "fg3m": "#ec4899",       # Pink  — 3-pointers
 
     # Hit/miss
-    "hit":  "#22c55e",       # Green  — above threshold
-    "miss": "#f43f5e",       # Rose   — below threshold
+    "hit":  "#2DD4BF",       # Teal   — above threshold
+    "miss": "#FB7185",       # Rose   — below threshold
 
     # Hit rate tiers
     "hit_high": "#22c55e",   # Green  66%+
@@ -601,17 +603,11 @@ def get_team_logo_url(team_abbr):
     return ""
 
 def get_player_headshot_url(player_name):
-    """Get NBA CDN headshot URL for a player"""
+    """Get NBA CDN headshot URL for a player (1040x760 for banner quality)."""
     player_id = PLAYER_IDS.get(player_name)
     if player_id:
-        # standard 260x190 endpoint which is more reliable
-        url = f"https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/260x190/{player_id}.png"
-        # print(f"DEBUG: Player headshot URL for {player_name}: {url}")
-        return url
-    
-    # Generic fallback
-    fallback_url = "https://cdn.nba.com/headshots/nba/latest/260x190/fallback.png"
-    return fallback_url
+        return f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_id}.png"
+    return ""
 
 # =============================================================================
 # LAYOUT
@@ -643,231 +639,239 @@ app.layout = html.Div([
 def create_player_analysis_page():
     """Create the main player analysis page layout"""
     return html.Div([
-        # Header with player photo and info
+
+        # ── Hidden stores & auto-refresh ──────────────────────────────────────
+        dcc.Store(id="selected-stat", data="PTS"),
+        dcc.Store(id="selected-period", data=10),
+        dcc.Store(id="selected-season", data=None),
+        dcc.Store(id="selected-h2h", data=None),
+        dcc.Store(id="selected-location", data=None),
+        dcc.Store(id="current-season-store", data=CURRENT_SEASON),
+        dcc.Store(id="previous-season-store", data=PREVIOUS_SEASON),
+        dcc.Store(id="supporting-stat-mode", data="average"),
+        dcc.Store(id="selected-shooting-stat", data="FG"),
+        dcc.Store(id="sidebar-tab", data="matchup"),
+        dcc.Store(id="last-update-time", data=datetime.now().isoformat()),
+        # Hidden photo div (keeps callback wiring intact)
+        html.Div(id="player-photo", style={"display": "none"}),
+
+        dcc.Interval(id="auto-refresh-interval", interval=5 * 60 * 1000, n_intervals=0),
+
+        # ── Header row: player info (left) + search bar (right) ──────────────
         html.Div([
+            # Player info (photo + name + badges + stats) — filled by callback
+            html.Div(id="player-header", style={"flex": "1", "minWidth": "0"}),
+
+            # Search bar (right side)
             html.Div([
-                # Player photo
-                html.Div(id="player-photo", style={
-                    "width": "84px",
-                    "height": "84px",
-                    "borderRadius": "50%",
-                    "overflow": "hidden",
-                    "marginRight": "20px",
-                    "background": "linear-gradient(135deg, rgba(20,184,166,0.2), rgba(139,92,246,0.2))",
-                    "border": "2px solid rgba(20,184,166,0.35)",
-                    "boxShadow": "0 0 20px rgba(20,184,166,0.2)",
-                    "flexShrink": "0",
+                html.Span("⌕", style={
+                    "fontSize": "1.1rem", "color": "#6b7280",
+                    "marginRight": "10px", "flexShrink": "0",
                 }),
+                dcc.Dropdown(
+                    id="player-dropdown",
+                    options=[{"label": p, "value": p} for p in PLAYERS],
+                    value=PLAYERS[0] if PLAYERS else None,
+                    placeholder="Search NBA Players...",
+                    searchable=True,
+                    clearable=False,
+                    className="player-search-dropdown",
+                    style={"flex": "1", "border": "none", "background": "transparent",
+                           "boxShadow": "none", "minWidth": "200px"},
+                ),
+            ], className="player-search-bar", style={
+                "width": "300px",
+                "flexShrink": "0",
+            }),
+        ], style={
+            "display": "flex",
+            "alignItems": "center",
+            "justifyContent": "space-between",
+            "gap": "20px",
+            "marginBottom": "20px",
+        }),
 
-                # Player info and dropdown
-                html.Div([
-                    dcc.Dropdown(
-                        id="player-dropdown",
-                        options=[{"label": p, "value": p} for p in PLAYERS],
-                        value=PLAYERS[0] if PLAYERS else None,
-                        placeholder="Search player...",
-                        searchable=True,
-                        clearable=False,
-                        className="player-search-dropdown",
-                        style={"width": "300px"}
-                    ),
-                    html.Div(id="player-header", style={"marginTop": "8px"}),
-                ]),
-            ], style={"display": "flex", "alignItems": "center", "flexWrap": "wrap"}),
-        ], className="card", style={"padding": "1.5rem", "marginBottom": "2rem"}),
-
-        # Main content
+        # ── Stat & period filters ─────────────────────────────────────────────
         html.Div([
-            # Left panel - Main chart area
             html.Div([
-                # Stat type tabs
-                html.Div([
-                    html.Button(
-                        s["label"],
-                        id=f"tab-{s['id'].lower().replace('+', '-')}",
-                        n_clicks=0,
-                        className="tab" + (" active" if s["id"] == "PTS" else "")
-                    ) for s in STAT_TYPES
-                ], className="tab-group"),
+                html.Button(
+                    s["label"],
+                    id=f"tab-{s['id'].lower().replace('+', '-')}",
+                    n_clicks=0,
+                    className="tab" + (" active" if s["id"] == "PTS" else "")
+                ) for s in STAT_TYPES
+            ], className="tab-group"),
+            html.Div([
+                html.Button("L5",  id="period-l5",       n_clicks=0, className="tab"),
+                html.Button("L10", id="period-l10",      n_clicks=0, className="tab active"),
+                html.Button("L20", id="period-l20",      n_clicks=0, className="tab"),
+                html.Button("H2H", id="period-h2h",      n_clicks=0, className="tab"),
+                html.Button("H/W", id="period-hw",       n_clicks=0, className="tab"),
+                html.Button(CURRENT_SEASON.split("-")[0],  id="period-current",  n_clicks=0, className="tab"),
+                html.Button(PREVIOUS_SEASON.split("-")[0], id="period-previous", n_clicks=0, className="tab"),
+            ], className="tab-group"),
+        ], className="analysis-filters", style={"marginBottom": "16px"}),
 
-                # Store for selected stat
-                dcc.Store(id="selected-stat", data="PTS"),
+        # ── Main 2-column: chart area (left) + matchup/sidebar (right) ────────
+        html.Div([
 
-                # Time period tabs
-                html.Div([
-                    html.Button("L5", id="period-l5", n_clicks=0, className="tab"),
-                    html.Button("L10", id="period-l10", n_clicks=0, className="tab active"),
-                    html.Button("L20", id="period-l20", n_clicks=0, className="tab"),
-                    html.Button("H2H", id="period-h2h", n_clicks=0, className="tab"),
-                    html.Button("H/W", id="period-hw", n_clicks=0, className="tab"),
-                    html.Button(CURRENT_SEASON.split("-")[0], id="period-current", n_clicks=0, className="tab"),
-                    html.Button(PREVIOUS_SEASON.split("-")[0], id="period-previous", n_clicks=0, className="tab"),
-                ], className="tab-group"),
-
-                dcc.Store(id="selected-period", data=10),
-                dcc.Store(id="selected-season", data=None),
-                dcc.Store(id="selected-h2h", data=None),
-                dcc.Store(id="selected-location", data=None),
-                dcc.Store(id="current-season-store", data=CURRENT_SEASON),
-                dcc.Store(id="previous-season-store", data=PREVIOUS_SEASON),
-
-                # Hit rate header with avg/median
-                html.Div(id="hit-rate-header", style={"marginBottom": "20px"}),
+            # LEFT — chart + threshold + hit-rate header
+            html.Div([
+                # Hit rate header
+                html.Div(id="hit-rate-header", style={"marginBottom": "14px"}),
 
                 # Threshold slider
                 html.Div([
                     html.Div("Threshold:", style={
-                        "color": "var(--text-secondary)",
-                        "fontSize": "0.8rem",
-                        "marginRight": "12px",
-                        "minWidth": "70px"
+                        "color": "var(--text-secondary)", "fontSize": "0.8rem",
+                        "marginRight": "12px", "minWidth": "70px",
                     }),
                     html.Div([
                         dcc.Slider(
-                            id="threshold-slider",
-                            min=0,
-                            max=50,
-                            step=0.5,
-                            value=10,
-                            marks={
-                                0: {"label": "0", "style": {"color": COLORS["text_secondary"]}},
-                                10: {"label": "10", "style": {"color": COLORS["text_secondary"]}},
-                                20: {"label": "20", "style": {"color": COLORS["text_secondary"]}},
-                                30: {"label": "30", "style": {"color": COLORS["text_secondary"]}},
-                                40: {"label": "40", "style": {"color": COLORS["text_secondary"]}},
-                                50: {"label": "50", "style": {"color": COLORS["text_secondary"]}},
-                            },
-                            included=True,
-                            tooltip=None,
+                            id="threshold-slider", min=0, max=50, step=0.5, value=10,
+                            marks={i: {"label": str(i), "style": {"color": COLORS["text_secondary"]}}
+                                   for i in [0, 10, 20, 30, 40, 50]},
+                            included=True, tooltip=None,
                         ),
                     ], style={"flex": "1", "marginRight": "16px"}),
                     html.Div(id="threshold-display", style={
-                        "color": "var(--teal-400, #2dd4bf)",
-                        "fontSize": "1.15rem",
-                        "fontWeight": "700",
-                        "minWidth": "60px",
-                        "textAlign": "center",
+                        "color": "var(--teal-400, #2dd4bf)", "fontSize": "1.15rem",
+                        "fontWeight": "700", "minWidth": "60px", "textAlign": "center",
                         "backgroundColor": "rgba(20,184,166,0.12)",
                         "border": "1px solid rgba(20,184,166,0.3)",
-                        "padding": "4px 14px",
-                        "borderRadius": "8px",
+                        "padding": "4px 14px", "borderRadius": "8px",
                         "fontFamily": "var(--font-mono, 'Fira Code', monospace)",
                     }),
-                ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
+                ], style={"display": "flex", "alignItems": "center", "marginBottom": "14px"}),
 
-                # Main chart
+                # Main chart — inside analysis card
                 html.Div([
-                    dcc.Graph(id="main-chart", config={"displayModeBar": False})
-                ], className="card"),
+                    html.Div("Last 10 Games Performance vs. Betting Lines",
+                             className="analysis-card-title"),
+                    dcc.Graph(id="main-chart", config={"displayModeBar": False}),
+                ], className="analysis-card"),
 
-                # Average/Median footer
+                # Avg/Median footer
                 html.Div(id="avg-median-footer", style={
-                    "display": "flex",
-                    "justifyContent": "center",
-                    "gap": "40px",
+                    "display": "flex", "justifyContent": "center", "gap": "40px",
                     "padding": "12px 20px",
                     "background": "rgba(255,255,255,0.03)",
                     "border": "1px solid rgba(255,255,255,0.06)",
                     "backdropFilter": "blur(8px)",
                     "borderRadius": "12px",
-                    "marginBottom": "16px"
                 }),
 
-                # Supporting Stats Section
+                # ── Supporting Stats (inside left column) ─────────────────────
                 html.Div([
-                    # Header with Average/Median toggle
+
+                    # Row 1: Title + toggle
                     html.Div([
                         html.Div("Supporting Stats", style={
-                            "fontSize": "1.1rem",
-                            "fontWeight": "700",
+                            "fontSize": "1.1rem", "fontWeight": "700", "color": "#f1f5f9",
                         }),
                         html.Div([
-                            html.Button("Average", id="supporting-avg-btn", n_clicks=1, className="btn", style={"backgroundColor": "var(--bg-tertiary)"}),
-                            html.Button("Median", id="supporting-median-btn", n_clicks=0, className="btn", style={"backgroundColor": "transparent"}),
-                        ])
+                            html.Button("Average", id="supporting-avg-btn",    n_clicks=1, className="btn",
+                                        style={"backgroundColor": "var(--bg-tertiary)"}),
+                            html.Button("Median",  id="supporting-median-btn", n_clicks=0, className="btn",
+                                        style={"backgroundColor": "transparent"}),
+                        ]),
                     ], style={
-                        "display": "flex",
-                        "justifyContent": "space-between",
+                        "display": "flex", "justifyContent": "space-between",
                         "alignItems": "center",
-                        "marginBottom": "20px"
-                    }),
-
-                    # Store for average/median selection
-                    dcc.Store(id="supporting-stat-mode", data="average"),
-
-                    # ── Trend Insight — moved to TOP ───────────────────────────
-                    html.Div([
-                        html.Div([
-                            html.Span("💡", style={"fontSize": "15px", "marginRight": "8px"}),
-                            html.Span("TREND INSIGHT", style={
-                                "fontSize": "11px",
-                                "fontWeight": "700",
-                                "letterSpacing": "1.5px",
-                                "color": "#34d399",
-                            }),
-                        ], style={"marginBottom": "10px", "display": "flex", "alignItems": "center"}),
-                        html.Div(id="player-insights", style={
-                            "color": "rgba(255,255,255,0.90)",
-                            "fontSize": "0.92rem",
-                            "lineHeight": "1.75",
-                        })
-                    ], style={
-                        "background": "linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(6,182,212,0.08) 100%)",
-                        "border": "1px solid rgba(52,211,153,0.25)",
-                        "borderLeft": "3px solid #34d399",
-                        "borderRadius": "10px",
-                        "padding": "14px 18px",
+                        "paddingBottom": "20px",
+                        "borderBottom": "1px solid rgba(30,41,59,0.6)",
                         "marginBottom": "20px",
                     }),
 
-                    # Supporting stats cards
-                    html.Div(id="supporting-stats-cards", style={
-                        "display": "flex",
-                        "gap": "12px",
-                        "marginBottom": "24px",
-                        "flexWrap": "wrap"
+                    # Row 2: Trend insight box
+                    html.Div([
+                        html.Div(style={
+                            "position": "absolute", "left": "0", "top": "0", "bottom": "0",
+                            "width": "4px", "background": "#2DD4BF",
+                            "boxShadow": "0 0 10px rgba(45,212,191,0.5)",
+                            "borderRadius": "12px 0 0 12px",
+                        }),
+                        html.Div([
+                            html.Div([
+                                html.Span("💡", style={"fontSize": "14px", "marginRight": "8px"}),
+                                html.Span("TREND INSIGHT", style={
+                                    "fontSize": "10px", "fontWeight": "700",
+                                    "letterSpacing": "2px", "color": "#2DD4BF",
+                                }),
+                            ], style={"marginBottom": "12px", "display": "flex", "alignItems": "center"}),
+                            html.Div(id="player-insights", style={
+                                "color": "rgba(255,255,255,0.85)", "fontSize": "0.88rem", "lineHeight": "1.8",
+                            }),
+                        ], style={"paddingLeft": "4px"}),
+                    ], style={
+                        "background": "linear-gradient(to right, rgba(45,212,191,0.10), transparent)",
+                        "border": "1px solid rgba(45,212,191,0.20)",
+                        "borderLeft": "none",
+                        "borderRadius": "12px",
+                        "padding": "16px 20px",
+                        "marginBottom": "20px",
+                        "position": "relative",
+                        "overflow": "hidden",
                     }),
 
-                    # Store for selected shooting stat
-                    dcc.Store(id="selected-shooting-stat", data="FG"),
+                    # Row 3: Stat mini-cards (5 across, compact)
+                    html.Div(id="supporting-stats-cards", style={
+                        "display": "grid",
+                        "gridTemplateColumns": "repeat(5, 1fr)",
+                        "gap": "10px",
+                    }),
+                    html.Div(id="shooting-breakdown-chart", style={"display": "none"}),
 
-                    # Shooting breakdown chart (stacked bar)
-                    html.Div([
-                        dcc.Graph(id="shooting-breakdown-chart", config={"displayModeBar": False})
-                    ]),
-                ], className="card"),
+                ], className="analysis-card"),
 
-
-            ], className="content-area"),
-
-            # Right panel - Sidebar
-            html.Div([
-                # Tabs for sidebar sections
+                # ── Season Trends (inside left column) ────────────────────────
                 html.Div([
-                    html.Button("Matchup", id="sidebar-matchup", n_clicks=1, className="tab active"),
-                    html.Button("Injuries", id="sidebar-injuries", n_clicks=0, className="tab"),
-                    html.Button("Insights", id="sidebar-insights", n_clicks=0, className="tab"),
-                    html.Button("Best Props", id="sidebar-props", n_clicks=0, className="tab"),
-                ], className="tab-group"),
+                    html.Div("Season Trends", className="analysis-card-title"),
+                    html.Div("Season averages vs. the most recent 10-game average.", style={
+                        "fontSize": "0.78rem", "color": "#6b7280", "marginBottom": "14px",
+                    }),
+                    html.Div([
+                        html.Div([
+                            html.Span(style={
+                                "width": "10px", "height": "10px", "borderRadius": "50%",
+                                "background": "#2DD4BF",
+                                "boxShadow": "0 0 8px rgba(45,212,191,0.5)",
+                                "display": "inline-block", "marginRight": "8px",
+                            }),
+                            html.Span("Points", style={"color": "#cbd5e1", "fontSize": "0.78rem", "fontWeight": "500"}),
+                        ], style={"display": "flex", "alignItems": "center"}),
+                        html.Div([
+                            html.Span(style={
+                                "width": "10px", "height": "10px", "borderRadius": "50%",
+                                "background": "#F59E0B",
+                                "boxShadow": "0 0 8px rgba(245,158,11,0.5)",
+                                "display": "inline-block", "marginRight": "8px",
+                            }),
+                            html.Span("Rebounds", style={"color": "#cbd5e1", "fontSize": "0.78rem", "fontWeight": "500"}),
+                        ], style={"display": "flex", "alignItems": "center"}),
+                    ], style={"display": "flex", "gap": "24px", "marginBottom": "16px"}),
+                    dcc.Graph(
+                        id="season-trends-chart",
+                        config={"displayModeBar": False},
+                        style={"height": "280px"},
+                    ),
+                ], className="analysis-card"),
 
-                dcc.Store(id="sidebar-tab", data="matchup"),
+            ], className="analysis-main-col", style={"display": "flex", "flexDirection": "column", "gap": "16px"}),
 
-                # Dynamic sidebar content
+            # RIGHT — always-visible 3-section sidebar (no tab switching)
+            html.Div([
+                # Hidden stubs preserve the sidebar tab callback wiring
+                html.Button(id="sidebar-matchup",  n_clicks=1, style={"display": "none"}),
+                html.Button(id="sidebar-injuries", n_clicks=0, style={"display": "none"}),
+                html.Button(id="sidebar-insights", n_clicks=0, style={"display": "none"}),
+                html.Button(id="sidebar-props",    n_clicks=0, style={"display": "none"}),
                 html.Div(id="sidebar-content"),
+            ], className="analysis-side-col"),
 
-            ], className="sidebar"),
+        ], className="analysis-2col"),
 
-        ], className="main-container"),
-
-        # Auto-refresh interval
-        dcc.Interval(
-            id="auto-refresh-interval",
-            interval=5 * 60 * 1000,
-            n_intervals=0
-        ),
-
-        dcc.Store(id="last-update-time", data=datetime.now().isoformat()),
-    ])
+    ], style={"padding": "1.75rem 2rem", "maxWidth": "1700px", "margin": "0 auto"})
 
 
 def _fmt_odds(price) -> str:
@@ -1049,7 +1053,15 @@ def _format_game_time(raw: str) -> str:
     if "T" in raw and raw.endswith("Z"):
         try:
             from datetime import timezone
-            dt_utc = datetime.strptime(raw, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            # Try with seconds first, then without
+            for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%MZ"):
+                try:
+                    dt_utc = datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc)
+                    break
+                except ValueError:
+                    continue
+            else:
+                raise ValueError("no matching format")
             # Convert to Eastern time (UTC-5 standard, UTC-4 daylight)
             import time as _time
             # Simple daylight saving heuristic: Mar–Nov = EDT (UTC-4), else EST (UTC-5)
@@ -1210,424 +1222,175 @@ def _injury_panel(home_team: str, away_team: str):
 
 
 def create_todays_games_page():
-    """Premium Today's Games page: team matchup cards with live odds + model predictions."""
+    """Today's Games page: game selector pills + single selected-game panel with donut chart."""
     from utils.data_fetch import get_todays_games
     from utils.odds_fetcher import get_game_odds
 
     games     = get_todays_games()
-    game_odds = get_game_odds()   # dict keyed "AWAY@HOME"
-
-    _PAGE_TITLE_STYLE = {
-        "fontSize": "1.6rem", "fontWeight": "800", "letterSpacing": "-0.02em",
-        "background": "linear-gradient(135deg, #f0f4ff 40%, #8ca0c0 100%)",
-        "WebkitBackgroundClip": "text", "WebkitTextFillColor": "transparent",
-        "backgroundClip": "text", "marginBottom": "4px",
-    }
+    game_odds = get_game_odds()
 
     if games.empty:
         return html.Div([
             html.Div([
-                html.Div("TODAY'S GAMES", style=_PAGE_TITLE_STYLE),
-                html.Div(datetime.now().strftime("%A, %B %d, %Y"),
-                         style={"color": "var(--text-muted)", "marginBottom": "32px", "fontSize": "0.9rem"}),
+                html.Div("NBA Game Predictions",
+                         style={"fontSize": "1.8rem", "fontWeight": "800", "color": "#f0f4ff",
+                                "letterSpacing": "-0.02em", "marginBottom": "4px"}),
+                html.Div(datetime.now().strftime("%B %d, %Y"),
+                         style={"color": "#6b7280", "marginBottom": "32px", "fontSize": "0.9rem"}),
                 html.Div([
-                    html.Div("No games scheduled", style={"fontSize": "1.1rem", "fontWeight": "600", "marginBottom": "8px"}),
+                    html.Div("No games scheduled", style={"fontSize": "1.1rem", "fontWeight": "600", "marginBottom": "8px", "color": "#f0f4ff"}),
                     html.Div("Schedule data temporarily unavailable. Check nba.com/schedule.",
-                             style={"color": "var(--text-muted)", "fontSize": "0.9rem"}),
-                    html.Div("Player Analysis & Best Props are fully functional.",
-                             style={"color": "var(--accent-primary)", "fontSize": "0.9rem", "marginTop": "8px"}),
+                             style={"color": "#6b7280", "fontSize": "0.9rem"}),
                 ], style={"textAlign": "center", "padding": "60px 0"})
-            ], style={"maxWidth": "1100px", "margin": "0 auto", "padding": "2rem"})
+            ], style={"maxWidth": "1200px", "margin": "0 auto", "padding": "2rem"})
         ])
 
-    # ── Build game cards ─────────────────────────────────────────────────────
-    # ESPN/API abbreviation → internal data abbreviation (must match game_logs/positions CSVs)
-    _ABBR_FIX = {"SAS": "SAN"}
+    # ── Abbreviation normalization ────────────────────────────────────────────
+    _ABBR_FIX     = {"SAS": "SAN"}
+    _ABBR_REVERSE = {v: k for k, v in _ABBR_FIX.items()}
 
-    # Refresh predictor ONCE before the loop (not per-game — avoids N×DF copy)
     GAME_PREDICTOR.refresh(get_global_df())
 
-    game_cards = []
-    _predictions_for_tracker: list[dict] = []  # accumulate for save_daily_predictions
+    # ── Injury serialiser helper ──────────────────────────────────────────────
+    _inj_cache: dict = {}
+    def _serialise_injuries(abbr):
+        if abbr in _inj_cache:
+            return _inj_cache[abbr]
+        try:
+            raw = get_team_injuries(abbr)
+            result = [
+                {"name": i.get("name", ""), "status": i.get("status", "")}
+                for i in raw
+                if i.get("status", "").lower() not in ("", "active", "healthy")
+            ][:5]
+        except Exception:
+            result = []
+        _inj_cache[abbr] = result
+        return result
+
+    # ── Serialise all game data into store ────────────────────────────────────
+    games_data: list[dict] = []
+    _predictions_for_tracker: list[dict] = []
+
     for _, game in games.iterrows():
         home_team   = game.get("HOME_TEAM", game.get("HOME_TEAM_ABBREVIATION", ""))
         away_team   = game.get("AWAY_TEAM", game.get("VISITOR_TEAM_ABBREVIATION", game.get("VISITOR_TEAM", "")))
-        game_status = game.get("GAME_STATUS_TEXT", "Scheduled")
+        home_team_i = _ABBR_FIX.get(home_team, home_team)
+        away_team_i = _ABBR_FIX.get(away_team, away_team)
 
-        # Normalize abbreviations for internal data lookups (predictor, form, etc.)
-        home_team_internal = _ABBR_FIX.get(home_team, home_team)
-        away_team_internal = _ABBR_FIX.get(away_team, away_team)
+        odds_key          = f"{away_team}@{home_team}"
+        odds              = game_odds.get(odds_key, {})
+        _spread           = odds.get("spread") or {}
+        _total            = odds.get("total")  or {}
+        _h2h              = odds.get("h2h")    or {}
+        spread_home_line  = _spread.get("home_line")
+        total_line        = _total.get("line")
 
-        home_logo = get_team_logo_url(home_team)
-        away_logo = get_team_logo_url(away_team)
-
-        # ── Odds ─────────────────────────────────────────────────────────────
-        odds_key  = f"{away_team}@{home_team}"
-        odds      = game_odds.get(odds_key, {})
-        spread    = odds.get("spread") or {}
-        total     = odds.get("total")  or {}
-        h2h       = odds.get("h2h")    or {}
-        bookmaker = odds.get("bookmaker", "")
-
-        spread_home_line  = spread.get("home_line")
-        spread_away_line  = spread.get("away_line")
-        spread_home_price = spread.get("home_price")
-        spread_away_price = spread.get("away_price")
-        total_line        = total.get("line")
-        over_price        = total.get("over_price")
-        under_price       = total.get("under_price")
-        home_ml           = h2h.get("home_price")
-        away_ml           = h2h.get("away_price")
-        has_odds          = bool(spread or total)
-
-        # Format spread labels
-        def _fmt_spread(line):
-            if line is None: return "N/A"
-            return f"+{line}" if line > 0 else str(line)
-
-        # ── Model prediction (injury-aware) ──────────────────────────────────
         try:
-            home_inj = get_team_injuries(home_team_internal)
-            away_inj = get_team_injuries(away_team_internal)
+            home_inj   = get_team_injuries(home_team_i)
+            away_inj   = get_team_injuries(away_team_i)
             prediction = GAME_PREDICTOR.predict_game(
-                home_team_internal, away_team_internal,
-                home_injuries=home_inj,
-                away_injuries=away_inj,
+                home_team_i, away_team_i,
+                home_injuries=home_inj, away_injuries=away_inj,
             )
-            pick       = GAME_PREDICTOR.get_pick(
-                prediction,
-                home=home_team_internal,
-                away=away_team_internal,
-                actual_spread=spread_home_line,
-                actual_total=total_line,
+            pick = GAME_PREDICTOR.get_pick(
+                prediction, home=home_team_i, away=away_team_i,
+                actual_spread=spread_home_line, actual_total=total_line,
             )
-            last10_home = GAME_PREDICTOR.get_team_last_n_games(home_team_internal, 10)
-            last10_away = GAME_PREDICTOR.get_team_last_n_games(away_team_internal, 10)
-            h2h_data    = prediction.get("h2h", {})
         except Exception as e:
-            logger.warning(f"GamePredictor error for {home_team} vs {away_team}: {e}")
+            logger.warning(f"GamePredictor error {home_team} vs {away_team}: {e}")
             prediction = {"predicted_home_score": None, "predicted_away_score": None,
-                          "predicted_total": None, "predicted_spread": None,
-                          "winner": None, "winner_margin": None, "winner_confidence": "LOW",
-                          "home_form": {}, "away_form": {}, "h2h": {}, "intel": [],
-                          "reasoning": {}}
-            pick = {"spread_pick": None, "spread_confidence": "LOW",
+                          "predicted_total": None, "winner_confidence": "LOW",
+                          "home_form": {}, "away_form": {}, "reasoning": {}, "intel": []}
+            pick = {"spread_pick": None, "spread_confidence": "LOW", "spread_team": None,
                     "total_pick": None, "total_confidence": "LOW",
-                    "winner_pick": None, "winner_confidence": "LOW",
-                    "model_spread": None, "model_total": None}
-            last10_home, last10_away, h2h_data = [], [], {}
+                    "winner_pick": None, "winner_confidence": "LOW", "model_spread": None}
 
         home_form  = prediction.get("home_form", {})
         away_form  = prediction.get("away_form", {})
-        intel      = prediction.get("intel", [])
-        reasoning  = prediction.get("reasoning", {})
         pred_home  = prediction.get("predicted_home_score")
         pred_away  = prediction.get("predicted_away_score")
         pred_total = prediction.get("predicted_total")
+        reasoning  = prediction.get("reasoning", {})
 
-        # Reverse-map internal abbrevs back to display abbrevs for pick badges
-        _ABBR_REVERSE = {v: k for k, v in _ABBR_FIX.items()}
+        # Reverse-map internal abbrevs for pick display
         if pick.get("winner_pick") and pick["winner_pick"] in _ABBR_REVERSE:
             pick["winner_pick"] = _ABBR_REVERSE[pick["winner_pick"]]
         if pick.get("spread_team") and pick["spread_team"] in _ABBR_REVERSE:
             pick["spread_team"] = _ABBR_REVERSE[pick["spread_team"]]
 
-        # Collect for daily prediction tracking
+        # Win probability: HIGH→85%, MEDIUM→65%, LOW→50%
+        conf_raw  = pick.get("winner_confidence", "LOW")
+        home_wp   = {"HIGH": 78, "MEDIUM": 62, "LOW": 52}.get(conf_raw, 52)
+        winner_p  = pick.get("winner_pick")
+        if winner_p and winner_p not in (home_team, home_team_i):
+            home_wp = 100 - home_wp  # away team is model pick — flip
+
         _predictions_for_tracker.append({
             "game_id":   f"{away_team}@{home_team}",
             "home":      home_team,
             "away":      away_team,
             "game_time": game.get("GAME_TIME", game.get("GAME_STATUS_TEXT", "")),
             "predictions": {
-                "winner_pick":        pick.get("winner_pick"),
-                "winner_confidence":  pick.get("winner_confidence"),
-                "spread_pick":        pick.get("spread_pick"),
-                "spread_team":        pick.get("spread_team"),
-                "spread_line":        spread_home_line,
-                "spread_confidence":  pick.get("spread_confidence"),
-                "total_pick":         pick.get("total_pick"),
-                "total_line":         total_line,
-                "total_confidence":   pick.get("total_confidence"),
-                "model_home_score":   pred_home,
-                "model_away_score":   pred_away,
-                "model_total":        pred_total,
-                "reasoning":          reasoning,
+                "winner_pick":       pick.get("winner_pick"),
+                "winner_confidence": pick.get("winner_confidence"),
+                "spread_pick":       pick.get("spread_pick"),
+                "spread_team":       pick.get("spread_team"),
+                "spread_line":       spread_home_line,
+                "spread_confidence": pick.get("spread_confidence"),
+                "total_pick":        pick.get("total_pick"),
+                "total_line":        total_line,
+                "total_confidence":  pick.get("total_confidence"),
+                "model_home_score":  pred_home,
+                "model_away_score":  pred_away,
+                "model_total":       pred_total,
+                "reasoning":         reasoning,
             },
         })
 
-        # ── Status badge ─────────────────────────────────────────────────────
-        is_live    = "Q" in str(game_status) or "Halftime" in str(game_status)
-        status_el = html.Span([
-            html.Span(style={
-                "display": "inline-block", "width": "6px", "height": "6px",
-                "borderRadius": "50%", "background": "#22c55e",
-                "marginRight": "5px", "animation": "pulse-dot 1.8s ease-in-out infinite",
-            }) if is_live else None,
-            html.Span(game_status),
-        ], className="game-time-chip",
-           style={"borderColor": "rgba(34,197,94,0.3)", "color": "#22c55e"} if is_live else {})
+        games_data.append({
+            "home":        home_team,
+            "away":        away_team,
+            "home_logo":   get_team_logo_url(home_team),
+            "away_logo":   get_team_logo_url(away_team),
+            "game_time":   _format_game_time(game.get("GAME_TIME", game.get("GAME_STATUS_TEXT", ""))),
+            "home_off":    round(float(home_form.get("rolling_ppg") or 0), 1),
+            "away_off":    round(float(away_form.get("rolling_ppg") or 0), 1),
+            "home_def":    round(float(home_form.get("rolling_opp_ppg") or 0), 1),
+            "away_def":    round(float(away_form.get("rolling_opp_ppg") or 0), 1),
+            "home_wins":   home_form.get("wins", 0),
+            "home_losses": home_form.get("losses", 0),
+            "away_wins":   away_form.get("wins", 0),
+            "away_losses": away_form.get("losses", 0),
+            "home_win_pct": home_wp,
+            "spread_line":       spread_home_line,
+            "spread_away_line":  _spread.get("away_line"),
+            "spread_home_price": _spread.get("home_price"),
+            "spread_away_price": _spread.get("away_price"),
+            "total_line":        total_line,
+            "total_over_price":  _total.get("over_price"),
+            "total_under_price": _total.get("under_price"),
+            "ml_home_price":     _h2h.get("home_price"),
+            "ml_away_price":     _h2h.get("away_price"),
+            "bookmaker":         odds.get("bookmaker"),
+            "spread_pick": pick.get("spread_pick"),
+            "spread_team": pick.get("spread_team"),
+            "spread_conf": pick.get("spread_confidence"),
+            "total_pick":  pick.get("total_pick"),
+            "total_conf":  pick.get("total_confidence"),
+            "winner_pick": pick.get("winner_pick"),
+            "winner_conf": conf_raw,
+            "pred_home":   pred_home,
+            "pred_away":   pred_away,
+            "pred_total":  pred_total,
+            "home_injuries": _serialise_injuries(home_team_i),
+            "away_injuries": _serialise_injuries(away_team_i),
+        })
 
-        # ── Odds columns ─────────────────────────────────────────────────────
-        def _odds_col(label, main_content, sub_content, model_el):
-            return html.Div([
-                html.Div(label, className="odds-col-label"),
-                html.Div(main_content, className="odds-col-main"),
-                html.Div(sub_content, className="odds-col-sub"),
-                html.Div(style={"height": "1px", "background": "rgba(255,255,255,0.05)", "margin": "8px 0"}),
-                html.Div("MODEL PICK", className="odds-col-model-label"),
-                model_el,
-            ], className="odds-col")
-
-        # Spread column
-        if spread_home_line is not None:
-            spread_main = html.Div([
-                html.Div([
-                    html.Span(away_team, style={"color": "var(--text-muted)", "fontSize": "0.7rem", "marginRight": "4px"}),
-                    html.Span(_fmt_spread(spread_away_line), style={"fontWeight": "700", "color": "var(--text-primary)"}),
-                ], style={"marginBottom": "2px"}),
-                html.Div([
-                    html.Span(home_team, style={"color": "var(--text-muted)", "fontSize": "0.7rem", "marginRight": "4px"}),
-                    html.Span(_fmt_spread(spread_home_line), style={"fontWeight": "700", "color": "var(--text-primary)"}),
-                ]),
-            ])
-            spread_sub = html.Div([
-                html.Span(f"{_fmt_odds(spread_away_price)} / {_fmt_odds(spread_home_price)}",
-                          style={"fontSize": "0.72rem", "color": "var(--text-muted)", "fontFamily": "var(--font-mono)"}),
-            ])
-        else:
-            spread_main = html.Div("—", style={"color": "var(--text-muted)"})
-            spread_sub  = html.Div()
-
-        # Total column
-        if total_line is not None:
-            total_main = html.Div([
-                html.Span("O/U ", style={"color": "var(--text-muted)", "fontSize": "0.75rem"}),
-                html.Span(f"{total_line}", style={"fontWeight": "700", "fontSize": "1.1rem",
-                                                   "fontFamily": "var(--font-mono)", "color": "var(--text-primary)"}),
-            ])
-            total_sub = html.Div([
-                html.Span(f"O {_fmt_odds(over_price)}  U {_fmt_odds(under_price)}",
-                          style={"fontSize": "0.72rem", "color": "var(--text-muted)", "fontFamily": "var(--font-mono)"}),
-            ])
-        else:
-            total_main = html.Div("—", style={"color": "var(--text-muted)"})
-            total_sub  = html.Div()
-
-        # Moneyline column
-        if home_ml is not None:
-            ml_main = html.Div([
-                html.Div([
-                    html.Span(away_team, style={"color": "var(--text-muted)", "fontSize": "0.7rem", "marginRight": "4px"}),
-                    html.Span(_fmt_odds(away_ml), style={"fontWeight": "700",
-                        "color": "#22c55e" if (away_ml or 0) > 0 else "var(--text-primary)"}),
-                ], style={"marginBottom": "2px"}),
-                html.Div([
-                    html.Span(home_team, style={"color": "var(--text-muted)", "fontSize": "0.7rem", "marginRight": "4px"}),
-                    html.Span(_fmt_odds(home_ml), style={"fontWeight": "700",
-                        "color": "#22c55e" if (home_ml or 0) > 0 else "var(--text-primary)"}),
-                ]),
-            ])
-            ml_sub = html.Div(
-                bookmaker, style={"fontSize": "0.65rem", "color": "var(--text-muted)", "textTransform": "uppercase", "letterSpacing": "0.06em"})
-        else:
-            ml_main = html.Div("—", style={"color": "var(--text-muted)"})
-            ml_sub  = html.Div()
-
-        # Model total pick label
-        total_pick = pick.get("total_pick")
-        if total_pick and total_line:
-            total_pick_label = f"{total_pick} {total_line}"
-        elif pred_total:
-            total_pick_label = f"Model: {pred_total:.0f}"
-        else:
-            total_pick_label = None
-
-        spread_pick_label = pick.get("spread_pick")
-        if spread_pick_label == "HOME" and spread_home_line is not None:
-            spread_pick_label = f"{home_team} {_fmt_spread(spread_home_line)}"
-        elif spread_pick_label == "AWAY" and spread_away_line is not None:
-            spread_pick_label = f"{away_team} {_fmt_spread(spread_away_line)}"
-
-        # ── Form rows ────────────────────────────────────────────────────────
-        home_wl   = home_form.get("wl_list", [])
-        away_wl   = away_form.get("wl_list", [])
-        home_wins = home_form.get("wins", 0)
-        home_loss = home_form.get("losses", 0)
-        away_wins = away_form.get("wins", 0)
-        away_loss = away_form.get("losses", 0)
-        home_rpg  = home_form.get("rolling_ppg")
-        away_rpg  = away_form.get("rolling_ppg")
-
-        def _form_row(abbr, wl_list, wins, losses, rpg):
-            return html.Div([
-                html.Span(abbr, style={
-                    "fontSize": "0.7rem", "fontWeight": "700", "minWidth": "30px",
-                    "color": "var(--text-secondary)", "marginRight": "8px",
-                }),
-                _form_dots(wl_list),
-                html.Span(f"({wins}-{losses})", style={
-                    "fontSize": "0.72rem", "color": "var(--text-muted)",
-                    "marginLeft": "8px", "fontFamily": "var(--font-mono)",
-                }),
-                html.Span(f"  {rpg:.0f} PPG", style={
-                    "fontSize": "0.72rem", "color": "var(--teal-400, #2dd4bf)",
-                    "marginLeft": "8px", "fontFamily": "var(--font-mono)",
-                }) if rpg else None,
-            ], style={"display": "flex", "alignItems": "center", "marginBottom": "5px"})
-
-        # ── Assemble card ─────────────────────────────────────────────────────
-        game_card = html.Div([
-
-            # ── ROW 1: Status + logo + league label ──────────────────────────
-            html.Div([
-                html.Div([
-                    html.Span("NBA", style={
-                        "fontSize": "0.65rem", "fontWeight": "700", "letterSpacing": "0.1em",
-                        "color": "var(--text-muted)", "background": "rgba(255,255,255,0.05)",
-                        "border": "1px solid rgba(255,255,255,0.08)", "borderRadius": "4px",
-                        "padding": "2px 7px", "marginRight": "10px",
-                    }),
-                    status_el,
-                ], style={"display": "flex", "alignItems": "center"}),
-                html.Div(
-                    _format_game_time(game.get("GAME_TIME", game.get("GAME_STATUS_TEXT", ""))) if not is_live else "",
-                    style={"fontSize": "0.75rem", "color": "var(--text-muted)"},
-                ),
-            ], style={
-                "display": "flex", "justifyContent": "space-between", "alignItems": "center",
-                "marginBottom": "16px",
-            }),
-
-            # ── ROW 2: Teams + logos ─────────────────────────────────────────
-            html.Div([
-                # Away team
-                html.Div([
-                    html.Img(src=away_logo, style={
-                        "width": "60px", "height": "60px", "objectFit": "contain",
-                        "filter": "drop-shadow(0 2px 8px rgba(0,0,0,0.5))",
-                    }) if away_logo else html.Div(away_team[0], style={
-                        "width": "60px", "height": "60px", "borderRadius": "50%",
-                        "background": "var(--bg-tertiary)", "display": "flex",
-                        "alignItems": "center", "justifyContent": "center",
-                        "fontSize": "1.4rem", "fontWeight": "800",
-                    }),
-                    html.Div(away_team, style={
-                        "fontWeight": "800", "fontSize": "1.3rem", "marginTop": "6px",
-                        "letterSpacing": "-0.02em", "color": "var(--text-primary)",
-                    }),
-                    html.Div("AWAY", style={
-                        "fontSize": "0.62rem", "fontWeight": "600", "letterSpacing": "0.08em",
-                        "color": "var(--text-muted)", "marginTop": "1px",
-                    }),
-                ], style={"textAlign": "center", "flex": "1"}),
-
-                # VS divider
-                html.Div([
-                    html.Div("VS", style={
-                        "fontSize": "0.7rem", "fontWeight": "700", "letterSpacing": "0.12em",
-                        "color": "var(--text-muted)", "background": "rgba(255,255,255,0.04)",
-                        "border": "1px solid rgba(255,255,255,0.07)", "borderRadius": "50%",
-                        "width": "36px", "height": "36px", "display": "flex",
-                        "alignItems": "center", "justifyContent": "center",
-                    }),
-                ], style={"display": "flex", "alignItems": "center", "padding": "0 16px"}),
-
-                # Home team
-                html.Div([
-                    html.Img(src=home_logo, style={
-                        "width": "60px", "height": "60px", "objectFit": "contain",
-                        "filter": "drop-shadow(0 2px 8px rgba(0,0,0,0.5))",
-                    }) if home_logo else html.Div(home_team[0], style={
-                        "width": "60px", "height": "60px", "borderRadius": "50%",
-                        "background": "var(--bg-tertiary)", "display": "flex",
-                        "alignItems": "center", "justifyContent": "center",
-                        "fontSize": "1.4rem", "fontWeight": "800",
-                    }),
-                    html.Div(home_team, style={
-                        "fontWeight": "800", "fontSize": "1.3rem", "marginTop": "6px",
-                        "letterSpacing": "-0.02em", "color": "var(--text-primary)",
-                    }),
-                    html.Div("HOME", style={
-                        "fontSize": "0.62rem", "fontWeight": "600", "letterSpacing": "0.08em",
-                        "color": "var(--teal-400, #2dd4bf)", "marginTop": "1px",
-                    }),
-                ], style={"textAlign": "center", "flex": "1"}),
-            ], style={
-                "display": "flex", "alignItems": "center", "justifyContent": "center",
-                "padding": "8px 0 20px",
-                "borderBottom": "1px solid rgba(255,255,255,0.05)",
-                "marginBottom": "16px",
-            }),
-
-            # ── ROW 3: Odds grid (Spread | Total | Moneyline) ────────────────
-            html.Div([
-                _odds_col(
-                    "SPREAD",
-                    spread_main, spread_sub,
-                    _pick_badge(spread_pick_label, pick.get("spread_confidence", "LOW"), home_team, away_team)
-                    if pick.get("spread_pick") else html.Div([
-                        html.Div(f"Model: {pred_home:.0f}-{pred_away:.0f}" if pred_home else "—",
-                                 style={"fontSize": "0.78rem", "color": "var(--text-muted)", "textAlign": "center"}),
-                    ]),
-                ),
-                html.Div(style={"width": "1px", "background": "rgba(255,255,255,0.05)", "margin": "0 4px", "alignSelf": "stretch"}),
-                _odds_col(
-                    "TOTAL",
-                    total_main, total_sub,
-                    _pick_badge(total_pick_label, pick.get("total_confidence", "LOW"), home_team, away_team)
-                    if pick.get("total_pick") else html.Div(
-                        f"Model: {pred_total:.0f}" if pred_total else "—",
-                        style={"fontSize": "0.78rem", "color": "var(--text-muted)", "textAlign": "center"},
-                    ),
-                ),
-                html.Div(style={"width": "1px", "background": "rgba(255,255,255,0.05)", "margin": "0 4px", "alignSelf": "stretch"}),
-                _odds_col(
-                    "MONEYLINE",
-                    ml_main, ml_sub,
-                    _pick_badge(pick.get("winner_pick"), pick.get("winner_confidence", "LOW"), home_team, away_team)
-                    if pick.get("winner_pick") else html.Div([
-                        html.Div(f"Model: {pred_home:.0f}-{pred_away:.0f}" if pred_home else "—",
-                                 style={"fontSize": "0.78rem", "color": "var(--text-muted)", "textAlign": "center"}),
-                    ]),
-                ),
-            ], className="odds-grid"),
-
-            # ── ROW 4: Team Form ──────────────────────────────────────────────
-            html.Div([
-                html.Div("RECENT FORM", style={
-                    "fontSize": "0.62rem", "fontWeight": "700", "letterSpacing": "0.1em",
-                    "color": "var(--text-muted)", "marginBottom": "8px",
-                }),
-                _form_row(away_team, away_wl, away_wins, away_loss, away_rpg),
-                _form_row(home_team, home_wl, home_wins, home_loss, home_rpg),
-            ], style={
-                "padding": "12px 14px",
-                "background": "rgba(255,255,255,0.025)",
-                "borderRadius": "10px",
-                "border": "1px solid rgba(255,255,255,0.05)",
-                "marginTop": "14px",
-            }) if (home_wl or away_wl) else None,
-
-            # ── ROW 5: Model Reasoning ────────────────────────────────────────
-            _reasoning_section(reasoning, intel),
-
-            # ── ROW 6: H2H Record ─────────────────────────────────────────────
-            _h2h_section(h2h_data, home_team, away_team),
-
-            # ── ROW 7: L10 Game Log (expandable) ─────────────────────────────
-            _l10_section(last10_away, last10_home, away_team, home_team),
-
-            # ── ROW 8: Injury Report (collapsible dropdown) ───────────────────
-            _injury_panel(home_team, away_team),
-
-        ], className="card game-card-v2")
-        game_cards.append(game_card)
-
-    # Save today's predictions asynchronously (fire-and-forget)
+    # Save predictions asynchronously
     if _predictions_for_tracker:
-        import threading as _t
         _date_str = datetime.now().strftime("%Y-%m-%d")
-        _t.Thread(
+        threading.Thread(
             target=lambda: __import__("utils.prediction_tracker", fromlist=["save_daily_predictions"])
                            .save_daily_predictions(_date_str, _predictions_for_tracker),
             daemon=True, name="save-predictions",
@@ -1635,29 +1398,27 @@ def create_todays_games_page():
 
     return html.Div([
         html.Div([
+            # Header
             html.Div([
-                html.Div("TODAY'S GAMES", style=_PAGE_TITLE_STYLE),
-                html.A(
-                    "⬇ Download Report",
-                    href="/download-report",
-                    style={
-                        "fontSize": "0.72rem", "fontWeight": "600", "letterSpacing": "0.05em",
-                        "color": "var(--teal-400, #2dd4bf)", "border": "1px solid var(--teal-400, #2dd4bf)",
-                        "borderRadius": "6px", "padding": "5px 12px", "textDecoration": "none",
-                        "opacity": "0.8",
-                    },
-                ),
-            ], style={"display": "flex", "alignItems": "center", "justifyContent": "space-between", "marginBottom": "4px"}),
-            html.Div([
-                html.Span(datetime.now().strftime("%A, %B %d, %Y"),
-                          style={"color": "var(--text-muted, #4a5a75)", "fontSize": "0.9rem"}),
-                html.Span(f" • {len(games)} games",
-                          style={"color": "var(--teal-400, #2dd4bf)", "marginLeft": "8px", "fontSize": "0.9rem", "fontWeight": "600"}),
-                html.Span(" • Odds + Model Predictions",
-                          style={"color": "var(--text-muted, #4a5a75)", "marginLeft": "4px", "fontSize": "0.85rem"}),
-            ], style={"marginBottom": "24px"}),
-            html.Div(game_cards, style={"display": "grid", "gridTemplateColumns": "repeat(auto-fill, minmax(440px, 1fr))", "gap": "20px"}),
-        ], style={"maxWidth": "1300px", "margin": "0 auto", "padding": "2rem"})
+                html.Div("NBA Game Predictions",
+                         style={"fontSize": "1.8rem", "fontWeight": "800", "color": "#f0f4ff",
+                                "letterSpacing": "-0.02em"}),
+                html.Div([
+                    html.Span(datetime.now().strftime("%B %d, %Y"),
+                              style={"color": "#6b7280", "fontSize": "0.9rem"}),
+                    html.Span(f" · {len(games_data)} games",
+                              style={"color": "#14b8a6", "marginLeft": "8px", "fontSize": "0.9rem", "fontWeight": "600"}),
+                ], style={"marginTop": "2px", "marginBottom": "28px"}),
+            ]),
+
+            # Stores (kept for callback compatibility)
+            dcc.Store(id="selected-game-idx", data=0),
+            dcc.Store(id="games-page-data", data=games_data),
+
+            # Games grid (populated by callback)
+            html.Div(id="game-panel-container"),
+
+        ], style={"maxWidth": "1400px", "margin": "0 auto", "padding": "2rem"}),
     ])
 
 
@@ -1700,12 +1461,9 @@ def create_best_props_page():
             html.Div([
                 # Page header
                 html.Div([
-                    html.Div("BEST PROPS", style={
-                        "fontSize": "1.6rem", "fontWeight": "800", "marginBottom": "6px",
-                        "letterSpacing": "-0.02em",
-                        "background": "linear-gradient(135deg, #f0f4ff 40%, #8ca0c0 100%)",
-                        "WebkitBackgroundClip": "text", "WebkitTextFillColor": "transparent",
-                        "backgroundClip": "text"
+                    html.Div("Today's Top Value Props", style={
+                        "fontSize": "1.8rem", "fontWeight": "800", "marginBottom": "6px",
+                        "letterSpacing": "-0.02em", "color": "#f0f4ff",
                     }),
                     html.Div([
                         html.Span(date_note, style={"color": "var(--text-muted, #4a5a75)", "fontSize": "0.9rem"}),
@@ -1716,17 +1474,19 @@ def create_best_props_page():
 
                 # Row 1: Stat type filter
                 html.Div([
-                    html.Div("All Stats",  id="props-filter-all",  n_clicks=0, className="tab active"),
-                    html.Div("Points",     id="props-filter-pts",  n_clicks=0, className="tab"),
-                    html.Div("Assists",    id="props-filter-ast",  n_clicks=0, className="tab"),
-                    html.Div("Rebounds",   id="props-filter-reb",  n_clicks=0, className="tab"),
-                    html.Div("3-Pointers", id="props-filter-3pm",  n_clicks=0, className="tab"),
-                    html.Div("Pts+Ast",    id="props-filter-pa",   n_clicks=0, className="tab"),
-                    html.Div("Pts+Reb",    id="props-filter-pr",   n_clicks=0, className="tab"),
-                    html.Div("Ast+Reb",    id="props-filter-ar",   n_clicks=0, className="tab"),
-                    html.Div("PRA",         id="props-filter-pra",  n_clicks=0, className="tab"),
-                    html.Div("🔒 LOCKS",   id="props-filter-lock", n_clicks=0, className="tab"),
-                ], className="tab-group", style={"marginBottom": "12px", "flexWrap": "wrap"}),
+                    html.Div([
+                        html.Div("All Stats",  id="props-filter-all",  n_clicks=0, className="tab active"),
+                        html.Div("Points",     id="props-filter-pts",  n_clicks=0, className="tab"),
+                        html.Div("Assists",    id="props-filter-ast",  n_clicks=0, className="tab"),
+                        html.Div("Rebounds",   id="props-filter-reb",  n_clicks=0, className="tab"),
+                        html.Div("3-Pointers", id="props-filter-3pm",  n_clicks=0, className="tab"),
+                        html.Div("Pts+Ast",    id="props-filter-pa",   n_clicks=0, className="tab"),
+                        html.Div("Pts+Reb",    id="props-filter-pr",   n_clicks=0, className="tab"),
+                        html.Div("Ast+Reb",    id="props-filter-ar",   n_clicks=0, className="tab"),
+                        html.Div("PRA",        id="props-filter-pra",  n_clicks=0, className="tab"),
+                        html.Div("LOCKS",      id="props-filter-lock", n_clicks=0, className="tab"),
+                    ], className="tab-group", style={"flexWrap": "wrap"}),
+                ], className="props-tabs", style={"marginBottom": "12px"}),
 
                 # Row 2: Location | Game | Sort — all on one line
                 html.Div([
@@ -1776,10 +1536,10 @@ def create_best_props_page():
 
                 html.Div(f"Last updated: {datetime.now().strftime('%I:%M %p')}", style={"color": "var(--text-muted)", "fontSize": "0.8rem", "textAlign": "center", "marginTop": "24px"})
 
-            ], style={"flex": "1", "minWidth": "0", "maxWidth": "800px"}),
+            ], style={"flex": "1", "minWidth": "0"}),
 
         ], style={"display": "flex", "gap": "20px", "alignItems": "flex-start",
-                  "maxWidth": "1280px", "margin": "0 auto"}),
+                  "maxWidth": "1440px", "margin": "0 auto"}),
     ])
 
 
@@ -1805,6 +1565,298 @@ def display_page(pathname):
         return create_best_props_page(), inactive, inactive, active
     else:
         return create_player_analysis_page(), active, inactive, inactive
+
+
+# =============================================================================
+# GAMES PAGE CALLBACKS
+# =============================================================================
+
+@callback(
+    Output("selected-game-idx", "data"),
+    Input({"type": "game-tab-pill", "index": ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
+def select_game_tab(n_clicks_list):
+    from dash import ctx
+    from dash.exceptions import PreventUpdate
+    triggered = ctx.triggered_id
+    if not triggered or not any(n for n in n_clicks_list if n):
+        raise PreventUpdate
+    return triggered["index"]
+
+
+@callback(
+    Output({"type": "game-tab-pill", "index": ALL}, "className"),
+    Input("selected-game-idx", "data"),
+    State({"type": "game-tab-pill", "index": ALL}, "id"),
+)
+def update_game_tab_classes(selected_idx, pill_ids):
+    return [
+        "game-tab-pill active" if p["index"] == (selected_idx or 0) else "game-tab-pill"
+        for p in (pill_ids or [])
+    ]
+
+
+@callback(
+    Output("game-panel-container", "children"),
+    [Input("selected-game-idx", "data"),
+     Input("games-page-data", "data")],
+)
+def update_game_panel(selected_idx, games_data):
+    if not games_data:
+        return html.Div("No game data available.",
+                        style={"textAlign": "center", "padding": "60px", "color": "#6b7280"})
+
+    def _fmt_spread(line):
+        if line is None:
+            return "N/A"
+        try:
+            v = float(line)
+            return f"+{v:.1f}" if v > 0 else f"{v:.1f}"
+        except Exception:
+            return "—"
+
+    def _fmt_odds(price):
+        if price is None:
+            return "—"
+        try:
+            v = int(price)
+            return f"+{v}" if v > 0 else str(v)
+        except Exception:
+            return "—"
+
+    def _build_card(g):
+        home = g["home"]
+        away = g["away"]
+        home_wp   = g.get("home_win_pct", 52)
+        away_wp   = 100 - home_wp
+        conf_raw  = g.get("winner_conf", "LOW")
+        conf_pct  = {"HIGH": 85, "MEDIUM": 65, "LOW": 45}.get(conf_raw, 50)
+
+        winner_pick = g.get("winner_pick")
+        spread_team = g.get("spread_team")
+        total_pick  = g.get("total_pick")
+        pred_home   = g.get("pred_home")
+        pred_away   = g.get("pred_away")
+
+        spread_home_line = g.get("spread_line")
+        spread_away_line = g.get("spread_away_line")
+        if spread_away_line is None and spread_home_line is not None:
+            spread_away_line = -float(spread_home_line)
+        total_line        = g.get("total_line")
+        total_over_price  = g.get("total_over_price")
+        total_under_price = g.get("total_under_price")
+        ml_home_price     = g.get("ml_home_price")
+        ml_away_price     = g.get("ml_away_price")
+
+        # Which team's win% to show in donut — the model's winner pick
+        donut_team = winner_pick or home
+        donut_pct  = home_wp if donut_team == home else away_wp
+        # Donut ring: conic-gradient fills clockwise to donut_pct %
+        donut_color = "#F59E0B"  # gold ring (matches screenshot)
+        donut_bg    = f"conic-gradient({donut_color} {donut_pct}%, rgba(30,41,59,0.5) 0%)"
+
+        # ── TOP: Team logos row ───────────────────────────────────────────
+        def _logo(src, size="72px"):
+            if src:
+                return html.Img(src=src, style={
+                    "width": size, "height": size, "objectFit": "contain",
+                    "filter": "drop-shadow(0 2px 12px rgba(0,0,0,0.6))",
+                })
+            return html.Div("?", style={
+                "width": size, "height": size, "borderRadius": "50%",
+                "background": "rgba(30,41,59,0.8)", "display": "flex",
+                "alignItems": "center", "justifyContent": "center",
+                "fontSize": "1.5rem", "fontWeight": "800", "color": "#94a3b8",
+            })
+
+        logos_row = html.Div([
+            html.Div([
+                _logo(g.get("away_logo")),
+                html.Div(away, style={"fontSize": "1rem", "fontWeight": "800",
+                                       "color": "#f0f4ff", "marginTop": "6px",
+                                       "textAlign": "center"}),
+            ], style={"display": "flex", "flexDirection": "column", "alignItems": "center", "flex": "1"}),
+
+            html.Div([
+                html.Div("VS", style={
+                    "fontSize": "0.85rem", "fontWeight": "700", "color": "#475569",
+                    "letterSpacing": "0.1em",
+                }),
+                html.Div(g.get("game_time", ""), style={
+                    "fontSize": "0.68rem", "color": "#64748b", "marginTop": "4px",
+                    "whiteSpace": "nowrap",
+                }),
+            ], style={"display": "flex", "flexDirection": "column", "alignItems": "center",
+                      "padding": "0 12px", "paddingTop": "14px"}),
+
+            html.Div([
+                _logo(g.get("home_logo")),
+                html.Div(home, style={"fontSize": "1rem", "fontWeight": "800",
+                                       "color": "#f0f4ff", "marginTop": "6px",
+                                       "textAlign": "center"}),
+            ], style={"display": "flex", "flexDirection": "column", "alignItems": "center", "flex": "1"}),
+        ], style={
+            "display": "flex", "alignItems": "flex-start", "justifyContent": "center",
+            "paddingBottom": "18px",
+        })
+
+        # ── MIDDLE: Spread | Donut | Spread+OU ───────────────────────────
+        # Left — away spread
+        left_col = html.Div([
+            html.Div("Spread:", style={
+                "fontSize": "0.68rem", "color": "#64748b", "marginBottom": "3px",
+            }),
+            html.Div([
+                html.Span(away, style={"color": "#94a3b8", "fontSize": "0.75rem",
+                                        "fontWeight": "600", "marginRight": "4px"}),
+                html.Span(_fmt_spread(spread_away_line), style={
+                    "fontSize": "1rem", "fontWeight": "800",
+                    "color": "#2DD4BF" if spread_team == away else "#f1f5f9",
+                }),
+            ]),
+            html.Div(_fmt_odds(ml_away_price), style={
+                "fontSize": "0.7rem", "color": "#64748b",
+                "fontFamily": "monospace", "marginTop": "4px",
+            }),
+        ], style={"flex": "1", "textAlign": "center"})
+
+        # Center — donut win probability
+        center_col = html.Div([
+            # Outer ring (conic-gradient)
+            html.Div([
+                # Inner circle with abbr + %
+                html.Div([
+                    html.Div(donut_team, style={
+                        "fontSize": "0.65rem", "fontWeight": "700",
+                        "color": "#94a3b8", "lineHeight": "1",
+                    }),
+                    html.Div(f"{donut_pct:.0f}%", style={
+                        "fontSize": "1.15rem", "fontWeight": "900",
+                        "color": "#f0f4ff", "lineHeight": "1.1",
+                    }),
+                ], style={
+                    "width": "66px", "height": "66px", "borderRadius": "50%",
+                    "background": "#0D1526",
+                    "display": "flex", "flexDirection": "column",
+                    "alignItems": "center", "justifyContent": "center",
+                }),
+            ], style={
+                "width": "88px", "height": "88px", "borderRadius": "50%",
+                "background": donut_bg,
+                "display": "flex", "alignItems": "center", "justifyContent": "center",
+                "padding": "11px",
+            }),
+        ], style={"display": "flex", "justifyContent": "center", "alignItems": "center",
+                  "padding": "0 10px"})
+
+        # Right — home spread + O/U
+        right_col = html.Div([
+            html.Div("Spread:", style={
+                "fontSize": "0.68rem", "color": "#64748b", "marginBottom": "3px",
+            }),
+            html.Div([
+                html.Span(home, style={"color": "#94a3b8", "fontSize": "0.75rem",
+                                        "fontWeight": "600", "marginRight": "4px"}),
+                html.Span(_fmt_spread(spread_home_line), style={
+                    "fontSize": "1rem", "fontWeight": "800",
+                    "color": "#2DD4BF" if spread_team == home else "#f1f5f9",
+                }),
+            ]),
+            html.Div([
+                html.Span("O/U: ", style={"color": "#64748b", "fontSize": "0.68rem"}),
+                html.Span(f"{float(total_line):.1f}" if total_line else "—",
+                          style={"color": "#f1f5f9", "fontSize": "0.78rem",
+                                 "fontWeight": "700", "fontFamily": "monospace"}),
+            ], style={"marginTop": "4px"}),
+        ], style={"flex": "1", "textAlign": "center"})
+
+        middle_row = html.Div([left_col, center_col, right_col], style={
+            "display": "flex", "alignItems": "center",
+            "padding": "12px 4px",
+            "borderTop": "1px solid rgba(255,255,255,0.06)",
+            "borderBottom": "1px solid rgba(255,255,255,0.06)",
+            "marginBottom": "12px",
+        })
+
+        # ── BOTTOM: AI Prediction & Confidence box ────────────────────────
+        # Build the pick text: "TEAM +SPREAD | OVER/UNDER TOTAL"
+        pick_parts = []
+        if spread_team and spread_team == away and spread_away_line is not None:
+            pick_parts.append(f"{away} {_fmt_spread(spread_away_line)}")
+        elif spread_team and spread_team == home and spread_home_line is not None:
+            pick_parts.append(f"{home} {_fmt_spread(spread_home_line)}")
+        elif winner_pick:
+            ml_line = _fmt_odds(ml_away_price if winner_pick == away else ml_home_price)
+            pick_parts.append(f"{winner_pick} {ml_line}" if ml_line != "—" else winner_pick)
+
+        if total_pick and total_line:
+            pick_parts.append(f"{total_pick} {float(total_line):.1f}")
+        elif pred_home is not None and pred_away is not None:
+            pick_parts.append(f"Model: {away} {pred_away:.0f}–{pred_home:.0f} {home}")
+
+        pick_text = " | ".join(pick_parts) if pick_parts else "No pick"
+
+        # Confidence bar — gradient red→yellow→green, position marker at conf_pct %
+        conf_bar = html.Div([
+            html.Div(style={
+                "height": "6px", "borderRadius": "3px",
+                "background": "linear-gradient(to right, #EF4444 0%, #F59E0B 40%, #22c55e 100%)",
+                "position": "relative",
+            }, children=[
+                # Marker dot
+                html.Div(style={
+                    "position": "absolute",
+                    "left": f"calc({conf_pct}% - 5px)",
+                    "top": "-3px",
+                    "width": "12px", "height": "12px",
+                    "borderRadius": "50%",
+                    "background": "#ffffff",
+                    "boxShadow": "0 0 6px rgba(255,255,255,0.5)",
+                }),
+            ]),
+        ])
+
+        conf_label_color = {"HIGH": "#22c55e", "MEDIUM": "#F59E0B", "LOW": "#EF4444"}.get(conf_raw, "#94a3b8")
+
+        pred_box = html.Div([
+            html.Div("AI PREDICTION & CONFIDENCE", style={
+                "fontSize": "0.6rem", "fontWeight": "700", "letterSpacing": "0.1em",
+                "color": "#64748b", "textAlign": "center", "marginBottom": "8px",
+            }),
+            html.Div(pick_text, style={
+                "fontSize": "1.05rem", "fontWeight": "800", "color": "#f0f4ff",
+                "textAlign": "center", "marginBottom": "10px",
+                "letterSpacing": "-0.01em", "lineHeight": "1.3",
+            }),
+            conf_bar,
+            html.Div([
+                html.Span("Confidence Level: ", style={"color": "#64748b", "fontSize": "0.72rem"}),
+                html.Span(conf_raw, style={"color": conf_label_color, "fontSize": "0.72rem",
+                                            "fontWeight": "700"}),
+                html.Span(f" ({conf_pct}%)", style={"color": "#64748b", "fontSize": "0.7rem"}),
+            ], style={"textAlign": "center", "marginTop": "6px"}),
+        ], style={
+            "background": "rgba(5,12,28,0.7)",
+            "border": "1px solid rgba(45,212,191,0.15)",
+            "borderRadius": "10px",
+            "padding": "12px 14px",
+        })
+
+        return html.Div([logos_row, middle_row, pred_box], style={
+            "background": "linear-gradient(160deg, #0D1526 0%, #111827 100%)",
+            "border": "1px solid rgba(255,255,255,0.07)",
+            "borderRadius": "18px",
+            "padding": "20px",
+            "boxShadow": "0 8px 32px rgba(0,0,0,0.5)",
+        })
+
+    cards = [_build_card(g) for g in games_data]
+    return html.Div(cards, style={
+        "display": "grid",
+        "gridTemplateColumns": "repeat(auto-fill, minmax(360px, 1fr))",
+        "gap": "20px",
+    })
 
 
 # =============================================================================
@@ -2190,27 +2242,13 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
             avg = prop.get("avg", 0)
 
         hit_pct = int(hit_rate * 100)
-        # Dynamic color for hit rate
-        hit_color = "var(--success)" if hit_pct >= 70 else "var(--warning)" if hit_pct >= 60 else "var(--text-primary)"
-
-        stat_colors = {
-            "PTS": "var(--accent-primary)", # Teal
-            "AST": "#f97066", # Coral
-            "REB": "#a78bfa", # Purple
-            "FG3M": "#ec4899" # Pink
-        }
-        stat_color = stat_colors.get(prop.get("stat", "PTS"), "var(--text-primary)")
+        # ── EV color class ────────────────────────────────────────────────────
+        ev_class = "ev-green" if hit_pct >= 70 else "ev-orange" if hit_pct >= 60 else "ev-red"
+        ev_arrow = " ↑" if hit_pct >= 70 else ""
 
         is_home_today = prop.get("is_home_today", True)
-        player_id = PLAYER_IDS.get(prop.get("player", ""), "")
-        player_photo = f"https://cdn.nba.com/headshots/nba/latest/1040x760/{player_id}.png" if player_id else ""
-        
-        # Format EV
-        ev_val = prop.get("ev", 0)
-        ev_text = f"+{ev_val:.1f}% EV" if ev_val > 0 else f"{ev_val:.1f}% EV"
-        ev_color = "var(--success)" if ev_val > 0 else "var(--text-muted)"
+        player_photo = get_player_headshot_url(prop.get("player", ""))
 
-        # Build hit-rate insight line
         location_label = "At Home" if location_filter == "home" else "On Road" if location_filter == "away" else "Overall"
 
         # Pull insight data from pre-computed cache
@@ -2221,113 +2259,145 @@ def update_props_list(location_filter, game_filter, sort_by, props_data, stat_fi
             insight_data = _raw_insight
         narrative = insight_data.get("narrative", "")
         factors = insight_data.get("factors", [])
-        matchup_grade = insight_data.get("matchup_grade", "C")
         trend = insight_data.get("trend", "neutral")
 
-        # Matchup grade badge colors
-        grade_colors = {"A": "var(--success)", "B": "#a3e635", "C": "var(--text-muted)", "D": "var(--warning)"}
-        grade_color = grade_colors.get(matchup_grade, "var(--text-muted)")
+        # ── Bottom tag: first factor or fallback hit rate ─────────────────────
+        if factors:
+            best = factors[0]
+            tag_positive = best.get("positive")
+            tag_text = best.get("text", "")
+        else:
+            tag_positive = hit_pct >= 65
+            tag_text = f"{location_label}: {hits}/{total} ({hit_pct}%)"
+        tag_dot_color = "#22c55e" if tag_positive is True else "#f97316" if tag_positive is False else "#6b7280"
 
-        # Factors (up to 3 most relevant)
-        factor_items = []
-        for f in factors[:3]:
-            positive = f.get("positive")
-            dot_color = "var(--success)" if positive is True else "var(--warning)" if positive is False else "var(--text-muted)"
-            factor_items.append(
-                html.Div([
-                    html.Span("● ", style={"color": dot_color, "fontSize": "0.6rem", "verticalAlign": "middle", "marginRight": "6px"}),
-                    html.Span(f.get("text", ""), style={"color": "var(--text-secondary)", "fontSize": "0.85rem"})
-                ], style={"marginBottom": "3px"})
-            )
+        # ── Stat line label ───────────────────────────────────────────────────
+        STAT_LABELS = {"PTS": "Points", "AST": "Assists", "REB": "Rebounds",
+                       "FG3M": "3-Pointers", "STL": "Steals", "BLK": "Blocks"}
+        raw_stat = prop.get("stat", "PTS")
+        stat_label = STAT_LABELS.get(raw_stat, raw_stat)
+        direction = prop.get("direction", "Over")
+        line_val = prop.get("line", "")
+        stat_line_str = f"{direction} {line_val}" if line_val else direction
+
+        # ── Team logo ─────────────────────────────────────────────────────────
+        team_logo = get_team_logo_url(prop.get("team", ""))
+
+        # ── Badge helpers ─────────────────────────────────────────────────────
+        lock_badge = html.Span("LOCK", style={
+            "fontSize": "0.6rem", "fontWeight": "800", "letterSpacing": "0.06em",
+            "color": "#fff", "background": "linear-gradient(90deg,#f59e0b,#ef4444)",
+            "borderRadius": "4px", "padding": "1px 6px", "marginLeft": "6px",
+        }) if prop.get("is_lock") else None
+
+        combo_badge = html.Span("COMBO", style={
+            "fontSize": "0.6rem", "fontWeight": "700",
+            "color": "#a78bfa", "border": "1px solid #a78bfa",
+            "borderRadius": "4px", "padding": "1px 5px", "marginLeft": "6px",
+        }) if prop.get("is_combo") else None
+
+        blowout_badge = html.Span(
+            f"BLOWOUT RISK ({prop['blowout_spread']:.0f}pt)", style={
+                "fontSize": "0.6rem", "fontWeight": "700",
+                "color": "#fb923c", "border": "1px solid rgba(251,146,60,0.5)",
+                "borderRadius": "4px", "padding": "1px 5px", "marginLeft": "6px",
+            }
+        ) if prop.get("blowout_risk") else None
+
+        player_name_str = prop.get("player", "")
+        initial_letter  = player_name_str.split()[-1][0].upper() if player_name_str else "?"
+
+        # Team color accent for fallback gradient (teal for most, violet for alt)
+        banner_bg = (
+            f"url({player_photo}), "
+            "linear-gradient(135deg, rgba(20,184,166,0.18) 0%, rgba(139,92,246,0.18) 100%)"
+        ) if player_photo else "linear-gradient(135deg, rgba(20,184,166,0.18) 0%, rgba(139,92,246,0.18) 100%)"
 
         prop_card = html.Div([
-            # ── Header row: photo / name / matchup badge / hit% / EV ──────────
+            # ── Photo banner (CSS background-image → 404-safe) ────────────────
             html.Div([
-                # Clickable photo — opens the left panel
+                # Fallback initial (always rendered behind photo)
+                html.Span(initial_letter, className="prop-photo-initial"),
+                html.Img(src=team_logo, className="prop-team-logo") if team_logo else None,
+            ],
+                className="prop-photo-banner",
+                style={"backgroundImage": banner_bg,
+                       "backgroundSize": "cover, cover",
+                       "backgroundPosition": "center 10%, center"},
+                id={"type": "prop-player-photo", "index": f"{player_name_str}|{prop.get('stat','PTS')}"},
+                n_clicks=0,
+            ),
+
+            # ── Card body ─────────────────────────────────────────────────────
+            html.Div([
+                # Player name (+ badges on same line)
+                html.Div([
+                    html.Span(
+                        player_name_str,
+                        id={"type": "prop-player-name", "index": f"{player_name_str}|{prop.get('stat','PTS')}"},
+                        n_clicks=0,
+                        style={"fontWeight": "800", "fontSize": "1.05rem",
+                               "color": "#f0f4ff", "cursor": "pointer"},
+                    ),
+                    lock_badge,
+                    combo_badge,
+                    blowout_badge,
+                ], style={"display": "flex", "alignItems": "center", "flexWrap": "wrap",
+                          "marginBottom": "2px"}),
+
+                # Team, position, matchup
                 html.Div(
-                    html.Img(src=player_photo, style={
-                        "width": "52px", "height": "52px", "borderRadius": "50%",
-                        "objectFit": "cover", "backgroundColor": "var(--bg-tertiary)",
-                        "border": "2px solid rgba(20,184,166,0.3)",
-                        "boxShadow": "0 0 10px rgba(20,184,166,0.15)"
-                    }) if player_photo else html.Div(style={
-                        "width": "52px", "height": "52px", "borderRadius": "50%",
-                        "background": "linear-gradient(135deg, rgba(20,184,166,0.15), rgba(139,92,246,0.15))",
-                        "border": "2px solid rgba(20,184,166,0.25)"
-                    }),
-                    id={"type": "prop-player-photo", "index": f"{prop.get('player','')}|{prop.get('stat','PTS')}"},
-                    n_clicks=0,
-                    style={"marginRight": "14px", "flexShrink": "0", "cursor": "pointer"},
+                    f"{prop.get('team','')}  •  {prop.get('position','')}  •  "
+                    f"{'vs' if is_home_today else '@'} {prop.get('opponent','')}",
+                    style={"fontSize": "0.78rem", "color": "#6b7280", "marginBottom": "10px"}
                 ),
+
+                # Stat line e.g. "Points: Over 12.5"
                 html.Div([
-                    html.Div([
-                        html.Span(
-                            prop.get("player", ""),
-                            id={"type": "prop-player-name", "index": f"{prop.get('player','')}|{prop.get('stat','PTS')}"},
-                            n_clicks=0,
-                            style={"fontWeight": "700", "fontSize": "1.1rem", "cursor": "pointer",
-                                   "borderBottom": "1px dashed var(--text-muted)"}
-                        ),
-                        html.Span(f" {'vs' if is_home_today else '@'} {prop.get('opponent', '')}", style={"color": "var(--text-muted)", "fontSize": "0.9rem", "marginLeft": "8px"}),
-                        html.Span(f" {'HOME' if is_home_today else 'AWAY'}", style={
-                            "color": "var(--accent-primary)" if is_home_today else "var(--text-secondary)",
-                            "fontSize": "0.7rem", "fontWeight": "600", "marginLeft": "8px",
-                            "padding": "2px 6px", "backgroundColor": "var(--bg-primary)", "borderRadius": "4px"
-                        }),
-                        html.Span(f" {matchup_grade}", style={
-                            "color": grade_color, "fontSize": "0.7rem", "fontWeight": "700",
-                            "marginLeft": "6px", "padding": "2px 6px",
-                            "border": f"1px solid {grade_color}", "borderRadius": "4px"
-                        }) if matchup_grade != "C" else None,
-                        html.Span("LOCK", style={
-                            "fontSize": "0.65rem", "fontWeight": "800", "letterSpacing": "0.06em",
-                            "color": "#fff", "background": "linear-gradient(90deg,#f59e0b,#ef4444)",
-                            "borderRadius": "4px", "padding": "2px 7px", "marginLeft": "8px",
-                        }) if prop.get("is_lock") else None,
-                        html.Span("COMBO", style={
-                            "fontSize": "0.6rem", "fontWeight": "700", "letterSpacing": "0.06em",
-                            "color": "#a78bfa", "border": "1px solid #a78bfa",
-                            "borderRadius": "4px", "padding": "1px 5px", "marginLeft": "6px",
-                        }) if prop.get("is_combo") else None,
-                    ]),
-                    html.Div(f"{prop.get('team', '')} • {prop.get('position', '')}", style={"fontSize": "0.85rem", "color": "var(--text-muted)"})
-                ], style={"flex": "1"}),
+                    html.Span(f"{stat_label}: ", style={"color": "#9ca3af", "fontWeight": "400"}),
+                    html.Span(stat_line_str, style={"color": "#f0f4ff", "fontWeight": "700"}),
+                ], style={"fontSize": "0.92rem", "marginBottom": "8px"}),
 
-                # Hit Rate + EV column
+                # Divider
+                html.Hr(style={"border": "none", "borderTop": "1px solid rgba(255,255,255,0.07)",
+                               "margin": "8px 0"}),
+
+                # "Win probability" label
+                html.Div("Win probability",
+                         style={"fontSize": "0.75rem", "color": "#6b7280", "marginBottom": "4px"}),
+
+                # Big EV number
+                html.Div(
+                    f"{hit_pct}% EV{ev_arrow}",
+                    className=ev_class,
+                    style={"fontSize": "1.9rem", "fontWeight": "800", "lineHeight": "1",
+                           "marginBottom": "12px"},
+                ),
+
+                # AI Insight
+                html.Div("AI Insight",
+                         style={"fontSize": "0.75rem", "fontWeight": "700",
+                                "color": "#6b7280", "marginBottom": "4px"}),
+                html.Div(
+                    narrative or f"{location_label}: {hits}/{total} games hit",
+                    style={"fontSize": "0.8rem", "color": "#d1d5db",
+                           "lineHeight": "1.5", "marginBottom": "6px"},
+                ),
+
+                # Bottom tag
                 html.Div([
-                    html.Div(f"{hit_pct}%", style={"fontSize": "1.5rem", "fontWeight": "800", "color": hit_color, "textAlign": "right"}),
-                    html.Div(ev_text, style={"fontSize": "0.8rem", "fontWeight": "600", "color": ev_color, "textAlign": "right"})
-                ])
-            ], style={"display": "flex", "alignItems": "center", "marginBottom": "12px"}),
+                    html.Div(className="prop-tag-dot",
+                             style={"backgroundColor": tag_dot_color}),
+                    html.Span(tag_text,
+                              style={"color": tag_dot_color, "fontSize": "0.78rem",
+                                     "fontWeight": "500"}),
+                ], className="prop-bottom-tag"),
 
-            # ── Narrative insight ──────────────────────────────────────────────
-            html.Div(narrative, style={
-                "color": "var(--text-secondary)", "fontSize": "0.88rem", "lineHeight": "1.5",
-                "marginBottom": "10px", "fontStyle": "italic"
-            }) if narrative else None,
-
-            # ── Factors list ──────────────────────────────────────────────────
-            html.Div(factor_items, style={
-                "background": "rgba(34,197,94,0.06)", "padding": "10px 12px",
-                "borderRadius": "8px", "borderLeft": "3px solid var(--success)",
-                "border": "1px solid rgba(34,197,94,0.15)", "marginBottom": "10px"
-            }) if factor_items else html.Div([
-                html.Div([
-                    html.Span("● ", style={"color": "var(--success)", "fontSize": "0.6rem", "verticalAlign": "middle", "marginRight": "6px"}),
-                    html.Span(f"{location_label}: {hits}/{total} ({hit_pct}%)", style={"color": "var(--text-secondary)", "fontSize": "0.85rem"})
-                ])
-            ], style={
-                "background": "rgba(34,197,94,0.06)", "padding": "10px 12px",
-                "borderRadius": "8px", "borderLeft": "3px solid var(--success)",
-                "border": "1px solid rgba(34,197,94,0.15)", "marginBottom": "10px"
-            }),
-
-            # ── Stat / Line / Avg row ─────────────────────────────────────────
-            *_build_odds_row(prop, stat_color, avg, location_label, hit_pct),
-        ], className="card prop-card")
+            ], className="prop-card-body-v2"),
+        ], className="prop-card-v2")
         prop_cards.append(prop_card)
 
-    return prop_cards
+    return [html.Div(prop_cards, className="props-grid")]
 
 
 @callback(
@@ -2363,39 +2433,102 @@ def update_player_header(player_name):
     if current.empty:
         current = player_df
 
-    # Get team from matchup
-    last_game = player_df.iloc[-1] if len(player_df) > 0 else None
-    team = ""
-    if last_game is not None and "MATCHUP" in player_df.columns:
-        matchup = last_game.get("MATCHUP", "")
+    # Team from PLAYER_POSITIONS (most accurate)
+    team = get_player_current_team(player_name)
+    if not team and len(player_df) > 0 and "MATCHUP" in player_df.columns:
+        matchup = player_df.iloc[-1].get("MATCHUP", "")
         if isinstance(matchup, str):
             team = matchup.split()[0] if matchup else ""
 
-    avg_pts = current["PTS"].mean()
-    avg_ast = current["AST"].mean()
-    avg_reb = current["REB"].mean()
+    # Position
+    pos_row = PLAYER_POSITIONS[PLAYER_POSITIONS["PLAYER_NAME"] == player_name] if not PLAYER_POSITIONS.empty else pd.DataFrame()
+    position = str(pos_row["POSITION"].iloc[0]) if len(pos_row) > 0 else ""
+
+    # Season averages
+    avg_pts = current["PTS"].mean() if "PTS" in current.columns else 0
+    avg_reb = current["REB"].mean() if "REB" in current.columns else 0
+    avg_ast = current["AST"].mean() if "AST" in current.columns else 0
+    avg_fg  = (current["FGM"].sum() / current["FGA"].sum() * 100) if "FGM" in current.columns and current["FGA"].sum() > 0 else 0
+
+    team_pos_str = ""
+    if team and position:
+        team_pos_str = f"{team} • {position}"
+    elif team:
+        team_pos_str = team
+    elif position:
+        team_pos_str = position
+
+    # Injury status badge
+    try:
+        inj = get_player_injury_status(player_name)
+        inj_status = inj.get("status", "ACTIVE")
+        inj_reason = inj.get("reason", "")
+    except Exception:
+        inj_status, inj_reason = "ACTIVE", ""
+
+    BADGE_MAP = {
+        "ACTIVE":       ("injury-badge injury-badge-active", "Active"),
+        "PROBABLE":     ("injury-badge injury-badge-active", "Probable"),
+        "QUESTIONABLE": ("injury-badge injury-badge-gtd",   "Questionable"),
+        "DOUBTFUL":     ("injury-badge injury-badge-gtd",   "Doubtful"),
+        "OUT":          ("injury-badge injury-badge-out",   "OUT"),
+        "GTD":          ("injury-badge injury-badge-gtd",   "GTD"),
+    }
+    badge_cls, badge_label = BADGE_MAP.get(inj_status, ("injury-badge injury-badge-active", inj_status.title()))
+    if inj_reason and inj_status not in ("ACTIVE", "UNKNOWN", "PROBABLE"):
+        badge_label = f"{inj_status.title()} - {inj_reason}"
+
+    photo_url = get_player_headshot_url(player_name)
+    initial   = player_name.split()[-1][0].upper() if player_name else "?"
+
+    stat_chips = [
+        html.Div([html.Span(f"{avg_pts:.1f}"), html.Span("PTS", className="chip-label")],
+                 className="player-stat-chip"),
+        html.Div([html.Span(f"{avg_ast:.1f}"), html.Span("AST", className="chip-label")],
+                 className="player-stat-chip chip-ast"),
+        html.Div([html.Span(f"{avg_reb:.1f}"), html.Span("REB", className="chip-label")],
+                 className="player-stat-chip"),
+    ]
+    if avg_fg:
+        stat_chips.append(
+            html.Div([html.Span(f"{avg_fg:.1f}%"), html.Span("FG", className="chip-label")],
+                     className="player-stat-chip")
+        )
 
     return html.Div([
+        # Circular photo with glow wrapper
         html.Div([
-            html.Span(player_name, style={
-                "fontSize": "20px",
-                "fontWeight": "600",
-                "marginRight": "12px"
-            }),
-            html.Span(team, style={
-                "fontSize": "14px",
-                "color": COLORS["text_secondary"],
-                "backgroundColor": COLORS["border"],
-                "padding": "2px 8px",
-                "borderRadius": "4px"
-            }) if team else None,
+            html.Img(
+                src=photo_url,
+                style={
+                    "width": "64px",
+                    "height": "64px",
+                    "borderRadius": "50%",
+                    "objectFit": "cover",
+                    "objectPosition": "top center",
+                    "position": "relative",
+                    "zIndex": "1",
+                    "border": "2px solid rgba(51,65,85,0.8)",
+                    "display": "block",
+                }
+            )
+        ], className="player-photo-wrapper") if photo_url else html.Div(initial, className="player-photo-initial-circle"),
+
+        # Name + badges + stat chips
+        html.Div([
+            html.Div([
+                html.Span(player_name,
+                          style={"fontWeight": "800", "fontSize": "1.5rem",
+                                 "color": "#f0f4ff", "letterSpacing": "-0.02em",
+                                 "marginRight": "10px"}),
+                html.Span(team, className="team-badge") if team else None,
+                html.Span(badge_label, className=badge_cls, style={"marginLeft": "8px"})
+                if inj_status != "ACTIVE" else None,
+            ], style={"display": "flex", "alignItems": "center",
+                      "flexWrap": "wrap", "marginBottom": "8px"}),
+            html.Div(stat_chips, className="player-stat-chips"),
         ]),
-        html.Div([
-            html.Span(f"{avg_pts:.1f} PTS", style={"color": COLORS["pts"], "marginRight": "16px", "fontWeight": "500", "fontSize": "13px"}),
-            html.Span(f"{avg_ast:.1f} AST", style={"color": COLORS["ast"], "marginRight": "16px", "fontWeight": "500", "fontSize": "13px"}),
-            html.Span(f"{avg_reb:.1f} REB", style={"color": COLORS["reb"], "fontWeight": "500", "fontSize": "13px"}),
-        ], style={"marginTop": "4px"})
-    ])
+    ], className="player-header-v2")
 
 
 @callback(
@@ -2825,23 +2958,80 @@ def update_main_chart(player_name, stat, period, season, h2h_mode, location, thr
 
 @callback(
     Output("sidebar-content", "children"),
-    [Input("sidebar-tab", "data"),
-     Input("player-dropdown", "value"),
+    [Input("player-dropdown", "value"),
      Input("selected-stat", "data")]
 )
-def update_sidebar_content(tab, player_name, stat):
-    if tab == "props":
-        return create_best_props_content(stat)
-
+def update_sidebar_content(player_name, stat):
     if not player_name:
         return None
+    return html.Div([
+        create_matchup_content(player_name, stat),
+        create_injury_context_card(player_name),
+        create_prop_bet_history_card(player_name, stat),
+    ], style={"display": "flex", "flexDirection": "column", "gap": "12px"})
 
-    if tab == "matchup":
-        return create_matchup_content(player_name, stat)
-    elif tab == "injuries":
-        return create_injuries_content(player_name)
-    else:
-        return create_insights_content(player_name, stat)
+
+@callback(
+    Output("season-trends-chart", "figure"),
+    [Input("player-dropdown", "value"),
+     Input("selected-stat", "data")]
+)
+def update_season_trends_chart(player_name, stat):
+    """Rolling season trend: 5-game rolling average for PTS and REB (or selected stat)."""
+    empty_fig = go.Figure()
+    empty_fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=30, r=10, t=10, b=40), height=260,
+    )
+    if not player_name:
+        return empty_fig
+
+    player_df = (
+        DF[DF["PLAYER_NAME"] == player_name]
+        .sort_values("_date", ascending=True)
+        .tail(40)
+    )
+    if player_df.empty:
+        return empty_fig
+
+    fig = go.Figure()
+    trend_stats = ["PTS", "REB"] if stat not in ("AST", "FG3M") else [stat, "PTS"]
+    trend_colors = ["#2DD4BF", "#F59E0B", COLORS["ast"]]
+
+    for i, ts in enumerate(trend_stats):
+        if ts not in player_df.columns:
+            continue
+        rolling = player_df[ts].rolling(5, min_periods=1).mean()
+        tc = trend_colors[i % len(trend_colors)]
+        fig.add_trace(go.Scatter(
+            x=list(range(len(player_df))),
+            y=rolling,
+            mode="lines+markers",
+            name=ts,
+            line=dict(color=tc, width=2.5),
+            marker=dict(size=8, color="#131A2A", line=dict(color=tc, width=2)),
+            hovertemplate=f"{ts}: %{{y:.1f}}<extra></extra>",
+        ))
+
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=30, r=10, t=10, b=40), height=260,
+        showlegend=False,
+        xaxis=dict(showgrid=False, showticklabels=False),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor="#1E293B",
+            tickvals=[0, 25, 50, 75, 100],
+            tickfont=dict(color="#64748b"),
+        ),
+        hovermode="x unified",
+        hoverlabel=dict(bgcolor="#0B101A", font_color="#f1f5f9"),
+    )
+    return fig
 
 
 # =============================================================================
@@ -2910,25 +3100,17 @@ def update_supporting_stats_cards(player_name, mode, period, season, current_sel
             return player_df[col].median()
         return player_df[col].mean()
 
-    # Stats to display - ALL are now selectable/clickable
+    # Stats to display — exactly 5 cards: Potential AST, Rebounds, Touches, Field Goals, Free Throws
     stats = [
         {"label": "Potential Ast", "value": calc_stat("AST"), "key": "AST", "col": "AST", "type": "simple"},
-        {"label": "Minutes", "value": calc_stat("MIN"), "key": "MIN", "col": "MIN", "type": "simple"},
-        {"label": "Fouls", "value": calc_stat("PF") if "PF" in player_df.columns else 0, "key": "PF", "col": "PF", "type": "simple"},
+        {"label": "Rebounds",      "value": calc_stat("REB"), "key": "REB", "col": "REB", "type": "simple"},
+        {"label": "Touches",       "value": calc_stat("MIN"), "key": "MIN", "col": "MIN", "type": "simple"},
         {
             "label": "Field Goals",
             "value": calc_stat("FGM"),
             "pct": (calc_stat("FGM") / calc_stat("FGA") * 100) if calc_stat("FGA") > 0 else 0,
             "attempts": calc_stat("FGA"),
             "key": "FG",
-            "type": "shooting"
-        },
-        {
-            "label": "3pts",
-            "value": calc_stat("FG3M"),
-            "pct": (calc_stat("FG3M") / calc_stat("FG3A") * 100) if calc_stat("FG3A") > 0 else 0,
-            "attempts": calc_stat("FG3A"),
-            "key": "FG3",
             "type": "shooting"
         },
         {
@@ -2946,20 +3128,34 @@ def update_supporting_stats_cards(player_name, mode, period, season, current_sel
 
     for stat in stats:
         is_selected = stat["key"] == selected_stat
-        card_class = "stat-card active" if is_selected else "stat-card"
+        card_class = "supporting-stat-card stat-card active" if is_selected else "supporting-stat-card stat-card"
 
         if stat["type"] == "shooting":
             # Shooting stat with percentage
             card_content = html.Div([
-                html.Div(stat["label"], style={"fontSize": "0.75rem", "fontWeight": "600", "color": "var(--text-secondary)", "marginBottom": "4px"}),
-                html.Div(f"{stat['value']:.1f} Made ({stat['pct']:.0f}%)", style={"fontSize": "0.85rem", "fontWeight": "500"}),
-                html.Div(f"{stat['attempts']:.1f} Attempts", style={"fontSize": "0.7rem", "color": "var(--text-muted)"}),
+                html.Div(stat["label"].upper(), style={
+                    "fontSize": "0.625rem", "color": "#64748b",
+                    "textTransform": "uppercase", "letterSpacing": "0.1em",
+                    "fontWeight": "500", "marginBottom": "6px",
+                }),
+                html.Div(f"{stat['value']:.1f} Made ({stat['pct']:.0f}%)", style={
+                    "fontSize": "1rem", "fontWeight": "600", "color": "#f1f5f9",
+                    "lineHeight": "1.3", "marginBottom": "4px",
+                }),
+                html.Div(f"{stat['attempts']:.1f} Attempts", style={"fontSize": "0.6rem", "color": "#64748b"}),
             ], id={"type": "supporting-stat-btn", "index": stat["key"]}, n_clicks=0, className=card_class)
         else:
             # Simple stat (Minutes, Fouls, AST)
             card_content = html.Div([
-                html.Div(stat["label"], style={"fontSize": "0.75rem", "fontWeight": "600", "color": "var(--text-secondary)", "marginBottom": "4px"}),
-                html.Div(f"{stat['value']:.1f}", style={"fontSize": "1.1rem", "fontWeight": "700"}),
+                html.Div(stat["label"].upper(), style={
+                    "fontSize": "0.625rem", "color": "#64748b",
+                    "textTransform": "uppercase", "letterSpacing": "0.1em",
+                    "fontWeight": "500", "marginBottom": "6px",
+                }),
+                html.Div(f"{stat['value']:.1f}", style={
+                    "fontSize": "1.1rem", "fontWeight": "600", "color": "#f1f5f9",
+                    "lineHeight": "1.2", "marginBottom": "4px",
+                }),
             ], id={"type": "supporting-stat-btn", "index": stat["key"]}, n_clicks=0, className=card_class)
 
         cards.append(card_content)
@@ -2994,8 +3190,8 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
     if not player_name or not selected_stat:
         fig.update_layout(
             template="plotly_dark",
-            paper_bgcolor=COLORS["card"],
-            plot_bgcolor=COLORS["card"],
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
             height=300
         )
         return fig
@@ -3015,8 +3211,8 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
     if len(player_df) == 0:
         fig.update_layout(
             template="plotly_dark",
-            paper_bgcolor=COLORS["card"],
-            plot_bgcolor=COLORS["card"],
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
             height=300
         )
         return fig
@@ -3135,8 +3331,8 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
 
     fig.update_layout(
         template="plotly_dark",
-        paper_bgcolor=COLORS["card"],
-        plot_bgcolor=COLORS["card"],
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=40, r=20, t=40, b=70 if n_games > 10 else 50),
         height=320,
         showlegend=False,
@@ -3556,6 +3752,65 @@ def generate_player_insights(player_name, period, season, h2h_mode, location):
     ])
 
 
+def _build_defense_radar(pts_rank, ast_rank, reb_rank, tpm_rank):
+    """Build a Barpolar radar chart showing defensive strengths/weaknesses."""
+    theta_labels = ["Points", "Assists", "Rebounds", "3-Pointers"]
+    ranks = [pts_rank, ast_rank, reb_rank, tpm_rank]
+
+    # Invert ranks so rank 1 (worst defense) = tall bar (best opportunity for player)
+    values = [31 - r for r in ranks]
+
+    # rank <= 15 → green (opportunity); rank > 15 → red (challenge)
+    green_r = [v if ranks[i] <= 15 else 0 for i, v in enumerate(values)]
+    red_r   = [v if ranks[i] > 15  else 0 for i, v in enumerate(values)]
+
+    fig = go.Figure()
+    fig.add_trace(go.Barpolar(
+        r=green_r,
+        theta=theta_labels,
+        marker_color="rgba(34,197,94,0.6)",
+        marker_line_color="rgba(34,197,94,0.8)",
+        marker_line_width=1.5,
+        opacity=0.8,
+        name="Opportunity",
+        showlegend=False,
+    ))
+    fig.add_trace(go.Barpolar(
+        r=red_r,
+        theta=theta_labels,
+        marker_color="rgba(244,63,94,0.6)",
+        marker_line_color="rgba(244,63,94,0.8)",
+        marker_line_width=1.5,
+        opacity=0.8,
+        name="Challenge",
+        showlegend=False,
+    ))
+    fig.update_layout(
+        polar=dict(
+            bgcolor="rgba(0,0,0,0)",
+            radialaxis=dict(
+                visible=True,
+                range=[0, 30],
+                showticklabels=False,
+                gridcolor="rgba(255,255,255,0.08)",
+                gridwidth=1,
+                nticks=6,
+                layer="below traces",
+            ),
+            angularaxis=dict(
+                tickfont=dict(color="#94a3b8", size=10),
+                gridcolor="rgba(255,255,255,0.08)",
+                linecolor="rgba(255,255,255,0.08)",
+            ),
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=40, r=40, t=20, b=20),
+        height=220,
+    )
+    return fig
+
+
 def create_matchup_content(player_name, stat):
     """Create the matchup analysis sidebar content matching the Outlier-style design"""
     player_df = DF[DF["PLAYER_NAME"] == player_name]
@@ -3642,124 +3897,85 @@ def create_matchup_content(player_name, stat):
         else:
             return COLORS["text_secondary"]
 
+    position_tabs_all = ["Overall", "vs Guards", "vs Forwards", "vs Centers"]
+    active_tab = f"vs {player_pos_display}"
+
     return html.Div([
-        # Key Defense Section
+        html.Span("Matchup Analysis", className="matchup-section-title"),
+
+        # Defense header
         html.Div([
-            # Header with W-L record
-            html.Div([
-                html.Span(f"Key {opponent} Defense vs {player_pos_display}", style={
-                    "color": COLORS["text"], "fontSize": "14px", "fontWeight": "600"
-                }),
-                html.Span(f"  {opp_record}", style={
-                    "color": COLORS["text_muted"], "fontSize": "12px", "marginLeft": "8px"
-                }) if opp_record else None,
-            ], style={"marginBottom": "8px"}),
+            html.Span(f"Key {opponent} Defense vs {player_pos_display}",
+                      className="matchup-defense-header"),
+            html.Span(f"  {opp_record}", className="matchup-record") if opp_record else None,
+        ], style={"marginBottom": "4px"}),
 
-            # Context line: Opp FG% + TOV forced
-            html.Div([
-                html.Span(
-                    f"Opp FG% {opp_fg_pct*100:.1f}% (#{int(opp_fg_rank)})",
-                    style={"color": COLORS["text_secondary"], "fontSize": "11px", "marginRight": "12px"}
-                ) if opp_fg_pct is not None and opp_fg_rank is not None else None,
-                html.Span(
-                    f"TOV forced {opp_tov:.1f}/g (#{int(opp_tov_rank)})",
-                    style={"color": COLORS["text_secondary"], "fontSize": "11px"}
-                ) if opp_tov is not None and opp_tov_rank is not None else None,
-            ], style={"display": "flex", "marginBottom": "14px"}),
-
-            # Position tabs
-            html.Div([
-                html.Span(
-                    pos,
-                    style={
-                        "padding": "6px 12px",
-                        "fontSize": "12px",
-                        "color": COLORS["text"] if pos == current_pos_tab else COLORS["text_muted"],
-                        "borderBottom": f"2px solid {COLORS['text']}" if pos == current_pos_tab else "none",
-                        "cursor": "pointer",
-                        "marginRight": "8px"
-                    }
-                ) for pos in position_tabs
-            ], style={"display": "flex", "marginBottom": "16px", "flexWrap": "wrap"}),
-
-            # Stats table — PTS / AST / REB / 3PM
-            html.Table([
-                html.Thead([
-                    html.Tr([
-                        html.Th("Stat (per game)", style={"textAlign": "left", "color": COLORS["text_muted"], "fontSize": "11px", "padding": "8px 0", "fontWeight": "400"}),
-                        html.Th("Rank", style={"textAlign": "center", "color": COLORS["text_muted"], "fontSize": "11px", "fontWeight": "400"}),
-                        html.Th("Avg", style={"textAlign": "right", "color": COLORS["text_muted"], "fontSize": "11px", "fontWeight": "400"}),
-                    ])
-                ]),
-                html.Tbody([
-                    html.Tr([
-                        html.Td("Points Allowed", style={"padding": "9px 0", "fontSize": "13px", "fontWeight": "500"}),
-                        html.Td(f"#{pts_rank}", style={"textAlign": "center", "color": get_rank_color(pts_rank), "fontSize": "14px", "fontWeight": "600"}),
-                        html.Td(f"{pts_allowed:.1f}", style={"textAlign": "right", "fontSize": "13px"}),
-                    ]),
-                    html.Tr([
-                        html.Td("Assists Allowed", style={"padding": "9px 0", "fontSize": "13px", "fontWeight": "500"}),
-                        html.Td(f"#{ast_rank}", style={"textAlign": "center", "color": get_rank_color(ast_rank), "fontSize": "14px", "fontWeight": "600"}),
-                        html.Td(f"{ast_allowed:.1f}", style={"textAlign": "right", "fontSize": "13px"}),
-                    ]),
-                    html.Tr([
-                        html.Td("Rebounds Allowed", style={"padding": "9px 0", "fontSize": "13px", "fontWeight": "500"}),
-                        html.Td(f"#{reb_rank}", style={"textAlign": "center", "color": get_rank_color(reb_rank), "fontSize": "14px", "fontWeight": "600"}),
-                        html.Td(f"{reb_allowed:.1f}", style={"textAlign": "right", "fontSize": "13px"}),
-                    ]),
-                    html.Tr([
-                        html.Td("3-Pointers Allowed", style={"padding": "9px 0", "fontSize": "13px", "fontWeight": "500"}),
-                        html.Td(f"#{tpm_rank}", style={"textAlign": "center", "color": get_rank_color(tpm_rank), "fontSize": "14px", "fontWeight": "600"}),
-                        html.Td(f"{tpm_allowed:.1f}", style={"textAlign": "right", "fontSize": "13px"}),
-                    ]),
-                ])
-            ], style={"width": "100%", "borderCollapse": "collapse"})
-        ], style=CARD),
-
-        # Team Rankings Section
+        # Sub-line
         html.Div([
-            html.Div([
-                html.Div(f"Team Rankings ({CURRENT_SEASON.split('-')[0]})", style={
-                    "color": COLORS["text"],
-                    "fontSize": "14px",
-                    "fontWeight": "600",
-                }),
-            ], style={"marginBottom": "16px"}),
+            html.Span(
+                f"Opp FG% {opp_fg_pct*100:.1f}% (#{int(opp_fg_rank)})  " if opp_fg_pct else "",
+            ),
+            html.Span(
+                f"TOV forced {opp_tov:.1f}/g (M{int(opp_tov_rank)})" if opp_tov else "",
+            ),
+        ], className="matchup-defense-sub"),
 
-            # Offense/Defense toggle
-            html.Div([
-                html.Span("Offense", style={
-                    "padding": "6px 16px",
-                    "fontSize": "12px",
-                    "backgroundColor": COLORS["border"],
-                    "borderRadius": "4px",
-                    "color": COLORS["text"],
-                    "marginRight": "8px"
-                }),
-                html.Span("↔", style={"color": COLORS["text_muted"], "marginRight": "8px"}),
-                html.Span("Defense", style={
-                    "padding": "6px 16px",
-                    "fontSize": "12px",
-                    "color": COLORS["text_muted"],
-                }),
-            ], style={"display": "flex", "alignItems": "center", "marginBottom": "16px"}),
-
-            # Team comparison table
-            create_team_rankings_table(player_df, opponent)
-        ], style=CARD),
-
-        # Hit rates table
+        # Underline tabs
         html.Div([
-            html.Div("HIT RATES", style={
-                "color": COLORS["text_secondary"],
-                "fontSize": "11px",
-                "fontWeight": "600",
-                "letterSpacing": "1px",
-                "marginBottom": "12px"
-            }),
-            create_hit_rates_table(player_name)
-        ], style=CARD),
-    ])
+            html.Span(
+                pos,
+                className=f"matchup-tab {'active' if pos == active_tab or (pos == 'Overall' and active_tab not in position_tabs_all) else ''}",
+            )
+            for pos in position_tabs_all
+        ], className="matchup-tabs"),
+
+        # Stats table
+        html.Table([
+            html.Thead(html.Tr([
+                html.Td("Stat (per game)", className="matchup-stat-header"),
+                html.Td("",               className="matchup-stat-header"),
+                html.Td("Avg",            className="matchup-stat-header",
+                        style={"textAlign": "right"}),
+            ])),
+            html.Tbody([
+                html.Tr([html.Td("Points Allowed",    className="matchup-stat-label"),
+                         html.Td(f"#{pts_rank}",      className="matchup-rank"),
+                         html.Td(f"{pts_allowed:.1f}", className="matchup-stat-val")]),
+                html.Tr([html.Td("Assists Allowed",   className="matchup-stat-label"),
+                         html.Td(f"#{ast_rank}",      className="matchup-rank"),
+                         html.Td(f"{ast_allowed:.1f}", className="matchup-stat-val")]),
+                html.Tr([html.Td("Rebounds Allowed",  className="matchup-stat-label"),
+                         html.Td(f"#{reb_rank}",      className="matchup-rank"),
+                         html.Td(f"{reb_allowed:.1f}", className="matchup-stat-val")]),
+                html.Tr([html.Td("3-Pointers Allowed", className="matchup-stat-label"),
+                         html.Td(f"#{tpm_rank}",       className="matchup-rank"),
+                         html.Td(f"{tpm_allowed:.1f}", className="matchup-stat-val")]),
+            ]),
+        ], className="matchup-stats-table"),
+
+        # ── Polar radar chart sub-card ──
+        html.Div([
+            html.Div(
+                f"{opponent} Defense Rank #{pts_rank} vs. {player_pos_display}",
+                style={
+                    "fontSize": "0.85rem", "fontWeight": "700",
+                    "color": "#e2e8f0", "marginBottom": "4px",
+                }
+            ),
+            dcc.Graph(
+                figure=_build_defense_radar(pts_rank, ast_rank, reb_rank, tpm_rank),
+                config={"displayModeBar": False},
+                style={"height": "220px"},
+            ),
+        ], style={
+            "background": "#0e1520",
+            "borderRadius": "12px",
+            "padding": "16px",
+            "border": "1px solid #1e293b",
+            "marginTop": "12px",
+        }),
+
+    ], className="analysis-card sidebar-matchup-card")
 
 
 def create_team_rankings_table(player_df, opponent):
@@ -3978,6 +4194,183 @@ def create_injuries_content(player_name):
             *news_elements,
         ], style=CARD),
     ])
+
+
+def create_injury_context_card(player_name):
+    """Compact injury status card for always-visible sidebar."""
+    try:
+        status = get_player_injury_status(player_name)
+        status_text = status.get("status", "ACTIVE")
+        reason      = status.get("reason", "")
+        news        = status.get("news", [])
+    except Exception:
+        status_text, reason, news = "UNKNOWN", "", []
+
+    STATUS_COLOR = {
+        "ACTIVE":       "#22c55e",
+        "PROBABLE":     "#a3e635",
+        "QUESTIONABLE": "#f59e0b",
+        "DOUBTFUL":     "#f97316",
+        "OUT":          "#f43f5e",
+        "UNKNOWN":      "#64748b",
+    }
+    color = STATUS_COLOR.get(status_text, "#64748b")
+
+    news_title = next((n.get("title", "") for n in news if n.get("title")), "")
+
+    return html.Div([
+        # Rose gradient overlay
+        html.Div(style={
+            "position": "absolute", "inset": "0",
+            "background": "linear-gradient(135deg, rgba(244,63,94,0.05), transparent, rgba(45,212,191,0.05))",
+            "pointerEvents": "none", "borderRadius": "16px",
+        }),
+        html.Div(style={
+            "position": "absolute", "right": "0", "top": "0", "bottom": "0", "width": "8rem",
+            "background": "linear-gradient(to left, rgba(244,63,94,0.05), transparent)",
+            "pointerEvents": "none",
+        }),
+        # Content above overlays
+        html.Div([
+            html.Span("Injury Context", className="matchup-section-title"),
+            html.Div([
+                html.Span("Status: ", style={"color": "#FB7185"}),
+                html.Span(
+                    status_text.title() + (f" ({reason})" if reason else ""),
+                    style={"color": color, "fontWeight": "600"},
+                ),
+            ], className="injury-context-status"),
+            html.Div(news_title,
+                     style={"background": "rgba(30,41,59,0.3)", "padding": "12px",
+                            "borderRadius": "8px", "border": "1px solid rgba(30,41,59,0.5)",
+                            "fontSize": "0.8rem", "color": "#94a3b8"},
+                     className="injury-context-body") if news_title else
+            html.Div("No recent injury reports.", className="injury-context-body",
+                     style={"color": "#6b7280"}),
+            html.Div([
+                html.Span("Impact: ", style={"color": "#2DD4BF", "fontWeight": "600"}),
+                html.Span("Minutes may be limited if active. Consider under on points/rebounds.",
+                          style={"color": "#9ca3af"}),
+            ], className="injury-impact-note",
+            ) if status_text in ("QUESTIONABLE", "DOUBTFUL", "GTD") else None,
+        ], style={"position": "relative", "zIndex": "1"}),
+    ], className="analysis-card sidebar-injury-card", style={"position": "relative", "overflow": "hidden"})
+
+
+def _empty_bet_history_card(stat_label="Points"):
+    """Fallback card when no game data is available."""
+    return html.Div([
+        html.Span("Bet History", className="matchup-section-title",
+                  style={"color": "#f1f5f9", "fontWeight": "700", "display": "block", "marginBottom": "8px"}),
+        html.Div("No game data available.",
+                 style={"fontSize": "0.8rem", "color": "#6b7280", "paddingTop": "4px"}),
+    ], className="analysis-card")
+
+
+def create_prop_bet_history_card(player_name, stat):
+    """Last 10 games over/under season average for the selected stat."""
+    STAT_COL_MAP = {
+        "PTS":         ("PTS",  "PTS"),
+        "AST":         ("AST",  "AST"),
+        "REB":         ("REB",  "REB"),
+        "FG3M":        ("FG3M", "3PM"),
+        "PTS+REB":     ("PTS",  "PTS"),
+        "PTS+AST":     ("PTS",  "PTS"),
+        "PTS+REB+AST": ("PTS",  "PTS"),
+    }
+    stat_col, stat_label = STAT_COL_MAP.get(stat, ("PTS", "PTS"))
+
+    player_df = DF[DF["PLAYER_NAME"] == player_name].copy()
+    if player_df.empty or stat_col not in player_df.columns:
+        return _empty_bet_history_card(stat_label)
+
+    player_df = player_df.sort_values("_date", ascending=False)
+    season_avg = player_df[stat_col].mean()
+    last10 = player_df.head(10)
+
+    rows = []
+    for _, row in last10.iterrows():
+        actual = row.get(stat_col)
+        if actual is None:
+            continue
+        try:
+            actual = float(actual)
+        except (TypeError, ValueError):
+            continue
+        if actual != actual:  # NaN check
+            continue
+
+        is_over = actual >= season_avg
+
+        # Parse opponent from MATCHUP (e.g. "BOS vs. MIA" or "BOS @ MIA")
+        matchup = str(row.get("MATCHUP", ""))
+        team = str(row.get("TEAM_ABBREVIATION", ""))
+        if " vs. " in matchup:
+            parts = matchup.split(" vs. ")
+            opp = parts[1].strip() if parts[0].strip() == team else parts[0].strip()
+        elif " @ " in matchup:
+            parts = matchup.split(" @ ")
+            opp = parts[1].strip() if parts[0].strip() == team else parts[0].strip()
+        else:
+            opp = matchup[-3:] if len(matchup) >= 3 else "???"
+
+        # Date label
+        try:
+            date_val = row["_date"]
+            date_str = date_val.strftime("%-m/%-d") if hasattr(date_val, "strftime") else str(date_val)[:5]
+        except Exception:
+            date_str = ""
+
+        pill_base = {
+            "display": "inline-flex", "alignItems": "center", "gap": "3px",
+            "borderRadius": "5px", "padding": "2px 7px",
+            "fontSize": "0.68rem", "fontWeight": "700", "flexShrink": "0",
+        }
+        if is_over:
+            pill_style = {**pill_base,
+                "background": "rgba(45,212,191,0.12)", "border": "1px solid rgba(45,212,191,0.25)",
+                "color": "#2DD4BF"}
+            pill = html.Div([html.Span("✓"), html.Span("OVER")], style=pill_style)
+        else:
+            pill_style = {**pill_base,
+                "background": "rgba(251,113,133,0.12)", "border": "1px solid rgba(251,113,133,0.25)",
+                "color": "#FB7185"}
+            pill = html.Div([html.Span("✕"), html.Span("UNDER")], style=pill_style)
+
+        rows.append(html.Div([
+            html.Div([
+                html.Span(date_str, style={"fontSize": "0.65rem", "color": "#64748b", "marginRight": "5px"}),
+                html.Span(f"vs {opp}", style={"fontSize": "0.78rem", "color": "#94a3b8", "fontWeight": "500"}),
+            ], style={"display": "flex", "alignItems": "center"}),
+            html.Div([
+                html.Span(f"{actual:.0f}", style={
+                    "fontSize": "0.95rem", "fontWeight": "700",
+                    "color": "#2DD4BF" if is_over else "#FB7185",
+                    "marginRight": "6px",
+                }),
+                pill,
+            ], style={"display": "flex", "alignItems": "center", "flexShrink": "0"}),
+        ], style={
+            "display": "flex", "alignItems": "center", "justifyContent": "space-between",
+            "padding": "8px 4px", "borderBottom": "1px solid rgba(30,41,59,0.4)",
+        }))
+
+    if not rows:
+        return _empty_bet_history_card(stat_label)
+
+    header = html.Div([
+        html.Span("Bet History", className="matchup-section-title",
+                  style={"marginBottom": "0", "color": "#f1f5f9", "fontWeight": "700"}),
+        html.Div([
+            html.Span("Avg: ", style={"color": "#64748b", "fontSize": "0.68rem"}),
+            html.Span(f"{season_avg:.1f} {stat_label}", style={
+                "color": "#94a3b8", "fontSize": "0.75rem", "fontWeight": "600",
+            }),
+        ]),
+    ], style={"display": "flex", "justifyContent": "space-between",
+              "alignItems": "center", "marginBottom": "10px"})
+
+    return html.Div([header, html.Div(rows)], className="analysis-card")
 
 
 def create_insights_content(player_name, _stat=None):

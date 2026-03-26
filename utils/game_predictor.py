@@ -10,6 +10,9 @@ more than season-long averages.
 """
 
 import logging
+import pickle
+from pathlib import Path
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -26,16 +29,30 @@ H2H_SEASONS      = 2      # how many seasons back for H2H
 FORM_WP_SCALE    = 10.0   # multiplier for recent W/L rate vs season rate
 MARGIN_SCALE     = 0.30   # weight for rolling scoring-margin adjustment
 
+# ── Rest / fatigue constants ───────────────────────────────────────────────
+B2B_PENALTY  = 2.5   # pts deducted for back-to-back (rest_days == 0)
+REST_BONUS   = 0.8   # small bonus when team has 3+ days rest
+
+# ── Vegas line anchor blend ────────────────────────────────────────────────
+MARKET_BLEND = 0.35  # trust Vegas spread/total 35%, our model 65%
+
+# ── XGBoost model weight ───────────────────────────────────────────────────
+# Set to 0 until XGB model demonstrates improvement over the heuristic.
+# The trained model sits at ~10.4 MAE vs heuristic ~9-10 MAE, so blending hurts.
+# Increase this (e.g. to 0.40) after retraining with richer features.
+XGB_WEIGHT   = 0.0  # 0 = heuristic only, 0.45 = half-and-half blend
+
 # Injury penalty — replacement-level model
 # NBA bench/replacement player averages ~7 PPG.
 # Only the MARGINAL gap above replacement is penalized, and only partially
 # because the team redistributes usage (other starters get more minutes,
 # someone else steps up). A 20 PPG star being out ≠ team loses 14 pts.
+# Weights increased (was 0.20/0.10) to better reflect real multi-player impact.
 REPLACEMENT_PPG        = 7.0   # typical bench/replacement scorer
-OUT_MARGINAL_WEIGHT    = 0.20  # 20% of net marginal loss → team scoring drop
-DOUBTFUL_MARGINAL_WEIGHT = 0.10
-MAX_PENALTY_PER_PLAYER = 4.0   # hard cap per player (pts)
-MAX_TOTAL_PENALTY      = 8.0   # hard cap total per team (pts)
+OUT_MARGINAL_WEIGHT    = 0.40  # 40% of net marginal loss → team scoring drop
+DOUBTFUL_MARGINAL_WEIGHT = 0.20
+MAX_PENALTY_PER_PLAYER = 6.0   # hard cap per player (pts)
+MAX_TOTAL_PENALTY      = 14.0  # hard cap total per team (pts)
 
 
 class GamePredictor:
@@ -46,17 +63,23 @@ class GamePredictor:
       - Recent W/L form momentum
       - Head-to-head record
       - Home court advantage + pace adjustment
+      - Rest/fatigue (back-to-back penalty, 3+ days rest bonus)
+      - XGBoost model blend (when data/model_game_xgb.pkl is present)
     """
+
+    _XGB_PATH = Path(__file__).parent.parent / "data" / "model_game_xgb.pkl"
 
     def __init__(self, team_def_df: pd.DataFrame, player_logs_df: pd.DataFrame):
         self.team_def = team_def_df
         self.logs     = player_logs_df
         self._scores  = self._build_scores(player_logs_df)
+        self._xgb     = self._load_xgb()
 
     def refresh(self, player_logs_df: pd.DataFrame) -> None:
         """Re-build the game scores table from a fresh DF (call after data update)."""
         self.logs    = player_logs_df
         self._scores = self._build_scores(player_logs_df)
+        self._xgb    = self._load_xgb()   # reload in case model was newly trained
 
     # ── Public API ────────────────────────────────────────────────────────
 
@@ -128,6 +151,29 @@ class GamePredictor:
         pace_factor = ((home_pace + away_pace) / 2) / LEAGUE_AVG_PACE
         pred_home   = round(pred_home * pace_factor, 1)
         pred_away   = round(pred_away * pace_factor, 1)
+
+        # ── Rest / back-to-back fatigue ──────────────────────────────────
+        home_rest = self._get_rest_days(home)
+        away_rest = self._get_rest_days(away)
+        if home_rest == 0:
+            pred_home -= B2B_PENALTY
+        elif home_rest >= 3:
+            pred_home += REST_BONUS
+        if away_rest == 0:
+            pred_away -= B2B_PENALTY
+        elif away_rest >= 3:
+            pred_away += REST_BONUS
+
+        # ── XGBoost model blend ──────────────────────────────────────────
+        xgb_home = self._predict_xgb(home, away, is_home=1,
+                                      home_rest=home_rest, away_rest=away_rest,
+                                      home_form=home_form, away_form=away_form)
+        xgb_away = self._predict_xgb(away, home, is_home=0,
+                                      home_rest=away_rest, away_rest=home_rest,
+                                      home_form=away_form, away_form=home_form)
+        if xgb_home is not None and xgb_away is not None:
+            pred_home = round(pred_home * (1 - XGB_WEIGHT) + xgb_home * XGB_WEIGHT, 1)
+            pred_away = round(pred_away * (1 - XGB_WEIGHT) + xgb_away * XGB_WEIGHT, 1)
 
         # ── Injury adjustments ───────────────────────────────────────────
         home_missing, away_missing = [], []
@@ -202,6 +248,24 @@ class GamePredictor:
         """
         model_spread = prediction["predicted_spread"]
         model_total  = prediction["predicted_total"]
+
+        # ── Vegas line anchor blend ─────────────────────────────────────
+        # Blend our model's spread/total toward the Vegas line (35% weight).
+        # Market lines are very well-calibrated; blending reduces model error.
+        if actual_spread is not None:
+            # actual_spread is home line (negative = home favored).
+            # Convert to "model spread space": market's implied model_spread ≈ -actual_spread
+            blended_spread = (model_spread * (1 - MARKET_BLEND)
+                              + (-actual_spread) * MARKET_BLEND)
+        else:
+            blended_spread = model_spread
+
+        if actual_total is not None:
+            blended_total = (model_total * (1 - MARKET_BLEND)
+                             + actual_total * MARKET_BLEND)
+        else:
+            blended_total = model_total
+
         result = {
             "spread_pick":        None,
             "spread_team":        None,
@@ -215,7 +279,9 @@ class GamePredictor:
         }
 
         if actual_spread is not None:
-            edge = model_spread - actual_spread
+            # actual_spread is the home line (negative = home favored, e.g. -5 means home -5).
+            # Home covers when blended_spread > -actual_spread, i.e. blended_spread + actual_spread > 0.
+            edge = blended_spread + actual_spread
             if edge > MIN_EDGE_SPREAD:
                 result["spread_pick"] = "HOME"
                 result["spread_team"] = home
@@ -228,7 +294,7 @@ class GamePredictor:
             )
 
         if actual_total is not None:
-            edge = model_total - actual_total
+            edge = blended_total - actual_total
             if edge > MIN_EDGE_TOTAL:
                 result["total_pick"] = "OVER"
             elif edge < -MIN_EDGE_TOTAL:
@@ -326,6 +392,60 @@ class GamePredictor:
         }
 
     # ── Internal helpers ──────────────────────────────────────────────────
+
+    def _get_rest_days(self, team: str) -> int:
+        """
+        Days of rest before the next game (0 = back-to-back).
+        Returns 1 (normal rest) when data is unavailable.
+        """
+        if self._scores.empty:
+            return 1
+        team_games = (
+            self._scores[self._scores["team"] == team]
+            .sort_values("_date", ascending=False)
+        )
+        if len(team_games) < 2:
+            return 1
+        try:
+            delta = (team_games.iloc[0]["_date"] - team_games.iloc[1]["_date"]).days
+            return min(max(delta, 0), 7)
+        except Exception:
+            return 1
+
+    def _load_xgb(self):
+        """Load XGBoost model if available. Returns None when not trained yet."""
+        try:
+            with open(self._XGB_PATH, "rb") as f:
+                model = pickle.load(f)
+            logger.info("XGBoost game model loaded from %s", self._XGB_PATH)
+            return model
+        except Exception:
+            return None
+
+    def _predict_xgb(self, team: str, opp: str, is_home: int,
+                     home_rest: int, away_rest: int,
+                     home_form: dict, away_form: dict) -> float | None:
+        """XGBoost prediction for team score. Returns None if model not available."""
+        if self._xgb is None:
+            return None
+        try:
+            opp_form = away_form   # caller swaps for home/away
+            features = {
+                "roll_ppg_10":     home_form.get("rolling_ppg") or 112.0,
+                "roll_ppg_5":      home_form.get("rolling_ppg") or 112.0,
+                "roll_wl_10":      (home_form.get("wins", 5) /
+                                    max(home_form.get("wins", 5) + home_form.get("losses", 5), 1)),
+                "is_home":         is_home,
+                "rest_days":       home_rest,
+                "is_b2b":          1 if home_rest == 0 else 0,
+                "opp_roll_ppg_10": opp_form.get("rolling_ppg") or 112.0,
+                "opp_roll_ppg_5":  opp_form.get("rolling_ppg") or 112.0,
+            }
+            X = pd.DataFrame([features])
+            return float(self._xgb.predict(X)[0])
+        except Exception as e:
+            logger.debug("XGB predict failed: %s", e)
+            return None
 
     def _apply_injury_penalty(self, raw_score: float, injuries: list) -> tuple:
         """

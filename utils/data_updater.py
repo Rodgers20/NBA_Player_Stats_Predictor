@@ -145,6 +145,26 @@ def update_game_data(get_df_func, merge_func):
             print("[DataUpdater] No data from Kaggle")
             return False
 
+        # 3b. Check if Kaggle data is stale — if max date < yesterday, top-up via NBA API
+        try:
+            fresh_df["_tmp_date"] = pd.to_datetime(
+                fresh_df["GAME_DATE"], format="%b %d, %Y", errors="coerce"
+            )
+            kaggle_max = fresh_df["_tmp_date"].max()
+            fresh_df.drop(columns=["_tmp_date"], inplace=True)
+            yesterday = (today - timedelta(days=1))
+            if pd.notnull(kaggle_max) and kaggle_max.date() < yesterday:
+                gap_from = kaggle_max.strftime("%Y-%m-%d")
+                print(f"[DataUpdater] Kaggle data ends {kaggle_max.date()}, fetching gap from NBA API ...")
+                api_df = _fetch_nba_api_games(gap_from)
+                if not api_df.empty:
+                    fresh_df = pd.concat([fresh_df, api_df], ignore_index=True).drop_duplicates(
+                        subset=["PLAYER_NAME", "GAME_DATE", "MATCHUP"], keep="last"
+                    )
+                    print(f"[DataUpdater] After NBA API top-up: {len(fresh_df)} rows total")
+        except Exception as _gap_err:
+            print(f"[DataUpdater] Gap-fill check failed (non-critical): {_gap_err}")
+
         # 4. Diff against existing data
         current_df = get_df_func()
 
@@ -184,6 +204,78 @@ def update_game_data(get_df_func, merge_func):
     finally:
         with _update_lock:
             _is_updating = False
+
+
+def _fetch_nba_api_games(from_date: str) -> pd.DataFrame:
+    """
+    Fetch player game logs directly from NBA Stats API for dates after from_date.
+    Used when Kaggle dataset is stale.
+
+    Args:
+        from_date: "YYYY-MM-DD" — fetch games after this date.
+
+    Returns:
+        DataFrame with same schema as Kaggle pipeline (PLAYER_NAME, GAME_DATE, etc.)
+        Empty DataFrame on failure.
+    """
+    try:
+        from nba_api.stats.endpoints import LeagueGameLog
+        from datetime import datetime as _dt
+
+        from_dt = _dt.strptime(from_date, "%Y-%m-%d")
+        date_from_str = from_dt.strftime("%m/%d/%Y")   # NBA API format: MM/DD/YYYY
+
+        print(f"[DataUpdater] Fetching NBA Stats API games from {date_from_str} ...")
+        lg = LeagueGameLog(
+            season="2025-26",
+            player_or_team_abbreviation="P",   # player-level stats
+            date_from_nullable=date_from_str,
+            timeout=30,
+        )
+        df = lg.get_data_frames()[0]
+        if df.empty:
+            print("[DataUpdater] NBA Stats API returned no games")
+            return pd.DataFrame()
+
+        # Rename columns to match pipeline schema
+        rename_map = {
+            "TEAM_ABBREVIATION": "TEAM_ABBREVIATION",
+            "PLAYER_NAME": "PLAYER_NAME",
+            "GAME_DATE": "GAME_DATE",   # format: "2026-03-24"
+            "MATCHUP": "MATCHUP",
+            "WL": "WL",
+            "MIN": "MIN",
+            "PTS": "PTS",
+            "REB": "REB",
+            "AST": "AST",
+            "FG3M": "FG3M",
+            "FGM": "FGM",
+            "FGA": "FGA",
+            "FG3A": "FG3A",
+            "FTM": "FTM",
+            "FTA": "FTA",
+            "STL": "STL",
+            "BLK": "BLK",
+            "TOV": "TOV",
+        }
+        # Keep only columns we care about
+        available = {k: v for k, v in rename_map.items() if k in df.columns}
+        df = df[list(available.keys())].rename(columns=available)
+
+        # Convert GAME_DATE from "2026-03-24" to "Mar 24, 2026"
+        def _reformat_date(d):
+            try:
+                return _dt.strptime(str(d), "%Y-%m-%d").strftime("%b %d, %Y")
+            except Exception:
+                return d
+        df["GAME_DATE"] = df["GAME_DATE"].apply(_reformat_date)
+
+        print(f"[DataUpdater] NBA Stats API: {len(df)} player-game rows fetched")
+        return df
+
+    except Exception as e:
+        print(f"[DataUpdater] NBA Stats API fallback failed: {e}")
+        return pd.DataFrame()
 
 
 def get_last_update_time():

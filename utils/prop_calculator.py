@@ -24,6 +24,7 @@ import pandas as pd
 import numpy as np
 from typing import Tuple, Optional
 from scipy import stats
+from scipy.stats import poisson, norm
 
 
 # =============================================================================
@@ -48,44 +49,54 @@ COMMON_LINES = {
 # PROBABILITY CALCULATIONS
 # =============================================================================
 
+# Low-count discrete stats where Poisson is more accurate than Normal.
+# NBA stats like AST, 3PM, BLK, STL are count data — they cannot go below 0
+# and have a right-skewed distribution that Poisson models better.
+_LOW_COUNT_STATS = {"AST", "FG3M", "BLK", "STL"}
+
+
 def calculate_hit_probability(
     prediction: float,
     line: float,
     std_dev: float,
-    direction: str = "over"
+    direction: str = "over",
+    stat_type: str = "PTS",
 ) -> float:
     """
     Calculate probability of hitting a prop line.
 
-    Uses normal distribution:
-    P(X > line) = 1 - CDF(line)
+    Uses Poisson distribution for discrete low-count stats (AST, FG3M, BLK, STL)
+    where prediction < 10, and Normal distribution for everything else
+    (PTS, REB, combo stats).
 
     Args:
         prediction: Model's predicted value
         line: The prop line (e.g., 24.5 points)
-        std_dev: Standard deviation from historical data
+        std_dev: Standard deviation from historical data (used for Normal path)
         direction: "over" or "under"
+        stat_type: Stat type string (e.g. "AST", "PTS") for distribution selection
 
     Returns:
         Probability between 0 and 1
-
-    Example:
-        >>> prob = calculate_hit_probability(26.5, 24.5, 5.0, "over")
-        >>> print(f"{prob:.1%}")
-        65.5%
     """
-    # Prevent division by zero
-    if std_dev == 0 or std_dev is None:
-        std_dev = max(prediction * 0.2, 3)  # Default to 20% of prediction or min 3
-
-    if direction == "over":
-        # Probability that actual value exceeds the line
-        prob = 1 - stats.norm.cdf(line, loc=prediction, scale=std_dev)
+    if stat_type in _LOW_COUNT_STATS and prediction < 10:
+        # Poisson: integer-valued, bounded at 0, no std_dev needed
+        lam = max(prediction, 0.1)
+        line_int = int(line)  # e.g. line=4.5 → int=4
+        if direction == "over":
+            # P(X > line) = P(X >= line_int+1) = 1 - P(X <= line_int)
+            return round(float(1 - poisson.cdf(line_int, mu=lam)), 4)
+        else:
+            # P(X <= line) = P(X <= line_int)
+            return round(float(poisson.cdf(line_int, mu=lam)), 4)
     else:
-        # Probability that actual value is below the line
-        prob = stats.norm.cdf(line, loc=prediction, scale=std_dev)
-
-    return round(prob, 4)
+        # Normal distribution for PTS, REB, combo stats
+        if std_dev == 0 or std_dev is None:
+            std_dev = max(prediction * 0.2, 3)
+        if direction == "over":
+            return round(float(1 - norm.cdf(line, loc=prediction, scale=std_dev)), 4)
+        else:
+            return round(float(norm.cdf(line, loc=prediction, scale=std_dev)), 4)
 
 
 def calculate_edge(
@@ -157,7 +168,7 @@ def find_best_line(
 
     for line in lines:
         # Check over
-        over_prob = calculate_hit_probability(prediction, line, std_dev, "over")
+        over_prob = calculate_hit_probability(prediction, line, std_dev, "over", stat_type)
         if min_prob <= over_prob <= max_prob:
             edge = calculate_edge(over_prob)
             if edge > best_edge:
@@ -167,7 +178,7 @@ def find_best_line(
                 best_direction = "over"
 
         # Check under
-        under_prob = calculate_hit_probability(prediction, line, std_dev, "under")
+        under_prob = calculate_hit_probability(prediction, line, std_dev, "under", stat_type)
         if min_prob <= under_prob <= max_prob:
             edge = calculate_edge(under_prob)
             if edge > best_edge:

@@ -14,8 +14,8 @@
    ============================================= */
 :root {
     /* ── Backgrounds ── */
-    --bg-root:        #060b18;
-    --bg-primary:     #0a1020;
+    --bg-root:        #0B101A;
+    --bg-primary:     #0B101A;
     --bg-secondary:   #0f1a2e;
     --bg-tertiary:    #152035;
     --bg-glass:       rgba(15, 26, 46, 0.6);
@@ -126,7 +126,7 @@ html {
 }
 
 body {
-    background-color: var(--bg-root);
+    background-color: #0B101A;
     color: var(--text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -185,11 +185,17 @@ body::before {
     align-items: center;
     justify-content: space-between;
     padding: 0.875rem 2rem;
-    background: rgba(6, 11, 24, 0.82);
-    backdrop-filter: var(--blur-lg);
-    -webkit-backdrop-filter: var(--blur-lg);
-    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(11,16,26,0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(30,41,59,0.5);
     box-shadow: 0 1px 0 rgba(20, 184, 166, 0.08), var(--shadow-md);
+}
+.navbar {
+    background: rgba(11,16,26,0.8) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(30,41,59,0.5);
 }
 
 /* Teal edge glow under nav */
@@ -207,8 +213,8 @@ body::before {
 .nav-brand {
     font-size: 1.2rem;
     font-weight: 800;
-    letter-spacing: -0.03em;
-    background: linear-gradient(135deg, var(--teal-400) 0%, var(--violet-400) 100%);
+    letter-spacing: -0.02em;
+    background: linear-gradient(to right, #2DD4BF, #3B82F6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -247,11 +253,19 @@ body::before {
 }
 
 .nav-link.active {
-    background: linear-gradient(135deg, rgba(20,184,166,0.25), rgba(139,92,246,0.15));
-    color: var(--teal-400);
-    border: 1px solid var(--teal-border);
-    box-shadow: var(--glow-teal);
+    background: rgba(45,212,191,0.10);
+    color: #2DD4BF;
+    border: 1px solid rgba(45,212,191,0.20);
+    border-radius: 9999px;
+    padding: 8px 20px;
+    box-shadow: 0 0 15px rgba(45,212,191,0.10);
 }
+.nav-link:not(.active) {
+    color: #94a3b8;
+    padding: 8px 20px;
+    border-radius: 9999px;
+}
+.nav-link:not(.active):hover { color: #f1f5f9; }
 
 /* Live badge in nav */
 .nav-live-badge {
@@ -944,6 +958,16 @@ body::before {
     fill: transparent !important;
 }
 
+/* Force all dcc.Graph wrappers to be transparent */
+#season-trends-chart,
+#season-trends-chart > div,
+#shooting-breakdown-chart,
+#shooting-breakdown-chart > div,
+#main-chart,
+#main-chart > div {
+    background: transparent !important;
+}
+
 
 /* =============================================
    INJURY / STATUS INDICATORS
@@ -1302,6 +1326,665 @@ body::before {
     }
 }
 
+
+/* =============================================
+   PLAYER ANALYSIS REDESIGN
+   ============================================= */
+
+/* Full-width search bar */
+.player-search-bar {
+    background: #131A2A;
+    border: 1px solid rgba(30,41,59,1);
+    border-radius: 9999px;
+    padding: 0 16px;
+    height: 44px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+}
+.player-search-bar:focus-within {
+    border-color: rgba(45,212,191,0.5);
+    box-shadow: 0 0 0 1px rgba(45,212,191,0.5);
+}
+.player-search-bar .Select-control,
+.player-search-bar .Select--single > .Select-control {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: 40px;
+}
+.player-search-bar .Select-placeholder,
+.player-search-bar .Select-value-label {
+    color: #9ca3af;
+    font-size: 1rem;
+    line-height: 40px;
+}
+.player-search-bar .Select-input > input { color: #f0f4ff; }
+
+/* Player name header */
+.player-name-header {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #f0f4ff;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+}
+.player-name-header .team-accent { color: #14b8a6; }
+.player-season-averages {
+    font-size: 0.9rem;
+    color: #9ca3af;
+    margin-bottom: 20px;
+}
+
+/* Analysis 2-column layout */
+.analysis-2col {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+.analysis-main-col { flex: 2; min-width: 0; }
+.analysis-side-col {
+    flex: 0 0 340px;
+    width: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+/* Analysis solid card */
+.analysis-card {
+    background: #131A2A;
+    border-radius: 16px;
+    border: 1px solid rgba(30,41,59,0.8);
+    padding: 24px;
+    margin-bottom: 0;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+.analysis-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #f0f4ff;
+    margin-bottom: 12px;
+}
+
+/* Bottom 2-col row */
+.analysis-bottom-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+.analysis-bottom-row > div { flex: 1; min-width: 0; }
+
+/* Tab filter override for analysis page white pills */
+.analysis-filters .tab-group {
+    background: transparent;
+    border: none;
+    padding: 0;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+.analysis-filters .tab {
+    padding: 8px 20px;
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #94a3b8;
+    background: transparent;
+    transition: all 0.15s;
+    cursor: pointer;
+}
+.analysis-filters .tab:hover {
+    color: #f1f5f9;
+    background: rgba(30,41,59,0.5);
+    border-color: transparent;
+}
+.analysis-filters .tab.active {
+    background: rgba(45,212,191,0.10);
+    color: #2DD4BF;
+    border-color: rgba(45,212,191,0.30);
+    box-shadow: 0 0 10px rgba(45,212,191,0.10);
+}
+.analysis-filters .tab.period-active {
+    background: rgba(30,41,59,1);
+    color: #f1f5f9;
+    border-color: rgba(51,65,85,0.5);
+    box-shadow: none;
+}
+
+@media (max-width: 900px) {
+    .analysis-2col { flex-direction: column; }
+    .analysis-side-col { max-width: 100%; width: 100%; }
+    .analysis-bottom-row { flex-direction: column; }
+}
+
+/* =============================================
+   BEST PROPS REDESIGN — v2 card grid
+   ============================================= */
+
+/* 4-column responsive grid for props page */
+.props-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+@media (max-width: 1200px) { .props-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 860px)  { .props-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px)  { .props-grid { grid-template-columns: 1fr; } }
+
+/* Glassmorphism prop card */
+.prop-card-v2 {
+    position: relative;
+    background: rgba(10, 16, 32, 0.65);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.10);
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+/* Top edge highlight — glass illusion */
+.prop-card-v2::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12px;
+    right: 12px;
+    height: 1px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 0 0 2px 2px;
+    z-index: 1;
+    pointer-events: none;
+}
+.prop-card-v2:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255,255,255,0.22);
+    background: rgba(15, 22, 42, 0.78);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.07);
+}
+
+/* Photo banner — uses CSS background-image for graceful 404 fallback */
+.prop-photo-banner {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center 15%;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+    /* Bottom gradient overlay so text below blends nicely */
+}
+.prop-photo-banner::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 60%;
+    background: linear-gradient(to bottom, transparent 0%, rgba(8, 12, 24, 0.70) 100%);
+    pointer-events: none;
+}
+/* Fallback initial letter (always rendered, hidden behind photo) */
+.prop-photo-initial {
+    position: absolute;
+    bottom: 10px;
+    left: 14px;
+    font-size: 3.2rem;
+    font-weight: 900;
+    color: rgba(255,255,255,0.12);
+    line-height: 1;
+    z-index: 0;
+    pointer-events: none;
+    letter-spacing: -0.04em;
+}
+.prop-team-logo {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+    z-index: 2;
+}
+
+/* Card body */
+.prop-card-body-v2 {
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    background: transparent;
+}
+
+/* EV color tiers */
+.ev-green  { color: #22c55e; }
+.ev-orange { color: #f97316; }
+.ev-red    { color: #ef4444; }
+
+/* Bottom tag line */
+.prop-bottom-tag {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    margin-top: auto;
+    padding-top: 10px;
+}
+.prop-tag-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Props page white-pill active tabs */
+.props-tabs .tab-group {
+    background: transparent;
+    border: none;
+    padding: 0;
+    gap: 4px;
+}
+.props-tabs .tab {
+    color: #6b7280;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.props-tabs .tab:hover {
+    color: #d1d5db;
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.2);
+}
+.props-tabs .tab.active {
+    background: #ffffff;
+    color: #0f1623;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* =============================================
+   PLAYER ANALYSIS — Header v2
+   ============================================= */
+
+.player-header-v2 {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 0 20px;
+    flex-wrap: nowrap;
+}
+.player-photo-wrapper {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+}
+.player-photo-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    background: linear-gradient(135deg, #2DD4BF, #3B82F6);
+    border-radius: 50%;
+    filter: blur(8px);
+    opacity: 0.4;
+    z-index: 0;
+}
+.player-photo-circle {
+    position: relative;
+    z-index: 1;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: top center;
+    border: 2px solid rgba(51,65,85,0.8);
+    flex-shrink: 0;
+}
+.player-photo-initial-circle {
+    position: relative; z-index: 1;
+    width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(20,184,166,0.12);
+    border: 2px solid rgba(51,65,85,0.8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.75rem; font-weight: 800; color: #2DD4BF; flex-shrink: 0;
+}
+.team-badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(30,41,59,0.8);
+    border: 1px solid rgba(51,65,85,0.5);
+    color: #94a3b8;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+.injury-badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 12px; border-radius: 9999px;
+    font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+}
+.injury-badge-gtd {
+    background: #FBBF24;
+    color: #451a03;
+    border: none;
+    border-radius: 9999px;
+    padding: 4px 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    box-shadow: 0 0 20px rgba(251,191,36,0.4);
+}
+.injury-badge-out {
+    background: #F43F5E;
+    color: #fff1f2;
+    border: none;
+    border-radius: 9999px;
+    padding: 4px 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    box-shadow: 0 0 20px rgba(244,63,94,0.4);
+}
+.injury-badge-active {
+    background: #22C55E;
+    color: #052e16;
+    border: none;
+    border-radius: 9999px;
+    padding: 4px 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    box-shadow: 0 0 20px rgba(34,197,94,0.4);
+}
+.player-stat-chips {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    align-items: center;
+}
+.player-stat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85rem;
+    background: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    color: #94a3b8;
+}
+.player-stat-chip.chip-ast span:first-child {
+    color: #FB7185;
+}
+.player-stat-chip .chip-label {
+    color: #94a3b8;
+    font-weight: 400;
+    font-size: 0.85rem;
+    margin-left: 0;
+}
+.player-stat-chip span:first-child {
+    color: #f1f5f9;
+    font-weight: 600;
+}
+
+/* =============================================
+   PLAYER ANALYSIS — Matchup card v2
+   ============================================= */
+.matchup-section-title {
+    font-size: 1.05rem; font-weight: 800; color: #f0f4ff;
+    letter-spacing: -0.01em; margin-bottom: 14px;
+    display: block;
+}
+.matchup-defense-header { font-size: 0.9rem; font-weight: 700; color: #f0f4ff; }
+.matchup-record { color: #6b7280; font-weight: 500; margin-left: 8px; font-size: 0.8rem; }
+.matchup-defense-sub { font-size: 0.74rem; color: #6b7280; margin: 4px 0 12px; }
+.matchup-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 12px;
+    gap: 0;
+    overflow: hidden;
+}
+.matchup-tab {
+    padding: 5px 8px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: default;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    flex-shrink: 1;
+    min-width: 0;
+}
+.matchup-tab.active { color: #f0f4ff; border-bottom-color: #f0f4ff; }
+.matchup-stats-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+.matchup-stats-table td { padding: 7px 0; }
+.matchup-stats-table tbody tr + tr td { border-top: 1px solid rgba(255,255,255,0.04); }
+.matchup-stat-label  { font-size: 0.86rem; font-weight: 500; color: #f0f4ff; }
+.matchup-stat-header { font-size: 0.72rem; color: #6b7280; font-weight: 400; padding-bottom: 6px !important; }
+.matchup-rank { font-size: 0.86rem; font-weight: 700; color: #f59e0b; text-align: right; padding-right: 16px; }
+.matchup-stat-val { font-size: 0.92rem; font-weight: 700; color: #f0f4ff; text-align: right; }
+
+/* Sidebar card variant overrides */
+.sidebar-matchup-card {
+    border-color: rgba(45,212,191,0.2) !important;
+}
+.supporting-stat-card {
+    background: #131A2A;
+    border: 1px solid rgba(30,41,59,0.8);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: border-color 0.15s;
+    cursor: default;
+    min-width: 0;
+}
+.supporting-stat-card:hover { border-color: rgba(51,65,85,1); }
+.sidebar-injury-card {
+    border-color: rgba(239,68,68,0.2) !important;
+    background: linear-gradient(135deg, #121826 0%, #251515 100%) !important;
+}
+
+/* Injury context & prop bet history compact cards */
+.injury-context-status { font-size: 0.84rem; margin-bottom: 8px; }
+.injury-context-body { font-size: 0.82rem; color: #d1d5db; line-height: 1.55; }
+.injury-impact-note { font-size: 0.76rem; color: #9ca3af; margin-top: 8px; line-height: 1.5;
+    border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; }
+.prop-bet-row {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 6px 0; font-size: 0.76rem; color: #d1d5db;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.prop-bet-row:last-child { border-bottom: none; }
+.prop-bet-opponent { color: #6b7280; min-width: 52px; flex-shrink: 0; }
+.prop-bet-detail  { flex: 1; color: #d1d5db; }
+.prop-bet-hit     { color: #22c55e; font-weight: 700; flex-shrink: 0; }
+.prop-bet-miss    { color: #f43f5e; font-weight: 700; flex-shrink: 0; }
+
+/* =============================================
+   GAMES PAGE — Redesign
+   ============================================= */
+
+/* Game selector bar */
+.game-selector-bar {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+    scrollbar-width: none;
+}
+.game-selector-bar::-webkit-scrollbar { display: none; }
+
+/* Individual game selector pill */
+.game-tab-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: #1c2131;
+    color: #9ca3af;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+.game-tab-pill:hover {
+    border-color: rgba(255,255,255,0.2);
+    color: #f0f4ff;
+}
+.game-tab-pill.active {
+    background: #ffffff;
+    color: #0f1623;
+    border-color: transparent;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+.game-tab-pill img { width: 22px; height: 22px; object-fit: contain; }
+
+/* Main game panel */
+.game-panel {
+    background: #1c2131;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 32px 28px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+.game-panel-3col {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 24px;
+}
+
+/* Team stats column */
+.team-stats-col { display: flex; flex-direction: column; gap: 14px; }
+.team-stats-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #9ca3af;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+/* Stat row with progress bar */
+.stat-row { display: flex; flex-direction: column; gap: 4px; }
+.stat-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.stat-row-label { font-size: 0.82rem; color: #9ca3af; display: flex; align-items: center; gap: 8px; }
+.stat-row-value { font-size: 0.88rem; font-weight: 700; color: #f0f4ff; }
+.stat-progress-track {
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.stat-progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+.stat-progress-blue  { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.stat-progress-green { background: linear-gradient(90deg, #22c55e, #4ade80); }
+.stat-progress-amber { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.stat-progress-rose  { background: linear-gradient(90deg, #f43f5e, #fb7185); }
+
+/* Center column */
+.game-center-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 300px;
+}
+.team-logos-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 16px;
+}
+.team-logo-large { width: 90px; height: 90px; object-fit: contain; }
+.vs-text {
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #6b7280;
+}
+
+/* AI Prediction footer */
+.ai-prediction-section {
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 20px 28px;
+    text-align: center;
+}
+.ai-prediction-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #9ca3af;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+.ai-prediction-pick {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #f0f4ff;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+}
+.confidence-bar-track {
+    height: 8px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 4px;
+    overflow: hidden;
+    max-width: 500px;
+    margin: 0 auto 8px;
+}
+.confidence-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #f97316, #22c55e);
+}
+.confidence-level-text { font-size: 0.88rem; color: #9ca3af; }
+.confidence-level-text .conf-value { font-weight: 700; }
+.conf-high  { color: #22c55e; }
+.conf-med   { color: #f59e0b; }
+.conf-low   { color: #94a3b8; }
+
+/* Injury report inside stats col */
+.injury-report-section { margin-top: 4px; }
+.injury-report-title {
+    font-size: 0.75rem; font-weight: 700; color: #9ca3af;
+    display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+}
+.injury-entry { font-size: 0.78rem; color: #d1d5db; margin-bottom: 3px; }
+.injury-status-q   { color: #f59e0b; font-weight: 600; }
+.injury-status-out { color: #f43f5e; font-weight: 600; }
+.injury-status-p   { color: #22c55e; font-weight: 600; }
+
+@media (max-width: 860px) {
+    .game-panel-3col { grid-template-columns: 1fr; }
+    .game-center-col { min-width: 0; }
+}
 
 /* =============================================
    REDUCED MOTION

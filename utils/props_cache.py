@@ -127,19 +127,16 @@ def _resolve_opponent(player_name, player_team, player_df, game_info):
     return ""
 
 
-# Stat contribution weights for combo prop evaluation
-_STAT_WEIGHTS: dict[str, float] = {"PTS": 1.0, "AST": 0.7, "REB": 0.6, "FG3M": 0.8}
-
-# Combo definitions: (stat_list, label)
+# Combo definitions: standard sportsbook-available props only
 _COMBO_DEFS: list[tuple[list[str], str]] = [
-    (["PTS", "AST"],        "Pts+Ast"),
     (["PTS", "REB"],        "Pts+Reb"),
+    (["PTS", "AST"],        "Pts+Ast"),
     (["AST", "REB"],        "Ast+Reb"),
     (["PTS", "AST", "REB"], "Pts+Ast+Reb"),
 ]
 
 
-def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze):
+def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=None):
     """Compute props data for the main Best Props page.
 
     Process ALL players from every team playing today — no arbitrary cap.
@@ -198,6 +195,14 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
         home_games = player_df[player_df["MATCHUP"].str.contains("vs.", na=False)].head(10) if "MATCHUP" in player_df.columns else player_df.head(10)
         away_games = player_df[player_df["MATCHUP"].str.contains("@", na=False)].head(10) if "MATCHUP" in player_df.columns else player_df.head(10)
 
+        # ── Blowout risk ──────────────────────────────────────────────────────
+        # If spread >= 10 pts, starters may get early rest (favorites) or see
+        # low-quality possessions (underdogs). Flag and reduce EV accordingly.
+        _spreads = game_spreads or {}
+        team_spread = _spreads.get(player_team)   # from team's perspective; negative = favored
+        blowout_spread = abs(team_spread) if team_spread is not None else None
+        blowout_risk = blowout_spread is not None and blowout_spread >= 10
+
         for stat_type in ["PTS", "AST", "REB", "FG3M"]:
             if stat_type not in recent_10.columns:
                 continue
@@ -214,8 +219,17 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             else:
                 line = round(avg_stat - 0.5) + 0.5 if avg_stat > 2 else 1.5
 
-            hits_all = (recent_stats >= line).sum()
-            hit_rate_all = hits_all / len(recent_stats) if len(recent_stats) > 0 else 0
+            n = len(recent_stats)
+
+            # Over line: just below average (e.g. avg=20 → line=19.5)
+            over_line = line
+            hits_over = (recent_stats >= over_line).sum()
+            hit_rate_over = hits_over / n if n > 0 else 0
+
+            # Under line: one step above average (e.g. avg=20 → line=20.5)
+            under_line = over_line + 1.0
+            hits_under = (recent_stats < under_line).sum()
+            hit_rate_under = hits_under / n if n > 0 else 0
 
             opp_def = DEFENSE_VS_POS[
                 (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) & (DEFENSE_VS_POS["POSITION"] == position)
@@ -223,39 +237,67 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             rank_col = f"{stat_type}_RANK" if stat_type != "FG3M" else "3PM_RANK"
             def_rank = int(opp_def.iloc[0].get(rank_col, 15)) if not opp_def.empty else None
 
-            ev_value = calculate_ev(hit_rate_all)
-            is_lock = (hit_rate_all >= 0.80 and len(recent_stats) >= 5)
+            game_matchup_str = (
+                f"{opponent} @ {_normalize_abbr(player_team)}" if is_home_today
+                else f"{_normalize_abbr(player_team)} @ {opponent}"
+            )
 
-            # Include props with hit_rate >= 0.5 (positive edge)
-            if hit_rate_all >= 0.5:
+            def _make_prop(direction, bet_line, hit_rate, hits):
+                ev_value = calculate_ev(hit_rate)
+                # Blowout risk EV penalty
+                if blowout_risk:
+                    penalty = 0.25 if blowout_spread >= 15 else 0.12
+                    ev_value = ev_value * (1 - penalty)
+                is_lock = (hit_rate >= 0.80 and n >= 5 and not blowout_risk)
                 insight = generate_player_insight(
                     player_name=player_name,
                     stat=stat_type,
-                    line=line,
+                    line=bet_line,
                     opponent=opponent,
                     player_df=player_df,
                     defense_vs_pos=DEFENSE_VS_POS,
                     is_home=is_home_today,
                     position=position,
                 )
-                props_data.append({
+                if blowout_risk:
+                    insight = f"⚠ Blowout risk ({blowout_spread:.0f}-pt spread). " + insight
+                if direction == "Over":
+                    hr_home = (home_games[stat_type] >= bet_line).sum() / len(home_games) if not home_games.empty else 0
+                    hr_away = (away_games[stat_type] >= bet_line).sum() / len(away_games) if not away_games.empty else 0
+                    h_home  = (home_games[stat_type] >= bet_line).sum() if not home_games.empty else 0
+                    h_away  = (away_games[stat_type] >= bet_line).sum() if not away_games.empty else 0
+                else:
+                    hr_home = (home_games[stat_type] < bet_line).sum() / len(home_games) if not home_games.empty else 0
+                    hr_away = (away_games[stat_type] < bet_line).sum() / len(away_games) if not away_games.empty else 0
+                    h_home  = (home_games[stat_type] < bet_line).sum() if not home_games.empty else 0
+                    h_away  = (away_games[stat_type] < bet_line).sum() if not away_games.empty else 0
+                return {
                     "player": player_name, "team": player_team, "opponent": opponent, "position": position,
-                    "stat": stat_type, "line": line, "avg": round(avg_stat, 1),
-                    "hit_rate": hit_rate_all, "hits": hits_all, "total": len(recent_stats),
+                    "stat": stat_type, "line": bet_line, "avg": round(avg_stat, 1),
+                    "direction": direction,
+                    "hit_rate": hit_rate, "hits": hits, "total": n,
                     "def_rank": def_rank, "is_home_today": is_home_today,
                     "ev": ev_value,
                     "is_lock": is_lock,
                     "is_combo": False,
-                    "game_matchup": f"{opponent} @ {_normalize_abbr(player_team)}" if is_home_today else f"{_normalize_abbr(player_team)} @ {opponent}",
-                    "hit_rate_home": (home_games[stat_type] >= line).sum() / len(home_games) if not home_games.empty else 0,
-                    "hit_rate_away": (away_games[stat_type] >= line).sum() / len(away_games) if not away_games.empty else 0,
-                    "hits_home": (home_games[stat_type] >= line).sum() if not home_games.empty else 0,
-                    "hits_away": (away_games[stat_type] >= line).sum() if not away_games.empty else 0,
+                    "blowout_risk": blowout_risk,
+                    "blowout_spread": blowout_spread,
+                    "game_matchup": game_matchup_str,
+                    "hit_rate_home": hr_home, "hit_rate_away": hr_away,
+                    "hits_home": h_home, "hits_away": h_away,
                     "total_home": len(home_games), "total_away": len(away_games),
                     "avg_home": round(home_games[stat_type].mean(), 1) if not home_games.empty else 0,
                     "avg_away": round(away_games[stat_type].mean(), 1) if not away_games.empty else 0,
                     "insight": insight,
-                })
+                }
+
+            # Add Over only if strictly above 50% (no coinflips)
+            if hit_rate_over > 0.5:
+                props_data.append(_make_prop("Over", over_line, hit_rate_over, hits_over))
+
+            # Add Under only if strictly above 50% and different edge from over
+            if hit_rate_under > 0.5 and hit_rate_under != hit_rate_over:
+                props_data.append(_make_prop("Under", under_line, hit_rate_under, hits_under))
 
         # ── Combo props ───────────────────────────────────────────────────────
         for combo_stats, combo_label in _COMBO_DEFS:
@@ -267,31 +309,24 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             if total_avg < 2:
                 continue
 
-            # Weighted total: used to derive a meaningful line
-            weighted_total = sum(avgs[s] * _STAT_WEIGHTS[s] for s in combo_stats)
-
-            # Skip combo if one stat contributes > 65% of the weighted total
-            # (e.g. a scorer with 25 PTS and 2 REB — just predict points)
-            dominant = any(
-                (avgs[s] * _STAT_WEIGHTS[s]) / weighted_total > 0.65
-                for s in combo_stats
-            )
-            if dominant:
-                continue
-
             raw_combo = recent_10[combo_stats].sum(axis=1)
             line_combo = round(raw_combo.mean() - 0.5) + 0.5
             hits_combo = (raw_combo >= line_combo).sum()
             hit_rate_combo = hits_combo / len(raw_combo) if len(raw_combo) > 0 else 0
 
-            if hit_rate_combo < 0.6:
-                continue  # higher bar for combo props
+            # Require strictly above 55% — slightly higher bar than singles
+            if hit_rate_combo <= 0.55:
+                continue
 
             ev_combo = calculate_ev(hit_rate_combo)
-            is_lock_combo = (hit_rate_combo >= 0.80 and len(raw_combo) >= 5)
+            if blowout_risk:
+                penalty = 0.25 if blowout_spread >= 15 else 0.12
+                ev_combo = ev_combo * (1 - penalty)
+            is_lock_combo = (hit_rate_combo >= 0.80 and len(raw_combo) >= 5 and not blowout_risk)
 
             insight_combo = (
-                f"{player_name} averages "
+                ("⚠ Blowout risk. " if blowout_risk else "")
+                + f"{player_name} averages "
                 + " + ".join(f"{avgs[s]:.1f} {s}" for s in combo_stats)
                 + f" = {total_avg:.1f} combined (line {line_combo}). "
                 + f"Hit {hits_combo}/{len(raw_combo)} L{len(raw_combo)}."
@@ -305,6 +340,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 "stat_label":   combo_label,
                 "line":         line_combo,
                 "avg":          round(total_avg, 1),
+                "direction":    "Over",
                 "hit_rate":     hit_rate_combo,
                 "hits":         hits_combo,
                 "total":        len(raw_combo),
@@ -313,6 +349,8 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 "ev":           ev_combo,
                 "is_lock":      is_lock_combo,
                 "is_combo":     True,
+                "blowout_risk":   blowout_risk,
+                "blowout_spread": blowout_spread,
                 "game_matchup": f"{opponent} @ {player_team}" if is_home_today else f"{player_team} @ {opponent}",
                 "hit_rate_home": 0, "hit_rate_away": 0,
                 "hits_home": 0, "hits_away": 0,
@@ -333,17 +371,17 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
         s_odds  = p_odds.get(stat) if p_odds else None
 
         if s_odds:
-            # Override line with the real sportsbook line and recalculate EV
             prop["live_line"]        = s_odds["line"]
             prop["live_over_price"]  = s_odds["over_price"]
             prop["live_under_price"] = s_odds["under_price"]
             prop["live_bookmaker"]   = s_odds["bookmaker"]
             prop["has_live_odds"]    = True
-
-            # Recalculate hits/hit_rate against real line
-            # (The cached line was estimated; use sportsbook line if different)
             prop["line"] = s_odds["line"]
-            prop["ev"]   = calculate_ev(prop["hit_rate"], over_american=s_odds["over_price"])
+            # Use the correct price side for EV based on direction
+            if prop.get("direction", "Over") == "Under":
+                prop["ev"] = calculate_ev(prop["hit_rate"], over_american=s_odds["under_price"])
+            else:
+                prop["ev"] = calculate_ev(prop["hit_rate"], over_american=s_odds["over_price"])
         else:
             prop["has_live_odds"]    = False
             prop["live_line"]        = None
@@ -663,8 +701,24 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
     # Batch availability check — no arbitrary cap, check all players
     availability_map = get_batch_availability(players_to_analyze)
 
+    # Build game spreads dict for blowout risk detection
+    game_spreads: dict = {}
+    try:
+        from utils.odds_fetcher import get_game_odds
+        raw_odds = get_game_odds()
+        for _key, _odds in raw_odds.items():
+            _spread = (_odds.get("spread") or {})
+            _home_line = _spread.get("home_line")
+            if _home_line is not None:
+                _home = _odds.get("home_team", "")
+                _away = _odds.get("away_team", "")
+                game_spreads[_home] = float(_home_line)        # negative = home favored
+                game_spreads[_away] = float(_home_line) * -1   # positive = away underdog
+    except Exception as _e:
+        print(f"[PropsCache] Could not fetch game spreads for blowout risk: {_e}")
+
     # Compute all 3 data sets
-    main_data = _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze)
+    main_data = _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=game_spreads)
     callback_data = _compute_callback_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, availability_map)
     sidebar_data = _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn, availability_map=availability_map)
 
