@@ -293,10 +293,21 @@ def scheduled_update():
 
 
 def scheduled_props_refresh():
-    """Refresh the props cache in the background."""
-    from utils.props_cache import refresh_props_cache
+    """Refresh the props cache in the background and snapshot today's props for tracking."""
+    from utils.props_cache import refresh_props_cache, get_cached_props
+    from datetime import date as _date
     try:
         refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predictor_fn=get_predictor)
+        # Snapshot today's top props for performance tracking
+        try:
+            from utils.prediction_tracker import save_daily_props
+            today = _date.today().strftime("%Y-%m-%d")
+            cached = get_cached_props()
+            main_props = cached.get("main_page_data", [])
+            if main_props:
+                save_daily_props(today, main_props)
+        except Exception as _pe:
+            print(f"[App] Props snapshot failed (non-critical): {_pe}")
     except Exception as e:
         print(f"[App] Props cache refresh error: {e}")
 
@@ -322,7 +333,7 @@ try:
     )
     def _scheduled_grade():
         from datetime import date as _date
-        from utils.prediction_tracker import grade_predictions
+        from utils.prediction_tracker import grade_predictions, grade_props
         yesterday = (_date.today() - __import__("datetime").timedelta(days=1)).strftime("%Y-%m-%d")
         today     = _date.today().strftime("%Y-%m-%d")
         for d in (yesterday, today):
@@ -330,6 +341,10 @@ try:
                 grade_predictions(d)
             except Exception as exc:
                 print(f"[App] Grade predictions failed for {d}: {exc}")
+            try:
+                grade_props(d)
+            except Exception as exc:
+                print(f"[App] Grade props failed for {d}: {exc}")
 
     scheduler.add_job(
         _scheduled_grade,

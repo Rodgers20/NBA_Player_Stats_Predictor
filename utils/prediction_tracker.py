@@ -20,10 +20,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-DATA_DIR       = Path(__file__).parent.parent / "data"
-HISTORY_FILE   = DATA_DIR / "prediction_history.json"
+DATA_DIR         = Path(__file__).parent.parent / "data"
+HISTORY_FILE     = DATA_DIR / "prediction_history.json"
+PROPS_FILE       = DATA_DIR / "props_history.json"
 CALIBRATION_FILE = DATA_DIR / "model_calibration.json"
-EXCEL_PATH     = DATA_DIR / "prediction_report.xlsx"
+EXCEL_PATH       = DATA_DIR / "prediction_report.xlsx"
 
 # How many recent graded days to use when computing calibration
 CALIBRATION_WINDOW = 30
@@ -43,6 +44,20 @@ def _load_history() -> dict:
 def _save_history(history: dict) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     HISTORY_FILE.write_text(json.dumps(history, indent=2, default=str))
+
+
+def _load_props_history() -> dict:
+    if PROPS_FILE.exists():
+        try:
+            return json.loads(PROPS_FILE.read_text())
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_props_history(history: dict) -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    PROPS_FILE.write_text(json.dumps(history, indent=2, default=str))
 
 
 def _pct(c: int, t: int) -> float:
@@ -230,6 +245,220 @@ def grade_predictions(date: str) -> dict:
         print(f"[Tracker] Excel export failed: {_e}")
 
     return summary
+
+
+# ─── player props tracking ────────────────────────────────────────────────────
+
+def save_daily_props(date: str, props: list[dict]) -> None:
+    """
+    Store today's prop predictions before games start.
+    Each prop dict should have: player, team, opponent, stat, line, direction,
+    avg, hit_rate, ev, is_lock.
+    Safe to call multiple times — will not overwrite an already-graded day.
+    """
+    history = _load_props_history()
+
+    # Never overwrite a graded record
+    if date in history and history[date].get("graded_at"):
+        return
+
+    # Keep only the fields useful for grading and export
+    KEEP = {"player", "team", "opponent", "stat", "line", "direction",
+            "avg", "hit_rate", "ev", "is_lock", "game_matchup"}
+    clean = []
+    for p in props:
+        entry = {k: p[k] for k in KEEP if k in p}
+        entry["actual"]  = None   # filled in when graded
+        entry["hit"]     = None
+        clean.append(entry)
+
+    history[date] = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "graded_at":    None,
+        "props":        clean,
+        "summary":      {},
+    }
+    _save_props_history(history)
+    print(f"[PropsTracker] Saved {len(clean)} props for {date}")
+
+
+def grade_props(date: str) -> dict:
+    """
+    Grade saved props against actual game logs.
+    Looks up each player's actual stat in the Parquet game log for the given date.
+    Returns a summary dict.
+    """
+    history = _load_props_history()
+    if date not in history:
+        print(f"[PropsTracker] No props saved for {date}")
+        return {}
+
+    record = history[date]
+    if record.get("graded_at"):
+        print(f"[PropsTracker] {date} already graded")
+        return record.get("summary", {})
+
+    # Load game logs for actual stats
+    logs_df = _load_game_logs_for_date(date)
+    if logs_df is None or logs_df.empty:
+        print(f"[PropsTracker] No game log data available for {date}")
+        return {}
+
+    hit = miss = 0
+    by_stat: dict[str, dict] = {}
+
+    for prop in record["props"]:
+        player   = prop["player"]
+        stat     = prop["stat"]
+        line     = prop.get("line")
+        direction = prop.get("direction", "Over")
+
+        if line is None:
+            continue
+
+        actual = _lookup_actual_stat(logs_df, player, stat, date)
+        if actual is None:
+            continue   # player didn't play or data not yet available
+
+        prop["actual"] = actual
+        is_hit = (actual >= line) if direction == "Over" else (actual <= line)
+        prop["hit"] = is_hit
+
+        if is_hit:
+            hit += 1
+        else:
+            miss += 1
+
+        # Per-stat breakdown
+        s = by_stat.setdefault(stat, {"hit": 0, "miss": 0})
+        if is_hit:
+            s["hit"] += 1
+        else:
+            s["miss"] += 1
+
+    total = hit + miss
+    stat_summary = {
+        s: {"hit": v["hit"], "total": v["hit"]+v["miss"],
+            "pct": _pct(v["hit"], v["hit"]+v["miss"])}
+        for s, v in by_stat.items()
+    }
+    summary = {
+        "hit":        hit,
+        "miss":       miss,
+        "total":      total,
+        "pct":        _pct(hit, total),
+        "by_stat":    stat_summary,
+    }
+    record["summary"]   = summary
+    record["graded_at"] = datetime.now(timezone.utc).isoformat()
+    _save_props_history(history)
+
+    print(f"[PropsTracker] Graded {date}: {hit}/{total} = {_pct(hit, total)}%")
+
+    try:
+        export_to_excel()
+    except Exception as _e:
+        print(f"[PropsTracker] Excel export failed: {_e}")
+
+    return summary
+
+
+def get_props_record() -> dict:
+    """Aggregate all-time props record across every graded day."""
+    history = _load_props_history()
+
+    all_hit = all_total = 0
+    by_stat: dict[str, dict] = {}
+    recent_hits = recent_total = 0
+    recent_dates = sorted(
+        [d for d in history if history[d].get("graded_at")], reverse=True
+    )[:7]
+
+    for date in history:
+        if not history[date].get("graded_at"):
+            continue
+        s = history[date].get("summary", {})
+        all_hit   += s.get("hit", 0)
+        all_total += s.get("total", 0)
+        if date in recent_dates:
+            recent_hits  += s.get("hit", 0)
+            recent_total += s.get("total", 0)
+
+        for stat, data in s.get("by_stat", {}).items():
+            bs = by_stat.setdefault(stat, {"hit": 0, "total": 0})
+            bs["hit"]   += data.get("hit", 0)
+            bs["total"] += data.get("total", 0)
+
+    by_stat_pct = {
+        s: {"hit": v["hit"], "total": v["total"], "pct": _pct(v["hit"], v["total"])}
+        for s, v in by_stat.items()
+    }
+
+    return {
+        "hit":         all_hit,
+        "miss":        all_total - all_hit,
+        "total":       all_total,
+        "pct":         _pct(all_hit, all_total),
+        "recent_7d":   _pct(recent_hits, recent_total),
+        "by_stat":     by_stat_pct,
+        "days_graded": len([d for d in history if history[d].get("graded_at")]),
+    }
+
+
+def _load_game_logs_for_date(date: str):
+    """Load player game logs from Parquet, filtered to the given date."""
+    try:
+        import pandas as pd
+        parquet = DATA_DIR / "player_game_logs.parquet"
+        csv_path = DATA_DIR / "player_game_logs.csv"
+
+        if parquet.exists():
+            df = pd.read_parquet(parquet)
+        elif csv_path.exists():
+            df = pd.read_csv(csv_path)
+        else:
+            return None
+
+        if "_date" not in df.columns:
+            df["_date"] = pd.to_datetime(
+                df["GAME_DATE"], format="%b %d, %Y", errors="coerce"
+            )
+
+        target = pd.to_datetime(date)
+        return df[df["_date"].dt.date == target.date()]
+    except Exception as e:
+        print(f"[PropsTracker] Could not load game logs: {e}")
+        return None
+
+
+def _lookup_actual_stat(df, player: str, stat: str, date: str):
+    """
+    Return the actual value of `stat` for `player` on `date`.
+    Handles combo stats like 'PTS+REB+AST'.
+    Returns None if not found.
+    """
+    try:
+        import pandas as pd
+        player_rows = df[df["PLAYER_NAME"] == player]
+        if player_rows.empty:
+            return None
+
+        # Combo stat: sum the parts
+        if "+" in stat:
+            parts = stat.split("+")
+            total = 0.0
+            for part in parts:
+                if part in player_rows.columns:
+                    total += float(player_rows[part].iloc[0])
+                else:
+                    return None
+            return round(total, 1)
+        else:
+            if stat not in player_rows.columns:
+                return None
+            return round(float(player_rows[stat].iloc[0]), 1)
+    except Exception:
+        return None
 
 
 def analyze_and_calibrate() -> dict:
@@ -661,6 +890,122 @@ def export_to_excel(output_path: str | None = None) -> str:
                 "✓" if ou_cor is True else ("✗" if ou_cor is False else "—"),
             ])
             _fill_row(ws_ou, ou_cor)
+
+    # ── Props Sheets ───────────────────────────────────────────────────────────
+    props_history = _load_props_history()
+
+    # Sheet: Props Record (dashboard)
+    ws_prec = wb.create_sheet("Props Record")
+    ws_prec.sheet_view.showGridLines = False
+    prec = get_props_record()
+
+    ws_prec.merge_cells("A1:G1")
+    c = ws_prec.cell(1, 1, "🎯  NBA PREDICTOR — PLAYER PROPS RECORD")
+    c.fill = navy; c.font = bold_gold; c.alignment = center
+    ws_prec.row_dimensions[1].height = 30
+
+    ws_prec.merge_cells("A2:G2")
+    c = ws_prec.cell(2, 1, f"Last updated: {datetime.now().strftime('%A %B %d, %Y  %I:%M %p')}")
+    c.font = Font(italic=True, color="595959"); c.alignment = center
+
+    # Overall record
+    ws_prec.merge_cells("A4:G4")
+    c = ws_prec.cell(4, 1, "ALL-TIME PROPS RECORD")
+    c.fill = PatternFill("solid", fgColor="2E4057")
+    c.font = Font(bold=True, color="FFFFFF", size=11); c.alignment = center
+
+    for col, h in enumerate(["Category", "Hit ✓", "Miss ✗", "Total", "Hit Rate", "Status", ""], 1):
+        c = ws_prec.cell(5, col, h)
+        c.fill = navy; c.font = bold_white; c.alignment = center
+
+    pct = prec["pct"]
+    status = "🔥 HOT" if pct >= 60 else ("✅ OK" if pct >= 50 else "⚠️ COLD")
+    for col, val in enumerate(["All Props", prec["hit"], prec["miss"], prec["total"], f"{pct}%", status, ""], 1):
+        c = ws_prec.cell(6, col, val)
+        c.fill = gold; c.font = Font(bold=True); c.alignment = center
+
+    # By-stat breakdown
+    ws_prec.merge_cells("A8:G8")
+    c = ws_prec.cell(8, 1, "BREAKDOWN BY STAT")
+    c.fill = PatternFill("solid", fgColor="2E4057")
+    c.font = Font(bold=True, color="FFFFFF", size=11); c.alignment = center
+
+    for col, h in enumerate(["Stat", "Hit ✓", "Total", "Hit Rate", "", "", ""], 1):
+        c = ws_prec.cell(9, col, h)
+        c.fill = navy; c.font = bold_white; c.alignment = center
+
+    row_p = 10
+    for stat, data in sorted(prec["by_stat"].items()):
+        sp = data["pct"]
+        row_fill = PatternFill("solid", fgColor="C6EFCE") if sp >= 55 else PatternFill("solid", fgColor="FFC7CE")
+        for col, val in enumerate([stat, data["hit"], data["total"], f"{sp}%", "", "", ""], 1):
+            c = ws_prec.cell(row_p, col, val)
+            c.fill = row_fill; c.alignment = center
+        row_p += 1
+
+    # Recent 7d
+    row_p += 1
+    ws_prec.merge_cells(f"A{row_p}:G{row_p}")
+    c = ws_prec.cell(row_p, 1, f"Recent 7-Day Hit Rate: {prec['recent_7d']}%   |   Days Graded: {prec['days_graded']}")
+    c.font = Font(bold=True, italic=True); c.alignment = center
+
+    _col_widths(ws_prec, [18, 10, 10, 10, 12, 14, 10])
+
+    # Sheet: Props Summary (one row per date)
+    ws_psum = _make_sheet("Props Summary", [
+        "Date", "Hit", "Miss", "Total", "Hit Rate %",
+        "PTS %", "REB %", "AST %", "FG3M %", "Combos %",
+    ])
+    _col_widths(ws_psum, [12, 8, 8, 8, 12, 9, 9, 9, 9, 10])
+
+    for date in sorted(props_history.keys()):
+        rec = props_history[date]
+        if not rec.get("graded_at"):
+            continue
+        s = rec.get("summary", {})
+        bs = s.get("by_stat", {})
+
+        def _bs(key):
+            return f"{bs[key]['pct']}%" if key in bs else ""
+
+        combo_keys = [k for k in bs if "+" in k]
+        combo_hit = sum(bs[k]["hit"] for k in combo_keys)
+        combo_tot = sum(bs[k]["total"] for k in combo_keys)
+        combo_pct = f"{_pct(combo_hit, combo_tot)}%" if combo_tot else ""
+
+        ws_psum.append([
+            date, s.get("hit",""), s.get("miss",""), s.get("total",""),
+            f"{s.get('pct','')}%",
+            _bs("PTS"), _bs("REB"), _bs("AST"), _bs("FG3M"), combo_pct,
+        ])
+
+    # Sheet: Props Detail (one row per prop)
+    ws_pdet = _make_sheet("Props Detail", [
+        "Date", "Player", "Team", "Opponent", "Stat", "Direction",
+        "Line", "Avg (L10)", "Hit Rate", "EV", "Actual", "Hit?",
+    ])
+    _col_widths(ws_pdet, [12, 22, 8, 10, 14, 10, 8, 10, 10, 8, 8, 8])
+
+    for date in sorted(props_history.keys()):
+        for prop in props_history[date].get("props", []):
+            if prop.get("actual") is None:
+                continue   # not yet graded
+            hit_val = prop.get("hit")
+            ws_pdet.append([
+                date,
+                prop.get("player", ""),
+                prop.get("team", ""),
+                prop.get("opponent", ""),
+                prop.get("stat", ""),
+                prop.get("direction", ""),
+                prop.get("line", ""),
+                prop.get("avg", ""),
+                f"{round(prop.get('hit_rate',0)*100,1)}%",
+                round(prop.get("ev", 0), 3),
+                prop.get("actual", ""),
+                "✓" if hit_val is True else ("✗" if hit_val is False else "—"),
+            ])
+            _fill_row(ws_pdet, hit_val)
 
     wb.save(path)
     print(f"[Tracker] Excel exported → {path}")
