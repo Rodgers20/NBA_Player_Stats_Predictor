@@ -3111,9 +3111,10 @@ def update_supporting_stats_cards(player_name, mode, period, season, current_sel
     def calc_stat(col):
         if col not in player_df.columns:
             return 0
+        series = pd.to_numeric(player_df[col], errors="coerce")
         if mode == "median":
-            return player_df[col].median()
-        return player_df[col].mean()
+            return series.median()
+        return series.mean()
 
     # Stats to display — exactly 5 cards: Potential AST, Rebounds, Touches, Field Goals, Free Throws
     stats = [
