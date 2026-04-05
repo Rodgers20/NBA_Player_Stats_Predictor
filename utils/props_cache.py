@@ -11,6 +11,7 @@ Three consumers read from this cache:
 - create_best_props_content() → sidebar
 """
 
+import math
 import threading
 from datetime import datetime
 
@@ -28,6 +29,7 @@ _props_cache = {
     "main_page_data": [],       # For create_best_props_page()
     "callback_data": [],        # For update_best_props_main()
     "sidebar_data": [],         # For create_best_props_content()
+    "alt_lines_data": [],       # 100% alt lines (hit every game in streak)
     "has_todays_games": False,
     "game_matchups": [],
     "target_date": None,        # "YYYY-MM-DD" — today or tomorrow's slate
@@ -135,6 +137,64 @@ _COMBO_DEFS: list[tuple[list[str], str]] = [
     (["PTS", "AST", "REB"], "Pts+Ast+Reb"),
 ]
 
+# Hit-rate thresholds — raised from old 50%/50% coinflip levels
+_OVER_MIN_HIT_RATE  = 0.52   # Over: need genuine edge, not a coin flip
+_UNDER_MIN_HIT_RATE = 0.62   # Under: much higher bar (natural positive skew in NBA)
+
+# Alt lines: lookback windows and minimum meaningful thresholds per stat
+_ALT_WINDOWS       = [5, 6, 7, 8, 10, 12, 15, 17, 18, 20]
+_ALT_MIN_THRESH    = {"PTS": 5, "AST": 2, "REB": 3, "FG3M": 1}
+_ALT_STAT_LABELS   = {"PTS": "POINTS", "AST": "ASSISTS",
+                      "REB": "REBOUNDS", "FG3M": "MADE THREES"}
+
+
+def _is_qualified_player(player_name: str, player_df: "pd.DataFrame") -> tuple[bool, float]:
+    """Return (qualified, avg_min_l10).
+
+    Filters out:
+    - Retired / inactive players (no game within 45 days)
+    - DNP / end-of-bench players (< 15 MPG in last 10 games)
+    - Players with too little current-season data (< 10 games this season)
+    """
+    if len(player_df) < 10:
+        return False, 0.0
+
+    # Must have played within the last 45 days
+    most_recent = player_df["_date"].iloc[0]
+    try:
+        days_inactive = (datetime.now() - most_recent.to_pydatetime()).days
+    except Exception:
+        days_inactive = (datetime.now() - most_recent).days
+    if days_inactive > 45:
+        return False, 0.0
+
+    # Must average at least 15 MPG over last 10 games
+    recent_min = pd.to_numeric(player_df.head(10)["MIN"], errors="coerce")
+    avg_min = recent_min.mean()
+    if pd.isna(avg_min) or avg_min < 15:
+        return False, 0.0
+
+    # Must have at least 10 games in the current season
+    if "SEASON" in player_df.columns:
+        current_rows = player_df[player_df["SEASON"].str.startswith("2025", na=False)]
+        if len(current_rows) < 10:
+            return False, 0.0
+
+    return True, float(avg_min)
+
+
+def _get_player_role(avg_min: float) -> str:
+    """Classify a player's role by average minutes played.
+
+    Role affects blowout risk logic:
+    - star / starter  → gets RESTED early in blowouts → OVER props suffer
+    - rotation / bench → gets GARBAGE TIME in blowouts → OVER props benefit
+    """
+    if avg_min >= 30:   return "star"        # Franchise player, always in closing lineup
+    elif avg_min >= 24: return "starter"     # Regular starter
+    elif avg_min >= 17: return "rotation"    # Key rotation / bench starter
+    else:               return "bench"       # Reserve, end-of-bench
+
 
 def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=None):
     """Compute props data for the main Best Props page.
@@ -161,7 +221,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
 
     props_data = []
 
-    # Process players team-by-team so every team gets evaluated
+    # Process all players
     processed_players = set()
     for player_name in players_to_analyze:
         if player_name in processed_players:
@@ -173,7 +233,10 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             continue
 
         player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
-        if len(player_df) < 5:
+
+        # ── Qualification gate: activity, minutes, current-season data ────────
+        qualified, avg_min = _is_qualified_player(player_name, player_df)
+        if not qualified:
             continue
 
         player_team = _get_player_team(player_name, PLAYER_POSITIONS)
@@ -190,49 +253,61 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             is_home_today = "vs." in str(last_matchup)
 
         position = _get_player_position(player_name, PLAYER_POSITIONS)
-        recent_10 = player_df.head(10)
+        role     = _get_player_role(avg_min)
 
-        home_games = player_df[player_df["MATCHUP"].str.contains("vs.", na=False)].head(10) if "MATCHUP" in player_df.columns else player_df.head(10)
-        away_games = player_df[player_df["MATCHUP"].str.contains("@", na=False)].head(10) if "MATCHUP" in player_df.columns else player_df.head(10)
+        # ── Use current-season data preferentially ────────────────────────────
+        if "SEASON" in player_df.columns:
+            cs_df = player_df[player_df["SEASON"].str.startswith("2025", na=False)]
+            recent_10 = cs_df.head(10) if len(cs_df) >= 5 else player_df.head(10)
+        else:
+            recent_10 = player_df.head(10)
 
-        # ── Blowout risk ──────────────────────────────────────────────────────
-        # If spread >= 10 pts, starters may get early rest (favorites) or see
-        # low-quality possessions (underdogs). Flag and reduce EV accordingly.
-        _spreads = game_spreads or {}
-        team_spread = _spreads.get(player_team)   # from team's perspective; negative = favored
+        # Home/away splits — also prefer current season
+        split_base = cs_df if ("SEASON" in player_df.columns and len(cs_df) >= 5) else player_df
+        home_games = split_base[split_base["MATCHUP"].str.contains("vs.", na=False)].head(10) if "MATCHUP" in split_base.columns else split_base.head(10)
+        away_games = split_base[split_base["MATCHUP"].str.contains("@",   na=False)].head(10) if "MATCHUP" in split_base.columns else split_base.head(10)
+
+        # ── Blowout risk (role-aware) ─────────────────────────────────────────
+        _spreads    = game_spreads or {}
+        team_spread = _spreads.get(player_team)
         blowout_spread = abs(team_spread) if team_spread is not None else None
-        blowout_risk = blowout_spread is not None and blowout_spread >= 10
+        blowout_risk   = blowout_spread is not None and blowout_spread >= 10
 
         for stat_type in ["PTS", "AST", "REB", "FG3M"]:
             if stat_type not in recent_10.columns:
                 continue
 
-            recent_stats = recent_10[stat_type]
-            avg_stat = recent_stats.mean()
+            recent_stats = pd.to_numeric(recent_10[stat_type], errors="coerce").dropna()
+            if len(recent_stats) < 5:
+                continue
+
+            avg_stat    = recent_stats.mean()
+            median_stat = recent_stats.median()
+
             if avg_stat < 1:
                 continue
 
+            # ── Line from MEDIAN (robust to blowup / garbage-time outliers) ──
             if stat_type == "PTS":
-                line = round(avg_stat - 0.5) + 0.5 if avg_stat > 5 else 4.5
+                line = math.floor(median_stat) + 0.5 if median_stat > 5 else 4.5
             elif stat_type == "FG3M":
-                line = round(avg_stat - 0.5) + 0.5 if avg_stat > 1 else 0.5
-            else:
-                line = round(avg_stat - 0.5) + 0.5 if avg_stat > 2 else 1.5
+                line = math.floor(median_stat) + 0.5 if median_stat > 1 else 0.5
+            else:  # AST, REB
+                line = math.floor(median_stat) + 0.5 if median_stat > 2 else 1.5
 
             n = len(recent_stats)
 
-            # Over line: just below average (e.g. avg=20 → line=19.5)
-            over_line = line
-            hits_over = (recent_stats >= over_line).sum()
-            hit_rate_over = hits_over / n if n > 0 else 0
-
-            # Under line: one step above average (e.g. avg=20 → line=20.5)
+            over_line  = line
             under_line = over_line + 1.0
-            hits_under = (recent_stats < under_line).sum()
-            hit_rate_under = hits_under / n if n > 0 else 0
 
-            opp_def = DEFENSE_VS_POS[
-                (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) & (DEFENSE_VS_POS["POSITION"] == position)
+            hits_over  = (recent_stats >= over_line).sum()
+            hits_under = (recent_stats <  under_line).sum()
+            hit_rate_over  = hits_over  / n
+            hit_rate_under = hits_under / n
+
+            opp_def  = DEFENSE_VS_POS[
+                (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) &
+                (DEFENSE_VS_POS["POSITION"] == position)
             ] if not DEFENSE_VS_POS.empty else pd.DataFrame()
             rank_col = f"{stat_type}_RANK" if stat_type != "FG3M" else "3PM_RANK"
             def_rank = int(opp_def.iloc[0].get(rank_col, 15)) if not opp_def.empty else None
@@ -242,25 +317,50 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 else f"{_normalize_abbr(player_team)} @ {opponent}"
             )
 
-            def _make_prop(direction, bet_line, hit_rate, hits):
+            # ── Consistency multiplier (penalise high-variance players) ───────
+            std_stat = recent_stats.std()
+            cv = std_stat / avg_stat if avg_stat > 0 else 1.0
+            consistency_mult = max(0.75, 1.0 - max(0.0, cv - 0.20) * 0.60)
+
+            def _make_prop(direction, bet_line, hit_rate, hits,
+                           _role=role, _blowout_risk=blowout_risk,
+                           _blowout_spread=blowout_spread, _cons=consistency_mult):
                 ev_value = calculate_ev(hit_rate)
-                # Blowout risk EV penalty
-                if blowout_risk:
-                    penalty = 0.25 if blowout_spread >= 15 else 0.12
-                    ev_value = ev_value * (1 - penalty)
-                is_lock = (hit_rate >= 0.80 and n >= 5 and not blowout_risk)
-                insight = generate_player_insight(
-                    player_name=player_name,
-                    stat=stat_type,
-                    line=bet_line,
-                    opponent=opponent,
-                    player_df=player_df,
-                    defense_vs_pos=DEFENSE_VS_POS,
-                    is_home=is_home_today,
-                    position=position,
+
+                # ── Role-aware blowout adjustment ─────────────────────────────
+                if _blowout_risk:
+                    spread_factor = 0.25 if _blowout_spread >= 15 else 0.12
+                    if _role in ("star", "starter"):
+                        # Starters get rested → fewer minutes → OVERs suffer
+                        if direction == "Over":
+                            ev_value *= (1 - spread_factor)
+                        else:  # Under becomes more likely for resting starters
+                            ev_value *= (1 + spread_factor * 0.5)
+                    else:  # rotation / bench
+                        # Bench/rotation get garbage time → OVERs improve
+                        if direction == "Over":
+                            ev_value *= (1 + spread_factor * 0.4)
+                        else:  # Under for bench in blowout = nonsensical
+                            ev_value *= 0.30
+
+                # Consistency penalty
+                ev_value *= _cons
+
+                is_lock = (
+                    hit_rate >= 0.80 and n >= 5
+                    and not (_blowout_risk and _role in ("star", "starter") and direction == "Over")
                 )
-                if blowout_risk:
-                    insight = f"⚠ Blowout risk ({blowout_spread:.0f}-pt spread). " + insight
+                insight = generate_player_insight(
+                    player_name=player_name, stat=stat_type, line=bet_line,
+                    opponent=opponent, player_df=player_df,
+                    defense_vs_pos=DEFENSE_VS_POS, is_home=is_home_today, position=position,
+                )
+                if _blowout_risk:
+                    role_note = "starter benched" if _role in ("star", "starter") else "bench gets garbage time"
+                    insight["narrative"] = (
+                        f"⚠ Blowout risk ({_blowout_spread:.0f}-pt spread, {role_note}). "
+                        + insight.get("narrative", "")
+                    )
                 if direction == "Over":
                     hr_home = (home_games[stat_type] >= bet_line).sum() / len(home_games) if not home_games.empty else 0
                     hr_away = (away_games[stat_type] >= bet_line).sum() / len(away_games) if not away_games.empty else 0
@@ -273,6 +373,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     h_away  = (away_games[stat_type] < bet_line).sum() if not away_games.empty else 0
                 return {
                     "player": player_name, "team": player_team, "opponent": opponent, "position": position,
+                    "role": _role,
                     "stat": stat_type, "line": bet_line, "avg": round(avg_stat, 1),
                     "direction": direction,
                     "hit_rate": hit_rate, "hits": hits, "total": n,
@@ -280,8 +381,8 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "ev": ev_value,
                     "is_lock": is_lock,
                     "is_combo": False,
-                    "blowout_risk": blowout_risk,
-                    "blowout_spread": blowout_spread,
+                    "blowout_risk": _blowout_risk,
+                    "blowout_spread": _blowout_spread,
                     "game_matchup": game_matchup_str,
                     "hit_rate_home": hr_home, "hit_rate_away": hr_away,
                     "hits_home": h_home, "hits_away": h_away,
@@ -291,12 +392,15 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "insight": insight,
                 }
 
-            # Add Over only if strictly above 50% (no coinflips)
-            if hit_rate_over > 0.5:
+            # Over — require genuine edge (>52%)
+            if hit_rate_over > _OVER_MIN_HIT_RATE:
                 props_data.append(_make_prop("Over", over_line, hit_rate_over, hits_over))
 
-            # Add Under only if strictly above 50% and different edge from over
-            if hit_rate_under > 0.5 and hit_rate_under != hit_rate_over:
+            # Under — high bar (62%) AND must make contextual sense
+            under_makes_sense = not (blowout_risk and role in ("rotation", "bench"))
+            if (hit_rate_under > _UNDER_MIN_HIT_RATE
+                    and hit_rate_under != hit_rate_over
+                    and under_makes_sense):
                 props_data.append(_make_prop("Under", under_line, hit_rate_under, hits_under))
 
         # ── Combo props ───────────────────────────────────────────────────────
@@ -304,25 +408,36 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             if not all(s in recent_10.columns for s in combo_stats):
                 continue
 
-            avgs = {s: recent_10[s].mean() for s in combo_stats}
+            avgs      = {s: pd.to_numeric(recent_10[s], errors="coerce").mean() for s in combo_stats}
             total_avg = sum(avgs.values())
             if total_avg < 2:
                 continue
 
-            raw_combo = recent_10[combo_stats].sum(axis=1)
-            line_combo = round(raw_combo.mean() - 0.5) + 0.5
-            hits_combo = (raw_combo >= line_combo).sum()
+            raw_combo = recent_10[combo_stats].apply(pd.to_numeric, errors="coerce").sum(axis=1)
+            # Median-based combo line
+            line_combo = math.floor(raw_combo.median()) + 0.5
+            hits_combo    = (raw_combo >= line_combo).sum()
             hit_rate_combo = hits_combo / len(raw_combo) if len(raw_combo) > 0 else 0
 
-            # Require strictly above 55% — slightly higher bar than singles
             if hit_rate_combo <= 0.55:
                 continue
 
             ev_combo = calculate_ev(hit_rate_combo)
+
+            # Role-aware blowout for combos
             if blowout_risk:
-                penalty = 0.25 if blowout_spread >= 15 else 0.12
-                ev_combo = ev_combo * (1 - penalty)
-            is_lock_combo = (hit_rate_combo >= 0.80 and len(raw_combo) >= 5 and not blowout_risk)
+                spread_factor = 0.25 if blowout_spread >= 15 else 0.12
+                if role in ("star", "starter"):
+                    ev_combo *= (1 - spread_factor)
+                else:
+                    ev_combo *= (1 + spread_factor * 0.3)
+
+            ev_combo *= consistency_mult   # consistency penalty applies to combos too
+
+            is_lock_combo = (
+                hit_rate_combo >= 0.80 and len(raw_combo) >= 5
+                and not (blowout_risk and role in ("star", "starter"))
+            )
 
             insight_combo = (
                 ("⚠ Blowout risk. " if blowout_risk else "")
@@ -336,6 +451,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 "team":         player_team,
                 "opponent":     opponent,
                 "position":     position,
+                "role":         role,
                 "stat":         "+".join(combo_stats),
                 "stat_label":   combo_label,
                 "line":         line_combo,
@@ -667,6 +783,94 @@ def _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_i
     return final_props
 
 
+def _compute_alt_lines(DF, PLAYER_POSITIONS, game_info, availability_map, players_to_analyze):
+    """Find player-stat combinations that cleared a threshold in 100% of last N games.
+
+    For each player/stat, scans all windows in _ALT_WINDOWS (5→20 games) and
+    picks the *longest streak* where floor(min(last_N)) >= _ALT_MIN_THRESH[stat].
+    Returns a list sorted by window desc (longest streak first) then threshold desc.
+    """
+    alt_lines = []
+    teams_today = set(game_info["team_to_opponent"].keys())
+
+    processed: set = set()
+    for player_name in players_to_analyze:
+        if player_name in processed:
+            continue
+        processed.add(player_name)
+
+        is_avail, _ = availability_map.get(player_name, (True, ""))
+        if not is_avail:
+            continue
+
+        player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+
+        # Same qualification gate as main props
+        qualified, _ = _is_qualified_player(player_name, player_df)
+        if not qualified:
+            continue
+
+        player_team = _get_player_team(player_name, PLAYER_POSITIONS)
+        if game_info["has_todays_games"] and player_team not in teams_today:
+            continue
+
+        opponent   = _resolve_opponent(player_name, player_team, player_df, game_info)
+        is_home    = game_info["teams_home_away"].get(player_team, "home") == "home"
+        matchup    = (
+            f"{opponent} @ {player_team}" if is_home
+            else f"{player_team} @ {opponent}"
+        )
+
+        # Prefer current-season games for the streak check
+        if "SEASON" in player_df.columns:
+            cs_df = player_df[player_df["SEASON"].str.startswith("2025", na=False)]
+            source_df = cs_df if len(cs_df) >= 10 else player_df
+        else:
+            source_df = player_df
+
+        for stat, min_thresh in _ALT_MIN_THRESH.items():
+            if stat not in source_df.columns:
+                continue
+
+            stat_series = (
+                pd.to_numeric(source_df[stat], errors="coerce")
+                .dropna()
+                .reset_index(drop=True)
+            )
+            if len(stat_series) < min(_ALT_WINDOWS):
+                continue
+
+            best_n:      int | None = None
+            best_thresh: int | None = None
+
+            for n in _ALT_WINDOWS:
+                if len(stat_series) < n:
+                    continue
+                thresh = math.floor(stat_series.iloc[:n].min())
+                if thresh >= min_thresh:
+                    # Keep the longest window; tie-break on higher threshold
+                    if best_n is None or n > best_n or (n == best_n and thresh > best_thresh):
+                        best_n     = n
+                        best_thresh = thresh
+
+            if best_n is not None:
+                alt_lines.append({
+                    "player":     player_name,
+                    "team":       player_team,
+                    "opponent":   opponent,
+                    "game_matchup": matchup,
+                    "stat":       stat,
+                    "stat_label": _ALT_STAT_LABELS[stat],
+                    "threshold":  best_thresh,
+                    "window":     best_n,
+                    "trend":      f"{best_n}/L{best_n}",
+                })
+
+    # Sort: longest streak → highest threshold → player name
+    alt_lines.sort(key=lambda x: (-x["window"], -x["threshold"], x["player"]))
+    return alt_lines
+
+
 def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predictor_fn=None):
     """
     Pre-compute all Best Props data. Called at startup and by scheduler.
@@ -693,8 +897,9 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
         ]["PLAYER_NAME"].tolist()
         print(f"[PropsCache] {len(players_to_analyze)} players from {len(game_info['teams_playing'])} teams playing today")
     elif not PLAYER_POSITIONS.empty:
-        recent_players = DF.sort_values("_date", ascending=False).drop_duplicates("PLAYER_NAME")
-        players_to_analyze = recent_players.nlargest(300, "MIN")["PLAYER_NAME"].tolist()
+        recent_players = DF.sort_values("_date", ascending=False).drop_duplicates("PLAYER_NAME").copy()
+        recent_players["_min_numeric"] = pd.to_numeric(recent_players["MIN"], errors="coerce").fillna(0)
+        players_to_analyze = recent_players.nlargest(300, "_min_numeric")["PLAYER_NAME"].tolist()
     else:
         players_to_analyze = []
 
@@ -717,10 +922,11 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
     except Exception as _e:
         print(f"[PropsCache] Could not fetch game spreads for blowout risk: {_e}")
 
-    # Compute all 3 data sets
-    main_data = _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=game_spreads)
+    # Compute all 4 data sets
+    main_data     = _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=game_spreads)
     callback_data = _compute_callback_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, availability_map)
-    sidebar_data = _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn, availability_map=availability_map)
+    sidebar_data  = _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn, availability_map=availability_map)
+    alt_lines     = _compute_alt_lines(DF, PLAYER_POSITIONS, game_info, availability_map, players_to_analyze)
 
     elapsed = (datetime.now() - start).total_seconds()
 
@@ -729,6 +935,7 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
             "main_page_data": main_data,
             "callback_data": callback_data,
             "sidebar_data": sidebar_data,
+            "alt_lines_data": alt_lines,
             "has_todays_games": game_info["has_todays_games"],
             "game_matchups": game_info["game_matchups"],
             "teams_today": set(game_info["team_to_opponent"].keys()),
@@ -736,4 +943,8 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
             "timestamp": datetime.now(),
         }
 
-    print(f"[PropsCache] Cache warmed in {elapsed:.1f}s — {len(main_data)} main props, {len(callback_data)} callback props, {len(sidebar_data)} sidebar props")
+    print(f"[PropsCache] Cache warmed in {elapsed:.1f}s — {len(main_data)} main props, {len(callback_data)} callback props, {len(sidebar_data)} sidebar props, {len(alt_lines)} alt lines")
+    if not main_data:
+        print(f"[PropsCache] WARNING: 0 main props generated. has_todays_games={game_info['has_todays_games']}, "
+              f"teams_playing={game_info['teams_playing']}, players_to_analyze={len(players_to_analyze)}, "
+              f"DF_rows={len(DF)}, PLAYER_POSITIONS_rows={len(PLAYER_POSITIONS)}")

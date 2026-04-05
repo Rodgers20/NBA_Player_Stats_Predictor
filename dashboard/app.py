@@ -1437,12 +1437,113 @@ def create_todays_games_page():
     ])
 
 
+def _create_alt_lines_section(alt_lines: list) -> "html.Div":
+    """Build the 100% ALT LINES section card."""
+    # ── Stat colour map ───────────────────────────────────────────────────────
+    STAT_COLORS = {
+        "PTS":  ("#22c55e", "#052e16"),   # green
+        "AST":  ("#3b82f6", "#0c1a3a"),   # blue
+        "REB":  ("#f59e0b", "#2d1a05"),   # amber
+        "FG3M": ("#a855f7", "#1e0b3a"),   # purple
+    }
+
+    if not alt_lines:
+        return html.Div()
+
+    def _row(entry, idx):
+        stat        = entry["stat"]
+        fg, bg      = STAT_COLORS.get(stat, ("#2dd4bf", "#071622"))
+        row_bg      = "#0b1829" if idx % 2 == 0 else "#0d1e30"
+        prop_text   = f"{entry['threshold']}+ {entry['stat_label']}"
+        trend_text  = entry["trend"]  # e.g. "17/L17"
+
+        return html.Div([
+            # Team
+            html.Div(entry["team"], style={
+                "width": "56px", "fontWeight": "700", "fontSize": "0.8rem",
+                "color": "#8ca0c0", "textTransform": "uppercase", "flexShrink": "0",
+            }),
+            # Player
+            html.Div(entry["player"], style={
+                "flex": "1", "fontWeight": "600", "fontSize": "0.9rem",
+                "color": "#e8f0ff", "minWidth": "0",
+                "overflow": "hidden", "textOverflow": "ellipsis", "whiteSpace": "nowrap",
+            }),
+            # Prop badge
+            html.Div(prop_text, style={
+                "background": bg, "color": fg, "border": f"1px solid {fg}40",
+                "borderRadius": "6px", "padding": "3px 10px",
+                "fontSize": "0.8rem", "fontWeight": "700",
+                "whiteSpace": "nowrap", "flexShrink": "0",
+            }),
+            # Trend badge
+            html.Div(trend_text, style={
+                "background": "rgba(45,212,191,0.12)", "color": "#2dd4bf",
+                "border": "1px solid rgba(45,212,191,0.3)",
+                "borderRadius": "6px", "padding": "3px 10px",
+                "fontSize": "0.82rem", "fontWeight": "800",
+                "whiteSpace": "nowrap", "flexShrink": "0",
+                "letterSpacing": "0.02em",
+            }),
+        ], style={
+            "display": "flex", "alignItems": "center", "gap": "12px",
+            "padding": "10px 16px", "background": row_bg,
+            "borderBottom": "1px solid rgba(255,255,255,0.04)",
+        })
+
+    return html.Div([
+        # ── Section header ────────────────────────────────────────────────
+        html.Div([
+            html.Div([
+                html.Span("100%", style={
+                    "background": "linear-gradient(135deg,#22c55e,#16a34a)",
+                    "color": "#fff", "borderRadius": "6px",
+                    "padding": "2px 10px", "fontWeight": "900",
+                    "fontSize": "0.85rem", "marginRight": "10px",
+                    "letterSpacing": "0.05em",
+                }),
+                html.Span("ALT LINES", style={
+                    "fontWeight": "800", "fontSize": "1.15rem",
+                    "color": "#f0f4ff", "letterSpacing": "0.04em",
+                }),
+            ], style={"display": "flex", "alignItems": "center"}),
+            html.Div(
+                f"{len(alt_lines)} streaks found",
+                style={"color": "var(--text-muted)", "fontSize": "0.82rem"},
+            ),
+        ], style={
+            "display": "flex", "justifyContent": "space-between", "alignItems": "center",
+            "padding": "14px 16px", "borderBottom": "1px solid rgba(45,212,191,0.15)",
+        }),
+
+        # ── Column labels ─────────────────────────────────────────────────
+        html.Div([
+            html.Div("TEAM",  style={"width": "56px", "color": "#4a5a75", "fontSize": "0.72rem", "fontWeight": "700", "letterSpacing": "0.08em", "flexShrink": "0"}),
+            html.Div("PLAYER",style={"flex": "1",    "color": "#4a5a75", "fontSize": "0.72rem", "fontWeight": "700", "letterSpacing": "0.08em"}),
+            html.Div("PROP",  style={"width": "130px","color": "#4a5a75", "fontSize": "0.72rem", "fontWeight": "700", "letterSpacing": "0.08em", "flexShrink": "0"}),
+            html.Div("TREND", style={"width": "80px", "color": "#4a5a75", "fontSize": "0.72rem", "fontWeight": "700", "letterSpacing": "0.08em", "flexShrink": "0"}),
+        ], style={
+            "display": "flex", "alignItems": "center", "gap": "12px",
+            "padding": "8px 16px", "background": "#071622",
+        }),
+
+        # ── Data rows ─────────────────────────────────────────────────────
+        html.Div([_row(entry, i) for i, entry in enumerate(alt_lines)]),
+
+    ], style={
+        "background": "#0a1628", "borderRadius": "12px",
+        "border": "1px solid rgba(34,197,94,0.25)",
+        "overflow": "hidden", "marginTop": "36px",
+    })
+
+
 def create_best_props_page():
     """Create the Best Props page showing top value picks (reads from pre-computed cache)."""
     from utils.props_cache import get_cached_props
 
     cache = get_cached_props()
     props_data = cache["main_page_data"]
+    alt_lines  = cache.get("alt_lines_data", [])
     has_todays_games = cache["has_todays_games"]
     game_matchups = cache["game_matchups"]
     target_date = cache.get("target_date")
@@ -1487,66 +1588,93 @@ def create_best_props_page():
                     html.Div("Top value player props ranked by Expected Value — upcoming games only", style={"color": "var(--text-secondary, #8ca0c0)", "fontSize": "0.875rem", "marginBottom": "24px"}),
                 ]),
 
-                # Row 1: Stat type filter
+                # ── Primary view switcher: PROPS vs 100% ALT LINES ───────────
                 html.Div([
-                    html.Div([
-                        html.Div("All Stats",  id="props-filter-all",  n_clicks=0, className="tab active"),
-                        html.Div("Points",     id="props-filter-pts",  n_clicks=0, className="tab"),
-                        html.Div("Assists",    id="props-filter-ast",  n_clicks=0, className="tab"),
-                        html.Div("Rebounds",   id="props-filter-reb",  n_clicks=0, className="tab"),
-                        html.Div("3-Pointers", id="props-filter-3pm",  n_clicks=0, className="tab"),
-                        html.Div("Pts+Ast",    id="props-filter-pa",   n_clicks=0, className="tab"),
-                        html.Div("Pts+Reb",    id="props-filter-pr",   n_clicks=0, className="tab"),
-                        html.Div("Ast+Reb",    id="props-filter-ar",   n_clicks=0, className="tab"),
-                        html.Div("PRA",        id="props-filter-pra",  n_clicks=0, className="tab"),
-                        html.Div("LOCKS",      id="props-filter-lock", n_clicks=0, className="tab"),
-                    ], className="tab-group", style={"flexWrap": "wrap"}),
-                ], className="props-tabs", style={"marginBottom": "12px"}),
+                    html.Div("Props",         id="props-view-tab-props", n_clicks=0, className="view-tab active"),
+                    html.Div("100% Alt Lines",id="props-view-tab-alt",   n_clicks=0, className="view-tab"),
+                ], className="props-view-switcher"),
 
-                # Row 2: Location | Game | Sort — all on one line
+                # ── Filter rows (hidden when Alt Lines view is active) ─────────
                 html.Div([
-                    html.Div("All", id="props-loc-all",  n_clicks=0, className="tab active"),
-                    html.Div("Home",id="props-loc-home", n_clicks=0, className="tab"),
-                    html.Div("Away",id="props-loc-away", n_clicks=0, className="tab"),
-
-                    html.Div(style={"flex": "1"}),  # spacer
-
+                    # Direction filter: All / Overs / Unders
                     html.Div([
-                        html.Span("Game:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
-                        dcc.Dropdown(
-                            id="props-game-filter",
-                            options=[{"label": "All Games", "value": "all"}] + [{"label": m, "value": m} for m in game_matchups],
-                            value="all",
-                            clearable=False,
-                            style={"width": "185px"},
-                            className="game-filter-dropdown"
-                        ),
-                    ], style={"display": "flex" if game_matchups else "none", "alignItems": "center", "gap": "0"}),
+                        html.Div("All",      id="props-dir-all",   n_clicks=0, className="tab active"),
+                        html.Div("Overs ↑",  id="props-dir-over",  n_clicks=0, className="tab tab-over"),
+                        html.Div("Unders ↓", id="props-dir-under", n_clicks=0, className="tab tab-under"),
+                    ], style={"display": "flex", "gap": "4px", "marginBottom": "10px"}),
 
+                    # Row 1: Stat type filter
                     html.Div([
-                        html.Span("Sort:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
-                        dcc.Dropdown(
-                            id="props-sort-dropdown",
-                            options=[
-                                {"label": "Highest EV",       "value": "ev"},
-                                {"label": "Highest Hit Rate", "value": "hit_rate"}
-                            ],
-                            value="ev",
-                            clearable=False,
-                            style={"width": "160px"},
-                            className="game-filter-dropdown"
-                        ),
-                    ], style={"display": "flex", "alignItems": "center", "gap": "0"}),
+                        html.Div([
+                            html.Div("All Stats",  id="props-filter-all",  n_clicks=0, className="tab active"),
+                            html.Div("Points",     id="props-filter-pts",  n_clicks=0, className="tab"),
+                            html.Div("Assists",    id="props-filter-ast",  n_clicks=0, className="tab"),
+                            html.Div("Rebounds",   id="props-filter-reb",  n_clicks=0, className="tab"),
+                            html.Div("3-Pointers", id="props-filter-3pm",  n_clicks=0, className="tab"),
+                            html.Div("Pts+Ast",    id="props-filter-pa",   n_clicks=0, className="tab"),
+                            html.Div("Pts+Reb",    id="props-filter-pr",   n_clicks=0, className="tab"),
+                            html.Div("Ast+Reb",    id="props-filter-ar",   n_clicks=0, className="tab"),
+                            html.Div("PRA",        id="props-filter-pra",  n_clicks=0, className="tab"),
+                            html.Div("LOCKS",      id="props-filter-lock", n_clicks=0, className="tab"),
+                        ], className="tab-group", style={"flexWrap": "wrap"}),
+                    ], className="props-tabs", style={"marginBottom": "12px"}),
 
-                ], style={"display": "flex", "alignItems": "center", "gap": "8px", "marginBottom": "24px", "flexWrap": "wrap"}),
+                    # Row 2: Location | Game | Sort — all on one line
+                    html.Div([
+                        html.Div("All", id="props-loc-all",  n_clicks=0, className="tab active"),
+                        html.Div("Home",id="props-loc-home", n_clicks=0, className="tab"),
+                        html.Div("Away",id="props-loc-away", n_clicks=0, className="tab"),
+
+                        html.Div(style={"flex": "1"}),  # spacer
+
+                        html.Div([
+                            html.Span("Game:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
+                            dcc.Dropdown(
+                                id="props-game-filter",
+                                options=[{"label": "All Games", "value": "all"}] + [{"label": m, "value": m} for m in game_matchups],
+                                value="all",
+                                clearable=False,
+                                style={"width": "185px"},
+                                className="game-filter-dropdown"
+                            ),
+                        ], style={"display": "flex" if game_matchups else "none", "alignItems": "center", "gap": "0"}),
+
+                        html.Div([
+                            html.Span("Sort:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
+                            dcc.Dropdown(
+                                id="props-sort-dropdown",
+                                options=[
+                                    {"label": "Highest EV",       "value": "ev"},
+                                    {"label": "Highest Hit Rate", "value": "hit_rate"}
+                                ],
+                                value="ev",
+                                clearable=False,
+                                style={"width": "160px"},
+                                className="game-filter-dropdown"
+                            ),
+                        ], style={"display": "flex", "alignItems": "center", "gap": "0"}),
+
+                    ], style={"display": "flex", "alignItems": "center", "gap": "8px", "marginBottom": "24px", "flexWrap": "wrap"}),
+
+                ], id="props-filter-panel"),
 
                 dcc.Store(id="props-data-store", data=props_data),
                 dcc.Store(id="props-location-filter", data="all"),
                 dcc.Store(id="props-stat-filter", data="all"),
+                dcc.Store(id="props-direction-filter", data="all"),
+                dcc.Store(id="props-view", data="props"),
                 dcc.Store(id="props-panel-store", data=None),
                 dcc.Store(id="props-panel-stat", data=None),
+                # Auto-refresh: poll cache every 2s until data arrives (max 30s)
+                dcc.Interval(
+                    id="props-reload-interval",
+                    interval=2000,
+                    n_intervals=0,
+                    max_intervals=15,
+                    disabled=len(props_data) > 0,
+                ),
 
-                # Prop cards container (populated by callback)
+                # Content area — props list OR alt lines, controlled by view store
                 html.Div(id="props-list"),
 
                 html.Div(f"Last updated: {datetime.now().strftime('%I:%M %p')}", style={"color": "var(--text-muted)", "fontSize": "0.8rem", "textAlign": "center", "marginTop": "24px"})
@@ -2042,6 +2170,43 @@ def update_location_filter(all_clicks, home_clicks, away_clicks):
 
 
 @callback(
+    [Output("props-view", "data"),
+     Output("props-view-tab-props", "className"),
+     Output("props-view-tab-alt",   "className"),
+     Output("props-filter-panel",   "style")],
+    [Input("props-view-tab-props", "n_clicks"),
+     Input("props-view-tab-alt",   "n_clicks")],
+    prevent_initial_call=True,
+)
+def update_props_view(n_props, n_alt):
+    from dash import ctx
+    triggered = ctx.triggered_id
+    if triggered == "props-view-tab-alt":
+        return "alt", "view-tab", "view-tab active", {"display": "none"}
+    return "props", "view-tab active", "view-tab", {}
+
+
+@callback(
+    [Output("props-direction-filter", "data"),
+     Output("props-dir-all",   "className"),
+     Output("props-dir-over",  "className"),
+     Output("props-dir-under", "className")],
+    [Input("props-dir-all",   "n_clicks"),
+     Input("props-dir-over",  "n_clicks"),
+     Input("props-dir-under", "n_clicks")],
+    prevent_initial_call=True,
+)
+def update_direction_filter(n_all, n_over, n_under):
+    from dash import ctx
+    triggered = ctx.triggered_id
+    if triggered == "props-dir-over":
+        return "Over",  "tab",        "tab tab-over active",  "tab tab-under"
+    if triggered == "props-dir-under":
+        return "Under", "tab",        "tab tab-over",         "tab tab-under active"
+    return "all",   "tab active", "tab tab-over",         "tab tab-under"
+
+
+@callback(
     [Output("props-stat-filter", "data"),
      Output("props-filter-all",  "className"),
      Output("props-filter-pts",  "className"),
@@ -2175,20 +2340,49 @@ def _build_odds_row(prop: dict, stat_color: str, avg: float, location_label: str
 
 
 @callback(
+    [Output("props-data-store", "data", allow_duplicate=True),
+     Output("props-reload-interval", "disabled")],
+    Input("props-reload-interval", "n_intervals"),
+    prevent_initial_call=True,
+)
+def refresh_props_store(n_intervals):
+    """Re-read props cache on interval tick; disable once data arrives."""
+    from utils.props_cache import get_cached_props
+    data = get_cached_props()["main_page_data"]
+    return data, bool(data)  # disable interval once cache is populated
+
+
+@callback(
     Output("props-list", "children"),
     [Input("props-location-filter", "data"),
      Input("props-game-filter", "value"),
      Input("props-sort-dropdown", "value"),
      Input("props-data-store", "data"),
-     Input("props-stat-filter", "data")]
+     Input("props-stat-filter", "data"),
+     Input("props-direction-filter", "data"),
+     Input("props-view", "data")]
 )
-def update_props_list(location_filter, game_filter, sort_by, props_data, stat_filter):
+def update_props_list(location_filter, game_filter, sort_by, props_data,
+                      stat_filter, direction_filter, view):
+    # ── Alt Lines view: render the 100% alt lines table ───────────────────────
+    if view == "alt":
+        from utils.props_cache import get_cached_props
+        alt_lines = get_cached_props().get("alt_lines_data", [])
+        return _create_alt_lines_section(alt_lines) or html.Div(
+            "No 100% alt line streaks found for today's slate.",
+            style={"color": "var(--text-muted)", "textAlign": "center", "padding": "40px"},
+        )
+
     if not props_data:
-        return html.Div("No props data available", style={
+        return html.Div("Loading props… please wait a moment", style={
             "color": "var(--text-muted)",
             "textAlign": "center",
             "padding": "40px"
         })
+
+    # Filter by direction (Over / Under / all)
+    if direction_filter and direction_filter != "all":
+        props_data = [p for p in props_data if p.get("direction") == direction_filter]
 
     # Filter by stat type
     if stat_filter and stat_filter != "all":

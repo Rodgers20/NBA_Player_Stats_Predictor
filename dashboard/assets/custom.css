@@ -1111,6 +1111,60 @@ body::before {
     border-color: var(--teal-500) !important;
 }
 
+/* ── react-select dropdown (actual DOM classes used by dcc.Dropdown) ────── */
+.Select-menu-outer {
+    background: #0f1a2e !important;
+    border: 1px solid rgba(45, 212, 191, 0.25) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+    overflow: hidden !important;
+    z-index: 9999 !important;
+}
+
+.Select-menu {
+    background: #0f1a2e !important;
+    max-height: 280px;
+}
+
+.Select-option {
+    background: #0f1a2e !important;
+    color: #8ca0c0 !important;
+    font-size: 0.875rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+    padding: 10px 14px !important;
+}
+
+.Select-option:hover,
+.Select-option.is-focused {
+    background: #152035 !important;
+    color: #f0f4ff !important;
+}
+
+.Select-option.is-selected {
+    background: rgba(45, 212, 191, 0.12) !important;
+    color: #2dd4bf !important;
+}
+
+.VirtualizedSelectOption {
+    background: #0f1a2e !important;
+    color: #8ca0c0 !important;
+    font-size: 0.875rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+    display: flex;
+    align-items: center;
+}
+
+.VirtualizedSelectOption:hover,
+.VirtualizedSelectFocusedOption {
+    background: #152035 !important;
+    color: #f0f4ff !important;
+}
+
+.VirtualizedSelectSelectedOption {
+    background: rgba(45, 212, 191, 0.12) !important;
+    color: #2dd4bf !important;
+}
+
 
 /* =============================================
    GAME CARD V2  (Today's Games redesign)
@@ -1997,4 +2051,52 @@ body::before {
     }
 
     body::before { animation: none; }
+}
+
+/* =============================================
+   PROPS PAGE — PRIMARY VIEW SWITCHER
+   ============================================= */
+.props-view-switcher {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid rgba(255,255,255,0.07);
+    padding-bottom: 0;
+}
+.view-tab {
+    padding: 10px 24px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #4a5a75;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: color 150ms ease, border-color 150ms ease;
+    letter-spacing: 0.03em;
+    user-select: none;
+    white-space: nowrap;
+}
+.view-tab:hover {
+    color: #8ca0c0;
+}
+.view-tab.active {
+    color: #2dd4bf;
+    border-bottom-color: #2dd4bf;
+}
+
+/* =============================================
+   PROPS PAGE — DIRECTION FILTER TABS
+   ============================================= */
+.tab.tab-over:hover   { color: #22c55e; border-color: rgba(34,197,94,0.3); }
+.tab.tab-under:hover  { color: #f87171; border-color: rgba(248,113,113,0.3); }
+
+.tab.tab-over.active {
+    background: rgba(34,197,94,0.12) !important;
+    color: #22c55e !important;
+    border-color: rgba(34,197,94,0.45) !important;
+}
+.tab.tab-under.active {
+    background: rgba(248,113,113,0.10) !important;
+    color: #f87171 !important;
+    border-color: rgba(248,113,113,0.4) !important;
 }
