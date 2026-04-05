@@ -1596,14 +1596,7 @@ def create_best_props_page():
 
                 # ── Filter rows (hidden when Alt Lines view is active) ─────────
                 html.Div([
-                    # Direction filter: All / Overs / Unders
-                    html.Div([
-                        html.Div("All",      id="props-dir-all",   n_clicks=0, className="tab active"),
-                        html.Div("Overs ↑",  id="props-dir-over",  n_clicks=0, className="tab tab-over"),
-                        html.Div("Unders ↓", id="props-dir-under", n_clicks=0, className="tab tab-under"),
-                    ], style={"display": "flex", "gap": "4px", "marginBottom": "10px"}),
-
-                    # Row 1: Stat type filter
+                    # Row 1: Stat type tabs (LOCKS lives as a banner below, not here)
                     html.Div([
                         html.Div([
                             html.Div("All Stats",  id="props-filter-all",  n_clicks=0, className="tab active"),
@@ -1615,12 +1608,26 @@ def create_best_props_page():
                             html.Div("Pts+Reb",    id="props-filter-pr",   n_clicks=0, className="tab"),
                             html.Div("Ast+Reb",    id="props-filter-ar",   n_clicks=0, className="tab"),
                             html.Div("PRA",        id="props-filter-pra",  n_clicks=0, className="tab"),
-                            html.Div("LOCKS",      id="props-filter-lock", n_clicks=0, className="tab"),
                         ], className="tab-group", style={"flexWrap": "wrap"}),
-                    ], className="props-tabs", style={"marginBottom": "12px"}),
+                    ], className="props-tabs", style={"marginBottom": "6px"}),
 
-                    # Row 2: Location | Game | Sort — all on one line
+                    # Stat count badges — populated by update_props_list callback
+                    html.Div(id="props-stat-counts-row", style={"marginBottom": "8px"}),
+
+                    # LOCKS banner — gold-accented, full-width, always visible
+                    html.Div("LOCKS ★", id="props-filter-lock", n_clicks=0, className="locks-banner"),
+
+                    # Row 2: Direction | Location | Game | Sort — one compact line
                     html.Div([
+                        html.Div("All",      id="props-dir-all",   n_clicks=0, className="tab active"),
+                        html.Div("Overs ↑",  id="props-dir-over",  n_clicks=0, className="tab tab-over"),
+                        html.Div("Unders ↓", id="props-dir-under", n_clicks=0, className="tab tab-under"),
+
+                        # visual divider
+                        html.Div(style={"width": "1px", "height": "18px",
+                                        "background": "rgba(255,255,255,0.1)",
+                                        "flexShrink": "0", "alignSelf": "center"}),
+
                         html.Div("All", id="props-loc-all",  n_clicks=0, className="tab active"),
                         html.Div("Home",id="props-loc-home", n_clicks=0, className="tab"),
                         html.Div("Away",id="props-loc-away", n_clicks=0, className="tab"),
@@ -1654,7 +1661,8 @@ def create_best_props_page():
                             ),
                         ], style={"display": "flex", "alignItems": "center", "gap": "0"}),
 
-                    ], style={"display": "flex", "alignItems": "center", "gap": "8px", "marginBottom": "24px", "flexWrap": "wrap"}),
+                    ], style={"display": "flex", "alignItems": "center", "gap": "6px",
+                              "marginTop": "10px", "marginBottom": "20px", "flexWrap": "wrap"}),
 
                 ], id="props-filter-panel"),
 
@@ -2235,8 +2243,8 @@ def update_stat_filter(*_):
     triggered = ctx.triggered_id
     active   = "tab active"
     inactive = "tab"
-    n = 10  # total number of tabs
-    def _cls(active_idx):
+    n = 9  # 9 stat tabs (LOCKS is now a separate banner element)
+    def _cls(active_idx=None):
         return [active if i == active_idx else inactive for i in range(n)]
     mapping = {
         "props-filter-pts":  ("PTS",         1),
@@ -2247,12 +2255,14 @@ def update_stat_filter(*_):
         "props-filter-pr":   ("PTS+REB",     6),
         "props-filter-ar":   ("AST+REB",     7),
         "props-filter-pra":  ("PTS+AST+REB", 8),
-        "props-filter-lock": ("LOCK",        9),
     }
+    if triggered == "props-filter-lock":
+        # LOCKS banner active — deactivate all stat tabs
+        return ["LOCK"] + _cls(None) + ["locks-banner active"]
     if triggered in mapping:
         val, idx = mapping[triggered]
-        return [val] + _cls(idx)
-    return ["all"] + _cls(0)
+        return [val] + _cls(idx) + ["locks-banner"]
+    return ["all"] + _cls(0) + ["locks-banner"]
 
 
 @callback(
@@ -2353,7 +2363,9 @@ def refresh_props_store(n_intervals):
 
 
 @callback(
-    Output("props-list", "children"),
+    [Output("props-list", "children"),
+     Output("props-stat-counts-row", "children"),
+     Output("props-filter-lock", "children")],
     [Input("props-location-filter", "data"),
      Input("props-game-filter", "value"),
      Input("props-sort-dropdown", "value"),
@@ -2364,25 +2376,48 @@ def refresh_props_store(n_intervals):
 )
 def update_props_list(location_filter, game_filter, sort_by, props_data,
                       stat_filter, direction_filter, view):
+    _empty_counts = html.Div()
+    _default_lock_label = "LOCKS ★"
+
     # ── Alt Lines view: render the 100% alt lines table ───────────────────────
     if view == "alt":
         from utils.props_cache import get_cached_props
         alt_lines = get_cached_props().get("alt_lines_data", [])
-        return _create_alt_lines_section(alt_lines) or html.Div(
+        alt_content = _create_alt_lines_section(alt_lines) or html.Div(
             "No 100% alt line streaks found for today's slate.",
             style={"color": "var(--text-muted)", "textAlign": "center", "padding": "40px"},
         )
+        return [alt_content, _empty_counts, _default_lock_label]
 
     if not props_data:
-        return html.Div("Loading props… please wait a moment", style={
-            "color": "var(--text-muted)",
-            "textAlign": "center",
-            "padding": "40px"
-        })
+        return [
+            html.Div("Loading props… please wait a moment", style={
+                "color": "var(--text-muted)", "textAlign": "center", "padding": "40px"
+            }),
+            _empty_counts,
+            _default_lock_label,
+        ]
 
     # Filter by direction (Over / Under / all)
     if direction_filter and direction_filter != "all":
         props_data = [p for p in props_data if p.get("direction") == direction_filter]
+
+    # ── Compute per-stat counts BEFORE stat filter (for count badges) ─────────
+    stat_count_map: dict = {}
+    lock_count = sum(1 for p in props_data if p.get("is_lock"))
+    for p in props_data:
+        stat = p.get("stat", "")
+        key = "COMBO" if "+" in stat else stat
+        stat_count_map[key] = stat_count_map.get(key, 0) + 1
+
+    _BADGE_ORDER = [("PTS", "PTS"), ("AST", "AST"), ("REB", "REB"),
+                    ("FG3M", "3PM"), ("COMBO", "Combos")]
+    count_badges = [
+        html.Span(f"{lbl} {stat_count_map[k]}", className="stat-count-badge")
+        for k, lbl in _BADGE_ORDER if stat_count_map.get(k, 0) > 0
+    ]
+    counts_row = html.Div(count_badges, className="stat-counts-row") if count_badges else _empty_counts
+    locks_label = f"LOCKS ★  {lock_count}" if lock_count > 0 else _default_lock_label
 
     # Filter by stat type
     if stat_filter and stat_filter != "all":
@@ -2410,25 +2445,26 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
             filtered_props.append(prop)
 
     # Sort Logic
-    # 1. Determine the metric key based on filter context
     hit_rate_key = "hit_rate"
     if location_filter == "home":
         hit_rate_key = "hit_rate_home"
     elif location_filter == "away":
         hit_rate_key = "hit_rate_away"
 
-    # 2. Apply sort
     if sort_by == "hit_rate":
         filtered_props.sort(key=lambda x: x.get(hit_rate_key, 0), reverse=True)
-    else: # Default to EV
+    else:
         filtered_props.sort(key=lambda x: x.get("ev", 0), reverse=True)
 
     if not filtered_props:
-        return html.Div(f"No {'home' if location_filter == 'home' else 'away' if location_filter == 'away' else ''} props found", style={
-            "color": "var(--text-muted)",
-            "textAlign": "center",
-            "padding": "40px"
-        })
+        loc_label = "home" if location_filter == "home" else "away" if location_filter == "away" else ""
+        return [
+            html.Div(f"No {loc_label + ' ' if loc_label else ''}props found", style={
+                "color": "var(--text-muted)", "textAlign": "center", "padding": "40px"
+            }),
+            counts_row,
+            locks_label,
+        ]
 
     # Build prop cards — no arbitrary cap, show everything that passed filters
     prop_cards = []
@@ -2604,9 +2640,30 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
 
             ], className="prop-card-body-v2"),
         ], className="prop-card-v2")
-        prop_cards.append(prop_card)
+        prop_cards.append((prop.get("is_lock", False), prop_card))
 
-    return [html.Div(prop_cards, className="props-grid")]
+    # ── Split into LOCKS section (pinned top) + regular props ─────────────────
+    lock_cards    = [c for is_lock, c in prop_cards if is_lock]
+    regular_cards = [c for is_lock, c in prop_cards if not is_lock]
+
+    sections = []
+
+    # Always show LOCKS section at top when any lock cards exist
+    if lock_cards:
+        locks_header = html.Div([
+            html.Span("★", style={"color": "#f59e0b", "marginRight": "8px", "fontSize": "1rem"}),
+            html.Span("LOCKS", style={"fontWeight": "800", "color": "#f59e0b",
+                                      "letterSpacing": "0.06em", "fontSize": "0.9rem"}),
+            html.Span(f"  {len(lock_cards)}", style={"color": "#6b7280",
+                                                       "marginLeft": "6px", "fontSize": "0.85rem"}),
+        ], className="locks-section-header")
+        sections.append(html.Div([locks_header, html.Div(lock_cards, className="props-grid")],
+                                  className="locks-section"))
+
+    if regular_cards:
+        sections.append(html.Div(regular_cards, className="props-grid"))
+
+    return [html.Div(sections), counts_row, locks_label]
 
 
 @callback(

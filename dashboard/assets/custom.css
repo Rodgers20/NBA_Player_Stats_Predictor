@@ -2100,3 +2100,78 @@ body::before {
     color: #f87171 !important;
     border-color: rgba(248,113,113,0.4) !important;
 }
+
+/* =============================================
+   PROPS PAGE — STAT COUNT BADGES
+   ============================================= */
+.stat-counts-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.stat-count-badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: rgba(255,255,255,0.05);
+    color: #4a5a75;
+    border: 1px solid rgba(255,255,255,0.08);
+    white-space: nowrap;
+    user-select: none;
+}
+
+/* =============================================
+   PROPS PAGE — LOCKS BANNER
+   ============================================= */
+.locks-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    margin-bottom: 2px;
+    border-radius: 8px;
+    border: 1px solid rgba(245,158,11,0.25);
+    background: rgba(245,158,11,0.06);
+    color: #92400e;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    user-select: none;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.locks-banner:hover {
+    background: rgba(245,158,11,0.12);
+    border-color: rgba(245,158,11,0.45);
+    color: #f59e0b;
+}
+.locks-banner.active {
+    background: rgba(245,158,11,0.14) !important;
+    border-color: rgba(245,158,11,0.55) !important;
+    color: #f59e0b !important;
+}
+
+/* =============================================
+   PROPS PAGE — LOCKS PINNED SECTION
+   ============================================= */
+.locks-section {
+    margin-bottom: 8px;
+}
+.locks-section-header {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 8px 8px 0 0;
+    border-bottom: none;
+}
+.locks-section .props-grid {
+    border: 1px solid rgba(245,158,11,0.2);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 8px;
+}

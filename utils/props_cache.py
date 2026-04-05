@@ -30,6 +30,7 @@ _props_cache = {
     "callback_data": [],        # For update_best_props_main()
     "sidebar_data": [],         # For create_best_props_content()
     "alt_lines_data": [],       # 100% alt lines (hit every game in streak)
+    "alt_lines_date": None,     # "YYYY-MM-DD" of when alt_lines were last computed
     "has_todays_games": False,
     "game_matchups": [],
     "target_date": None,        # "YYYY-MM-DD" — today or tomorrow's slate
@@ -926,7 +927,18 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
     main_data     = _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=game_spreads)
     callback_data = _compute_callback_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, availability_map)
     sidebar_data  = _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn, availability_map=availability_map)
-    alt_lines     = _compute_alt_lines(DF, PLAYER_POSITIONS, game_info, availability_map, players_to_analyze)
+    # Preserve today's alt_lines across intra-day refreshes — recompute only when:
+    # (a) it's a new calendar day, or (b) cache is still empty (first run / no results yet)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    with _cache_lock:
+        existing_alt_date  = _props_cache.get("alt_lines_date")
+        existing_alt_lines = _props_cache.get("alt_lines_data", [])
+
+    if existing_alt_date == today_str and existing_alt_lines:
+        alt_lines = existing_alt_lines
+        print(f"[PropsCache] Preserving {len(alt_lines)} alt lines from earlier today ({today_str})")
+    else:
+        alt_lines = _compute_alt_lines(DF, PLAYER_POSITIONS, game_info, availability_map, players_to_analyze)
 
     elapsed = (datetime.now() - start).total_seconds()
 
@@ -936,6 +948,7 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
             "callback_data": callback_data,
             "sidebar_data": sidebar_data,
             "alt_lines_data": alt_lines,
+            "alt_lines_date": today_str,
             "has_todays_games": game_info["has_todays_games"],
             "game_matchups": game_info["game_matchups"],
             "teams_today": set(game_info["team_to_opponent"].keys()),
