@@ -1537,6 +1537,155 @@ def _create_alt_lines_section(alt_lines: list) -> "html.Div":
     })
 
 
+def _create_props_record_section() -> "html.Div":
+    """Render the props prediction record from prediction_tracker."""
+    try:
+        from utils.prediction_tracker import get_props_record
+        rec = get_props_record()
+    except Exception as e:
+        return html.Div(f"Could not load record: {e}",
+                        style={"color": "var(--text-muted)", "padding": "40px", "textAlign": "center"})
+
+    total = rec.get("total", 0)
+    if total == 0:
+        return html.Div([
+            html.Div("No props graded yet.", style={
+                "fontSize": "1.1rem", "color": "#8ca0c0",
+                "textAlign": "center", "marginBottom": "8px",
+            }),
+            html.Div("Predictions are graded automatically after each game day.", style={
+                "color": "var(--text-muted)", "textAlign": "center", "fontSize": "0.85rem",
+            }),
+        ], style={"padding": "60px 20px"})
+
+    hit         = rec.get("hit", 0)
+    miss        = rec.get("miss", 0)
+    pct         = rec.get("pct", 0.0)
+    recent_7d   = rec.get("recent_7d", 0.0)
+    days_graded = rec.get("days_graded", 0)
+    by_stat     = rec.get("by_stat", {})
+
+    pct_color = "#22c55e" if pct >= 60 else "#f59e0b" if pct >= 50 else "#f87171"
+
+    # ── Overall summary banner ─────────────────────────────────────────────────
+    summary = html.Div([
+        html.Div([
+            html.Div(f"{hit} / {total}", style={
+                "fontSize": "2.4rem", "fontWeight": "900", "color": pct_color,
+                "lineHeight": "1", "marginBottom": "4px",
+            }),
+            html.Div("all-time props hit", style={
+                "color": "#4a5a75", "fontSize": "0.78rem", "letterSpacing": "0.06em",
+                "textTransform": "uppercase",
+            }),
+        ]),
+        html.Div([
+            html.Div(f"{pct:.1f}%", style={
+                "fontSize": "2rem", "fontWeight": "800", "color": pct_color, "lineHeight": "1",
+            }),
+            html.Div("hit rate", style={
+                "color": "#4a5a75", "fontSize": "0.78rem", "letterSpacing": "0.06em",
+                "textTransform": "uppercase",
+            }),
+        ]),
+        html.Div([
+            html.Div(f"{recent_7d:.1f}%", style={
+                "fontSize": "2rem", "fontWeight": "800", "color": "#2dd4bf", "lineHeight": "1",
+            }),
+            html.Div("last 7 days", style={
+                "color": "#4a5a75", "fontSize": "0.78rem", "letterSpacing": "0.06em",
+                "textTransform": "uppercase",
+            }),
+        ]),
+        html.Div([
+            html.Div(str(days_graded), style={
+                "fontSize": "2rem", "fontWeight": "800", "color": "#8ca0c0", "lineHeight": "1",
+            }),
+            html.Div("days tracked", style={
+                "color": "#4a5a75", "fontSize": "0.78rem", "letterSpacing": "0.06em",
+                "textTransform": "uppercase",
+            }),
+        ]),
+    ], className="props-record-summary")
+
+    # ── By-stat breakdown table ────────────────────────────────────────────────
+    STAT_DISPLAY = {
+        "PTS": "Points", "AST": "Assists", "REB": "Rebounds",
+        "FG3M": "3-Pointers",
+        "PTS+AST": "Pts+Ast", "PTS+REB": "Pts+Reb", "AST+REB": "Ast+Reb",
+        "PTS+AST+REB": "PRA",
+    }
+
+    def _bar(pct_val):
+        color = "#22c55e" if pct_val >= 60 else "#f59e0b" if pct_val >= 50 else "#f87171"
+        return html.Div(style={
+            "height": "6px", "borderRadius": "3px",
+            "background": f"linear-gradient(90deg, {color} {pct_val:.0f}%, rgba(255,255,255,0.05) {pct_val:.0f}%)",
+        })
+
+    def _row(stat, data, idx):
+        h, t, p = data["hit"], data["total"], data["pct"]
+        color = "#22c55e" if p >= 60 else "#f59e0b" if p >= 50 else "#f87171"
+        row_bg = "#0b1829" if idx % 2 == 0 else "#0d1e30"
+        return html.Div([
+            html.Div(STAT_DISPLAY.get(stat, stat), style={
+                "flex": "1", "fontWeight": "600", "fontSize": "0.88rem", "color": "#c8d8f0",
+            }),
+            html.Div(str(t),    style={"width": "60px", "textAlign": "center", "color": "#6b7280", "fontSize": "0.85rem"}),
+            html.Div(str(h),    style={"width": "50px", "textAlign": "center", "color": "#22c55e", "fontSize": "0.85rem", "fontWeight": "700"}),
+            html.Div(str(t - h),style={"width": "50px", "textAlign": "center", "color": "#f87171", "fontSize": "0.85rem"}),
+            html.Div([
+                html.Span(f"{p:.1f}%", style={"color": color, "fontWeight": "800", "fontSize": "0.88rem"}),
+                _bar(p),
+            ], style={"width": "90px"}),
+        ], style={
+            "display": "flex", "alignItems": "center", "gap": "10px",
+            "padding": "10px 16px", "background": row_bg,
+            "borderBottom": "1px solid rgba(255,255,255,0.04)",
+        })
+
+    header_row = html.Div([
+        html.Div("STAT",      style={"flex": "1",     "color": "#4a5a75", "fontSize": "0.72rem", "fontWeight": "700", "letterSpacing": "0.08em"}),
+        html.Div("GRADED",    style={"width": "60px", "color": "#4a5a75", "fontSize": "0.72rem", "fontWeight": "700", "textAlign": "center"}),
+        html.Div("HIT",       style={"width": "50px", "color": "#4a5a75", "fontSize": "0.72rem", "fontWeight": "700", "textAlign": "center"}),
+        html.Div("MISS",      style={"width": "50px", "color": "#4a5a75", "fontSize": "0.72rem", "fontWeight": "700", "textAlign": "center"}),
+        html.Div("HIT RATE",  style={"width": "90px", "color": "#4a5a75", "fontSize": "0.72rem", "fontWeight": "700"}),
+    ], style={
+        "display": "flex", "alignItems": "center", "gap": "10px",
+        "padding": "8px 16px", "background": "#071622",
+    })
+
+    stat_order = ["PTS", "AST", "REB", "FG3M", "PTS+AST", "PTS+REB", "AST+REB", "PTS+AST+REB"]
+    data_rows  = [_row(s, by_stat[s], i) for i, s in enumerate(stat_order) if s in by_stat]
+
+    table = html.Div([
+        html.Div([
+            html.Span("Breakdown by stat", style={
+                "fontWeight": "800", "fontSize": "1rem", "color": "#e8f0ff",
+            }),
+        ], style={"padding": "14px 16px", "borderBottom": "1px solid rgba(255,255,255,0.07)"}),
+        header_row,
+        html.Div(data_rows),
+    ], style={
+        "background": "#0a1628", "borderRadius": "12px",
+        "border": "1px solid rgba(255,255,255,0.08)",
+        "overflow": "hidden", "marginTop": "24px",
+    })
+
+    download_btn = html.A(
+        "Download Full Report (Excel)",
+        href="/download-report",
+        style={
+            "display": "inline-block", "marginTop": "20px", "padding": "10px 22px",
+            "background": "rgba(45,212,191,0.1)", "color": "#2dd4bf",
+            "border": "1px solid rgba(45,212,191,0.3)", "borderRadius": "8px",
+            "fontSize": "0.88rem", "fontWeight": "700", "textDecoration": "none",
+        },
+    )
+
+    return html.Div([summary, table, download_btn], style={"marginTop": "8px"})
+
+
 def create_best_props_page():
     """Create the Best Props page showing top value picks (reads from pre-computed cache)."""
     from utils.props_cache import get_cached_props
@@ -1588,10 +1737,11 @@ def create_best_props_page():
                     html.Div("Top value player props ranked by Expected Value — upcoming games only", style={"color": "var(--text-secondary, #8ca0c0)", "fontSize": "0.875rem", "marginBottom": "24px"}),
                 ]),
 
-                # ── Primary view switcher: PROPS vs 100% ALT LINES ───────────
+                # ── Primary view switcher: PROPS | 100% ALT LINES | RECORD ──
                 html.Div([
-                    html.Div("Props",         id="props-view-tab-props", n_clicks=0, className="view-tab active"),
-                    html.Div("100% Alt Lines",id="props-view-tab-alt",   n_clicks=0, className="view-tab"),
+                    html.Div("Props",          id="props-view-tab-props",   n_clicks=0, className="view-tab active"),
+                    html.Div("100% Alt Lines", id="props-view-tab-alt",     n_clicks=0, className="view-tab"),
+                    html.Div("Record ✓",       id="props-view-tab-record",  n_clicks=0, className="view-tab"),
                 ], className="props-view-switcher"),
 
                 # ── Filter rows (hidden when Alt Lines view is active) ─────────
@@ -2179,19 +2329,23 @@ def update_location_filter(all_clicks, home_clicks, away_clicks):
 
 @callback(
     [Output("props-view", "data"),
-     Output("props-view-tab-props", "className"),
-     Output("props-view-tab-alt",   "className"),
-     Output("props-filter-panel",   "style")],
-    [Input("props-view-tab-props", "n_clicks"),
-     Input("props-view-tab-alt",   "n_clicks")],
+     Output("props-view-tab-props",  "className"),
+     Output("props-view-tab-alt",    "className"),
+     Output("props-view-tab-record", "className"),
+     Output("props-filter-panel",    "style")],
+    [Input("props-view-tab-props",  "n_clicks"),
+     Input("props-view-tab-alt",    "n_clicks"),
+     Input("props-view-tab-record", "n_clicks")],
     prevent_initial_call=True,
 )
-def update_props_view(n_props, n_alt):
+def update_props_view(n_props, n_alt, n_record):
     from dash import ctx
     triggered = ctx.triggered_id
     if triggered == "props-view-tab-alt":
-        return "alt", "view-tab", "view-tab active", {"display": "none"}
-    return "props", "view-tab active", "view-tab", {}
+        return "alt",    "view-tab",        "view-tab active", "view-tab",        {"display": "none"}
+    if triggered == "props-view-tab-record":
+        return "record", "view-tab",        "view-tab",        "view-tab active", {"display": "none"}
+    return "props", "view-tab active", "view-tab", "view-tab", {}
 
 
 @callback(
@@ -2378,6 +2532,10 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
                       stat_filter, direction_filter, view):
     _empty_counts = html.Div()
     _default_lock_label = "LOCKS ★"
+
+    # ── Record view: props prediction history ─────────────────────────────────
+    if view == "record":
+        return [_create_props_record_section(), _empty_counts, _default_lock_label]
 
     # ── Alt Lines view: render the 100% alt lines table ───────────────────────
     if view == "alt":

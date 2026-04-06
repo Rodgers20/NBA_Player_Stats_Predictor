@@ -197,7 +197,7 @@ def _get_player_role(avg_min: float) -> str:
     else:               return "bench"       # Reserve, end-of-bench
 
 
-def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=None):
+def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=None, get_predictor_fn=None):
     """Compute props data for the main Best Props page.
 
     Process ALL players from every team playing today — no arbitrary cap.
@@ -297,6 +297,22 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 line = math.floor(median_stat) + 0.5 if median_stat > 2 else 1.5
 
             n = len(recent_stats)
+
+            # ── ML line blending (60% ML, 40% median) ─────────────────────────
+            # Improves line accuracy vs. pure-median approach when ML model is
+            # loaded. Falls back to median line silently on any error.
+            if get_predictor_fn:
+                try:
+                    predictor = get_predictor_fn(stat_type)
+                    if predictor:
+                        ml_result = predictor.predict_player_game(player_name, DF)
+                        ml_pred = ml_result.get(f"predicted_{stat_type.lower()}")
+                        if ml_pred and float(ml_pred) > 0:
+                            blended = 0.6 * float(ml_pred) + 0.4 * float(line)
+                            # Keep line at valid .5 increment
+                            line = math.floor(blended) + 0.5
+                except Exception:
+                    pass  # stay with median line
 
             over_line  = line
             under_line = over_line + 1.0
@@ -924,7 +940,7 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
         print(f"[PropsCache] Could not fetch game spreads for blowout risk: {_e}")
 
     # Compute all 4 data sets
-    main_data     = _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=game_spreads)
+    main_data     = _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=game_spreads, get_predictor_fn=get_predictor_fn)
     callback_data = _compute_callback_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, availability_map)
     sidebar_data  = _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn, availability_map=availability_map)
     # Preserve today's alt_lines across intra-day refreshes — recompute only when:
