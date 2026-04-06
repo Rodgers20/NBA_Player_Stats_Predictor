@@ -1528,99 +1528,165 @@ body::before {
 @media (max-width: 860px)  { .props-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 520px)  { .props-grid { grid-template-columns: 1fr; } }
 
-/* Glassmorphism prop card */
+/* =============================================
+   PROP CARD V2 — REDESIGNED
+   ============================================= */
 .prop-card-v2 {
     position: relative;
-    background: rgba(10, 16, 32, 0.65);
+    background: rgba(10, 16, 32, 0.72);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.09);
     overflow: hidden;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    transition: border-color 220ms ease, box-shadow 220ms ease, background 220ms ease;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.35);
 }
-/* Top edge highlight — glass illusion */
+/* Top edge specular highlight */
 .prop-card-v2::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 12px;
-    right: 12px;
+    top: 0; left: 12px; right: 12px;
     height: 1px;
-    background: rgba(255,255,255,0.18);
-    border-radius: 0 0 2px 2px;
+    background: rgba(255,255,255,0.16);
     z-index: 1;
     pointer-events: none;
 }
-.prop-card-v2:hover {
-    transform: translateY(-5px);
-    border-color: rgba(255,255,255,0.22);
-    background: rgba(15, 22, 42, 0.78);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.07);
+/* Hover: lift only on non-touch devices */
+@media (hover: hover) and (pointer: fine) {
+    .prop-card-v2:hover {
+        border-color: rgba(45, 212, 191, 0.28);
+        background: rgba(14, 22, 44, 0.82);
+        box-shadow: 0 12px 36px rgba(0,0,0,0.55), 0 0 0 1px rgba(45,212,191,0.12);
+    }
 }
 
-/* Photo banner — uses CSS background-image for graceful 404 fallback */
+/* ── Photo Banner ────────────────────────── */
 .prop-photo-banner {
     position: relative;
     width: 100%;
-    height: 150px;
+    height: 170px;          /* Taller — shows more of the player */
     overflow: hidden;
-    background-size: cover;
-    background-position: center 15%;
+    background-size: cover, cover;
     background-repeat: no-repeat;
     flex-shrink: 0;
-    /* Bottom gradient overlay so text below blends nicely */
 }
+/* Gradient: only bottom 45% fades to dark — keeps face clear */
 .prop-photo-banner::after {
     content: '';
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: 60%;
-    background: linear-gradient(to bottom, transparent 0%, rgba(8, 12, 24, 0.70) 100%);
+    height: 45%;
+    background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(8, 12, 24, 0.85) 100%);
     pointer-events: none;
+    z-index: 1;
 }
-/* Fallback initial letter (always rendered, hidden behind photo) */
+/* Fallback initial letter */
 .prop-photo-initial {
     position: absolute;
-    bottom: 10px;
-    left: 14px;
-    font-size: 3.2rem;
+    bottom: 12px; left: 16px;
+    font-size: 3.6rem;
     font-weight: 900;
-    color: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.10);
     line-height: 1;
     z-index: 0;
     pointer-events: none;
     letter-spacing: -0.04em;
 }
+/* EV badge — overlaid bottom-left on photo */
+.prop-ev-badge {
+    position: absolute;
+    bottom: 12px; left: 14px;
+    z-index: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    background: rgba(8, 12, 24, 0.78);
+    border: 1px solid;          /* color set inline */
+    border-radius: 8px;
+    padding: 3px 9px 3px 8px;
+    backdrop-filter: blur(6px);
+    line-height: 1;
+}
+.prop-ev-badge-pct {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+.prop-ev-badge-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    opacity: 0.75;
+    letter-spacing: 0.04em;
+}
+/* Team logo */
 .prop-team-logo {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 38px;
-    height: 38px;
+    top: 10px; right: 10px;
+    width: 40px; height: 40px;
     object-fit: contain;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.7));
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.75));
     z-index: 2;
 }
 
-/* Card body */
+/* ── Card body ────────────────────────────── */
 .prop-card-body-v2 {
-    padding: 14px 16px 16px;
+    padding: 12px 14px 14px;
     display: flex;
     flex-direction: column;
     flex: 1;
-    background: transparent;
+    gap: 6px;
 }
 
-/* EV color tiers */
-.ev-green  { color: #22c55e; }
-.ev-orange { color: #f97316; }
-.ev-red    { color: #ef4444; }
+/* Stat line row — hero element */
+.prop-stat-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 2px;
+}
+.prop-stat-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #4a5a75;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+.prop-stat-line {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #f0f4ff;
+    letter-spacing: -0.01em;
+}
 
-/* Bottom tag line */
+/* Hits record pill */
+.prop-hits-pill {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #6b7280;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 1px 9px;
+    width: fit-content;
+}
+
+/* AI Insight */
+.prop-insight-text {
+    font-size: 0.78rem;
+    color: #8ca0c0;
+    line-height: 1.45;
+    flex: 1;
+}
+
+/* Bottom tag */
 .prop-bottom-tag {
     display: flex;
     align-items: center;
@@ -1628,14 +1694,19 @@ body::before {
     font-size: 0.78rem;
     font-weight: 500;
     margin-top: auto;
-    padding-top: 10px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255,255,255,0.05);
 }
 .prop-tag-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px; height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
 }
+
+/* EV color tiers (kept for any remaining usage) */
+.ev-green  { color: #22c55e; }
+.ev-orange { color: #f97316; }
+.ev-red    { color: #ef4444; }
 
 /* Props page white-pill active tabs */
 .props-tabs .tab-group {
@@ -2204,5 +2275,178 @@ body::before {
         flex: 1 1 45%;
         border-right: none;
         border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+}
+
+
+/* =============================================
+   MOBILE — GLOBAL FIXES (≤ 768px)
+   ============================================= */
+
+/* Prevent any element from causing horizontal scroll */
+html {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+@media (max-width: 768px) {
+    /* ── Nav ──────────────────────────────── */
+    .nav-header {
+        padding: 0.6rem 0.75rem !important;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .nav-links {
+        gap: 0 !important;
+        flex-wrap: wrap;
+    }
+    .nav-link {
+        padding: 0.45rem 0.65rem !important;
+        font-size: 0.78rem !important;
+        min-height: 44px;           /* touch target */
+        display: flex;
+        align-items: center;
+    }
+
+    /* ── Page content ─────────────────────── */
+    .page-content {
+        padding: 0.75rem !important;
+    }
+
+    /* ── Player Analysis search bar ──────── */
+    .player-search-bar {
+        width: 100% !important;
+        min-width: 0 !important;
+        flex-shrink: 1 !important;
+    }
+
+    /* ── View switcher overflow on props page */
+    .props-view-switcher {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .props-view-switcher::-webkit-scrollbar { display: none; }
+    .view-tab {
+        padding: 10px 16px !important;
+        font-size: 0.82rem !important;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+
+    /* ── Props filter row ─────────────────── */
+    .props-filter-row {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+    }
+    .tab {
+        min-height: 40px;
+        padding: 0.4rem 0.85rem !important;
+        font-size: 0.78rem !important;
+    }
+
+    /* ── Props grid single column ─────────── */
+    .props-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    /* ── Prop card — horizontal layout on mobile */
+    .prop-card-v2 {
+        flex-direction: row !important;
+        min-height: 140px;
+    }
+    .prop-photo-banner {
+        width: 110px !important;
+        height: auto !important;
+        min-height: 140px;
+        flex-shrink: 0;
+        border-radius: 0;
+    }
+    /* Gradient becomes right-fade on horizontal layout */
+    .prop-photo-banner::after {
+        height: 100% !important;
+        background: linear-gradient(to right,
+            transparent 0%,
+            rgba(8, 12, 24, 0.65) 100%) !important;
+    }
+    /* EV badge repositions to top-left */
+    .prop-ev-badge {
+        bottom: auto !important;
+        top: 8px !important;
+        left: 6px !important;
+        padding: 2px 6px !important;
+    }
+    .prop-ev-badge-pct { font-size: 0.9rem !important; }
+    .prop-ev-badge-label { display: none; }
+    /* Team logo smaller */
+    .prop-team-logo {
+        width: 28px !important;
+        height: 28px !important;
+    }
+    /* Fallback initial hidden on mobile (too big) */
+    .prop-photo-initial { display: none; }
+    .prop-card-body-v2 {
+        padding: 10px 12px !important;
+        min-width: 0;
+    }
+    .prop-stat-line { font-size: 0.95rem !important; }
+
+    /* ── Analysis page layout ─────────────── */
+    .analysis-2col {
+        flex-direction: column !important;
+    }
+    .analysis-side-col {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    /* ── Sidebar full-width ───────────────── */
+    .sidebar {
+        width: 100% !important;
+    }
+
+    /* ── Record summary wrap ──────────────── */
+    .props-record-summary {
+        flex-wrap: wrap;
+    }
+    .props-record-summary > div {
+        flex: 1 1 48%;
+    }
+
+    /* ── Stat counts row wrap ─────────────── */
+    .stat-counts-row {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+}
+
+/* ── Disable card transform on touch devices ── */
+@media (hover: none) or (pointer: coarse) {
+    .prop-card-v2:hover {
+        transform: none !important;
+        border-color: rgba(255,255,255,0.09) !important;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.35) !important;
+        background: rgba(10, 16, 32, 0.72) !important;
+    }
+    .card:hover,
+    .analysis-card:hover {
+        transform: none !important;
+    }
+}
+
+/* Extra small phones (≤ 400px) */
+@media (max-width: 400px) {
+    .prop-photo-banner {
+        width: 90px !important;
+    }
+    .nav-link {
+        padding: 0.4rem 0.5rem !important;
+        font-size: 0.72rem !important;
+    }
+    .view-tab {
+        padding: 8px 12px !important;
+        font-size: 0.78rem !important;
     }
 }

@@ -696,14 +696,16 @@ def create_player_analysis_page():
                 ),
             ], className="player-search-bar", style={
                 "width": "300px",
-                "flexShrink": "0",
+                "maxWidth": "100%",
+                "flexShrink": "1",
             }),
         ], style={
             "display": "flex",
             "alignItems": "center",
             "justifyContent": "space-between",
-            "gap": "20px",
+            "gap": "16px",
             "marginBottom": "20px",
+            "flexWrap": "wrap",
         }),
 
         # ── Stat & period filters ─────────────────────────────────────────────
@@ -2716,17 +2718,27 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
             "linear-gradient(135deg, rgba(20,184,166,0.18) 0%, rgba(139,92,246,0.18) 100%)"
         ) if player_photo else "linear-gradient(135deg, rgba(20,184,166,0.18) 0%, rgba(139,92,246,0.18) 100%)"
 
+        # ── EV tier for photo badge color ─────────────────────────────────────
+        badge_color = "#22c55e" if hit_pct >= 70 else "#f97316" if hit_pct >= 60 else "#ef4444"
+
         prop_card = html.Div([
             # ── Photo banner (CSS background-image → 404-safe) ────────────────
             html.Div([
                 # Fallback initial (always rendered behind photo)
                 html.Span(initial_letter, className="prop-photo-initial"),
+                # Hit-rate badge overlaid on photo bottom-left
+                html.Div([
+                    html.Span(f"{hit_pct}%", className="prop-ev-badge-pct"),
+                    html.Span(" EV", className="prop-ev-badge-label"),
+                ], className="prop-ev-badge",
+                   style={"borderColor": badge_color, "color": badge_color}),
+                # Team logo top-right
                 html.Img(src=team_logo, className="prop-team-logo") if team_logo else None,
             ],
                 className="prop-photo-banner",
                 style={"backgroundImage": banner_bg,
                        "backgroundSize": "cover, cover",
-                       "backgroundPosition": "center 10%, center"},
+                       "backgroundPosition": "top center, center"},
                 id={"type": "prop-player-photo", "index": f"{player_name_str}|{prop.get('stat','PTS')}"},
                 n_clicks=0,
             ),
@@ -2755,36 +2767,22 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
                     style={"fontSize": "0.78rem", "color": "#6b7280", "marginBottom": "10px"}
                 ),
 
-                # Stat line e.g. "Points: Over 12.5"
+                # Stat line — hero element
                 html.Div([
-                    html.Span(f"{stat_label}: ", style={"color": "#9ca3af", "fontWeight": "400"}),
-                    html.Span(stat_line_str, style={"color": "#f0f4ff", "fontWeight": "700"}),
-                ], style={"fontSize": "0.92rem", "marginBottom": "8px"}),
+                    html.Span(stat_label, className="prop-stat-label"),
+                    html.Span(stat_line_str, className="prop-stat-line"),
+                ], className="prop-stat-row"),
 
-                # Divider
-                html.Hr(style={"border": "none", "borderTop": "1px solid rgba(255,255,255,0.07)",
-                               "margin": "8px 0"}),
-
-                # "Win probability" label
-                html.Div("Win probability",
-                         style={"fontSize": "0.75rem", "color": "#6b7280", "marginBottom": "4px"}),
-
-                # Big EV number
+                # Hits record pill
                 html.Div(
-                    f"{hit_pct}% EV{ev_arrow}",
-                    className=ev_class,
-                    style={"fontSize": "1.9rem", "fontWeight": "800", "lineHeight": "1",
-                           "marginBottom": "12px"},
+                    f"{hits}/{total} L{total}",
+                    className="prop-hits-pill",
                 ),
 
                 # AI Insight
-                html.Div("AI Insight",
-                         style={"fontSize": "0.75rem", "fontWeight": "700",
-                                "color": "#6b7280", "marginBottom": "4px"}),
                 html.Div(
                     narrative or f"{location_label}: {hits}/{total} games hit",
-                    style={"fontSize": "0.8rem", "color": "#d1d5db",
-                           "lineHeight": "1.5", "marginBottom": "6px"},
+                    className="prop-insight-text",
                 ),
 
                 # Bottom tag
