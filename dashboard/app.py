@@ -368,8 +368,10 @@ try:
     # Catch-up grading: grade any past dates that were never graded because the
     # app wasn't running at 1 AM (e.g. Mac was sleeping, app was closed).
     def _catchup_grade():
-        from utils.prediction_tracker import grade_predictions, _load_history
+        from utils.prediction_tracker import grade_predictions, grade_props, _load_history, _load_props_history
         from datetime import date as _date, timedelta as _td
+
+        # Catch-up prediction grading
         history = _load_history()
         today = _date.today().isoformat()
         missed = [
@@ -385,6 +387,22 @@ try:
                     print(f"[App] Catch-up grade failed for {d}: {exc}")
         else:
             print("[App] Catch-up grading: all past dates already graded")
+
+        # Catch-up props grading
+        props_history = _load_props_history()
+        missed_props = [
+            d for d, v in props_history.items()
+            if d < today and not v.get("graded_at")
+        ]
+        if missed_props:
+            print(f"[App] Catch-up props grading {len(missed_props)} ungraded date(s): {missed_props}")
+            for d in sorted(missed_props):
+                try:
+                    grade_props(d)
+                except Exception as exc:
+                    print(f"[App] Catch-up props grade failed for {d}: {exc}")
+        else:
+            print("[App] Catch-up props grading: all past dates already graded")
 
     _catchup_thread = _threading.Thread(target=_catchup_grade, daemon=True, name="catchup-grade")
     _catchup_thread.start()
@@ -1952,15 +1970,15 @@ def update_game_panel(selected_idx, games_data):
         ml_home_price     = g.get("ml_home_price")
         ml_away_price     = g.get("ml_away_price")
 
-        # Which team's win% to show in donut — the model's winner pick
+        # Win probability for the donut — show the model's favored team
         donut_team = winner_pick or home
         donut_pct  = home_wp if donut_team == home else away_wp
-        # Donut ring: conic-gradient fills clockwise to donut_pct %
-        donut_color = "#F59E0B"  # gold ring (matches screenshot)
+        donut_color = "#F59E0B"
         donut_bg    = f"conic-gradient({donut_color} {donut_pct}%, rgba(30,41,59,0.5) 0%)"
+        conf_label_color = {"HIGH": "#22c55e", "MEDIUM": "#F59E0B", "LOW": "#EF4444"}.get(conf_raw, "#94a3b8")
 
-        # ── TOP: Team logos row ───────────────────────────────────────────
-        def _logo(src, size="72px"):
+        # ── HEADER: Logos + VS + donut ────────────────────────────────────
+        def _logo(src, size="68px"):
             if src:
                 return html.Img(src=src, style={
                     "width": size, "height": size, "objectFit": "contain",
@@ -1973,141 +1991,139 @@ def update_game_panel(selected_idx, games_data):
                 "fontSize": "1.5rem", "fontWeight": "800", "color": "#94a3b8",
             })
 
+        home_rec = f"{g.get('home_wins','')}-{g.get('home_losses','')}" if g.get("home_wins", "") != "" else ""
+        away_rec = f"{g.get('away_wins','')}-{g.get('away_losses','')}" if g.get("away_wins", "") != "" else ""
+
         logos_row = html.Div([
+            # Away team
             html.Div([
                 _logo(g.get("away_logo")),
                 html.Div(away, style={"fontSize": "1rem", "fontWeight": "800",
-                                       "color": "#f0f4ff", "marginTop": "6px",
-                                       "textAlign": "center"}),
+                                       "color": "#f0f4ff", "marginTop": "6px", "textAlign": "center"}),
+                html.Div(away_rec, style={"fontSize": "0.62rem", "color": "#475569",
+                                           "textAlign": "center"}) if away_rec else html.Div(),
             ], style={"display": "flex", "flexDirection": "column", "alignItems": "center", "flex": "1"}),
 
+            # Center: VS + time + donut
             html.Div([
                 html.Div("VS", style={
-                    "fontSize": "0.85rem", "fontWeight": "700", "color": "#475569",
-                    "letterSpacing": "0.1em",
+                    "fontSize": "0.8rem", "fontWeight": "700", "color": "#475569", "letterSpacing": "0.1em",
                 }),
                 html.Div(g.get("game_time", ""), style={
-                    "fontSize": "0.68rem", "color": "#64748b", "marginTop": "4px",
-                    "whiteSpace": "nowrap",
+                    "fontSize": "0.65rem", "color": "#64748b", "marginTop": "2px", "whiteSpace": "nowrap",
+                }),
+                # Donut — win probability of model's pick
+                html.Div([
+                    html.Div([
+                        html.Div(donut_team, style={
+                            "fontSize": "0.58rem", "fontWeight": "700", "color": "#94a3b8", "lineHeight": "1",
+                        }),
+                        html.Div(f"{donut_pct:.0f}%", style={
+                            "fontSize": "1rem", "fontWeight": "900", "color": "#f0f4ff", "lineHeight": "1.1",
+                        }),
+                    ], style={
+                        "width": "56px", "height": "56px", "borderRadius": "50%",
+                        "background": "#0D1526", "display": "flex", "flexDirection": "column",
+                        "alignItems": "center", "justifyContent": "center",
+                    }),
+                ], style={
+                    "width": "74px", "height": "74px", "borderRadius": "50%",
+                    "background": donut_bg, "display": "flex", "alignItems": "center",
+                    "justifyContent": "center", "padding": "9px", "marginTop": "8px",
                 }),
             ], style={"display": "flex", "flexDirection": "column", "alignItems": "center",
-                      "padding": "0 12px", "paddingTop": "14px"}),
+                      "padding": "0 10px", "paddingTop": "6px"}),
 
+            # Home team
             html.Div([
                 _logo(g.get("home_logo")),
                 html.Div(home, style={"fontSize": "1rem", "fontWeight": "800",
-                                       "color": "#f0f4ff", "marginTop": "6px",
-                                       "textAlign": "center"}),
+                                       "color": "#f0f4ff", "marginTop": "6px", "textAlign": "center"}),
+                html.Div(home_rec, style={"fontSize": "0.62rem", "color": "#475569",
+                                           "textAlign": "center"}) if home_rec else html.Div(),
             ], style={"display": "flex", "flexDirection": "column", "alignItems": "center", "flex": "1"}),
         ], style={
             "display": "flex", "alignItems": "flex-start", "justifyContent": "center",
-            "paddingBottom": "18px",
+            "paddingBottom": "16px",
         })
 
-        # ── MIDDLE: Spread | Donut | Spread+OU ───────────────────────────
-        # Left — away spread
-        left_col = html.Div([
-            html.Div("Spread:", style={
-                "fontSize": "0.68rem", "color": "#64748b", "marginBottom": "3px",
-            }),
-            html.Div([
-                html.Span(away, style={"color": "#94a3b8", "fontSize": "0.75rem",
-                                        "fontWeight": "600", "marginRight": "4px"}),
-                html.Span(_fmt_spread(spread_away_line), style={
-                    "fontSize": "1rem", "fontWeight": "800",
-                    "color": "#2DD4BF" if spread_team == away else "#f1f5f9",
+        # ── PICKS ROW: ML | Spread | Total ────────────────────────────────
+        def _pick_card(label, direction_or_team, main_line, odds_str, is_model_pick, accent):
+            """Render one pick card (ML / Spread / Total)."""
+            bg   = f"rgba({accent[0]},{accent[1]},{accent[2]}, 0.10)" if is_model_pick else "rgba(255,255,255,0.03)"
+            bord = f"1px solid rgba({accent[0]},{accent[1]},{accent[2]}, 0.35)" if is_model_pick else "1px solid rgba(255,255,255,0.07)"
+            text = f"rgb({accent[0]},{accent[1]},{accent[2]})"    if is_model_pick else "#94a3b8"
+            return html.Div([
+                # "MODEL PICK" badge on top when active
+                html.Div("MODEL PICK", style={
+                    "fontSize": "0.48rem", "fontWeight": "800", "letterSpacing": "0.12em",
+                    "color": text, "marginBottom": "4px",
+                }) if is_model_pick else html.Div(style={"height": "14px"}),
+                # Category label
+                html.Div(label, style={
+                    "fontSize": "0.52rem", "fontWeight": "700", "letterSpacing": "0.1em",
+                    "color": "#64748b", "marginBottom": "5px",
                 }),
-            ]),
-            html.Div(_fmt_odds(ml_away_price), style={
-                "fontSize": "0.7rem", "color": "#64748b",
-                "fontFamily": "monospace", "marginTop": "4px",
-            }),
-        ], style={"flex": "1", "textAlign": "center"})
-
-        # Center — donut win probability
-        center_col = html.Div([
-            # Outer ring (conic-gradient)
-            html.Div([
-                # Inner circle with abbr + %
-                html.Div([
-                    html.Div(donut_team, style={
-                        "fontSize": "0.65rem", "fontWeight": "700",
-                        "color": "#94a3b8", "lineHeight": "1",
-                    }),
-                    html.Div(f"{donut_pct:.0f}%", style={
-                        "fontSize": "1.15rem", "fontWeight": "900",
-                        "color": "#f0f4ff", "lineHeight": "1.1",
-                    }),
-                ], style={
-                    "width": "66px", "height": "66px", "borderRadius": "50%",
-                    "background": "#0D1526",
-                    "display": "flex", "flexDirection": "column",
-                    "alignItems": "center", "justifyContent": "center",
+                # Primary value — team abbr or OVER/UNDER
+                html.Div(direction_or_team, style={
+                    "fontSize": "1rem", "fontWeight": "900", "lineHeight": "1",
+                    "color": text if is_model_pick else "#f1f5f9",
+                }),
+                # Secondary value — spread/total line
+                html.Div(main_line, style={
+                    "fontSize": "0.82rem", "fontWeight": "700", "fontFamily": "monospace",
+                    "color": text if is_model_pick else "#64748b", "marginTop": "2px",
+                }),
+                # Odds
+                html.Div(odds_str, style={
+                    "fontSize": "0.62rem", "color": "#475569", "fontFamily": "monospace", "marginTop": "3px",
                 }),
             ], style={
-                "width": "88px", "height": "88px", "borderRadius": "50%",
-                "background": donut_bg,
-                "display": "flex", "alignItems": "center", "justifyContent": "center",
-                "padding": "11px",
-            }),
-        ], style={"display": "flex", "justifyContent": "center", "alignItems": "center",
-                  "padding": "0 10px"})
+                "flex": "1", "background": bg, "border": bord, "borderRadius": "10px",
+                "padding": "10px 6px", "textAlign": "center", "minWidth": "0",
+            })
 
-        # Right — home spread + O/U
-        right_col = html.Div([
-            html.Div("Spread:", style={
-                "fontSize": "0.68rem", "color": "#64748b", "marginBottom": "3px",
-            }),
-            html.Div([
-                html.Span(home, style={"color": "#94a3b8", "fontSize": "0.75rem",
-                                        "fontWeight": "600", "marginRight": "4px"}),
-                html.Span(_fmt_spread(spread_home_line), style={
-                    "fontSize": "1rem", "fontWeight": "800",
-                    "color": "#2DD4BF" if spread_team == home else "#f1f5f9",
-                }),
-            ]),
-            html.Div([
-                html.Span("O/U: ", style={"color": "#64748b", "fontSize": "0.68rem"}),
-                html.Span(f"{float(total_line):.1f}" if total_line else "—",
-                          style={"color": "#f1f5f9", "fontSize": "0.78rem",
-                                 "fontWeight": "700", "fontFamily": "monospace"}),
-            ], style={"marginTop": "4px"}),
-        ], style={"flex": "1", "textAlign": "center"})
+        # ML card — winner pick is the ML favorite
+        ml_team  = winner_pick or ("—")
+        ml_odds  = _fmt_odds(ml_home_price if ml_team == home else ml_away_price)
+        ml_card  = _pick_card(
+            "MONEYLINE", ml_team, ml_odds, "",
+            is_model_pick=bool(winner_pick), accent=(34, 197, 94),   # green
+        )
 
-        middle_row = html.Div([left_col, center_col, right_col], style={
-            "display": "flex", "alignItems": "center",
-            "padding": "12px 4px",
+        # Spread card
+        sp_team  = spread_team or "—"
+        sp_line  = _fmt_spread(spread_away_line if sp_team == away else spread_home_line) if sp_team != "—" else "—"
+        sp_price = _fmt_odds(g.get("spread_away_price") if sp_team == away else g.get("spread_home_price"))
+        sp_card  = _pick_card(
+            "SPREAD", sp_team, sp_line, sp_price,
+            is_model_pick=bool(spread_team), accent=(45, 212, 191),  # cyan
+        )
+
+        # Total card
+        tot_dir  = total_pick or "—"
+        tot_val  = f"{float(total_line):.1f}" if total_line else "—"
+        tot_price= _fmt_odds(total_over_price if total_pick == "OVER" else total_under_price)
+        tot_card = _pick_card(
+            "TOTAL", tot_dir, tot_val, tot_price,
+            is_model_pick=bool(total_pick), accent=(167, 139, 250),  # purple
+        )
+
+        picks_row = html.Div([ml_card, sp_card, tot_card], style={
+            "display": "flex", "gap": "8px",
+            "padding": "14px 0",
             "borderTop": "1px solid rgba(255,255,255,0.06)",
             "borderBottom": "1px solid rgba(255,255,255,0.06)",
             "marginBottom": "12px",
         })
 
-        # ── BOTTOM: AI Prediction & Confidence box ────────────────────────
-        # Build the pick text: "TEAM +SPREAD | OVER/UNDER TOTAL"
-        pick_parts = []
-        if spread_team and spread_team == away and spread_away_line is not None:
-            pick_parts.append(f"{away} {_fmt_spread(spread_away_line)}")
-        elif spread_team and spread_team == home and spread_home_line is not None:
-            pick_parts.append(f"{home} {_fmt_spread(spread_home_line)}")
-        elif winner_pick:
-            ml_line = _fmt_odds(ml_away_price if winner_pick == away else ml_home_price)
-            pick_parts.append(f"{winner_pick} {ml_line}" if ml_line != "—" else winner_pick)
-
-        if total_pick and total_line:
-            pick_parts.append(f"{total_pick} {float(total_line):.1f}")
-        elif pred_home is not None and pred_away is not None:
-            pick_parts.append(f"Model: {away} {pred_away:.0f}–{pred_home:.0f} {home}")
-
-        pick_text = " | ".join(pick_parts) if pick_parts else "No pick"
-
-        # Confidence bar — gradient red→yellow→green, position marker at conf_pct %
+        # ── CONFIDENCE BAR (unchanged) ─────────────────────────────────────
         conf_bar = html.Div([
             html.Div(style={
                 "height": "6px", "borderRadius": "3px",
                 "background": "linear-gradient(to right, #EF4444 0%, #F59E0B 40%, #22c55e 100%)",
                 "position": "relative",
             }, children=[
-                # Marker dot
                 html.Div(style={
                     "position": "absolute",
                     "left": f"calc({conf_pct}% - 5px)",
@@ -2120,33 +2136,34 @@ def update_game_panel(selected_idx, games_data):
             ]),
         ])
 
-        conf_label_color = {"HIGH": "#22c55e", "MEDIUM": "#F59E0B", "LOW": "#EF4444"}.get(conf_raw, "#94a3b8")
+        # Projected score line (if model has predictions)
+        score_line = ""
+        if pred_home is not None and pred_away is not None:
+            score_line = f"{away} {pred_away:.0f}  —  {pred_home:.0f} {home}"
 
-        pred_box = html.Div([
-            html.Div("AI PREDICTION & CONFIDENCE", style={
-                "fontSize": "0.6rem", "fontWeight": "700", "letterSpacing": "0.1em",
-                "color": "#64748b", "textAlign": "center", "marginBottom": "8px",
+        conf_box = html.Div([
+            html.Div("MODEL CONFIDENCE", style={
+                "fontSize": "0.55rem", "fontWeight": "700", "letterSpacing": "0.1em",
+                "color": "#64748b", "textAlign": "center", "marginBottom": "6px",
             }),
-            html.Div(pick_text, style={
-                "fontSize": "1.05rem", "fontWeight": "800", "color": "#f0f4ff",
-                "textAlign": "center", "marginBottom": "10px",
-                "letterSpacing": "-0.01em", "lineHeight": "1.3",
-            }),
+            html.Div(score_line, style={
+                "fontSize": "0.72rem", "fontWeight": "700", "color": "#94a3b8",
+                "textAlign": "center", "marginBottom": "8px", "fontFamily": "monospace",
+            }) if score_line else html.Div(),
             conf_bar,
             html.Div([
-                html.Span("Confidence Level: ", style={"color": "#64748b", "fontSize": "0.72rem"}),
-                html.Span(conf_raw, style={"color": conf_label_color, "fontSize": "0.72rem",
-                                            "fontWeight": "700"}),
+                html.Span("Confidence: ", style={"color": "#64748b", "fontSize": "0.72rem"}),
+                html.Span(conf_raw, style={"color": conf_label_color, "fontSize": "0.72rem", "fontWeight": "700"}),
                 html.Span(f" ({conf_pct}%)", style={"color": "#64748b", "fontSize": "0.7rem"}),
             ], style={"textAlign": "center", "marginTop": "6px"}),
         ], style={
             "background": "rgba(5,12,28,0.7)",
-            "border": "1px solid rgba(45,212,191,0.15)",
+            "border": "1px solid rgba(45,212,191,0.1)",
             "borderRadius": "10px",
             "padding": "12px 14px",
         })
 
-        return html.Div([logos_row, middle_row, pred_box], style={
+        return html.Div([logos_row, picks_row, conf_box], style={
             "background": "linear-gradient(160deg, #0D1526 0%, #111827 100%)",
             "border": "1px solid rgba(255,255,255,0.07)",
             "borderRadius": "18px",

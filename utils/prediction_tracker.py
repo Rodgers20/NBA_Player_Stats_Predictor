@@ -409,11 +409,17 @@ def _load_game_logs_for_date(date: str):
     """Load player game logs from Parquet, filtered to the given date."""
     try:
         import pandas as pd
+
+        # Priority order: player_game_logs.parquet → engineered_data.parquet → player_game_logs.csv
+        # engineered_data.parquet is the live-updated file the app maintains
         parquet = DATA_DIR / "player_game_logs.parquet"
+        engineered = DATA_DIR / "engineered_data.parquet"
         csv_path = DATA_DIR / "player_game_logs.csv"
 
         if parquet.exists():
             df = pd.read_parquet(parquet)
+        elif engineered.exists():
+            df = pd.read_parquet(engineered)
         elif csv_path.exists():
             df = pd.read_csv(csv_path)
         else:

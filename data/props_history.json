@@ -1,7 +1,7 @@
 {
   "2026-04-06": {
     "generated_at": "2026-04-06T23:35:59.500737+00:00",
-    "graded_at": null,
+    "graded_at": "2026-04-07T14:46:16.566494+00:00",
     "props": [
       {
         "avg": 21.0,
@@ -15,8 +15,8 @@
         "ev": 0.9001113239930492,
         "line": 9.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 21.0,
+        "hit": true
       },
       {
         "avg": 9.0,
@@ -30,8 +30,8 @@
         "ev": 0.8872666362461648,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 13.0,
+        "hit": true
       },
       {
         "avg": 7.7,
@@ -45,8 +45,8 @@
         "ev": 0.8686637968322121,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 12.7,
@@ -60,8 +60,8 @@
         "ev": 0.8666124062513872,
         "line": 6.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 13.0,
+        "hit": true
       },
       {
         "avg": 24.4,
@@ -75,8 +75,8 @@
         "ev": 0.8515016426602736,
         "line": 16.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 36.0,
+        "hit": true
       },
       {
         "avg": 27.7,
@@ -90,8 +90,8 @@
         "ev": 0.8405903125666717,
         "line": 15.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "avg": 2.5,
@@ -105,8 +105,8 @@
         "ev": 0.832771254407712,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 8.1,
@@ -120,8 +120,8 @@
         "ev": 0.8291841890876298,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "avg": 9.8,
@@ -135,8 +135,8 @@
         "ev": 0.8204473495569548,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "avg": 4.4,
@@ -165,8 +165,8 @@
         "ev": 0.7907624437087608,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "avg": 7.7,
@@ -180,8 +180,8 @@
         "ev": 0.7891338546546229,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "avg": 3.1,
@@ -195,8 +195,8 @@
         "ev": 0.7770775092182712,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 17.7,
@@ -210,8 +210,8 @@
         "ev": 0.7759525707260687,
         "line": 7.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 22.0,
+        "hit": true
       },
       {
         "avg": 1.8,
@@ -225,8 +225,8 @@
         "ev": 0.7397235839883284,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 7.2,
@@ -240,8 +240,8 @@
         "ev": 0.7374428872907396,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "avg": 2.6,
@@ -255,8 +255,8 @@
         "ev": 0.7349939690086168,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 1.6,
@@ -270,8 +270,8 @@
         "ev": 0.7307093379140926,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.7,
@@ -285,8 +285,8 @@
         "ev": 0.7227345000000001,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "avg": 1.7,
@@ -300,8 +300,8 @@
         "ev": 0.7137985930855099,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 5.3,
@@ -315,8 +315,8 @@
         "ev": 0.7026165053137098,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 10.4,
@@ -330,8 +330,8 @@
         "ev": 0.7006594381082042,
         "line": 6.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "avg": 1.5,
@@ -345,8 +345,8 @@
         "ev": 0.681825,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 3.4,
@@ -360,8 +360,8 @@
         "ev": 0.681825,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 1.1,
@@ -375,8 +375,8 @@
         "ev": 0.681825,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 5.0,
@@ -390,8 +390,8 @@
         "ev": 0.681825,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "avg": 3.9,
@@ -405,8 +405,8 @@
         "ev": 0.672100509905887,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 8.1,
@@ -420,8 +420,8 @@
         "ev": 0.6706177627716835,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 13.0,
+        "hit": true
       },
       {
         "avg": 23.2,
@@ -435,8 +435,8 @@
         "ev": 0.6632531416930071,
         "line": 10.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 18.0,
+        "hit": true
       },
       {
         "avg": 4.3,
@@ -450,8 +450,8 @@
         "ev": 0.662266935509243,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 17.3,
@@ -465,8 +465,8 @@
         "ev": 0.659119010138616,
         "line": 8.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 19.0,
+        "hit": true
       },
       {
         "avg": 4.2,
@@ -480,8 +480,8 @@
         "ev": 0.652974145631138,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 14.9,
@@ -495,8 +495,8 @@
         "ev": 0.6510764501927885,
         "line": 8.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 13.0,
+        "hit": true
       },
       {
         "avg": 24.0,
@@ -510,8 +510,8 @@
         "ev": 0.6449087362441435,
         "line": 9.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 35.0,
+        "hit": true
       },
       {
         "avg": 15.7,
@@ -525,8 +525,8 @@
         "ev": 0.6427537560645437,
         "line": 8.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": false
       },
       {
         "avg": 14.6,
@@ -540,8 +540,8 @@
         "ev": 0.6414113999914793,
         "line": 7.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "avg": 23.1,
@@ -555,8 +555,8 @@
         "ev": 0.6353569352201276,
         "line": 19.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 15.0,
+        "hit": false
       },
       {
         "avg": 3.7,
@@ -570,8 +570,8 @@
         "ev": 0.6351419529432527,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "avg": 8.0,
@@ -585,8 +585,8 @@
         "ev": 0.6303038163201795,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "avg": 6.0,
@@ -600,8 +600,8 @@
         "ev": 0.6284616466733122,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "avg": 8.1,
@@ -615,8 +615,8 @@
         "ev": 0.6262544541320808,
         "line": 10.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 6.8,
@@ -630,8 +630,8 @@
         "ev": 0.6256434891235517,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "avg": 14.0,
@@ -645,8 +645,8 @@
         "ev": 0.6168756577855801,
         "line": 5.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "avg": 2.9,
@@ -660,8 +660,8 @@
         "ev": 0.6131916405389322,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 5.1,
@@ -675,8 +675,8 @@
         "ev": 0.6034450578716315,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 6.8,
@@ -690,8 +690,8 @@
         "ev": 0.5978481578228944,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "avg": 2.2,
@@ -705,8 +705,8 @@
         "ev": 0.5974192058552212,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 6.6,
@@ -720,8 +720,8 @@
         "ev": 0.592929243805311,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "avg": 4.5,
@@ -735,8 +735,8 @@
         "ev": 0.5914510415365437,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 21.3,
@@ -750,8 +750,8 @@
         "ev": 0.5881552326305138,
         "line": 9.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 31.0,
+        "hit": true
       },
       {
         "avg": 1.5,
@@ -780,8 +780,8 @@
         "ev": 0.570969,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.1,
@@ -825,8 +825,8 @@
         "ev": 0.5645051999999999,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "avg": 2.0,
@@ -840,8 +840,8 @@
         "ev": 0.5555922220008064,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 3.8,
@@ -855,8 +855,8 @@
         "ev": 0.554789480829406,
         "line": 5.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": false
       },
       {
         "avg": 2.7,
@@ -870,8 +870,8 @@
         "ev": 0.5432158855602774,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.9,
@@ -885,8 +885,8 @@
         "ev": 0.53865,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 4.8,
@@ -900,8 +900,8 @@
         "ev": 0.53865,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 16.4,
@@ -915,8 +915,8 @@
         "ev": 0.53865,
         "line": 6.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "avg": 4.2,
@@ -930,8 +930,8 @@
         "ev": 0.53865,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 1.7,
@@ -945,8 +945,8 @@
         "ev": 0.53865,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 2.3,
@@ -960,8 +960,8 @@
         "ev": 0.53865,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.0,
@@ -975,8 +975,8 @@
         "ev": 0.53865,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.8,
@@ -990,8 +990,8 @@
         "ev": 0.53865,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 2.7,
@@ -1005,8 +1005,8 @@
         "ev": 0.53865,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "avg": 2.4,
@@ -1020,8 +1020,8 @@
         "ev": 0.53865,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 1.9,
@@ -1035,8 +1035,8 @@
         "ev": 0.53865,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 1.4,
@@ -1050,8 +1050,8 @@
         "ev": 0.53865,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 1.2,
@@ -1065,8 +1065,8 @@
         "ev": 0.53865,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 1.3,
@@ -1080,8 +1080,8 @@
         "ev": 0.53865,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 23.5,
@@ -1095,8 +1095,8 @@
         "ev": 0.5273,
         "line": 18.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 26.0,
+        "hit": true
       },
       {
         "avg": 13.8,
@@ -1110,8 +1110,8 @@
         "ev": 0.5084108603666221,
         "line": 9.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "avg": 19.9,
@@ -1125,8 +1125,8 @@
         "ev": 0.506632896584081,
         "line": 16.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 25.0,
+        "hit": true
       },
       {
         "avg": 3.5,
@@ -1140,8 +1140,8 @@
         "ev": 0.5027285447385164,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 5.6,
@@ -1155,8 +1155,8 @@
         "ev": 0.49755207645320043,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "avg": 6.2,
@@ -1170,8 +1170,8 @@
         "ev": 0.4890865085123876,
         "line": 8.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 17.9,
@@ -1185,8 +1185,8 @@
         "ev": 0.4847070127706088,
         "line": 10.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "avg": 11.4,
@@ -1200,8 +1200,8 @@
         "ev": 0.47196258161389454,
         "line": 8.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "avg": 7.4,
@@ -1215,8 +1215,8 @@
         "ev": 0.4693138314947664,
         "line": 8.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "avg": 12.6,
@@ -1230,8 +1230,8 @@
         "ev": 0.46519588952470703,
         "line": 8.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 15.0,
+        "hit": true
       },
       {
         "avg": 8.3,
@@ -1245,8 +1245,8 @@
         "ev": 0.4634522447902565,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "avg": 2.4,
@@ -1260,8 +1260,8 @@
         "ev": 0.46322095069557184,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "avg": 5.3,
@@ -1275,8 +1275,8 @@
         "ev": 0.45843694636097165,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "avg": 18.2,
@@ -1290,8 +1290,8 @@
         "ev": 0.45697525954178175,
         "line": 13.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 21.0,
+        "hit": true
       },
       {
         "avg": 4.9,
@@ -1305,8 +1305,8 @@
         "ev": 0.45634077730461986,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 4.3,
@@ -1320,8 +1320,8 @@
         "ev": 0.456020157697726,
         "line": 5.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "avg": 9.7,
@@ -1335,8 +1335,8 @@
         "ev": 0.4521532285892934,
         "line": 12.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 5.9,
@@ -1350,8 +1350,8 @@
         "ev": 0.4488135931517681,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": true
       },
       {
         "avg": 2.7,
@@ -1365,8 +1365,8 @@
         "ev": 0.44038922286642596,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 4.3,
@@ -1380,8 +1380,8 @@
         "ev": 0.4391913645844022,
         "line": 5.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 3.2,
@@ -1395,8 +1395,8 @@
         "ev": 0.4374091911158622,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 4.9,
@@ -1410,8 +1410,8 @@
         "ev": 0.43702573222743013,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 4.0,
@@ -1425,8 +1425,8 @@
         "ev": 0.43684295329240364,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "avg": 3.9,
@@ -1440,8 +1440,8 @@
         "ev": 0.43547267467155276,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 6.6,
@@ -1455,8 +1455,8 @@
         "ev": 0.43532663639451474,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 14.0,
+        "hit": true
       },
       {
         "avg": 4.1,
@@ -1470,8 +1470,8 @@
         "ev": 0.43432705510600145,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 13.7,
@@ -1485,8 +1485,8 @@
         "ev": 0.4327990557447436,
         "line": 6.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "avg": 5.1,
@@ -1500,8 +1500,8 @@
         "ev": 0.42920472246468555,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "avg": 4.2,
@@ -1515,8 +1515,8 @@
         "ev": 0.4275465611734658,
         "line": 5.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 12.4,
@@ -1530,8 +1530,8 @@
         "ev": 0.42426344955041806,
         "line": 5.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "avg": 10.8,
@@ -1545,8 +1545,8 @@
         "ev": 0.4232582417771047,
         "line": 7.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "avg": 9.4,
@@ -1560,8 +1560,8 @@
         "ev": 0.4217660175769044,
         "line": 5.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "avg": 14.4,
@@ -1575,8 +1575,8 @@
         "ev": 0.42127539906985373,
         "line": 7.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 23.0,
+        "hit": true
       },
       {
         "avg": 13.5,
@@ -1590,8 +1590,8 @@
         "ev": 0.4211290280245179,
         "line": 7.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "avg": 4.5,
@@ -1605,8 +1605,8 @@
         "ev": 0.4207692675940957,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 1.3,
@@ -1620,8 +1620,8 @@
         "ev": 0.41920350000000006,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": false
       },
       {
         "avg": 3.3,
@@ -1635,8 +1635,8 @@
         "ev": 0.41920350000000006,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "avg": 11.9,
@@ -1665,8 +1665,8 @@
         "ev": 0.41658638363295847,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 1.5,
@@ -1680,8 +1680,8 @@
         "ev": 0.41445780000000004,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 21.9,
@@ -1695,8 +1695,8 @@
         "ev": 0.41188822045703555,
         "line": 12.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 34.0,
+        "hit": true
       },
       {
         "avg": 5.5,
@@ -1710,8 +1710,8 @@
         "ev": 0.40616112698692186,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 3.3,
@@ -1725,8 +1725,8 @@
         "ev": 0.40395908033012995,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 2.2,
@@ -1740,8 +1740,8 @@
         "ev": 0.4012425339794048,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 3.2,
@@ -1755,8 +1755,8 @@
         "ev": 0.39954342604335774,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.6,
@@ -1770,8 +1770,8 @@
         "ev": 0.39954342604335774,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "avg": 1.1,
@@ -1785,8 +1785,8 @@
         "ev": 0.395475,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.5,
@@ -1800,8 +1800,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.2,
@@ -1815,8 +1815,8 @@
         "ev": 0.395475,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.4,
@@ -1830,8 +1830,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "avg": 1.4,
@@ -1845,8 +1845,8 @@
         "ev": 0.395475,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 4.1,
@@ -1860,8 +1860,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 5.8,
@@ -1875,8 +1875,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "avg": 1.7,
@@ -1890,8 +1890,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 1.4,
@@ -1905,8 +1905,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 5.2,
@@ -1920,8 +1920,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "avg": 10.0,
@@ -1935,8 +1935,8 @@
         "ev": 0.395475,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "avg": 2.8,
@@ -1950,8 +1950,8 @@
         "ev": 0.395475,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "avg": 1.3,
@@ -1965,8 +1965,8 @@
         "ev": 0.395475,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 3.8,
@@ -1980,8 +1980,8 @@
         "ev": 0.395475,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 1.4,
@@ -1995,8 +1995,8 @@
         "ev": 0.395475,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 1.8,
@@ -2010,8 +2010,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 2.9,
@@ -2025,8 +2025,8 @@
         "ev": 0.395475,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.5,
@@ -2040,8 +2040,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 3.2,
@@ -2055,8 +2055,8 @@
         "ev": 0.395475,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "avg": 1.3,
@@ -2070,8 +2070,8 @@
         "ev": 0.395475,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 1.5,
@@ -2085,8 +2085,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.5,
@@ -2100,8 +2100,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 2.0,
@@ -2115,8 +2115,8 @@
         "ev": 0.395475,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 1.5,
@@ -2130,8 +2130,8 @@
         "ev": 0.395475,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 1.7,
@@ -2145,8 +2145,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "avg": 1.9,
@@ -2160,8 +2160,8 @@
         "ev": 0.395475,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 10.4,
@@ -2175,8 +2175,8 @@
         "ev": 0.395475,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 1.6,
@@ -2190,8 +2190,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 3.9,
@@ -2205,8 +2205,8 @@
         "ev": 0.395475,
         "line": 5.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 6.4,
@@ -2220,8 +2220,8 @@
         "ev": 0.395475,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "avg": 1.5,
@@ -2235,8 +2235,8 @@
         "ev": 0.395475,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 2.8,
@@ -2250,8 +2250,8 @@
         "ev": 0.395475,
         "line": 1.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 1.2,
@@ -2265,8 +2265,8 @@
         "ev": 0.395475,
         "line": 0.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 2.4,
@@ -2280,8 +2280,8 @@
         "ev": 0.395475,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 3.4,
@@ -2295,8 +2295,8 @@
         "ev": 0.395475,
         "line": 4.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": false
       },
       {
         "avg": 1.8,
@@ -2310,8 +2310,8 @@
         "ev": 0.395475,
         "line": 2.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 6.6,
@@ -2325,8 +2325,8 @@
         "ev": 0.395475,
         "line": 3.5,
         "is_lock": true,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 5.5,
@@ -2355,8 +2355,8 @@
         "ev": 0.5402325586471179,
         "line": 1.5,
         "is_lock": false,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 3.7,
@@ -2370,8 +2370,8 @@
         "ev": 0.47401199999999993,
         "line": 1.5,
         "is_lock": false,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 3.5,
@@ -2385,8 +2385,8 @@
         "ev": 0.41873826572356015,
         "line": 2.5,
         "is_lock": false,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 10.5,
@@ -2400,8 +2400,8 @@
         "ev": 0.41568947215673946,
         "line": 7.5,
         "is_lock": false,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "avg": 21.2,
@@ -2415,8 +2415,8 @@
         "ev": 0.41021473894101923,
         "line": 15.5,
         "is_lock": false,
-        "actual": null,
-        "hit": null
+        "actual": 24.0,
+        "hit": true
       },
       {
         "avg": 4.4,
@@ -2445,8 +2445,8 @@
         "ev": 0.3549674677779496,
         "line": 4.5,
         "is_lock": false,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": true
       },
       {
         "avg": 2.2,
@@ -2460,8 +2460,8 @@
         "ev": 0.348018,
         "line": 0.5,
         "is_lock": false,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 3.9,
@@ -2475,8 +2475,8 @@
         "ev": 0.348018,
         "line": 1.5,
         "is_lock": false,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "avg": 15.3,
@@ -2490,8 +2490,8 @@
         "ev": 0.348018,
         "line": 6.5,
         "is_lock": false,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "avg": 2.0,
@@ -2520,8 +2520,8 @@
         "ev": 0.32149465949303496,
         "line": 14.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 18.0,
+        "hit": false
       },
       {
         "avg": 7.1,
@@ -2535,8 +2535,8 @@
         "ev": 0.3207870392554773,
         "line": 5.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "avg": 24.6,
@@ -2550,8 +2550,8 @@
         "ev": 0.31885398455004427,
         "line": 22.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 30.0,
+        "hit": true
       },
       {
         "avg": 15.0,
@@ -2565,8 +2565,8 @@
         "ev": 0.3111532300638204,
         "line": 13.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 13.0,
+        "hit": false
       },
       {
         "avg": 12.7,
@@ -2580,8 +2580,8 @@
         "ev": 0.3101566559376684,
         "line": 14.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "avg": 13.6,
@@ -2595,8 +2595,8 @@
         "ev": 0.3088652249090517,
         "line": 8.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 14.0,
+        "hit": true
       },
       {
         "avg": 14.9,
@@ -2610,8 +2610,8 @@
         "ev": 0.30524428812051363,
         "line": 18.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "avg": 3.3,
@@ -2640,8 +2640,8 @@
         "ev": 0.30174830932287117,
         "line": 8.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "avg": 7.7,
@@ -2655,8 +2655,8 @@
         "ev": 0.29957713822798077,
         "line": 8.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 19.0,
+        "hit": false
       },
       {
         "avg": 4.1,
@@ -2670,8 +2670,8 @@
         "ev": 0.2885512513025808,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 3.7,
@@ -2685,8 +2685,8 @@
         "ev": 0.2838703961054437,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 3.7,
@@ -2700,8 +2700,8 @@
         "ev": 0.2838703961054436,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "avg": 11.8,
@@ -2715,8 +2715,8 @@
         "ev": 0.2838461150901332,
         "line": 7.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "avg": 1.9,
@@ -2730,8 +2730,8 @@
         "ev": 0.28375215683157834,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 4.8,
@@ -2745,8 +2745,8 @@
         "ev": 0.27414915074596563,
         "line": 3.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "avg": 17.0,
@@ -2760,8 +2760,8 @@
         "ev": 0.27205850105386725,
         "line": 8.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 30.0,
+        "hit": true
       },
       {
         "avg": 1.0,
@@ -2775,8 +2775,8 @@
         "ev": 0.267438,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "avg": 1.7,
@@ -2790,8 +2790,8 @@
         "ev": 0.267438,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 1.3,
@@ -2805,8 +2805,8 @@
         "ev": 0.267438,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.1,
@@ -2820,8 +2820,8 @@
         "ev": 0.267438,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "avg": 1.2,
@@ -2835,8 +2835,8 @@
         "ev": 0.267438,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 3.6,
@@ -2850,8 +2850,8 @@
         "ev": 0.2671548386743523,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "avg": 8.8,
@@ -2865,8 +2865,8 @@
         "ev": 0.265553569489751,
         "line": 5.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "avg": 1.4,
@@ -2880,8 +2880,8 @@
         "ev": 0.2644104,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 11.9,
@@ -2895,8 +2895,8 @@
         "ev": 0.2635652311391507,
         "line": 7.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "avg": 4.1,
@@ -2910,8 +2910,8 @@
         "ev": 0.26201697972404603,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 4.3,
@@ -2925,8 +2925,8 @@
         "ev": 0.2595757323563666,
         "line": 5.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "avg": 9.3,
@@ -2940,8 +2940,8 @@
         "ev": 0.25838515594043826,
         "line": 7.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "avg": 13.4,
@@ -2955,8 +2955,8 @@
         "ev": 0.2572749058815885,
         "line": 7.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "avg": 2.4,
@@ -2970,8 +2970,8 @@
         "ev": 0.2565183966280507,
         "line": 3.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 4.8,
@@ -2985,8 +2985,8 @@
         "ev": 0.2565183966280507,
         "line": 6.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "avg": 3.3,
@@ -3000,8 +3000,8 @@
         "ev": 0.25427094610465323,
         "line": 4.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 2.0,
@@ -3015,8 +3015,8 @@
         "ev": 0.25229999999999997,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.2,
@@ -3030,8 +3030,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.9,
@@ -3045,8 +3045,8 @@
         "ev": 0.25229999999999997,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "avg": 1.4,
@@ -3060,8 +3060,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 3.0,
@@ -3075,8 +3075,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 2.2,
@@ -3090,8 +3090,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 7.0,
@@ -3105,8 +3105,8 @@
         "ev": 0.25229999999999997,
         "line": 3.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "avg": 2.0,
@@ -3120,8 +3120,8 @@
         "ev": 0.25229999999999997,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 2.0,
@@ -3135,8 +3135,8 @@
         "ev": 0.25229999999999997,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "avg": 5.9,
@@ -3150,8 +3150,8 @@
         "ev": 0.25229999999999997,
         "line": 6.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": false
       },
       {
         "avg": 1.3,
@@ -3165,8 +3165,8 @@
         "ev": 0.25229999999999997,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 1.4,
@@ -3180,8 +3180,8 @@
         "ev": 0.25229999999999997,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 5.4,
@@ -3195,8 +3195,8 @@
         "ev": 0.25229999999999997,
         "line": 3.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "avg": 2.8,
@@ -3210,8 +3210,8 @@
         "ev": 0.25229999999999997,
         "line": 3.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "avg": 2.4,
@@ -3225,8 +3225,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 1.4,
@@ -3240,8 +3240,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 1.8,
@@ -3255,8 +3255,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 2.4,
@@ -3270,8 +3270,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "avg": 1.3,
@@ -3285,8 +3285,8 @@
         "ev": 0.25229999999999997,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 3.3,
@@ -3300,8 +3300,8 @@
         "ev": 0.25229999999999997,
         "line": 3.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 1.8,
@@ -3315,8 +3315,8 @@
         "ev": 0.25229999999999997,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 3.5,
@@ -3330,8 +3330,8 @@
         "ev": 0.25229999999999997,
         "line": 4.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": false
       },
       {
         "avg": 3.0,
@@ -3345,8 +3345,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 2.4,
@@ -3360,8 +3360,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "avg": 2.2,
@@ -3375,8 +3375,8 @@
         "ev": 0.25229999999999997,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 10.0,
@@ -3390,8 +3390,8 @@
         "ev": 0.25229999999999997,
         "line": 6.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "avg": 1.1,
@@ -3405,8 +3405,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 2.3,
@@ -3420,8 +3420,8 @@
         "ev": 0.25229999999999997,
         "line": 3.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 8.5,
@@ -3435,8 +3435,8 @@
         "ev": 0.25229999999999997,
         "line": 4.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "avg": 1.4,
@@ -3450,8 +3450,8 @@
         "ev": 0.25229999999999997,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 3.4,
@@ -3465,8 +3465,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 3.4,
@@ -3480,8 +3480,8 @@
         "ev": 0.25229999999999997,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 5.9,
@@ -3495,8 +3495,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 1.3,
@@ -3510,8 +3510,8 @@
         "ev": 0.25229999999999997,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "avg": 1.8,
@@ -3525,8 +3525,8 @@
         "ev": 0.25229999999999997,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 3.0,
@@ -3540,8 +3540,8 @@
         "ev": 0.25229999999999997,
         "line": 3.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "avg": 1.7,
@@ -3555,8 +3555,8 @@
         "ev": 0.25229999999999997,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 1.5,
@@ -3570,8 +3570,8 @@
         "ev": 0.25229999999999997,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "avg": 1.1,
@@ -3585,8 +3585,8 @@
         "ev": 0.22202399999999997,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 8.1,
@@ -3600,8 +3600,8 @@
         "ev": 0.1322859066963667,
         "line": 6.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "avg": 21.3,
@@ -3615,8 +3615,8 @@
         "ev": 0.12350314679013093,
         "line": 19.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 20.0,
+        "hit": true
       },
       {
         "avg": 1.9,
@@ -3630,8 +3630,8 @@
         "ev": 0.1227287123037891,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 3.4,
@@ -3645,8 +3645,8 @@
         "ev": 0.12068253047939428,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 6.1,
@@ -3660,8 +3660,8 @@
         "ev": 0.11957710237295704,
         "line": 4.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 22.0,
+        "hit": true
       },
       {
         "avg": 4.5,
@@ -3675,8 +3675,8 @@
         "ev": 0.11886321251307906,
         "line": 3.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 8.2,
@@ -3705,8 +3705,8 @@
         "ev": 0.11814990586629158,
         "line": 17.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 14.0,
+        "hit": false
       },
       {
         "avg": 3.2,
@@ -3720,8 +3720,8 @@
         "ev": 0.11024761708573591,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 1.1,
@@ -3735,8 +3735,8 @@
         "ev": 0.109125,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.3,
@@ -3750,8 +3750,8 @@
         "ev": 0.109125,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 1.6,
@@ -3765,8 +3765,8 @@
         "ev": 0.109125,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 6.4,
@@ -3780,8 +3780,8 @@
         "ev": 0.109125,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 1.7,
@@ -3795,8 +3795,8 @@
         "ev": 0.109125,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 3.3,
@@ -3810,8 +3810,8 @@
         "ev": 0.109125,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 2.5,
@@ -3825,8 +3825,8 @@
         "ev": 0.109125,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 1.3,
@@ -3840,8 +3840,8 @@
         "ev": 0.109125,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 12.0,
@@ -3855,8 +3855,8 @@
         "ev": 0.109125,
         "line": 6.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "avg": 2.8,
@@ -3870,8 +3870,8 @@
         "ev": 0.109125,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 2.8,
@@ -3885,8 +3885,8 @@
         "ev": 0.109125,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "avg": 1.4,
@@ -3900,8 +3900,8 @@
         "ev": 0.109125,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 3.0,
@@ -3915,8 +3915,8 @@
         "ev": 0.109125,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 2.6,
@@ -3930,8 +3930,8 @@
         "ev": 0.109125,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 3.9,
@@ -3945,8 +3945,8 @@
         "ev": 0.109125,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 1.6,
@@ -3960,8 +3960,8 @@
         "ev": 0.109125,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 2.1,
@@ -3975,8 +3975,8 @@
         "ev": 0.109125,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "avg": 2.0,
@@ -3990,8 +3990,8 @@
         "ev": 0.109125,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "avg": 4.6,
@@ -4005,8 +4005,8 @@
         "ev": 0.109125,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "avg": 1.5,
@@ -4020,8 +4020,8 @@
         "ev": 0.109125,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "avg": 1.3,
@@ -4035,8 +4035,8 @@
         "ev": 0.109125,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "avg": 1.0,
@@ -4050,8 +4050,8 @@
         "ev": 0.09602999999999999,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 2.9,
@@ -4065,8 +4065,8 @@
         "ev": 0.09602999999999999,
         "line": 1.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "avg": 3.9,
@@ -4080,8 +4080,8 @@
         "ev": 0.09602999999999999,
         "line": 2.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "avg": 1.3,
@@ -4095,8 +4095,8 @@
         "ev": 0.09602999999999999,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "avg": 1.2,
@@ -4110,10 +4110,37 @@
         "ev": 0.09602999999999999,
         "line": 0.5,
         "is_lock": "False",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       }
     ],
-    "summary": {}
+    "summary": {
+      "hit": 189,
+      "miss": 75,
+      "total": 264,
+      "pct": 71.6,
+      "by_stat": {
+        "PTS": {
+          "hit": 40,
+          "total": 57,
+          "pct": 70.2
+        },
+        "AST": {
+          "hit": 54,
+          "total": 73,
+          "pct": 74.0
+        },
+        "REB": {
+          "hit": 53,
+          "total": 74,
+          "pct": 71.6
+        },
+        "FG3M": {
+          "hit": 42,
+          "total": 60,
+          "pct": 70.0
+        }
+      }
+    }
   }
 }
