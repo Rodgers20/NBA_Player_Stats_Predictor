@@ -19,7 +19,7 @@ import pandas as pd
 
 from utils.data_fetch import get_todays_games, get_upcoming_games, extract_opponent_from_matchup
 from utils.injury_news import get_batch_availability
-from utils.prop_calculator import calculate_ev
+from utils.prop_calculator import calculate_ev, calculate_hit_probability
 from utils.insight_generator import generate_player_insight
 from utils.odds_fetcher import get_live_odds
 
@@ -283,24 +283,28 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 continue
 
             avg_stat    = recent_stats.mean()
-            median_stat = recent_stats.median()
 
             if avg_stat < 1:
                 continue
 
-            # ── Line from MEDIAN (robust to blowup / garbage-time outliers) ──
+            # ── L5 average — primary form signal (current performance level) ──
+            # Using L5 instead of L10 median so that old injury/rest games don't
+            # artificially drag the line down. If a player avg 20.5 over L5 the
+            # line should be ~20.5, not ~10.5 because of stale L10 data.
+            l5_avg = float(recent_stats.head(5).mean()) if len(recent_stats) >= 5 else float(avg_stat)
+
             if stat_type == "PTS":
-                line = math.floor(median_stat) + 0.5 if median_stat > 5 else 4.5
+                line = math.floor(l5_avg) + 0.5 if l5_avg > 5 else 4.5
             elif stat_type == "FG3M":
-                line = math.floor(median_stat) + 0.5 if median_stat > 1 else 0.5
+                line = math.floor(l5_avg) + 0.5 if l5_avg > 1 else 0.5
             else:  # AST, REB
-                line = math.floor(median_stat) + 0.5 if median_stat > 2 else 1.5
+                line = math.floor(l5_avg) + 0.5 if l5_avg > 2 else 1.5
 
             n = len(recent_stats)
 
-            # ── ML line blending (60% ML, 40% median) ─────────────────────────
-            # Improves line accuracy vs. pure-median approach when ML model is
-            # loaded. Falls back to median line silently on any error.
+            # ── ML line blending (60% ML, 40% L5-based line) ──────────────────
+            # Store ml_pred_stored for use in EV calculation later.
+            ml_pred_stored: float | None = None
             if get_predictor_fn:
                 try:
                     predictor = get_predictor_fn(stat_type)
@@ -308,11 +312,11 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                         ml_result = predictor.predict_player_game(player_name, DF)
                         ml_pred = ml_result.get(f"predicted_{stat_type.lower()}")
                         if ml_pred and float(ml_pred) > 0:
-                            blended = 0.6 * float(ml_pred) + 0.4 * float(line)
-                            # Keep line at valid .5 increment
+                            ml_pred_stored = float(ml_pred)
+                            blended = 0.6 * ml_pred_stored + 0.4 * float(line)
                             line = math.floor(blended) + 0.5
                 except Exception:
-                    pass  # stay with median line
+                    pass  # stay with L5-based line
 
             over_line  = line
             under_line = over_line + 1.0
@@ -341,7 +345,10 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
 
             def _make_prop(direction, bet_line, hit_rate, hits,
                            _role=role, _blowout_risk=blowout_risk,
-                           _blowout_spread=blowout_spread, _cons=consistency_mult):
+                           _blowout_spread=blowout_spread, _cons=consistency_mult,
+                           _l5_avg=l5_avg, _model_pred=ml_pred_stored, _std=std_stat):
+                # EV initially from hit_rate; will be overwritten in live-odds
+                # enrichment step with true model_prob vs implied_prob.
                 ev_value = calculate_ev(hit_rate)
 
                 # ── Role-aware blowout adjustment ─────────────────────────────
@@ -388,14 +395,23 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     hr_away = (away_games[stat_type] < bet_line).sum() / len(away_games) if not away_games.empty else 0
                     h_home  = (home_games[stat_type] < bet_line).sum() if not home_games.empty else 0
                     h_away  = (away_games[stat_type] < bet_line).sum() if not away_games.empty else 0
+                # model_pred: ML prediction when available, else L5 avg.
+                # Used in live-odds enrichment to compute true EV.
+                _model_pred_val = round(_model_pred, 1) if _model_pred else round(_l5_avg, 1)
                 return {
                     "player": player_name, "team": player_team, "opponent": opponent, "position": position,
                     "role": _role,
                     "stat": stat_type, "line": bet_line, "avg": round(avg_stat, 1),
+                    "l5_avg": round(_l5_avg, 1),
+                    "model_pred": _model_pred_val,
+                    "stat_std": round(_std, 2),
                     "direction": direction,
                     "hit_rate": hit_rate, "hits": hits, "total": n,
                     "def_rank": def_rank, "is_home_today": is_home_today,
                     "ev": ev_value,
+                    "model_prob": None,   # filled in live-odds enrichment
+                    "implied_prob": None, # filled in live-odds enrichment
+                    "edge": None,         # filled in live-odds enrichment
                     "is_lock": is_lock,
                     "is_combo": False,
                     "blowout_risk": _blowout_risk,
@@ -490,12 +506,42 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 "total_home": 0, "total_away": 0,
                 "avg_home": 0, "avg_away": 0,
                 "insight": insight_combo,
+                "l5_avg": round(float(raw_combo.head(5).mean()), 1) if len(raw_combo) >= 5 else round(total_avg, 1),
+                "model_pred": round(total_avg, 1),
+                "stat_std": round(float(raw_combo.std()), 2) if len(raw_combo) > 1 else 3.0,
+                "model_prob": None, "implied_prob": None, "edge": None,
                 "has_live_odds": False,
                 "live_line": None, "live_over_price": None,
                 "live_under_price": None, "live_bookmaker": None,
             })
 
-    # ── Enrich with live sportsbook odds ─────────────────────────────────
+    # ── Precompute per-player recent stats for enrichment ─────────────────
+    # Avoids rescanning the full DF for every prop during the odds loop.
+    _player_stat_cache: dict = {}
+    for _prop in props_data:
+        _key = (_prop["player"], _prop["stat"])
+        if _key not in _player_stat_cache:
+            _p_df = DF[DF["PLAYER_NAME"] == _prop["player"]].sort_values("_date", ascending=False)
+            if "SEASON" in _p_df.columns:
+                _cs = _p_df[_p_df["SEASON"].str.startswith("2025", na=False)]
+                _r10 = _cs.head(10) if len(_cs) >= 5 else _p_df.head(10)
+            else:
+                _r10 = _p_df.head(10)
+            _stat = _prop["stat"]
+            if _stat in _r10.columns and not _r10.empty:
+                _vals = pd.to_numeric(_r10[_stat], errors="coerce").dropna()
+                _player_stat_cache[_key] = {
+                    "vals": _vals,
+                    "std":  float(_vals.std()) if len(_vals) > 1 else max(_prop.get("l5_avg", 4) * 0.25, 3.0),
+                }
+            else:
+                _player_stat_cache[_key] = {"vals": pd.Series(dtype=float), "std": 4.0}
+
+    # ── Enrich with live sportsbook odds ──────────────────────────────────
+    # For each prop:
+    #   - Overwrite line with real sportsbook line
+    #   - Recalculate hit_rate at that real line (not the model-generated line)
+    #   - EV = model_prob vs implied_prob (true edge, not just hit_rate × payout)
     live_odds = get_live_odds()
     for prop in props_data:
         player  = prop["player"]
@@ -503,35 +549,118 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
         p_odds  = live_odds.get(player) or live_odds.get(player.replace(".", "").replace("  ", " ").strip())
         s_odds  = p_odds.get(stat) if p_odds else None
 
+        # Determine std_dev for probability calculation
+        _pkey = (player, stat)
+        _cached = _player_stat_cache.get(_pkey, {})
+        _std = _cached.get("std") or prop.get("stat_std") or max(prop.get("l5_avg", 4) * 0.25, 3.0)
+        _vals = _cached.get("vals", pd.Series(dtype=float))
+
+        # model_pred: use ML prediction when available, else L5 avg
+        _mpred = prop.get("model_pred") or prop.get("l5_avg") or prop.get("avg") or 0.0
+
         if s_odds:
-            prop["live_line"]        = s_odds["line"]
-            prop["live_over_price"]  = s_odds["over_price"]
-            prop["live_under_price"] = s_odds["under_price"]
+            sb_line        = float(s_odds["line"])
+            sb_over_price  = int(s_odds.get("over_price",  -110))
+            sb_under_price = int(s_odds.get("under_price", -110))
+            direction      = prop.get("direction", "Over")
+            sb_price       = sb_over_price if direction == "Over" else sb_under_price
+
+            prop["live_line"]        = sb_line
+            prop["live_over_price"]  = sb_over_price
+            prop["live_under_price"] = sb_under_price
             prop["live_bookmaker"]   = s_odds["bookmaker"]
             prop["has_live_odds"]    = True
-            prop["line"] = s_odds["line"]
-            # Use the correct price side for EV based on direction
-            if prop.get("direction", "Over") == "Under":
-                prop["ev"] = calculate_ev(prop["hit_rate"], over_american=s_odds["under_price"])
+            prop["line"]             = sb_line
+
+            # Recalculate hit_rate against the ACTUAL sportsbook line
+            if len(_vals) >= 3:
+                if direction == "Over":
+                    sb_hits     = int((_vals >= sb_line).sum())
+                else:
+                    sb_hits     = int((_vals <  sb_line).sum())
+                sb_hit_rate = round(sb_hits / len(_vals), 4)
+                prop["hit_rate"] = sb_hit_rate
+                prop["hits"]     = sb_hits
+                prop["total"]    = len(_vals)
+
+            # EV = model's probability estimate vs sportsbook's implied probability
+            model_prob = calculate_hit_probability(
+                prediction=float(_mpred),
+                line=sb_line,
+                std_dev=_std,
+                direction=direction.lower(),
+                stat_type=stat,
+            )
+            # Implied probability from sportsbook price
+            if sb_price > 0:
+                implied = sb_price / (sb_price + 100)
             else:
-                prop["ev"] = calculate_ev(prop["hit_rate"], over_american=s_odds["over_price"])
+                implied = abs(sb_price) / (abs(sb_price) + 100)
+
+            prop["model_prob"]   = round(model_prob, 4)
+            prop["implied_prob"] = round(implied, 4)
+            prop["edge"]         = round(model_prob - implied, 4)
+            prop["ev"]           = calculate_ev(model_prob, over_american=sb_price)
+
         else:
+            # No live odds: use model_prob vs default -110 implied (52.4%)
+            model_prob = calculate_hit_probability(
+                prediction=float(_mpred),
+                line=float(prop["line"]),
+                std_dev=_std,
+                direction=prop.get("direction", "Over").lower(),
+                stat_type=stat,
+            )
+            prop["model_prob"]   = round(model_prob, 4)
+            prop["implied_prob"] = 0.524
+            prop["edge"]         = round(model_prob - 0.524, 4)
+            prop["ev"]           = calculate_ev(model_prob)
             prop["has_live_odds"]    = False
             prop["live_line"]        = None
             prop["live_over_price"]  = None
             prop["live_under_price"] = None
             prop["live_bookmaker"]   = None
 
-    # Sort: LOCKs first (within stat category), then by EV
-    props_data.sort(key=lambda x: (not x.get("is_lock", False), -x["ev"]))
+    # ── Quality gate — keep only high-confidence, genuine-edge props ─────
+    # Locks bypass the quality gate (they already cleared 80% hit_rate).
+    _MIN_MODEL_PROB = 0.58   # model must give ≥58% probability
+    _MIN_EV         = 0.02   # ≥2% edge over implied (model_prob − implied ≥ 0.02)
+    _MAX_PER_PLAYER = 2      # max 2 props per player to avoid flooding one hot player
+    _HARD_CAP       = 25     # absolute max props shown
 
-    # Guarantee at least the top prop per team is represented in the final list.
-    # This ensures games with weaker overall EVs still show up.
+    quality_props = []
+    for p in props_data:
+        if p.get("is_lock"):
+            quality_props.append(p)
+            continue
+        mp = p.get("model_prob") or 0.0
+        ev = p.get("ev") or 0.0
+        if mp >= _MIN_MODEL_PROB and ev >= _MIN_EV:
+            quality_props.append(p)
+
+    # Deduplicate: keep top _MAX_PER_PLAYER props per player (by EV)
+    from collections import defaultdict as _dd
+    _per_player: dict = _dd(list)
+    for p in quality_props:
+        _per_player[p["player"]].append(p)
+
+    deduped: list = []
+    for _pprops in _per_player.values():
+        _pprops.sort(key=lambda x: (not x.get("is_lock", False), -(x.get("ev") or 0)))
+        deduped.extend(_pprops[:_MAX_PER_PLAYER])
+
+    # Final sort: LOCKs first, then by EV descending
+    deduped.sort(key=lambda x: (not x.get("is_lock", False), -(x.get("ev") or 0)))
+    props_data = deduped[:_HARD_CAP]
+
+    print(f"[PropsCache] Quality gate: {len(props_data)} props (min model_prob={_MIN_MODEL_PROB}, min EV={_MIN_EV})")
+
+    # Warn if any teams playing today have zero props (may indicate data gap)
     if game_info["has_todays_games"] and teams_today:
         teams_with_props = {p["team"] for p in props_data}
         teams_without = teams_today - teams_with_props
         if teams_without:
-            print(f"[PropsCache] Teams with no qualifying props (hit_rate<0.5): {teams_without}")
+            print(f"[PropsCache] Teams with no qualifying props after quality gate: {teams_without}")
 
     return props_data
 

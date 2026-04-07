@@ -2465,7 +2465,7 @@ def open_props_player_panel(name_clicks, photo_clicks):
     return {"player": player, "default_stat": default_stat, "active_stat": default_stat}
 
 
-def _build_odds_row(prop: dict, stat_color: str, avg: float, location_label: str, hit_pct: int) -> list:
+def _build_odds_row(prop: dict, stat_color: str, avg: float, location_label: str, hit_pct: int, l5_avg: float = 0, line_gap: float = 0) -> list:
     """
     Build the bottom stat/line row for a prop card.
 
@@ -2513,8 +2513,20 @@ def _build_odds_row(prop: dict, stat_color: str, avg: float, location_label: str
             html.Span(f"Over {line}", style={"fontWeight": "700", "fontSize": "1.1rem", "marginRight": "8px"}),
             odds_badge,
         ], style={"display": "flex", "alignItems": "center"}),
-        html.Div(f"L10 avg: {avg}  •  {location_label} {hit_pct}%",
-                 style={"color": "var(--text-muted)", "fontSize": "0.85rem"})
+        html.Div([
+            html.Span(
+                f"L5: {l5_avg}" if l5_avg else f"avg: {avg}",
+                style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "6px"}
+            ),
+            html.Span(
+                f"(+{line_gap:.1f} over line)" if line_gap > 0 else (f"({line_gap:.1f} vs line)" if line_gap < 0 else ""),
+                style={"color": "#22c55e" if line_gap > 0 else "#f97316", "fontSize": "0.78rem", "fontWeight": "600"}
+            ) if line_gap != 0 else None,
+            html.Span(
+                f"  •  {location_label} {hit_pct}%",
+                style={"color": "var(--text-muted)", "fontSize": "0.85rem"}
+            ),
+        ], style={"display": "flex", "alignItems": "center", "flexWrap": "wrap"})
     ], style={
         "display": "flex", "justifyContent": "space-between", "alignItems": "center",
         "backgroundColor": "var(--bg-primary)", "padding": "10px 12px", "borderRadius": "var(--radius-sm)"
@@ -2631,7 +2643,8 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
     if sort_by == "hit_rate":
         filtered_props.sort(key=lambda x: x.get(hit_rate_key, 0), reverse=True)
     else:
-        filtered_props.sort(key=lambda x: x.get("ev", 0), reverse=True)
+        # EV sort = model probability edge over implied odds (true value ranking)
+        filtered_props.sort(key=lambda x: x.get("model_prob") or x.get("ev", 0), reverse=True)
 
     if not filtered_props:
         loc_label = "home" if location_filter == "home" else "away" if location_filter == "away" else ""
@@ -2664,9 +2677,27 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
             avg = prop.get("avg", 0)
 
         hit_pct = int(hit_rate * 100)
-        # ── EV color class ────────────────────────────────────────────────────
-        ev_class = "ev-green" if hit_pct >= 70 else "ev-orange" if hit_pct >= 60 else "ev-red"
-        ev_arrow = " ↑" if hit_pct >= 70 else ""
+
+        # ── True edge: model probability vs sportsbook implied probability ────
+        model_prob   = prop.get("model_prob") or hit_rate  # fallback to hit_rate if not set
+        implied_prob = prop.get("implied_prob") or 0.524
+        edge_val     = prop.get("edge")
+        if edge_val is None:
+            edge_val = model_prob - implied_prob
+        edge_pct = int(edge_val * 100)      # e.g. 18 means +18% edge
+        model_pct = int(model_prob * 100)   # e.g. 70 means model gives 70%
+
+        # ── EV color class (now based on true edge, not hit_rate) ─────────────
+        ev_class = "ev-green" if edge_pct >= 10 else "ev-orange" if edge_pct >= 5 else "ev-red"
+        ev_arrow = " ↑" if edge_pct >= 10 else ""
+
+        # ── L5 avg and line gap for display ───────────────────────────────────
+        l5_avg_val = prop.get("l5_avg") or prop.get("avg", 0)
+        line_val_num = prop.get("line", 0)
+        try:
+            line_gap = round(float(l5_avg_val) - float(line_val_num), 1)
+        except Exception:
+            line_gap = 0
 
         is_home_today = prop.get("is_home_today", True)
         player_photo = get_player_headshot_url(prop.get("player", ""))
@@ -2735,18 +2766,26 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
             "linear-gradient(135deg, rgba(20,184,166,0.18) 0%, rgba(139,92,246,0.18) 100%)"
         ) if player_photo else "linear-gradient(135deg, rgba(20,184,166,0.18) 0%, rgba(139,92,246,0.18) 100%)"
 
-        # ── EV tier for photo badge color ─────────────────────────────────────
-        badge_color = "#22c55e" if hit_pct >= 70 else "#f97316" if hit_pct >= 60 else "#ef4444"
+        # ── Badge color: based on true model edge now ─────────────────────────
+        badge_color = "#22c55e" if edge_pct >= 10 else "#f97316" if edge_pct >= 5 else "#ef4444"
+
+        # EV badge label: "+18%" edge format when positive, "70%" model prob otherwise
+        if edge_pct > 0:
+            ev_badge_pct_str = f"+{edge_pct}%"
+            ev_badge_label   = " edge"
+        else:
+            ev_badge_pct_str = f"{model_pct}%"
+            ev_badge_label   = " prob"
 
         prop_card = html.Div([
             # ── Photo banner (CSS background-image → 404-safe) ────────────────
             html.Div([
                 # Fallback initial (always rendered behind photo)
                 html.Span(initial_letter, className="prop-photo-initial"),
-                # Hit-rate badge overlaid on photo bottom-left
+                # Edge badge overlaid on photo bottom-left
                 html.Div([
-                    html.Span(f"{hit_pct}%", className="prop-ev-badge-pct"),
-                    html.Span(" EV", className="prop-ev-badge-label"),
+                    html.Span(ev_badge_pct_str, className="prop-ev-badge-pct"),
+                    html.Span(ev_badge_label, className="prop-ev-badge-label"),
                 ], className="prop-ev-badge",
                    style={"borderColor": badge_color, "color": badge_color}),
                 # Team logo top-right
@@ -2790,9 +2829,24 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
                     html.Span(stat_line_str, className="prop-stat-line"),
                 ], className="prop-stat-row"),
 
+                # L5 avg vs line — key value indicator
+                html.Div([
+                    html.Span(
+                        f"L5 avg: {l5_avg_val}",
+                        style={"fontSize": "0.78rem", "color": "#94a3b8", "marginRight": "6px"},
+                    ),
+                    html.Span(
+                        f"+{line_gap:.1f} over line" if line_gap > 0 else (f"{line_gap:.1f} vs line" if line_gap < 0 else ""),
+                        style={
+                            "fontSize": "0.72rem", "fontWeight": "700",
+                            "color": "#22c55e" if line_gap > 1 else "#f97316" if line_gap > 0 else "#94a3b8",
+                        },
+                    ) if line_gap != 0 else None,
+                ], style={"display": "flex", "alignItems": "center", "marginBottom": "4px"}),
+
                 # Hits record pill
                 html.Div(
-                    f"{hits}/{total} L{total}",
+                    f"{hits}/{total} L{total}  •  {hit_pct}% hit rate",
                     className="prop-hits-pill",
                 ),
 
