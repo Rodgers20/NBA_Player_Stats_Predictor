@@ -748,14 +748,7 @@ def build_all_parlays(
     """
     tracker = _DiversityTracker(max_uses=2)
 
-    # Best bets: single picks — no tracker consumption (separate bet type)
-    best_bets = build_best_bets(props, n=10)
-
-    # New parlay types run first to get first access to diversity budget
-    two_leg_parlays   = build_two_leg_parlays(props, tracker, n=10)
-    three_leg_parlays = build_three_leg_parlays(props, alt_lines, tracker, n=10)
-
-    # Legacy parlays consume remaining diversity budget
+    # Build order: prop parlays first (best picks), then alt/defense (wider pool)
     ml_parlay       = build_ml_parlay(game_predictions, tracker)
     over_parlays    = build_over_parlays(props,     tracker, n_parlays=5,  n_legs=3)
     under_parlays   = build_under_parlays(props,    tracker, n_parlays=3,  n_legs=3)
@@ -763,20 +756,14 @@ def build_all_parlays(
     defense_parlays = build_defense_parlays(alt_lines, tracker, n_parlays=3, n_legs=3)
 
     total = (
-        len(best_bets)
-        + len(two_leg_parlays)
-        + len(three_leg_parlays)
-        + (1 if ml_parlay else 0)
-        + len(alt_parlays)
+        (1 if ml_parlay else 0)
         + len(over_parlays)
         + len(under_parlays)
+        + len(alt_parlays)
         + len(defense_parlays)
     )
 
     return {
-        "best_bets":   best_bets,
-        "two_leg":     two_leg_parlays,
-        "three_leg":   three_leg_parlays,
         "ml":          ml_parlay,
         "alt":         alt_parlays,
         "over":        over_parlays,
