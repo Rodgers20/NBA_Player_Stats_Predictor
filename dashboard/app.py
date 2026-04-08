@@ -1726,13 +1726,14 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
         "alt":      ("#10b981", "#064e3b"),
         "over":     ("#22c55e", "#14532d"),
         "under":    ("#f59e0b", "#78350f"),
+        "reduced":  ("#2dd4bf", "#042f2e"),
         "defense":  ("#ef4444", "#7f1d1d"),
         "two_leg":  ("#06b6d4", "#0c4a6e"),
         "three_leg": ("#8b5cf6", "#2e1065"),
     }
     TYPE_ICONS = {
         "ml": "ML", "alt": "100%", "over": "↑", "under": "↓",
-        "defense": "SHIELD", "two_leg": "2L", "three_leg": "3L",
+        "reduced": "SAFE", "defense": "SHIELD", "two_leg": "2L", "three_leg": "3L",
     }
 
     def _win_prob_color(win_prob: float) -> str:
@@ -1772,6 +1773,10 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
                 prop_text = f"{leg.get('threshold')}+ {stat_label}  ({leg.get('trend', '')})"
             elif p_type == "ml":
                 prop_text = leg.get("label", "")
+            elif p_type == "reduced":
+                l5 = leg.get("l5_avg", "")
+                avg_str = f"  (avg {l5})" if l5 else ""
+                prop_text = f"Over {leg.get('line')} {stat_label}{avg_str}"
             else:
                 prop_text = f"{direction} {leg.get('line')} {stat_label}"
 
@@ -1933,7 +1938,19 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
     else:
         cards.append(_section_header("Props UNDER Parlays", "Not enough qualifying UNDER props today"))
 
-    # ── Section E: Defense Parlays ────────────────────────────────────────
+    # ── Section E: Safe Over Parlays (Reduced Lines) ──────────────────────
+    reduced_list = parlays.get("reduced", [])
+    if reduced_list:
+        avg_wp = sum(p["odds"]["win_prob"] for p in reduced_list) / len(reduced_list)
+        cards.append(_section_header(
+            f"Safe Over Parlays  ({len(reduced_list)})",
+            f"Lines set ~20% below player's L5 avg — high probability · avg win prob: {avg_wp:.1f}%",
+        ))
+        cards.append(_two_col_grid([_parlay_card(p) for p in reduced_list]))
+    else:
+        cards.append(_section_header("Safe Over Parlays", "Not enough qualifying props today"))
+
+    # ── Section F: Defense Parlays ────────────────────────────────────────
     defense_list = parlays.get("defense", [])
     if defense_list:
         cards.append(_section_header(

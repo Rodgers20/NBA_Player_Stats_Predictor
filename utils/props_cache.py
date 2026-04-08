@@ -32,8 +32,8 @@ _props_cache = {
     "alt_lines_data": [],       # 100% alt lines (hit every game in streak)
     "alt_lines_date": None,     # "YYYY-MM-DD" of when alt_lines were last computed
     "parlays_data": {           # Recommended parlays built from props + alt lines
-        "best_bets": [], "two_leg": [], "three_leg": [],
-        "ml": None, "alt": [], "over": [], "under": [], "defense": [], "total_count": 0
+        "ml": None, "alt": [], "over": [], "under": [],
+        "reduced": [], "defense": [], "total_count": 0
     },
     "has_todays_games": False,
     "game_matchups": [],
@@ -52,8 +52,8 @@ def get_parlays_cache() -> dict:
     """Return the parlays dict from the last cache refresh (instant read)."""
     with _cache_lock:
         return _props_cache.get("parlays_data", {
-            "best_bets": [], "two_leg": [], "three_leg": [],
-            "ml": None, "alt": [], "over": [], "under": [], "defense": [], "total_count": 0
+            "ml": None, "alt": [], "over": [], "under": [],
+            "reduced": [], "defense": [], "total_count": 0
         })
 
 

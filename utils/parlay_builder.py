@@ -20,6 +20,7 @@ on AST in 2 more parlays is fine).
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from typing import Optional
 
@@ -719,6 +720,141 @@ def build_three_leg_parlays(
     return parlays
 
 
+# ── Safe Over parlays (reduced-average lines) ────────────────────────────────
+
+# Minimum absolute reduction per stat type
+_SAFE_REDUCE_MIN: dict[str, float] = {
+    "PTS": 4.0,
+    "AST": 1.5,
+    "REB": 1.5,
+    "FG3M": 0.5,
+}
+_SAFE_REDUCE_PCT = 0.20   # 20% below L5 avg
+_SAFE_PROB       = 0.82   # estimated hit probability at reduced line
+
+
+def build_reduced_avg_parlays(
+    props: list[dict],
+    tracker: _DiversityTracker,
+    n_parlays: int = 10,
+    n_legs: int = 3,
+) -> list[dict]:
+    """Build 10x 3-leg 'safe over' parlays using lines ~20% below player's L5 avg.
+
+    Concept: if a player averages 25 pts in last 5-10 games, take them for
+    Over 20.  If they avg 6 ast → Over 4.  If they avg 10 reb → Over 8.
+    Line = floor((l5_avg - reduction) × 2) / 2  (rounded down to nearest 0.5).
+
+    Only single stats (no combo), no BLK/STL (those live in defense parlays).
+    Reduced line must be strictly below the book line to ensure value.
+    """
+    pool: list[dict] = []
+    seen: set[tuple] = set()   # deduplicate (player, stat) in pool
+
+    for prop in props:
+        stat = prop.get("stat_type") or prop.get("stat", "")
+
+        # Skip combo stats and defense stats
+        if "+" in stat or stat in ("BLK", "STL"):
+            continue
+
+        l5_avg = float(prop.get("l5_avg") or prop.get("avg") or 0.0)
+        if l5_avg < 4.0:
+            continue
+
+        player = prop["player"]
+        key = (player.lower(), stat.upper())
+        if key in seen:
+            continue
+        seen.add(key)
+
+        min_reduce = _SAFE_REDUCE_MIN.get(stat, 1.0)
+        reduction  = max(l5_avg * _SAFE_REDUCE_PCT, min_reduce)
+        raw_line   = l5_avg - reduction
+        red_line   = math.floor(raw_line * 2) / 2   # round down to nearest 0.5
+
+        if red_line < 0.5:
+            continue
+
+        book_line = float(prop.get("line") or 0.0)
+        # Reduced line must be below the book's current line
+        if book_line > 0 and red_line >= book_line:
+            continue
+
+        model_odds = _prob_to_american(_SAFE_PROB)
+
+        pool.append({
+            **prop,
+            # Override the line so parlay display shows the reduced line
+            "line":       red_line,
+            "direction":  "Over",
+            "model_odds": model_odds,
+            "win_prob":   round(_SAFE_PROB * 100, 1),
+            "model_prob": _SAFE_PROB,
+            "is_lock":    False,
+            "ev":         round(_SAFE_PROB - 0.52, 3),
+            # Keep original book line for reference in display
+            "book_line":  book_line,
+            "l5_avg_used": round(l5_avg, 1),
+        })
+
+    # Sort: highest L5 average first (most dominant players lead)
+    pool.sort(key=lambda x: -x.get("l5_avg_used", 0))
+
+    # Re-use generic builder — each leg uses pre-computed model_odds
+    parlays: list[dict] = []
+
+    for parlay_idx in range(n_parlays):
+        legs: list[dict] = []
+        used_this: set[tuple] = set()
+
+        for p in pool:
+            if len(legs) >= n_legs:
+                break
+
+            player = p["player"]
+            stat   = p.get("stat_type") or p.get("stat", "")
+            key    = (player.lower(), stat.upper())
+
+            if key in used_this:
+                continue
+            if not tracker.can_use(player, stat, "over"):
+                continue
+
+            legs.append({
+                "player":     player,
+                "team":       p.get("team", ""),
+                "stat":       stat,
+                "stat_label": stat,
+                "direction":  "Over",
+                "line":       p["line"],       # reduced line
+                "book_line":  p["book_line"],  # original book line
+                "l5_avg":     p["l5_avg_used"],
+                "win_prob":   p["win_prob"],
+                "model_odds": p["model_odds"],
+                "hit_rate":   p.get("hit_rate"),
+                "ev":         p["ev"],
+                "label":      (
+                    f"{player} Over {p['line']} {stat}  "
+                    f"(avg {p['l5_avg_used']})"
+                ),
+                "game":       p.get("game_matchup", ""),
+            })
+            used_this.add(key)
+
+        if len(legs) >= n_legs:
+            for leg in legs:
+                tracker.mark_used(leg["player"], leg["stat"], "over")
+            parlays.append({
+                "label": f"Safe Over Parlay #{parlay_idx + 1}  (Reduced Lines)",
+                "type":  "reduced",
+                "legs":  legs,
+                "odds":  parlay_odds(legs),
+            })
+
+    return parlays
+
+
 # ── Master builder ────────────────────────────────────────────────────────────
 
 def build_all_parlays(
@@ -749,16 +885,18 @@ def build_all_parlays(
     tracker = _DiversityTracker(max_uses=2)
 
     # Build order: prop parlays first (best picks), then alt/defense (wider pool)
-    ml_parlay       = build_ml_parlay(game_predictions, tracker)
-    over_parlays    = build_over_parlays(props,     tracker, n_parlays=5,  n_legs=3)
-    under_parlays   = build_under_parlays(props,    tracker, n_parlays=3,  n_legs=3)
-    alt_parlays     = build_alt_parlays(alt_lines,  tracker, n_parlays=2,  n_legs=10)
-    defense_parlays = build_defense_parlays(alt_lines, tracker, n_parlays=3, n_legs=3)
+    ml_parlay        = build_ml_parlay(game_predictions, tracker)
+    over_parlays     = build_over_parlays(props,      tracker, n_parlays=5,  n_legs=3)
+    under_parlays    = build_under_parlays(props,     tracker, n_parlays=3,  n_legs=3)
+    reduced_parlays  = build_reduced_avg_parlays(props, tracker, n_parlays=10, n_legs=3)
+    alt_parlays      = build_alt_parlays(alt_lines,   tracker, n_parlays=2,  n_legs=10)
+    defense_parlays  = build_defense_parlays(alt_lines, tracker, n_parlays=3, n_legs=3)
 
     total = (
         (1 if ml_parlay else 0)
         + len(over_parlays)
         + len(under_parlays)
+        + len(reduced_parlays)
         + len(alt_parlays)
         + len(defense_parlays)
     )
@@ -768,6 +906,7 @@ def build_all_parlays(
         "alt":         alt_parlays,
         "over":        over_parlays,
         "under":       under_parlays,
+        "reduced":     reduced_parlays,
         "defense":     defense_parlays,
         "total_count": total,
     }
