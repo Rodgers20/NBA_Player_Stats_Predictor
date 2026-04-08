@@ -31,6 +31,10 @@ _props_cache = {
     "sidebar_data": [],         # For create_best_props_content()
     "alt_lines_data": [],       # 100% alt lines (hit every game in streak)
     "alt_lines_date": None,     # "YYYY-MM-DD" of when alt_lines were last computed
+    "parlays_data": {           # Recommended parlays built from props + alt lines
+        "best_bets": [], "two_leg": [], "three_leg": [],
+        "ml": None, "alt": [], "over": [], "under": [], "defense": [], "total_count": 0
+    },
     "has_todays_games": False,
     "game_matchups": [],
     "target_date": None,        # "YYYY-MM-DD" — today or tomorrow's slate
@@ -42,6 +46,15 @@ def get_cached_props() -> dict:
     """Return cached props data (instant read)."""
     with _cache_lock:
         return _props_cache.copy()
+
+
+def get_parlays_cache() -> dict:
+    """Return the parlays dict from the last cache refresh (instant read)."""
+    with _cache_lock:
+        return _props_cache.get("parlays_data", {
+            "best_bets": [], "two_leg": [], "three_leg": [],
+            "ml": None, "alt": [], "over": [], "under": [], "defense": [], "total_count": 0
+        })
 
 
 # ESPN/NBA API abbreviations → internal data abbreviations
@@ -143,10 +156,41 @@ _OVER_MIN_HIT_RATE  = 0.52   # Over: need genuine edge, not a coin flip
 _UNDER_MIN_HIT_RATE = 0.62   # Under: much higher bar (natural positive skew in NBA)
 
 # Alt lines: lookback windows and minimum meaningful thresholds per stat
+# Thresholds are set to levels that sportsbooks actually offer lines for:
+#   PTS  ≥10 — books don't offer below 10.5 for any meaningful starter
+#   AST  ≥3  — books rarely offer under 2.5 assists
+#   REB  ≥4  — books rarely offer under 3.5 rebounds
+#   FG3M ≥2  — books offer 1.5+, floor at 2 makes streak meaningful
+#   BLK  ≥1  — defense parlays (1+ block per game in streak)
+#   STL  ≥1  — defense parlays (1+ steal per game in streak)
 _ALT_WINDOWS       = [5, 6, 7, 8, 10, 12, 15, 17, 18, 20]
-_ALT_MIN_THRESH    = {"PTS": 5, "AST": 2, "REB": 3, "FG3M": 1}
-_ALT_STAT_LABELS   = {"PTS": "POINTS", "AST": "ASSISTS",
-                      "REB": "REBOUNDS", "FG3M": "MADE THREES"}
+_ALT_MIN_THRESH    = {"PTS": 10, "AST": 3, "REB": 4, "FG3M": 2, "BLK": 1, "STL": 1}
+_ALT_STAT_LABELS   = {"PTS": "POINTS", "AST": "ASSISTS", "REB": "REBOUNDS",
+                      "FG3M": "MADE THREES", "BLK": "BLOCKS", "STL": "STEALS"}
+
+
+def _prob_to_american(prob: float, vig: float = 0.0476) -> int:
+    """Convert true probability → American odds with sportsbook vig applied.
+
+    Books apply vig by inflating implied probability so both sides sum to >100%.
+    Standard -110/-110 line creates 52.38%+52.38%=104.76% implied = 4.76% vig.
+
+    Examples:
+      70% model prob → viggged 73.3% → -275 (solid favourite)
+      60% model prob → viggged 62.9% → -170 (moderate edge)
+      55% model prob → viggged 57.6% → -136 (slight edge)
+
+    Args:
+        prob: True win probability (0.0–1.0)
+        vig:  Vig rate (default 4.76% = standard -110 market)
+
+    Returns: American odds integer (e.g. -150, +130)
+    """
+    prob    = max(0.01, min(0.99, prob))
+    viggged = min(prob * (1 + vig), 0.99)
+    if viggged >= 0.5:
+        return int(-100 * viggged / (1 - viggged))
+    return int(100 * (1 - viggged) / viggged)
 
 
 def _is_qualified_player(player_name: str, player_df: "pd.DataFrame") -> tuple[bool, float]:
@@ -597,10 +641,12 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             else:
                 implied = abs(sb_price) / (abs(sb_price) + 100)
 
-            prop["model_prob"]   = round(model_prob, 4)
-            prop["implied_prob"] = round(implied, 4)
-            prop["edge"]         = round(model_prob - implied, 4)
-            prop["ev"]           = calculate_ev(model_prob, over_american=sb_price)
+            prop["model_prob"]      = round(model_prob, 4)
+            prop["implied_prob"]    = round(implied, 4)
+            prop["edge"]            = round(model_prob - implied, 4)
+            prop["ev"]              = calculate_ev(model_prob, over_american=sb_price)
+            prop["model_over_odds"] = _prob_to_american(model_prob)
+            prop["model_under_odds"] = _prob_to_american(1.0 - model_prob)
 
         else:
             # No live odds: use model_prob vs default -110 implied (52.4%)
@@ -611,10 +657,12 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 direction=prop.get("direction", "Over").lower(),
                 stat_type=stat,
             )
-            prop["model_prob"]   = round(model_prob, 4)
-            prop["implied_prob"] = 0.524
-            prop["edge"]         = round(model_prob - 0.524, 4)
-            prop["ev"]           = calculate_ev(model_prob)
+            prop["model_prob"]       = round(model_prob, 4)
+            prop["implied_prob"]     = 0.524
+            prop["edge"]             = round(model_prob - 0.524, 4)
+            prop["ev"]               = calculate_ev(model_prob)
+            prop["model_over_odds"]  = _prob_to_american(model_prob)
+            prop["model_under_odds"] = _prob_to_american(1.0 - model_prob)
             prop["has_live_odds"]    = False
             prop["live_line"]        = None
             prop["live_over_price"]  = None
@@ -623,10 +671,10 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
 
     # ── Quality gate — keep only high-confidence, genuine-edge props ─────
     # Locks bypass the quality gate (they already cleared 80% hit_rate).
-    _MIN_MODEL_PROB = 0.58   # model must give ≥58% probability
+    _MIN_MODEL_PROB = 0.56   # model must give ≥56% probability
     _MIN_EV         = 0.02   # ≥2% edge over implied (model_prob − implied ≥ 0.02)
     _MAX_PER_PLAYER = 2      # max 2 props per player to avoid flooding one hot player
-    _HARD_CAP       = 25     # absolute max props shown
+    _HARD_CAP       = 60     # absolute max props shown
 
     quality_props = []
     for p in props_data:
@@ -1000,6 +1048,13 @@ def _compute_alt_lines(DF, PLAYER_POSITIONS, game_info, availability_map, player
                         best_thresh = thresh
 
             if best_n is not None:
+                # Context check: threshold must be ≥55% of player's season average.
+                # Prevents "10+ PTS for a 10.5 PPG player" — technically true but
+                # the line IS basically their average and books won't price it lower.
+                season_avg = float(stat_series.mean())
+                if season_avg > 0 and (best_thresh / season_avg) < 0.55:
+                    continue  # Trivial streak — threshold is too close to their average
+
                 alt_lines.append({
                     "player":     player_name,
                     "team":       player_team,
@@ -1085,6 +1140,52 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
     else:
         alt_lines = _compute_alt_lines(DF, PLAYER_POSITIONS, game_info, availability_map, players_to_analyze)
 
+    # ── Build game predictions from spreads for ML parlay ─────────────────
+    # win_prob ≈ 50% + |spread| / 28  (Massey-Peabody approximation)
+    # Confidence thresholds: HIGH ≥ 68%, MEDIUM ≥ 58%, LOW < 58%
+    game_predictions_for_parlay: list[dict] = []
+    for home_team, opponent in game_info.get("team_to_opponent", {}).items():
+        is_home = game_info.get("teams_home_away", {}).get(home_team, "home") == "home"
+        if not is_home:
+            continue  # only process each game once (home team entry)
+        away_team = opponent
+        spread    = game_spreads.get(home_team)   # negative = home favored
+        if spread is None:
+            continue
+        home_win_prob = min(0.85, max(0.40, 0.50 - spread / 28.0))  # spread is home_line (neg = home favored)
+        if home_win_prob >= 0.68:
+            winner, conf, wp = home_team, "HIGH",   home_win_prob
+        elif home_win_prob >= 0.58:
+            winner, conf, wp = home_team, "MEDIUM", home_win_prob
+        elif (1 - home_win_prob) >= 0.68:
+            winner, conf, wp = away_team, "HIGH",   1 - home_win_prob
+        elif (1 - home_win_prob) >= 0.58:
+            winner, conf, wp = away_team, "MEDIUM", 1 - home_win_prob
+        else:
+            winner, conf, wp = home_team, "LOW",    home_win_prob
+        game_predictions_for_parlay.append({
+            "home": home_team, "away": away_team,
+            "winner_pick": winner, "winner_confidence": conf,
+        })
+
+    # ── Build all parlays ──────────────────────────────────────────────────
+    try:
+        from utils.parlay_builder import build_all_parlays
+        parlays_data = build_all_parlays(
+            props=main_data,
+            alt_lines=alt_lines,
+            game_predictions=game_predictions_for_parlay,
+        )
+        print(f"[PropsCache] Parlays built: {parlays_data.get('total_count', 0)} total parlays")
+        try:
+            from utils.parlay_tracker import save_daily_parlays
+            save_daily_parlays(today_str, parlays_data)
+        except Exception as _pte:
+            print(f"[PropsCache] Parlay save error (non-fatal): {_pte}")
+    except Exception as _pe:
+        print(f"[PropsCache] Parlay build error (non-fatal): {_pe}")
+        parlays_data = {"best_bets": [], "two_leg": [], "three_leg": [], "ml": None, "alt": [], "over": [], "under": [], "defense": [], "total_count": 0}
+
     elapsed = (datetime.now() - start).total_seconds()
 
     with _cache_lock:
@@ -1094,6 +1195,7 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
             "sidebar_data": sidebar_data,
             "alt_lines_data": alt_lines,
             "alt_lines_date": today_str,
+            "parlays_data": parlays_data,
             "has_todays_games": game_info["has_todays_games"],
             "game_matchups": game_info["game_matchups"],
             "teams_today": set(game_info["team_to_opponent"].keys()),

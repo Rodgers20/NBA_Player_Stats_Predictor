@@ -334,6 +334,7 @@ try:
     def _scheduled_grade():
         from datetime import date as _date
         from utils.prediction_tracker import grade_predictions, grade_props
+        from utils.parlay_tracker import grade_parlays
         yesterday = (_date.today() - __import__("datetime").timedelta(days=1)).strftime("%Y-%m-%d")
         today     = _date.today().strftime("%Y-%m-%d")
         for d in (yesterday, today):
@@ -345,6 +346,10 @@ try:
                 grade_props(d)
             except Exception as exc:
                 print(f"[App] Grade props failed for {d}: {exc}")
+            try:
+                grade_parlays(d)
+            except Exception as exc:
+                print(f"[App] Grade parlays failed for {d}: {exc}")
 
     scheduler.add_job(
         _scheduled_grade,
@@ -403,6 +408,26 @@ try:
                     print(f"[App] Catch-up props grade failed for {d}: {exc}")
         else:
             print("[App] Catch-up props grading: all past dates already graded")
+
+        # Catch-up parlay grading
+        try:
+            from utils.parlay_tracker import _load as _load_parlays_history, grade_parlays
+            parlays_history = _load_parlays_history()
+            missed_parlays = [
+                d for d, v in parlays_history.items()
+                if d < today and not v.get("graded_at")
+            ]
+            if missed_parlays:
+                print(f"[App] Catch-up parlay grading {len(missed_parlays)} ungraded date(s): {missed_parlays}")
+                for d in sorted(missed_parlays):
+                    try:
+                        grade_parlays(d)
+                    except Exception as exc:
+                        print(f"[App] Catch-up parlay grade failed for {d}: {exc}")
+            else:
+                print("[App] Catch-up parlay grading: all past dates already graded")
+        except Exception as exc:
+            print(f"[App] Catch-up parlay grading setup failed: {exc}")
 
     _catchup_thread = _threading.Thread(target=_catchup_grade, daemon=True, name="catchup-grade")
     _catchup_thread.start()
@@ -1557,6 +1582,548 @@ def _create_alt_lines_section(alt_lines: list) -> "html.Div":
     })
 
 
+def _create_parlays_section(parlays: dict) -> "html.Div":
+    """Render all recommended parlays in a dedicated page view.
+
+    Sections:
+      A. Top 10 Best Bets       (single high-confidence picks)
+      B. 2-Leg Parlays          (10 tight pairs)
+      C. 3-Leg Parlays          (10 unified direction-agnostic)
+      D. Legacy: ML / Alt Lines / Over / Under / Defense parlays
+    """
+    if not parlays or parlays.get("total_count", 0) == 0:
+        return html.Div([
+            html.Div("No parlays available yet.", style={
+                "color": "var(--text-muted, #8ca0c0)",
+                "textAlign": "center",
+                "padding": "60px 0",
+                "fontSize": "1rem",
+            })
+        ])
+
+    # ── Shared helpers ─────────────────────────────────────────────────────
+    def _fmt_american(odds: int) -> str:
+        return f"+{odds}" if odds > 0 else str(odds)
+
+    # ── Confidence badge for single picks ──────────────────────────────────
+    def _conf_badge(model_prob: float, is_lock: bool) -> "html.Span":
+        if model_prob >= 0.75:
+            label, color = "ELITE", "#FFD700"
+        elif model_prob >= 0.68:
+            label, color = "STRONG", "#22c55e"
+        elif model_prob >= 0.63:
+            label, color = "HIGH", "#06b6d4"
+        else:
+            label, color = "SOLID", "#a78bfa"
+        return html.Span(label, style={
+            "background": color,
+            "color": "#0a0e1e",
+            "borderRadius": "4px",
+            "padding": "2px 7px",
+            "fontSize": "0.68rem",
+            "fontWeight": "800",
+            "letterSpacing": "0.06em",
+        })
+
+    # ── Best Bet single pick card ──────────────────────────────────────────
+    def _best_bet_card(prop: dict) -> "html.Div":
+        model_prob = prop.get("model_prob", 0)
+        is_lock    = prop.get("is_lock", False)
+        ev         = prop.get("ev", 0) or 0
+        hit_rate   = prop.get("hit_rate", 0) or 0
+        direction  = prop.get("direction", "Over")
+        stat       = prop.get("stat", "")
+        line       = prop.get("line", "")
+        l5_avg     = prop.get("l5_avg") or prop.get("avg")
+
+        # Border accent based on confidence
+        if is_lock and model_prob >= 0.70:
+            accent = "#FFD700"
+        elif model_prob >= 0.68:
+            accent = "#22c55e"
+        elif model_prob >= 0.63:
+            accent = "#06b6d4"
+        else:
+            accent = "#3a3d4a"
+
+        dir_color  = "#22c55e" if direction == "Over" else "#f59e0b"
+        lock_badge = html.Span("LOCK", style={
+            "background": "#FFD700", "color": "#0a0e1e",
+            "borderRadius": "4px", "padding": "1px 6px",
+            "fontSize": "0.65rem", "fontWeight": "800", "marginRight": "6px",
+        }) if is_lock else None
+
+        # Live odds display
+        live_price = (
+            prop.get("live_over_price") if direction == "Over"
+            else prop.get("live_under_price")
+        )
+        live_book  = prop.get("live_bookmaker", "")
+        odds_text  = (
+            f"{live_book}: {_fmt_american(live_price)}" if live_price
+            else f"Model: {_fmt_american(prop.get('model_over_odds', -110))}"
+        )
+
+        l5_text = f"L5 avg: {l5_avg:.1f}" if l5_avg is not None else ""
+
+        header_children = [c for c in [lock_badge, _conf_badge(model_prob, is_lock)] if c]
+        header_children.append(html.Span(
+            f"EV {'+' if ev >= 0 else ''}{ev * 100:.1f}%",
+            style={"color": "#10b981", "fontSize": "0.75rem", "fontWeight": "700",
+                   "marginLeft": "auto"},
+        ))
+
+        return html.Div([
+            # Header row: badges + EV
+            html.Div(header_children, style={
+                "display": "flex", "alignItems": "center", "gap": "6px",
+                "marginBottom": "8px",
+            }),
+            # Player + matchup
+            html.Div(
+                f"{prop.get('player', '')}  ·  {prop.get('team', '')} vs {prop.get('opponent', '')}",
+                style={"color": "#c0cce8", "fontSize": "0.85rem", "fontWeight": "600",
+                       "marginBottom": "4px"},
+            ),
+            # Stat + direction + line
+            html.Div([
+                html.Span(stat, style={
+                    "color": "#8ca0c0", "fontSize": "0.78rem",
+                    "textTransform": "uppercase", "marginRight": "8px",
+                }),
+                html.Span(direction.upper(), style={
+                    "color": dir_color, "fontWeight": "800", "fontSize": "0.88rem",
+                    "marginRight": "6px",
+                }),
+                html.Span(str(line), style={
+                    "color": "#f0f4ff", "fontWeight": "700", "fontSize": "1.05rem",
+                }),
+            ], style={"marginBottom": "8px"}),
+            # Stats row
+            html.Div([
+                html.Span(f"Hit: {hit_rate * 100:.0f}%", style={
+                    "color": "#8ca0c0", "fontSize": "0.78rem", "marginRight": "12px",
+                }),
+                html.Span(l5_text, style={
+                    "color": "#6b7280", "fontSize": "0.78rem", "marginRight": "12px",
+                }),
+                html.Span(odds_text, style={
+                    "color": "#8ca0c0", "fontSize": "0.75rem", "marginLeft": "auto",
+                }),
+            ], style={"display": "flex", "alignItems": "center"}),
+        ], style={
+            "background": "rgba(15,20,40,0.9)",
+            "borderRadius": "10px",
+            "border": f"1px solid {accent}66",
+            "borderLeft": f"3px solid {accent}",
+            "padding": "12px 14px",
+        })
+
+    # ── Parlay card (shared for 2-leg, 3-leg, and legacy types) ───────────
+    TYPE_COLORS = {
+        "ml":       ("#6366f1", "#312e81"),
+        "alt":      ("#10b981", "#064e3b"),
+        "over":     ("#22c55e", "#14532d"),
+        "under":    ("#f59e0b", "#78350f"),
+        "defense":  ("#ef4444", "#7f1d1d"),
+        "two_leg":  ("#06b6d4", "#0c4a6e"),
+        "three_leg": ("#8b5cf6", "#2e1065"),
+    }
+    TYPE_ICONS = {
+        "ml": "ML", "alt": "100%", "over": "↑", "under": "↓",
+        "defense": "SHIELD", "two_leg": "2L", "three_leg": "3L",
+    }
+
+    def _win_prob_color(win_prob: float) -> str:
+        if win_prob >= 35:
+            return "#22c55e"
+        if win_prob >= 25:
+            return "#f59e0b"
+        return "#6b7280"
+
+    def _leg_icon(leg: dict) -> str:
+        if leg.get("is_lock"):
+            return "L"
+        if (leg.get("win_prob") or 0) >= 68:
+            return "+"
+        return "·"
+
+    def _parlay_card(parlay: dict) -> "html.Div":
+        p_type    = parlay.get("type", "over")
+        odds_info = parlay.get("odds", {})
+        accent, bg = TYPE_COLORS.get(p_type, ("#6366f1", "#312e81"))
+        icon      = TYPE_ICONS.get(p_type, "")
+        legs      = parlay.get("legs", [])
+
+        combined_american = _fmt_american(odds_info.get("american", 0))
+        win_prob   = odds_info.get("win_prob", 0)
+        payout_100 = odds_info.get("payout_100", 0)
+        wp_color   = _win_prob_color(win_prob)
+
+        leg_rows = []
+        for leg in legs:
+            direction  = leg.get("direction", "Over")
+            dir_color  = "#22c55e" if direction in ("Over", "ML") else "#f59e0b"
+            stat_label = leg.get("stat_label") or leg.get("stat", "")
+            leg_wp     = leg.get("win_prob") or 0
+
+            if p_type in ("alt", "defense"):
+                prop_text = f"{leg.get('threshold')}+ {stat_label}  ({leg.get('trend', '')})"
+            elif p_type == "ml":
+                prop_text = leg.get("label", "")
+            else:
+                prop_text = f"{direction} {leg.get('line')} {stat_label}"
+
+            leg_odds_str = _fmt_american(leg.get("model_odds", -110))
+            li_icon      = _leg_icon(leg)
+            icon_color   = "#FFD700" if leg.get("is_lock") else (
+                "#22c55e" if leg_wp >= 68 else "#3a3d4a"
+            )
+
+            leg_rows.append(html.Div([
+                html.Span(li_icon, style={
+                    "color": icon_color, "fontWeight": "900",
+                    "fontSize": "0.8rem", "minWidth": "14px",
+                }),
+                html.Span(leg.get("player", ""), style={
+                    "fontWeight": "700", "color": "#f0f4ff",
+                    "minWidth": "150px", "fontSize": "0.85rem",
+                }),
+                html.Span(prop_text, style={
+                    "color": dir_color, "fontWeight": "600",
+                    "fontSize": "0.82rem", "flex": "1",
+                }),
+                html.Span(f"{leg_wp:.0f}% · {leg_odds_str}", style={
+                    "color": "#6b7280", "fontSize": "0.77rem",
+                    "textAlign": "right", "whiteSpace": "nowrap",
+                }),
+            ], style={
+                "display": "flex", "gap": "10px", "alignItems": "center",
+                "padding": "6px 0",
+                "borderBottom": "1px solid rgba(255,255,255,0.05)",
+            }))
+
+        return html.Div([
+            # Header
+            html.Div([
+                html.Div([
+                    html.Span(icon, style={
+                        "background": accent, "color": "#fff",
+                        "borderRadius": "4px", "padding": "2px 7px",
+                        "fontSize": "0.68rem", "fontWeight": "800",
+                        "letterSpacing": "0.05em", "marginRight": "10px",
+                    }),
+                    html.Span(parlay["label"], style={
+                        "fontWeight": "700", "color": "#f0f4ff", "fontSize": "0.95rem",
+                    }),
+                ], style={"display": "flex", "alignItems": "center"}),
+                html.Div([
+                    html.Span(combined_american, style={
+                        "fontWeight": "800", "fontSize": "1.1rem",
+                        "color": accent, "marginRight": "10px",
+                    }),
+                    html.Span(f"{win_prob}% win", style={
+                        "color": wp_color, "fontSize": "0.8rem", "fontWeight": "700",
+                    }),
+                ], style={"display": "flex", "alignItems": "center"}),
+            ], style={
+                "display": "flex", "justifyContent": "space-between",
+                "alignItems": "center", "padding": "12px 16px",
+                "background": f"linear-gradient(135deg, {bg} 0%, rgba(15,20,40,0.95) 100%)",
+                "borderRadius": "10px 10px 0 0",
+                "borderBottom": f"2px solid {accent}",
+            }),
+
+            # Legs
+            html.Div(leg_rows, style={
+                "padding": "4px 16px 2px 16px",
+                "background": "rgba(15,20,40,0.85)",
+            }),
+
+            # Footer
+            html.Div([
+                html.Span("$100 → ", style={"color": "#4b5563", "fontSize": "0.8rem"}),
+                html.Span(f"${payout_100 + 100:.0f}", style={
+                    "color": "#10b981", "fontWeight": "700", "fontSize": "0.88rem",
+                }),
+                html.Span(f"  (+${payout_100:.0f} profit)", style={
+                    "color": "#4b5563", "fontSize": "0.78rem",
+                }),
+            ], style={
+                "padding": "7px 16px",
+                "background": "rgba(10,14,30,0.9)",
+                "borderRadius": "0 0 10px 10px",
+                "display": "flex", "alignItems": "center",
+            }),
+        ], style={
+            "borderRadius": "10px",
+            "border": f"1px solid {accent}33",
+            "overflow": "hidden",
+            "marginBottom": "14px",
+        })
+
+    # ── Section header helper ──────────────────────────────────────────────
+    def _section_header(title: str, subtitle: str) -> "html.Div":
+        return html.Div([
+            html.Div(title, style={
+                "fontWeight": "800", "fontSize": "1rem",
+                "color": "#f0f4ff", "marginBottom": "2px",
+            }),
+            html.Div(subtitle, style={
+                "color": "#6b7280", "fontSize": "0.78rem", "marginBottom": "10px",
+            }),
+        ], style={"marginTop": "28px", "marginBottom": "4px"})
+
+    # ── 2-column grid wrapper ──────────────────────────────────────────────
+    def _two_col_grid(items: list) -> "html.Div":
+        return html.Div(items, style={
+            "display": "grid",
+            "gridTemplateColumns": "repeat(auto-fill, minmax(320px, 1fr))",
+            "gap": "14px",
+            "marginBottom": "8px",
+        })
+
+    # ── Assemble all sections ──────────────────────────────────────────────
+    cards: list = []
+
+    # ── Section A: Best Bets ──────────────────────────────────────────────
+    best_bets = parlays.get("best_bets", [])
+    if best_bets:
+        n_locks   = sum(1 for p in best_bets if p.get("is_lock"))
+        avg_prob  = sum(p.get("model_prob", 0) for p in best_bets) / len(best_bets)
+        lock_str  = f"{n_locks} Lock{'s' if n_locks != 1 else ''}" if n_locks else ""
+        conf_str  = f"Avg {avg_prob:.0%} confidence"
+        subtitle  = "  ·  ".join(filter(None, [lock_str, conf_str]))
+        cards.append(_section_header(f"Top Picks  ({len(best_bets)})", subtitle))
+        cards.append(_two_col_grid([_best_bet_card(p) for p in best_bets]))
+    else:
+        cards.append(_section_header("Top Picks", "No high-confidence picks available today"))
+
+    # ── Section B: 2-Leg Parlays ──────────────────────────────────────────
+    two_leg = parlays.get("two_leg", [])
+    if two_leg:
+        avg_wp = sum(p["odds"]["win_prob"] for p in two_leg) / len(two_leg)
+        cards.append(_section_header(
+            f"2-Leg Parlays  ({len(two_leg)})",
+            f"Avg win probability: {avg_wp:.1f}%",
+        ))
+        cards.append(_two_col_grid([_parlay_card(p) for p in two_leg]))
+    else:
+        cards.append(_section_header("2-Leg Parlays", "Not enough qualifying props today"))
+
+    # ── Section C: 3-Leg Parlays ──────────────────────────────────────────
+    three_leg = parlays.get("three_leg", [])
+    if three_leg:
+        avg_wp = sum(p["odds"]["win_prob"] for p in three_leg) / len(three_leg)
+        cards.append(_section_header(
+            f"3-Leg Parlays  ({len(three_leg)})",
+            f"Unified pool — overs, unders, and alt lines ranked by model confidence. "
+            f"Avg win probability: {avg_wp:.1f}%",
+        ))
+        cards.append(_two_col_grid([_parlay_card(p) for p in three_leg]))
+    else:
+        cards.append(_section_header("3-Leg Parlays", "Not enough qualifying props today"))
+
+    # ── Section D: Legacy parlays (ML / Alt / Over / Under / Defense) ─────
+    legacy_items: list = []
+
+    ml = parlays.get("ml")
+    if ml:
+        legacy_items.append(_section_header("Moneyline Parlay", "3 highest-confidence game picks"))
+        legacy_items.append(_parlay_card(ml))
+
+    alt_list = parlays.get("alt", [])
+    if alt_list:
+        legacy_items.append(_section_header(
+            "100% Alt Line Parlays",
+            "Players who hit this threshold in every game of their active streak",
+        ))
+        for p in alt_list:
+            legacy_items.append(_parlay_card(p))
+
+    over_list = parlays.get("over", [])
+    if over_list:
+        legacy_items.append(_section_header(
+            "Props OVER Parlays", "Best 3-leg OVER combos by model probability",
+        ))
+        for p in over_list:
+            legacy_items.append(_parlay_card(p))
+
+    under_list = parlays.get("under", [])
+    if under_list:
+        legacy_items.append(_section_header(
+            "Props UNDER Parlays", "Best 3-leg UNDER combos by model probability",
+        ))
+        for p in under_list:
+            legacy_items.append(_parlay_card(p))
+
+    defense_list = parlays.get("defense", [])
+    if defense_list:
+        legacy_items.append(_section_header(
+            "Defense Parlays  (Blocks & Steals)",
+            "Players on active 5+ game BLK/STL streaks",
+        ))
+        for p in defense_list:
+            legacy_items.append(_parlay_card(p))
+
+    if legacy_items:
+        cards.append(html.Details([
+            html.Summary("More Parlays (Alt Lines · Over/Under · Defense · ML)", style={
+                "color": "#6b7280", "fontSize": "0.85rem", "fontWeight": "600",
+                "cursor": "pointer", "padding": "10px 0", "marginTop": "28px",
+                "listStyle": "none", "outline": "none",
+            }),
+            *legacy_items,
+        ]))
+
+    # ── Parlay record banner ───────────────────────────────────────────────
+    try:
+        from utils.parlay_tracker import get_parlays_record
+        rec = get_parlays_record()
+    except Exception:
+        rec = {}
+
+    def _record_banner(rec: dict) -> "html.Div":
+        total_g = rec.get("total", 0)
+        if total_g == 0:
+            return html.Div(
+                "No graded parlays yet — record will appear after tonight's games.",
+                style={"color": "#4b5563", "fontSize": "0.8rem", "marginBottom": "18px"},
+            )
+
+        wins     = rec.get("wins", 0)
+        losses   = rec.get("losses", 0)
+        win_pct  = rec.get("win_pct", 0)
+        profit   = rec.get("profit_10", 0.0)
+        roi      = rec.get("roi_pct", 0.0)
+        r7_pct   = rec.get("recent_7d_win_pct", 0.0)
+        r7_total = rec.get("recent_7d_total", 0)
+
+        profit_color = "#22c55e" if profit >= 0 else "#f87171"
+        pct_color    = "#22c55e" if win_pct >= 35 else "#f59e0b" if win_pct >= 25 else "#f87171"
+
+        by_type = rec.get("by_type", {})
+
+        def _type_chip(label: str, key: str) -> "html.Div":
+            bt = by_type.get(key, {})
+            w  = bt.get("wins", 0)
+            l  = bt.get("losses", 0)
+            if w + l == 0:
+                return None
+            pnl = bt.get("profit_10", 0)
+            col = "#22c55e" if pnl >= 0 else "#f87171"
+            return html.Div([
+                html.Span(label, style={"color": "#8ca0c0", "fontSize": "0.72rem",
+                                        "textTransform": "uppercase", "letterSpacing": "0.04em"}),
+                html.Span(f" {w}W-{l}L", style={"color": "#f0f4ff", "fontWeight": "700",
+                                                  "fontSize": "0.8rem", "marginLeft": "4px"}),
+                html.Span(f" ${pnl:+.0f}", style={"color": col, "fontSize": "0.75rem",
+                                                    "marginLeft": "4px"}),
+            ], style={"display": "flex", "alignItems": "center", "gap": "2px",
+                      "padding": "4px 10px", "background": "rgba(255,255,255,0.04)",
+                      "borderRadius": "6px"})
+
+        type_chips = [c for c in [
+            _type_chip("2-Leg", "two_leg"),
+            _type_chip("3-Leg", "three_leg"),
+            _type_chip("Alt",   "alt"),
+            _type_chip("Over",  "over"),
+            _type_chip("Under", "under"),
+        ] if c is not None]
+
+        return html.Div([
+            # Stat row
+            html.Div([
+                html.Div([
+                    html.Div(f"{wins}-{losses}", style={
+                        "fontSize": "1.6rem", "fontWeight": "900", "color": pct_color, "lineHeight": "1",
+                    }),
+                    html.Div("all-time W-L", style={
+                        "color": "#4a5a75", "fontSize": "0.7rem", "textTransform": "uppercase",
+                        "letterSpacing": "0.05em",
+                    }),
+                ]),
+                html.Div([
+                    html.Div(f"{win_pct:.1f}%", style={
+                        "fontSize": "1.4rem", "fontWeight": "800", "color": pct_color, "lineHeight": "1",
+                    }),
+                    html.Div("win rate", style={
+                        "color": "#4a5a75", "fontSize": "0.7rem", "textTransform": "uppercase",
+                        "letterSpacing": "0.05em",
+                    }),
+                ]),
+                html.Div([
+                    html.Div(f"${profit:+.0f}", style={
+                        "fontSize": "1.4rem", "fontWeight": "800", "color": profit_color, "lineHeight": "1",
+                    }),
+                    html.Div("profit @ $10/parlay", style={
+                        "color": "#4a5a75", "fontSize": "0.7rem", "textTransform": "uppercase",
+                        "letterSpacing": "0.05em",
+                    }),
+                ]),
+                html.Div([
+                    html.Div(f"{roi:+.1f}%", style={
+                        "fontSize": "1.4rem", "fontWeight": "800", "color": profit_color, "lineHeight": "1",
+                    }),
+                    html.Div("ROI", style={
+                        "color": "#4a5a75", "fontSize": "0.7rem", "textTransform": "uppercase",
+                        "letterSpacing": "0.05em",
+                    }),
+                ]),
+                html.Div([
+                    html.Div(f"{r7_pct:.1f}%", style={
+                        "fontSize": "1.4rem", "fontWeight": "800", "color": "#2dd4bf", "lineHeight": "1",
+                    }),
+                    html.Div(f"last 7d ({r7_total} parlays)", style={
+                        "color": "#4a5a75", "fontSize": "0.7rem", "textTransform": "uppercase",
+                        "letterSpacing": "0.05em",
+                    }),
+                ]),
+            ], style={
+                "display": "flex", "gap": "32px", "alignItems": "flex-start",
+                "marginBottom": "12px",
+            }),
+            # Type breakdown chips
+            html.Div(type_chips, style={
+                "display": "flex", "flexWrap": "wrap", "gap": "8px",
+            }) if type_chips else None,
+        ], style={
+            "background": "rgba(15,20,40,0.7)",
+            "borderRadius": "10px",
+            "border": "1px solid rgba(99,102,241,0.2)",
+            "padding": "16px 20px",
+            "marginBottom": "24px",
+        })
+
+    total = parlays.get("total_count", 0)
+    return html.Div([
+        # Page header
+        html.Div([
+            html.Div([
+                html.Span("PARLAYS", style={
+                    "background": "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                    "color": "#fff", "borderRadius": "6px", "padding": "3px 10px",
+                    "fontSize": "0.72rem", "fontWeight": "800",
+                    "letterSpacing": "0.08em", "marginRight": "12px",
+                }),
+                html.Span(f"{total} picks & parlays generated", style={
+                    "color": "#f0f4ff", "fontWeight": "700", "fontSize": "1rem",
+                }),
+            ], style={"display": "flex", "alignItems": "center", "marginBottom": "4px"}),
+            html.Div(
+                "Odds are model-estimated (4.76% vig). "
+                "Same player-prop in at most 2 parlays.",
+                style={"color": "#4b5563", "fontSize": "0.78rem"},
+            ),
+        ], style={"marginBottom": "16px"}),
+
+        # Record banner
+        _record_banner(rec),
+
+        *cards,
+    ])
+
+
 def _create_props_record_section() -> "html.Div":
     """Render the props prediction record from prediction_tracker."""
     try:
@@ -1759,9 +2326,10 @@ def create_best_props_page():
 
                 # ── Primary view switcher: PROPS | 100% ALT LINES | RECORD ──
                 html.Div([
-                    html.Div("Props",          id="props-view-tab-props",   n_clicks=0, className="view-tab active"),
-                    html.Div("100% Alt Lines", id="props-view-tab-alt",     n_clicks=0, className="view-tab"),
-                    html.Div("Record ✓",       id="props-view-tab-record",  n_clicks=0, className="view-tab"),
+                    html.Div("Props",          id="props-view-tab-props",    n_clicks=0, className="view-tab active"),
+                    html.Div("100% Alt Lines", id="props-view-tab-alt",      n_clicks=0, className="view-tab"),
+                    html.Div("Record ✓",       id="props-view-tab-record",   n_clicks=0, className="view-tab"),
+                    html.Div("Parlays",        id="props-view-tab-parlays",  n_clicks=0, className="view-tab"),
                 ], className="props-view-switcher"),
 
                 # ── Filter rows (hidden when Alt Lines view is active) ─────────
@@ -2348,23 +2916,27 @@ def update_location_filter(all_clicks, home_clicks, away_clicks):
 
 @callback(
     [Output("props-view", "data"),
-     Output("props-view-tab-props",  "className"),
-     Output("props-view-tab-alt",    "className"),
-     Output("props-view-tab-record", "className"),
-     Output("props-filter-panel",    "style")],
-    [Input("props-view-tab-props",  "n_clicks"),
-     Input("props-view-tab-alt",    "n_clicks"),
-     Input("props-view-tab-record", "n_clicks")],
+     Output("props-view-tab-props",   "className"),
+     Output("props-view-tab-alt",     "className"),
+     Output("props-view-tab-record",  "className"),
+     Output("props-view-tab-parlays", "className"),
+     Output("props-filter-panel",     "style")],
+    [Input("props-view-tab-props",   "n_clicks"),
+     Input("props-view-tab-alt",     "n_clicks"),
+     Input("props-view-tab-record",  "n_clicks"),
+     Input("props-view-tab-parlays", "n_clicks")],
     prevent_initial_call=True,
 )
-def update_props_view(n_props, n_alt, n_record):
+def update_props_view(n_props, n_alt, n_record, n_parlays):
     from dash import ctx
     triggered = ctx.triggered_id
     if triggered == "props-view-tab-alt":
-        return "alt",    "view-tab",        "view-tab active", "view-tab",        {"display": "none"}
+        return "alt",     "view-tab",        "view-tab active", "view-tab",        "view-tab",        {"display": "none"}
     if triggered == "props-view-tab-record":
-        return "record", "view-tab",        "view-tab",        "view-tab active", {"display": "none"}
-    return "props", "view-tab active", "view-tab", "view-tab", {}
+        return "record",  "view-tab",        "view-tab",        "view-tab active", "view-tab",        {"display": "none"}
+    if triggered == "props-view-tab-parlays":
+        return "parlays", "view-tab",        "view-tab",        "view-tab",        "view-tab active", {"display": "none"}
+    return "props", "view-tab active", "view-tab", "view-tab", "view-tab", {}
 
 
 @callback(
@@ -2577,6 +3149,12 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
             style={"color": "var(--text-muted)", "textAlign": "center", "padding": "40px"},
         )
         return [alt_content, _empty_counts, _default_lock_label]
+
+    # ── Parlays view ───────────────────────────────────────────────────────────
+    if view == "parlays":
+        from utils.props_cache import get_parlays_cache
+        parlays = get_parlays_cache()
+        return [_create_parlays_section(parlays), _empty_counts, _default_lock_label]
 
     if not props_data:
         return [
