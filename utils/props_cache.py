@@ -213,16 +213,16 @@ def _is_qualified_player(player_name: str, player_df: "pd.DataFrame") -> tuple[b
     if days_inactive > 45:
         return False, 0.0
 
-    # Must average at least 15 MPG over last 10 games
+    # Must average at least 12 MPG over last 10 games (was 15 — rotation players included)
     recent_min = pd.to_numeric(player_df.head(10)["MIN"], errors="coerce")
     avg_min = recent_min.mean()
-    if pd.isna(avg_min) or avg_min < 15:
+    if pd.isna(avg_min) or avg_min < 12:
         return False, 0.0
 
-    # Must have at least 10 games in the current season
+    # Must have at least 8 games in the current season (was 10 — captures returning players)
     if "SEASON" in player_df.columns:
         current_rows = player_df[player_df["SEASON"].str.startswith("2025", na=False)]
-        if len(current_rows) < 10:
+        if len(current_rows) < 8:
             return False, 0.0
 
     return True, float(avg_min)
@@ -318,7 +318,13 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
         blowout_spread = abs(team_spread) if team_spread is not None else None
         blowout_risk   = blowout_spread is not None and blowout_spread >= 10
 
-        for stat_type in ["PTS", "AST", "REB", "FG3M"]:
+        # Per-stat minimum average to qualify for a prop line
+        _STAT_MIN_AVG = {
+            "PTS": 1.0, "AST": 1.0, "REB": 1.0,
+            "FG3M": 0.5, "STL": 0.5, "BLK": 0.3,
+        }
+
+        for stat_type in ["PTS", "AST", "REB", "FG3M", "STL", "BLK"]:
             if stat_type not in recent_10.columns:
                 continue
 
@@ -328,7 +334,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
 
             avg_stat    = recent_stats.mean()
 
-            if avg_stat < 1:
+            if avg_stat < _STAT_MIN_AVG.get(stat_type, 1.0):
                 continue
 
             # ── L5 average — primary form signal (current performance level) ──
@@ -341,6 +347,10 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 line = math.floor(l5_avg) + 0.5 if l5_avg > 5 else 4.5
             elif stat_type == "FG3M":
                 line = math.floor(l5_avg) + 0.5 if l5_avg > 1 else 0.5
+            elif stat_type in ("STL", "BLK"):
+                # Half-unit lines for defensive stats (0.5, 1.5, 2.5, ...)
+                line = math.floor(l5_avg * 2) / 2 if l5_avg >= 0.5 else 0.5
+                line = max(0.5, line)
             else:  # AST, REB
                 line = math.floor(l5_avg) + 0.5 if l5_avg > 2 else 1.5
 
@@ -669,21 +679,28 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             prop["live_under_price"] = None
             prop["live_bookmaker"]   = None
 
-    # ── Quality gate — keep only high-confidence, genuine-edge props ─────
-    # Locks bypass the quality gate (they already cleared 80% hit_rate).
-    _MIN_MODEL_PROB = 0.56   # model must give ≥56% probability
-    _MIN_EV         = 0.02   # ≥2% edge over implied (model_prob − implied ≥ 0.02)
-    _MAX_PER_PLAYER = 2      # max 2 props per player to avoid flooding one hot player
-    _HARD_CAP       = 60     # absolute max props shown
+    # ── Quality gate — keep only genuine-edge props with meaningful payout ─
+    # EV is now ROI-based (actual dollars, not just probability edge) so raising
+    # the bar from 2% to 5% filters out chalk props where you risk $400 to win $25.
+    # Odds minimum ensures nothing shows that pays less than $56 per $100 risked.
+    _MIN_MODEL_PROB    = 0.54   # slightly relaxed — EV gate does the heavy lifting
+    _MIN_EV            = 0.05   # 5% real ROI edge (was 2%)
+    _MIN_ODDS_AMERICAN = -180   # props must pay at least $56/$100 risked
+    _LOCK_MIN_ODDS     = -250   # LOCKs get a more generous allowance
+    _MAX_PER_PLAYER    = 3      # up to 3 props per player (was 2)
+    _HARD_CAP          = 100    # absolute max (was 60, raised for big slates)
 
     quality_props = []
     for p in props_data:
+        odd = p.get("model_over_odds") or -300
         if p.get("is_lock"):
-            quality_props.append(p)
+            # LOCKs shown if odds aren't extreme (-250 max)
+            if odd >= _LOCK_MIN_ODDS:
+                quality_props.append(p)
             continue
         mp = p.get("model_prob") or 0.0
         ev = p.get("ev") or 0.0
-        if mp >= _MIN_MODEL_PROB and ev >= _MIN_EV:
+        if mp >= _MIN_MODEL_PROB and ev >= _MIN_EV and odd >= _MIN_ODDS_AMERICAN:
             quality_props.append(p)
 
     # Deduplicate: keep top _MAX_PER_PLAYER props per player (by EV)
@@ -701,7 +718,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
     deduped.sort(key=lambda x: (not x.get("is_lock", False), -(x.get("ev") or 0)))
     props_data = deduped[:_HARD_CAP]
 
-    print(f"[PropsCache] Quality gate: {len(props_data)} props (min model_prob={_MIN_MODEL_PROB}, min EV={_MIN_EV})")
+    print(f"[PropsCache] Quality gate: {len(props_data)} props (min model_prob={_MIN_MODEL_PROB}, min EV={_MIN_EV}, min odds={_MIN_ODDS_AMERICAN})")
 
     # Warn if any teams playing today have zero props (may indicate data gap)
     if game_info["has_todays_games"] and teams_today:
@@ -1166,6 +1183,8 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
         game_predictions_for_parlay.append({
             "home": home_team, "away": away_team,
             "winner_pick": winner, "winner_confidence": conf,
+            "spread": spread,        # home line (negative = home favored)
+            "model_total": None,     # not yet computed — totals parlay skipped gracefully
         })
 
     # ── Build all parlays ──────────────────────────────────────────────────
@@ -1184,7 +1203,7 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
             print(f"[PropsCache] Parlay save error (non-fatal): {_pte}")
     except Exception as _pe:
         print(f"[PropsCache] Parlay build error (non-fatal): {_pe}")
-        parlays_data = {"best_bets": [], "two_leg": [], "three_leg": [], "ml": None, "alt": [], "over": [], "under": [], "defense": [], "total_count": 0}
+        parlays_data = {"over": [], "ml": [], "spread": [], "totals": [], "alt_over": [], "reduced": [], "alt": [], "under": [], "defense": [], "total_count": 0}
 
     elapsed = (datetime.now() - start).total_seconds()
 

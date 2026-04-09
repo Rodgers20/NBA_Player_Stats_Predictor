@@ -1,0 +1,969 @@
+{
+  "2026-04-08": {
+    "generated_at": "2026-04-08T21:28:41.996954+00:00",
+    "graded_at": null,
+    "parlays": [
+      {
+        "label": "4-Leg Props OVER Parlay #1",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Deni Avdija",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jordan Miller",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Caris LeVert",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Olivier-Maxence Prosper",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 2.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 656,
+        "odds_decimal": 7.57,
+        "win_prob": 13.2,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #2",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Deni Avdija",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jordan Miller",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Caris LeVert",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Olivier-Maxence Prosper",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 2.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 656,
+        "odds_decimal": 7.57,
+        "win_prob": 13.2,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #3",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Rasheer Fleming",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Shai Gilgeous-Alexander",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jarrett Allen",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jalen Johnson",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 806,
+        "odds_decimal": 9.07,
+        "win_prob": 11.0,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #4",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Rasheer Fleming",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Shai Gilgeous-Alexander",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jarrett Allen",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jalen Johnson",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 806,
+        "odds_decimal": 9.07,
+        "win_prob": 11.0,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #5",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Taylor Hendricks",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Zaccharie Risacher",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Harrison Barnes",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "James Harden",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 16.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 1508,
+        "odds_decimal": 16.08,
+        "win_prob": 6.2,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #6",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Taylor Hendricks",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Zaccharie Risacher",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Harrison Barnes",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "James Harden",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 16.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 1508,
+        "odds_decimal": 16.08,
+        "win_prob": 6.2,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #7",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Alex Caruso",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Grayson Allen",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Luke Kornet",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Cason Wallace",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 2267,
+        "odds_decimal": 23.68,
+        "win_prob": 4.2,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #8",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Alex Caruso",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Grayson Allen",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Luke Kornet",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Cason Wallace",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 2267,
+        "odds_decimal": 23.68,
+        "win_prob": 4.2,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #9",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Javonte Green",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Onyeka Okongwu",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Derrick Jones Jr.",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 3.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Donovan Mitchell",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 16.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 3210,
+        "odds_decimal": 33.1,
+        "win_prob": 3.0,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #10",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Javonte Green",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Onyeka Okongwu",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Derrick Jones Jr.",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 3.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Donovan Mitchell",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 16.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 3210,
+        "odds_decimal": 33.1,
+        "win_prob": 3.0,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Moneyline Parlay #1",
+        "type": "ml",
+        "legs": [
+          {
+            "player": "MIN @ ORL",
+            "stat": "ML",
+            "direction": "ML",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "MIL @ DET",
+            "stat": "ML",
+            "direction": "ML",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "MEM @ DEN",
+            "stat": "ML",
+            "direction": "ML",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": -119,
+        "odds_decimal": 1.83,
+        "win_prob": 54.5,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Moneyline Parlay #2",
+        "type": "ml",
+        "legs": [
+          {
+            "player": "DAL @ PHX",
+            "stat": "ML",
+            "direction": "ML",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "ATL @ CLE",
+            "stat": "ML",
+            "direction": "ML",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "OKC @ LAC",
+            "stat": "ML",
+            "direction": "ML",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 247,
+        "odds_decimal": 3.47,
+        "win_prob": 28.8,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Spread Parlay #1",
+        "type": "spread",
+        "legs": [
+          {
+            "player": "MIN @ ORL",
+            "stat": "ATS",
+            "direction": "ATS",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "MIL @ DET",
+            "stat": "ATS",
+            "direction": "ATS",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "MEM @ DEN",
+            "stat": "ATS",
+            "direction": "ATS",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 133,
+        "odds_decimal": 2.34,
+        "win_prob": 42.8,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Spread Parlay #2",
+        "type": "spread",
+        "legs": [
+          {
+            "player": "OKC @ LAC",
+            "stat": "ATS",
+            "direction": "ATS",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "DAL @ PHX",
+            "stat": "ATS",
+            "direction": "ATS",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "ATL @ CLE",
+            "stat": "ATS",
+            "direction": "ATS",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 171,
+        "odds_decimal": 2.71,
+        "win_prob": 36.9,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #11",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Chet Holmgren",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 6.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Donovan Clingan",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 7.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Evan Mobley",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 14.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Kawhi Leonard",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 5400,
+        "odds_decimal": 55.01,
+        "win_prob": 1.8,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #12",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Chet Holmgren",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 6.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Donovan Clingan",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 7.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Evan Mobley",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 14.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Kawhi Leonard",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 5400,
+        "odds_decimal": 55.01,
+        "win_prob": 1.8,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #13",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Keon Ellis",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jevon Carter",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "DeJon Jarreau",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Bruce Brown",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 6313,
+        "odds_decimal": 64.14,
+        "win_prob": 1.6,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #14",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Keon Ellis",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jevon Carter",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "DeJon Jarreau",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Bruce Brown",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 6313,
+        "odds_decimal": 64.14,
+        "win_prob": 1.6,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "4-Leg Props OVER Parlay #15",
+        "type": "over",
+        "legs": [
+          {
+            "player": "Brook Lopez",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 0.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Bennedict Mathurin",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 7.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Tim Hardaway Jr.",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 4.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Kris Murray",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 7775,
+        "odds_decimal": 78.76,
+        "win_prob": 1.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #1  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Ousmane Dieng",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 12.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Scoot Henderson",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Julian Champagnie",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 9.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #2  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Ousmane Dieng",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 12.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Scoot Henderson",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Julian Champagnie",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 9.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #3  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Matisse Thybulle",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 5.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jericho Sims",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Brook Lopez",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #4  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Matisse Thybulle",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 5.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jericho Sims",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Ausar Thompson",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #5  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Ausar Thompson",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Kobe Sanders",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 1.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Cameron Johnson",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 3.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      }
+    ],
+    "summary": {}
+  }
+}

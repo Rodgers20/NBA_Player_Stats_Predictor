@@ -90,26 +90,26 @@ def parlay_odds(legs: list[dict]) -> dict:
 # ── Diversity tracker ─────────────────────────────────────────────────────────
 
 class _DiversityTracker:
-    """Enforces the rule: same (player, stat) pair in at most 2 parlays TOTAL.
+    """Enforces the rule: any player appears in at most 2 parlays TOTAL.
 
-    Direction is intentionally excluded from the key — you can't have LaMelo
-    Ball's PTS in more than 2 parlays regardless of whether it's Over, Under,
-    Alt, or Defense.  Different stats (e.g. PTS vs AST) are tracked separately.
+    Tracks by player name only — a player can't be in more than 2 parlays
+    regardless of stat type or direction.  User rule: max 2 parlays per player
+    across the entire slate.
     """
 
     def __init__(self, max_uses: int = 2) -> None:
         self._uses: dict[tuple, int] = defaultdict(int)
         self._max = max_uses
 
-    def _key(self, player: str, stat: str, direction: str = "") -> tuple:
-        # direction param accepted for interface compat but intentionally ignored
-        return (player.lower(), stat.upper())
+    def _key(self, player: str, stat: str = "", direction: str = "") -> tuple:
+        # Track by player name only — stat/direction params kept for interface compat
+        return (player.lower(),)
 
-    def can_use(self, player: str, stat: str, direction: str = "") -> bool:
-        return self._uses[self._key(player, stat)] < self._max
+    def can_use(self, player: str, stat: str = "", direction: str = "") -> bool:
+        return self._uses[self._key(player)] < self._max
 
-    def mark_used(self, player: str, stat: str, direction: str = "") -> None:
-        self._uses[self._key(player, stat)] += 1
+    def mark_used(self, player: str, stat: str = "", direction: str = "") -> None:
+        self._uses[self._key(player)] += 1
 
 
 # ── Streak window → probability mapping ──────────────────────────────────────
@@ -266,14 +266,19 @@ def build_alt_parlays(
 def build_over_parlays(
     props: list[dict],
     tracker: _DiversityTracker,
-    n_parlays: int = 5,
+    n_parlays: int = 15,
     n_legs: int = 3,
 ) -> list[dict]:
-    """Build 5 three-leg OVER parlays from the highest-probability props."""
+    """Build up to n_parlays three-leg OVER parlays from the highest-probability props.
+
+    First 10 go to the main Parlays section; next 5 go to the 100% Alt section.
+    Threshold lowered to 0.52 to match the over hit-rate entry bar — previously
+    0.56 caused many valid overs to be excluded from parlays entirely.
+    """
     overs = [
         p for p in props
         if p.get("direction", "").lower() == "over"
-        and (p.get("model_prob") or 0) >= 0.56
+        and ((p.get("model_prob") or 0) >= 0.52 or p.get("hit_rate", 0) >= 0.52)
         and p.get("model_over_odds") is not None
     ]
     overs.sort(key=lambda x: -(x.get("model_prob") or 0))
@@ -729,24 +734,36 @@ _SAFE_REDUCE_MIN: dict[str, float] = {
     "REB": 1.5,
     "FG3M": 0.5,
 }
-_SAFE_REDUCE_PCT = 0.20   # 20% below L5 avg
-_SAFE_PROB       = 0.82   # estimated hit probability at reduced line
+_SAFE_REDUCE_PCT = 0.22   # 22% below L5 avg (was 20%)
+_SAFE_PROB       = 0.70   # estimated hit probability at reduced line (was 0.82)
+# Lowered from 0.82→0.70: three 70% legs pay +180 vs three 82% legs paying only +77.
+# The lines are still meaningful — 22% below avg is a genuine discount, not trivial.
+
+# Stars' reduced lines are still chalk even after reduction.
+# Exclude them so reduced parlays feature mid-tier players with better odds.
+_REDUCED_MAX_AVG: dict[str, float] = {
+    "PTS": 24.0,   # avg > 24 pts → still chalk after reduction
+    "AST": 8.0,
+    "REB": 11.0,
+    "FG3M": 4.0,
+}
 
 
 def build_reduced_avg_parlays(
     props: list[dict],
     tracker: _DiversityTracker,
-    n_parlays: int = 10,
+    n_parlays: int = 5,
     n_legs: int = 3,
 ) -> list[dict]:
-    """Build 10x 3-leg 'safe over' parlays using lines ~20% below player's L5 avg.
+    """Build 5x 3-leg 'safe over' parlays using lines ~22% below player's L5 avg.
 
-    Concept: if a player averages 25 pts in last 5-10 games, take them for
-    Over 20.  If they avg 6 ast → Over 4.  If they avg 10 reb → Over 8.
-    Line = floor((l5_avg - reduction) × 2) / 2  (rounded down to nearest 0.5).
+    Concept: if a player averages 18 pts, take them for Over 14.  If they avg
+    6 ast → Over 4.5.  Targets mid-tier players (not superstars) where the
+    reduced line still produces meaningful but achievable targets.
 
-    Only single stats (no combo), no BLK/STL (those live in defense parlays).
-    Reduced line must be strictly below the book line to ensure value.
+    Stars excluded (avg > _REDUCED_MAX_AVG threshold) — their reduced lines are
+    still chalk (-400+) which kills parlay payout.  Mid-tier players at 70%
+    probability combine to pay +180 on a 3-leg parlay.
     """
     pool: list[dict] = []
     seen: set[tuple] = set()   # deduplicate (player, stat) in pool
@@ -760,6 +777,10 @@ def build_reduced_avg_parlays(
 
         l5_avg = float(prop.get("l5_avg") or prop.get("avg") or 0.0)
         if l5_avg < 4.0:
+            continue
+
+        # Exclude stars — their reduced lines are still chalk even after reduction
+        if l5_avg > _REDUCED_MAX_AVG.get(stat, 999.0):
             continue
 
         player = prop["player"]
@@ -855,6 +876,173 @@ def build_reduced_avg_parlays(
     return parlays
 
 
+# ── 3 Moneyline parlays (non-overlapping) ─────────────────────────────────────
+
+def build_ml_trio(
+    game_predictions: list[dict],
+    tracker: _DiversityTracker,
+) -> list[dict]:
+    """Build 3 distinct 3-leg Moneyline parlays from today's game predictions.
+
+    Picks the top 9 qualifying games (HIGH/MEDIUM confidence), assigns them
+    to 3 non-overlapping groups of 3.  Returns 1–3 parlays depending on how
+    many qualify.
+    """
+    CONF_TO_PROB = {"HIGH": 0.78, "MEDIUM": 0.62}
+
+    candidates: list[dict] = []
+    for g in game_predictions:
+        conf   = g.get("winner_confidence", "LOW")
+        prob   = CONF_TO_PROB.get(conf)
+        winner = g.get("winner_pick")
+        if prob is None or not winner:
+            continue
+        home = g.get("home", "")
+        away = g.get("away", "")
+        if winner != home:
+            prob = max(0.52, 1.0 - prob)
+        candidates.append({
+            "player":     f"{away} @ {home}",
+            "stat":       "ML",
+            "direction":  "ML",
+            "pick":       winner,
+            "confidence": conf,
+            "win_prob":   round(prob * 100, 1),
+            "model_odds": _prob_to_american(prob),
+            "label":      f"{winner} ML ({conf})",
+            "game":       f"{away} @ {home}",
+        })
+
+    candidates.sort(key=lambda x: -x["win_prob"])
+
+    parlays: list[dict] = []
+    for i in range(3):
+        group = candidates[i * 3 : i * 3 + 3]
+        if len(group) < 3:
+            break
+        parlays.append({
+            "label": f"Moneyline Parlay #{i + 1}",
+            "type":  "ml",
+            "legs":  group,
+            "odds":  parlay_odds(group),
+        })
+    return parlays
+
+
+# ── 3 Spread (ATS) parlays ────────────────────────────────────────────────────
+
+def build_spread_parlays(
+    game_predictions: list[dict],
+    tracker: _DiversityTracker,
+    n_parlays: int = 3,
+) -> list[dict]:
+    """Build 3x 3-leg spread (ATS) parlays from game predictions.
+
+    Requires game_predictions entries to have a 'spread' key (home line,
+    negative = home favored).  Skips games with too-small spreads (< 1.5 pts).
+    """
+    def _spread_prob(abs_spread: float) -> float:
+        return min(0.72, max(0.52, 0.50 + abs_spread / 25.0))
+
+    candidates: list[dict] = []
+    for g in game_predictions:
+        spread = g.get("spread")
+        if spread is None:
+            continue
+        home = g.get("home", "")
+        away = g.get("away", "")
+        abs_s = abs(spread)
+        if abs_s < 1.5:
+            continue
+
+        pick_team = home if spread < 0 else away
+        prob = _spread_prob(abs_s)
+        spread_str = f"{'+' if spread > 0 else ''}{spread:.1f}"
+
+        candidates.append({
+            "player":    f"{away} @ {home}",
+            "stat":      "ATS",
+            "direction": "ATS",
+            "pick":      pick_team,
+            "win_prob":  round(prob * 100, 1),
+            "model_odds": _prob_to_american(prob),
+            "label":     f"{pick_team} ATS ({spread_str})",
+            "game":      f"{away} @ {home}",
+        })
+
+    candidates.sort(key=lambda x: -x["win_prob"])
+
+    parlays: list[dict] = []
+    for i in range(n_parlays):
+        group = candidates[i * 3 : i * 3 + 3]
+        if len(group) < 3:
+            break
+        parlays.append({
+            "label": f"Spread Parlay #{i + 1}",
+            "type":  "spread",
+            "legs":  group,
+            "odds":  parlay_odds(group),
+        })
+    return parlays
+
+
+# ── 3 Game Totals (O/U) parlays ───────────────────────────────────────────────
+
+def build_total_parlays(
+    game_predictions: list[dict],
+    tracker: _DiversityTracker,
+    n_parlays: int = 3,
+    default_nba_total: float = 220.0,
+) -> list[dict]:
+    """Build 3x 3-leg game total (Over/Under) parlays.
+
+    Requires 'model_total' key in game_predictions.  Compares model's predicted
+    total against the actual O/U line (or 220 default if not available).
+    Only emits legs where the model disagrees by at least 3 points.
+    """
+    def _total_prob(diff: float) -> float:
+        return min(0.70, max(0.52, 0.52 + abs(diff) / 20.0))
+
+    candidates: list[dict] = []
+    for g in game_predictions:
+        model_total = g.get("model_total")
+        if model_total is None:
+            continue
+        home = g.get("home", "")
+        away = g.get("away", "")
+        ou_line = g.get("total_line", default_nba_total)
+        diff = model_total - ou_line
+        if abs(diff) < 3.0:
+            continue
+
+        direction = "Over" if diff > 0 else "Under"
+        prob = _total_prob(diff)
+        candidates.append({
+            "player":    f"{away} @ {home}",
+            "stat":      "TOTAL",
+            "direction": direction,
+            "win_prob":  round(prob * 100, 1),
+            "model_odds": _prob_to_american(prob),
+            "label":     f"{direction} {ou_line} (model: {model_total:.0f})",
+            "game":      f"{away} @ {home}",
+        })
+
+    candidates.sort(key=lambda x: -x["win_prob"])
+
+    parlays: list[dict] = []
+    for i in range(n_parlays):
+        group = candidates[i * 3 : i * 3 + 3]
+        if len(group) < 3:
+            break
+        parlays.append({
+            "label": f"Game Totals Parlay #{i + 1}",
+            "type":  "totals",
+            "legs":  group,
+            "odds":  parlay_odds(group),
+        })
+    return parlays
+
+
 # ── Master builder ────────────────────────────────────────────────────────────
 
 def build_all_parlays(
@@ -864,49 +1052,48 @@ def build_all_parlays(
 ) -> dict:
     """Build all parlay groups in one call.
 
+    Returns dict with 29 target distinct parlays:
+        over (10) + ml (3) + spread (3) + totals (3) + alt_over (5) + reduced (5) = 29
+
     Args:
         props:            Main page props (with model_over_odds / model_under_odds).
         alt_lines:        100% Alt Line streaks (with stat, threshold, window).
-        game_predictions: Game-level predictions (with winner_pick, winner_confidence).
-
-    Returns dict:
-        {
-            "best_bets":   [prop dict, ...],     # up to 10 single picks
-            "two_leg":     [parlay dict, ...],   # up to 10 two-leg parlays
-            "three_leg":   [parlay dict, ...],   # up to 10 three-leg parlays
-            "ml":          parlay dict | None,
-            "alt":         [parlay dict, ...],   # up to 2
-            "over":        [parlay dict, ...],   # up to 5
-            "under":       [parlay dict, ...],   # up to 3
-            "defense":     [parlay dict, ...],   # up to 3
-            "total_count": int,
-        }
+        game_predictions: Game-level predictions with optional spread/model_total keys.
     """
     tracker = _DiversityTracker(max_uses=2)
 
-    # Build order: prop parlays first (best picks), then alt/defense (wider pool)
-    ml_parlay        = build_ml_parlay(game_predictions, tracker)
-    over_parlays     = build_over_parlays(props,      tracker, n_parlays=5,  n_legs=3)
-    under_parlays    = build_under_parlays(props,     tracker, n_parlays=3,  n_legs=3)
-    reduced_parlays  = build_reduced_avg_parlays(props, tracker, n_parlays=10, n_legs=3)
-    alt_parlays      = build_alt_parlays(alt_lines,   tracker, n_parlays=2,  n_legs=10)
-    defense_parlays  = build_defense_parlays(alt_lines, tracker, n_parlays=3, n_legs=3)
+    # 15 over parlays total: first 10 → main section, next 5 → 100% Alt section
+    all_overs       = build_over_parlays(props, tracker, n_parlays=15, n_legs=3)
+    main_overs      = all_overs[:10]
+    alt_overs       = all_overs[10:]
+
+    # Game-level parlays (3 + 3 + 3)
+    ml_parlays      = build_ml_trio(game_predictions, tracker)
+    spread_parlays  = build_spread_parlays(game_predictions, tracker, n_parlays=3)
+    total_parlays   = build_total_parlays(game_predictions, tracker, n_parlays=3)
+
+    # Alt section: 5 safe-over (reduced-avg) parlays
+    reduced_parlays = build_reduced_avg_parlays(props, tracker, n_parlays=5, n_legs=3)
 
     total = (
-        (1 if ml_parlay else 0)
-        + len(over_parlays)
-        + len(under_parlays)
+        len(main_overs)
+        + len(alt_overs)
+        + len(ml_parlays)
+        + len(spread_parlays)
+        + len(total_parlays)
         + len(reduced_parlays)
-        + len(alt_parlays)
-        + len(defense_parlays)
     )
 
     return {
-        "ml":          ml_parlay,
-        "alt":         alt_parlays,
-        "over":        over_parlays,
-        "under":       under_parlays,
-        "reduced":     reduced_parlays,
-        "defense":     defense_parlays,
+        "over":        main_overs,      # 10x main section
+        "ml":          ml_parlays,      # 3x
+        "spread":      spread_parlays,  # 3x
+        "totals":      total_parlays,   # 3x
+        "alt_over":    alt_overs,       # 5x (100% Alt section)
+        "reduced":     reduced_parlays, # 5x (100% Alt section)
+        # Kept for backward compat (grading history)
+        "alt":         [],
+        "under":       [],
+        "defense":     [],
         "total_count": total,
     }

@@ -1586,11 +1586,13 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
     """Render all recommended parlays in a dedicated page view.
 
     Sections (in order):
-      A. Moneyline Parlay          (1x 3-leg game picks)
-      B. 100% Alt Line Parlays     (2x 10-leg streak parlays)
-      C. Props OVER Parlays        (5x 3-leg over combos)
-      D. Props UNDER Parlays       (3x 3-leg under combos)
-      E. Defense Parlays           (3x 3-leg BLK/STL only)
+      A. Props OVER Parlays        (10x 3-leg over combos)
+      B. Moneyline Parlays         (3x 3-leg game winner picks)
+      C. Spread Parlays            (3x 3-leg ATS game picks)
+      D. Game Totals Parlays       (3x 3-leg O/U game picks)
+      E. 100% Alt — Best Overs     (5x 3-leg secondary over picks)
+      F. 100% Alt — Reduced Lines  (5x 3-leg ~22% below avg, mid-tier only)
+    Total target: 29 distinct parlays.
     """
     if not parlays or parlays.get("total_count", 0) == 0:
         return html.Div([
@@ -1725,15 +1727,19 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
         "ml":       ("#6366f1", "#312e81"),
         "alt":      ("#10b981", "#064e3b"),
         "over":     ("#22c55e", "#14532d"),
+        "alt_over": ("#22c55e", "#14532d"),
         "under":    ("#f59e0b", "#78350f"),
         "reduced":  ("#2dd4bf", "#042f2e"),
         "defense":  ("#ef4444", "#7f1d1d"),
         "two_leg":  ("#06b6d4", "#0c4a6e"),
         "three_leg": ("#8b5cf6", "#2e1065"),
+        "spread":   ("#f97316", "#431407"),
+        "totals":   ("#0ea5e9", "#0c4a6e"),
     }
     TYPE_ICONS = {
-        "ml": "ML", "alt": "100%", "over": "↑", "under": "↓",
+        "ml": "ML", "alt": "100%", "over": "↑", "alt_over": "↑", "under": "↓",
         "reduced": "SAFE", "defense": "SHIELD", "two_leg": "2L", "three_leg": "3L",
+        "spread": "ATS", "totals": "O/U",
     }
 
     def _win_prob_color(win_prob: float) -> str:
@@ -1798,10 +1804,6 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
                 html.Span(prop_text, style={
                     "color": dir_color, "fontWeight": "600",
                     "fontSize": "0.82rem", "flex": "1",
-                }),
-                html.Span(f"{leg_wp:.0f}% · {leg_odds_str}", style={
-                    "color": "#6b7280", "fontSize": "0.77rem",
-                    "textAlign": "right", "whiteSpace": "nowrap",
                 }),
             ], style={
                 "display": "flex", "gap": "10px", "alignItems": "center",
@@ -1892,29 +1894,7 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
     # ── Assemble all sections ──────────────────────────────────────────────
     cards: list = []
 
-    # ── Section A: Moneyline Parlay ───────────────────────────────────────
-    ml = parlays.get("ml")
-    if ml:
-        cards.append(_section_header(
-            "Moneyline Parlay",
-            "3 highest-confidence game picks · straight ML",
-        ))
-        cards.append(_parlay_card(ml))
-    else:
-        cards.append(_section_header("Moneyline Parlay", "Not enough HIGH/MEDIUM confidence games today"))
-
-    # ── Section B: 100% Alt Line Parlays ─────────────────────────────────
-    alt_list = parlays.get("alt", [])
-    if alt_list:
-        cards.append(_section_header(
-            f"100% Alt Line Parlays  ({len(alt_list)})",
-            "Players hitting this threshold in every game of their active streak",
-        ))
-        cards.append(_two_col_grid([_parlay_card(p) for p in alt_list]))
-    else:
-        cards.append(_section_header("100% Alt Line Parlays", "Not enough qualifying streaks today"))
-
-    # ── Section C: Props OVER Parlays ─────────────────────────────────────
+    # ── Section A: Props OVER Parlays (10) ────────────────────────────────
     over_list = parlays.get("over", [])
     if over_list:
         avg_wp = sum(p["odds"]["win_prob"] for p in over_list) / len(over_list)
@@ -1926,40 +1906,65 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
     else:
         cards.append(_section_header("Props OVER Parlays", "Not enough qualifying OVER props today"))
 
-    # ── Section D: Props UNDER Parlays ────────────────────────────────────
-    under_list = parlays.get("under", [])
-    if under_list:
-        avg_wp = sum(p["odds"]["win_prob"] for p in under_list) / len(under_list)
+    # ── Section B: Moneyline Parlays (3) ──────────────────────────────────
+    ml_list = parlays.get("ml", [])
+    if ml_list:
+        avg_wp = sum(p["odds"]["win_prob"] for p in ml_list) / len(ml_list)
         cards.append(_section_header(
-            f"Props UNDER Parlays  ({len(under_list)})",
-            f"Best UNDER combos by model probability · avg win prob: {avg_wp:.1f}%",
+            f"Moneyline Parlays  ({len(ml_list)})",
+            f"3 non-overlapping game winner combos · avg win prob: {avg_wp:.1f}%",
         ))
-        cards.append(_two_col_grid([_parlay_card(p) for p in under_list]))
+        cards.append(_two_col_grid([_parlay_card(p) for p in ml_list]))
     else:
-        cards.append(_section_header("Props UNDER Parlays", "Not enough qualifying UNDER props today"))
+        cards.append(_section_header("Moneyline Parlays", "Not enough HIGH/MEDIUM confidence games today"))
 
-    # ── Section E: Safe Over Parlays (Reduced Lines) ──────────────────────
+    # ── Section C: Spread Parlays (3) ─────────────────────────────────────
+    spread_list = parlays.get("spread", [])
+    if spread_list:
+        avg_wp = sum(p["odds"]["win_prob"] for p in spread_list) / len(spread_list)
+        cards.append(_section_header(
+            f"Spread Parlays  ({len(spread_list)})",
+            f"Against-the-spread game combos · avg win prob: {avg_wp:.1f}%",
+        ))
+        cards.append(_two_col_grid([_parlay_card(p) for p in spread_list]))
+    else:
+        cards.append(_section_header("Spread Parlays", "Not enough qualifying spread picks today"))
+
+    # ── Section D: Game Totals Parlays (3) ────────────────────────────────
+    totals_list = parlays.get("totals", [])
+    if totals_list:
+        avg_wp = sum(p["odds"]["win_prob"] for p in totals_list) / len(totals_list)
+        cards.append(_section_header(
+            f"Game Totals Parlays  ({len(totals_list)})",
+            f"Over/Under game total combos · avg win prob: {avg_wp:.1f}%",
+        ))
+        cards.append(_two_col_grid([_parlay_card(p) for p in totals_list]))
+    else:
+        cards.append(_section_header("Game Totals Parlays", "Not enough model total predictions today"))
+
+    # ── Section E: 100% Alt — Best Over Parlays (5) ───────────────────────
+    alt_over_list = parlays.get("alt_over", [])
+    if alt_over_list:
+        avg_wp = sum(p["odds"]["win_prob"] for p in alt_over_list) / len(alt_over_list)
+        cards.append(_section_header(
+            f"100% Alt — Best Over Parlays  ({len(alt_over_list)})",
+            f"Secondary over picks from the best props pool · avg win prob: {avg_wp:.1f}%",
+        ))
+        cards.append(_two_col_grid([_parlay_card(p) for p in alt_over_list]))
+    else:
+        cards.append(_section_header("100% Alt — Best Over Parlays", "Not enough qualifying OVER props today"))
+
+    # ── Section F: 100% Alt — Reduced Lines (5) ───────────────────────────
     reduced_list = parlays.get("reduced", [])
     if reduced_list:
         avg_wp = sum(p["odds"]["win_prob"] for p in reduced_list) / len(reduced_list)
         cards.append(_section_header(
-            f"Safe Over Parlays  ({len(reduced_list)})",
-            f"Lines set ~20% below player's L5 avg — high probability · avg win prob: {avg_wp:.1f}%",
+            f"100% Alt — Reduced Lines  ({len(reduced_list)})",
+            f"Lines ~22% below player's L5 avg · mid-tier players only · avg win prob: {avg_wp:.1f}%",
         ))
         cards.append(_two_col_grid([_parlay_card(p) for p in reduced_list]))
     else:
-        cards.append(_section_header("Safe Over Parlays", "Not enough qualifying props today"))
-
-    # ── Section F: Defense Parlays ────────────────────────────────────────
-    defense_list = parlays.get("defense", [])
-    if defense_list:
-        cards.append(_section_header(
-            f"Defense Parlays  ({len(defense_list)})",
-            "Blocks & Steals only · players on active BLK/STL streaks",
-        ))
-        cards.append(_two_col_grid([_parlay_card(p) for p in defense_list]))
-    else:
-        cards.append(_section_header("Defense Parlays", "Not enough BLK/STL streaks today"))
+        cards.append(_section_header("100% Alt — Reduced Lines", "Not enough qualifying mid-tier players today"))
 
     # ── Parlay record banner ───────────────────────────────────────────────
     try:
