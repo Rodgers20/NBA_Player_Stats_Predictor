@@ -343,8 +343,25 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             if avg_stat < _STAT_MIN_AVG.get(stat_type, 1.0):
                 continue
 
-            # ── L5 average — primary form signal (current performance level) ──
-            l5_avg = float(recent_stats.head(5).mean()) if len(recent_stats) >= 5 else float(avg_stat)
+            # ── Recency-weighted L5 average ───────────────────────────────────
+            # Simple mean treats a hot streak (last 2 games) the same as cold
+            # games from 5 games ago. Instead, weight recent games 2× vs older:
+            #   Game 1 (most recent): weight 3
+            #   Game 2:               weight 3
+            #   Game 3:               weight 2
+            #   Game 4:               weight 1
+            #   Game 5:               weight 1
+            # Example: LaMelo last 5 = [35.5, 35.5, 15.7, 15.7, 15.7]
+            #   Simple mean = 23.6; Weighted = (35.5×3 + 35.5×3 + 15.7×2 + 15.7×1 + 15.7×1) / 10 = 28.2
+            # This makes the projection respond correctly to recent hot/cold streaks.
+            if len(recent_stats) >= 5:
+                _r5 = recent_stats.head(5).values  # [game0=most_recent, game1, ..., game4]
+                _weights = [3, 3, 2, 1, 1]  # sum = 10
+                l5_avg = float(
+                    sum(_r5[i] * _weights[i] for i in range(5)) / sum(_weights)
+                )
+            else:
+                l5_avg = float(avg_stat)
 
             n = len(recent_stats)
 
