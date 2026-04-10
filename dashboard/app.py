@@ -2332,10 +2332,14 @@ def create_best_props_page():
                             html.Div("Assists",    id="props-filter-ast",  n_clicks=0, className="tab"),
                             html.Div("Rebounds",   id="props-filter-reb",  n_clicks=0, className="tab"),
                             html.Div("3-Pointers", id="props-filter-3pm",  n_clicks=0, className="tab"),
+                            html.Div("Blocks",     id="props-filter-blk",  n_clicks=0, className="tab"),
+                            html.Div("Steals",     id="props-filter-stl",  n_clicks=0, className="tab"),
                             html.Div("Pts+Ast",    id="props-filter-pa",   n_clicks=0, className="tab"),
                             html.Div("Pts+Reb",    id="props-filter-pr",   n_clicks=0, className="tab"),
                             html.Div("Ast+Reb",    id="props-filter-ar",   n_clicks=0, className="tab"),
                             html.Div("PRA",        id="props-filter-pra",  n_clicks=0, className="tab"),
+                            html.Div("Double-Double", id="props-filter-dd", n_clicks=0, className="tab"),
+                            html.Div("Triple-Double", id="props-filter-td", n_clicks=0, className="tab"),
                         ], className="tab-group", style={"flexWrap": "wrap"}),
                     ], className="props-tabs", style={"marginBottom": "6px"}),
 
@@ -2382,7 +2386,7 @@ def create_best_props_page():
                                     {"label": "Highest EV",       "value": "ev"},
                                     {"label": "Highest Hit Rate", "value": "hit_rate"}
                                 ],
-                                value="ev",
+                                value="hit_rate",
                                 clearable=False,
                                 style={"width": "160px"},
                                 className="game-filter-dropdown"
@@ -2956,20 +2960,28 @@ def update_direction_filter(n_all, n_over, n_under):
      Output("props-filter-ast",  "className"),
      Output("props-filter-reb",  "className"),
      Output("props-filter-3pm",  "className"),
+     Output("props-filter-blk",  "className"),
+     Output("props-filter-stl",  "className"),
      Output("props-filter-pa",   "className"),
      Output("props-filter-pr",   "className"),
      Output("props-filter-ar",   "className"),
      Output("props-filter-pra",  "className"),
+     Output("props-filter-dd",   "className"),
+     Output("props-filter-td",   "className"),
      Output("props-filter-lock", "className")],
     [Input("props-filter-all",  "n_clicks"),
      Input("props-filter-pts",  "n_clicks"),
      Input("props-filter-ast",  "n_clicks"),
      Input("props-filter-reb",  "n_clicks"),
      Input("props-filter-3pm",  "n_clicks"),
+     Input("props-filter-blk",  "n_clicks"),
+     Input("props-filter-stl",  "n_clicks"),
      Input("props-filter-pa",   "n_clicks"),
      Input("props-filter-pr",   "n_clicks"),
      Input("props-filter-ar",   "n_clicks"),
      Input("props-filter-pra",  "n_clicks"),
+     Input("props-filter-dd",   "n_clicks"),
+     Input("props-filter-td",   "n_clicks"),
      Input("props-filter-lock", "n_clicks")],
     prevent_initial_call=True,
 )
@@ -2978,7 +2990,7 @@ def update_stat_filter(*_):
     triggered = ctx.triggered_id
     active   = "tab active"
     inactive = "tab"
-    n = 9  # 9 stat tabs (LOCKS is now a separate banner element)
+    n = 13  # 13 stat tabs (LOCKS is now a separate banner element)
     def _cls(active_idx=None):
         return [active if i == active_idx else inactive for i in range(n)]
     mapping = {
@@ -2986,10 +2998,14 @@ def update_stat_filter(*_):
         "props-filter-ast":  ("AST",         2),
         "props-filter-reb":  ("REB",         3),
         "props-filter-3pm":  ("FG3M",        4),
-        "props-filter-pa":   ("PTS+AST",     5),
-        "props-filter-pr":   ("PTS+REB",     6),
-        "props-filter-ar":   ("AST+REB",     7),
-        "props-filter-pra":  ("PTS+AST+REB", 8),
+        "props-filter-blk":  ("BLK",         5),
+        "props-filter-stl":  ("STL",         6),
+        "props-filter-pa":   ("PTS+AST",     7),
+        "props-filter-pr":   ("PTS+REB",     8),
+        "props-filter-ar":   ("AST+REB",     9),
+        "props-filter-pra":  ("PTS+AST+REB", 10),
+        "props-filter-dd":   ("DD",          11),
+        "props-filter-td":   ("TD",          12),
     }
     if triggered == "props-filter-lock":
         # LOCKS banner active — deactivate all stat tabs
@@ -3300,6 +3316,8 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
         direction = prop.get("direction", "Over")
         line_val = prop.get("line", "")
         stat_line_str = f"{direction} {line_val}" if line_val else direction
+        book_line_val = prop.get("book_line")
+        value_line_val = prop.get("line")
 
         # ── Team logo ─────────────────────────────────────────────────────────
         team_logo = get_team_logo_url(prop.get("team", ""))
@@ -3411,6 +3429,45 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
                         },
                     ) if line_gap != 0 else None,
                 ], style={"display": "flex", "alignItems": "center", "marginBottom": "4px"}),
+
+                # Book line vs value line indicator (only shown when book line is available)
+                html.Div([
+                    html.Span(
+                        f"Alt: {value_line_val}  \u2192  Book: {book_line_val}",
+                        style={
+                            "fontSize": "0.72rem",
+                            "color": "#14b8a6",
+                            "fontWeight": "600",
+                            "background": "rgba(20,184,166,0.08)",
+                            "padding": "2px 8px",
+                            "borderRadius": "4px",
+                            "border": "1px solid rgba(20,184,166,0.2)",
+                        },
+                    ),
+                ], style={"marginBottom": "6px"}) if book_line_val else None,
+
+                # Over odds row (show live odds when available, model odds as fallback)
+                *(lambda _over_price=prop.get("live_over_price") or prop.get("model_over_odds"): [
+                    html.Div([
+                        html.Span(
+                            f"OVER {value_line_val}",
+                            style={"fontWeight": "700", "fontSize": "0.8rem", "color": "#f0f4ff"},
+                        ),
+                        html.Span(
+                            f"  {'+' if _over_price > 0 else ''}{_over_price}",
+                            style={"fontWeight": "700", "fontSize": "0.85rem",
+                                   "color": "#22c55e" if _over_price > 0 else "#94a3b8",
+                                   "marginLeft": "6px"},
+                        ),
+                    ], style={
+                        "display": "flex", "alignItems": "center",
+                        "padding": "6px 10px",
+                        "background": "rgba(34,197,94,0.06)",
+                        "borderRadius": "6px",
+                        "border": "1px solid rgba(34,197,94,0.15)",
+                        "marginBottom": "6px",
+                    }),
+                ] if _over_price else [])(),
 
                 # Hits record pill
                 html.Div(

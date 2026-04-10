@@ -370,7 +370,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
 
             # Value line: 72% of L5 avg (nearest 0.5 below), with per-stat minimum floors
             # This matches PrizePicks/Outlier logic: line well below average = high hit rate + value
-            raw_value_line = math.floor(l5_avg * 0.72 / 0.5) * 0.5
+            raw_value_line = math.floor(l5_avg * 0.80 / 0.5) * 0.5
             line = max(_VALUE_LINE_MIN.get(stat_type, 0.5), raw_value_line)
 
             n = len(recent_stats)
@@ -387,7 +387,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                         if ml_pred and float(ml_pred) > 0:
                             ml_pred_stored = float(ml_pred)
                             blended = 0.6 * ml_pred_stored + 0.4 * float(l5_avg)
-                            raw_ml_line = math.floor(blended * 0.72 / 0.5) * 0.5
+                            raw_ml_line = math.floor(blended * 0.80 / 0.5) * 0.5
                             line = max(_VALUE_LINE_MIN.get(stat_type, 0.5), raw_ml_line)
                 except Exception:
                     pass  # stay with L5-based line
@@ -572,6 +572,74 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 "live_under_price": None, "live_bookmaker": None,
             })
 
+        # ── Double-Double and Triple-Double detection ─────────────────────────
+        # DD: player scored 10+ in 2 of (PTS, REB, AST) in the same game
+        # TD: player scored 10+ in all 3 of (PTS, REB, AST) in the same game
+        for dd_label, dd_req in [("DD", 2), ("TD", 3)]:
+            dd_stats = ["PTS", "REB", "AST"]
+            if not all(s in recent_10.columns for s in dd_stats):
+                continue
+            _dd_data = recent_10[dd_stats].apply(pd.to_numeric, errors="coerce")
+            # Count how many of (PTS, REB, AST) were >= 10 in each game
+            _dd_hits_raw = (_dd_data >= 10).sum(axis=1)
+            # Game "hits" = games where player had dd_req or more stats >= 10
+            _dd_game_hits = (_dd_hits_raw >= dd_req).sum()
+            _dd_total = len(_dd_hits_raw.dropna())
+            if _dd_total < 5:
+                continue
+            _dd_hit_rate = _dd_game_hits / _dd_total
+            if _dd_hit_rate < 0.40:  # only show if they hit DD/TD 40%+ of the time
+                continue
+
+            _dd_avg_pts = float(_dd_data["PTS"].mean() or 0)
+            _dd_avg_reb = float(_dd_data["REB"].mean() or 0)
+            _dd_avg_ast = float(_dd_data["AST"].mean() or 0)
+            _dd_ev = calculate_ev(_dd_hit_rate)
+            if blowout_risk and role in ("star", "starter"):
+                _dd_ev *= 0.85
+            _dd_ev *= consistency_mult
+
+            props_data.append({
+                "player":       player_name,
+                "team":         player_team,
+                "opponent":     opponent,
+                "position":     position,
+                "role":         role,
+                "stat":         dd_label,
+                "stat_label":   "DOUBLE-DOUBLE" if dd_label == "DD" else "TRIPLE-DOUBLE",
+                "line":         1.5,   # conceptually "1+ DD" — must occur
+                "avg":          round(_dd_hit_rate * 100, 1),
+                "l5_avg":       round(float((_dd_hits_raw >= dd_req).head(5).mean()) * 100, 1),
+                "model_pred":   round(_dd_hit_rate * 100, 1),
+                "stat_std":     0.0,
+                "direction":    "Over",
+                "hit_rate":     _dd_hit_rate,
+                "hits":         int(_dd_game_hits),
+                "total":        _dd_total,
+                "def_rank":     None,
+                "is_home_today": is_home_today,
+                "ev":           _dd_ev,
+                "is_lock":      _dd_hit_rate >= 0.75 and _dd_total >= 5,
+                "is_combo":     True,
+                "blowout_risk":   blowout_risk,
+                "blowout_spread": blowout_spread,
+                "game_matchup": game_matchup_str,
+                "hit_rate_home": 0.0, "hit_rate_away": 0.0,
+                "hits_home": 0, "hits_away": 0,
+                "total_home": 0, "total_away": 0,
+                "avg_home": 0.0, "avg_away": 0.0,
+                "insight": {
+                    "narrative": f"{player_name} has {dd_label} in {int(_dd_game_hits)}/{_dd_total} recent games ({_dd_hit_rate*100:.0f}%). Avg: {_dd_avg_pts:.1f}pts / {_dd_avg_reb:.1f}reb / {_dd_avg_ast:.1f}ast."
+                },
+                "value_score": _dd_hit_rate,
+                "injury_boost": _injury_boost_note,
+                "model_prob": None, "implied_prob": None, "edge": None,
+                "has_live_odds": False,
+                "live_line": None, "live_over_price": None,
+                "live_under_price": None, "live_bookmaker": None,
+                "book_line": None,
+            })
+
     # ── Precompute per-player recent stats for enrichment ─────────────────
     # Avoids rescanning the full DF for every prop during the odds loop.
     _player_stat_cache: dict = {}
@@ -596,8 +664,8 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
 
     # ── Enrich with live sportsbook odds ──────────────────────────────────
     # For each prop:
-    #   - Overwrite line with real sportsbook line
-    #   - Recalculate hit_rate at that real line (not the model-generated line)
+    #   - Store sportsbook line as book_line (do NOT overwrite our value line)
+    #   - Keep hit_rate against our value line (computed in _make_prop)
     #   - EV = model_prob vs implied_prob (true edge, not just hit_rate × payout)
     live_odds = get_live_odds()
     for prop in props_data:
@@ -627,20 +695,15 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             prop["live_under_price"] = sb_under_price
             prop["live_bookmaker"]   = s_odds["bookmaker"]
             prop["has_live_odds"]    = True
-            prop["line"]             = sb_line
+            prop["book_line"]        = sb_line      # store book line separately
+            # DO NOT overwrite prop["line"] — keep our value line
 
-            # Recalculate hit_rate against the ACTUAL sportsbook line
-            if len(_vals) >= 3:
-                if direction == "Over":
-                    sb_hits     = int((_vals >= sb_line).sum())
-                else:
-                    sb_hits     = int((_vals <  sb_line).sum())
-                sb_hit_rate = round(sb_hits / len(_vals), 4)
-                prop["hit_rate"] = sb_hit_rate
-                prop["hits"]     = sb_hits
-                prop["total"]    = len(_vals)
+            # DO NOT recalculate hit_rate against sb_line — keep hit_rate at value line
+            # (hit_rate was computed against our value line during _make_prop and is correct)
 
             # EV = model's probability estimate vs sportsbook's implied probability
+            # Use sb_line as the anchor for probability — we're asking: "what's the prob
+            # our projection exceeds the BOOK line?" (used for EV calculation only)
             model_prob = calculate_hit_probability(
                 prediction=float(_mpred),
                 line=sb_line,
@@ -736,9 +799,10 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
         cap = _MAX_PER_PLAYER_TIER.get(role_key, 1)
         deduped.extend(_pprops[:cap])
 
-    # Final sort: LOCKs first, then by EV descending, then value_score
+    # Final sort: LOCKs first, then by hit_rate descending, then EV, then value_score
     deduped.sort(key=lambda x: (
         not x.get("is_lock", False),
+        -(x.get("hit_rate") or 0),
         -(x.get("ev") or 0),
         -(x.get("value_score") or 0),
     ))
