@@ -1350,21 +1350,54 @@ body::before {
         padding: 0.75rem 1rem;
     }
 
-    .tab-group {
+    /* Allow general tab-groups to wrap, but analysis filters override below */
+    .tab-group:not(.analysis-filters .tab-group) {
         flex-wrap: wrap;
     }
 }
 
 @media (max-width: 640px) {
+    /* ── Nav: stack brand above scrollable link row ── */
+    .nav-header {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.65rem 1rem 0.5rem;
+        gap: 0.45rem;
+    }
+
+    .nav-brand {
+        text-align: center;
+        font-size: 1rem;
+    }
+
+    /* Scrollable pill row — hides scrollbar, snaps to each link */
     .nav-links {
-        gap: 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        scroll-snap-type: x mandatory;
+        justify-content: flex-start;
+        gap: 0.2rem;
+        padding: 0.2rem;
+        /* Keep the pill container border but tighten radius for horizontal strip */
+        border-radius: 10px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .nav-links::-webkit-scrollbar { display: none; }
+
+    .nav-link,
+    .nav-link.active,
+    .nav-link:not(.active) {
+        padding: 0.42rem 0.9rem;
+        font-size: 0.78rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+        scroll-snap-align: start;
     }
 
-    .nav-link {
-        padding: 0.4rem 0.7rem;
-        font-size: 0.8rem;
-    }
-
+    /* ── General cards & tabs ── */
     .hit-rate-number {
         font-size: 2rem;
     }
@@ -1375,8 +1408,39 @@ body::before {
     }
 
     .tab {
-        padding: 0.35rem 0.75rem;
-        font-size: 0.75rem;
+        padding: 0.35rem 0.65rem;
+        font-size: 0.72rem;
+    }
+
+    /* ── Analysis page filters: horizontally scrollable rows ── */
+    .analysis-filters {
+        /* allow the filter rows to scroll without breaking page width */
+        overflow: hidden;
+    }
+
+    .analysis-filters .tab-group {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        width: 100%;
+        padding: 0.2rem;
+        /* keep the pill container visible */
+        border-radius: 10px;
+        gap: 0.2rem;
+        box-sizing: border-box;
+    }
+    .analysis-filters .tab-group::-webkit-scrollbar { display: none; }
+
+    .analysis-filters .tab {
+        padding: 6px 13px !important;
+        font-size: 0.72rem !important;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .analysis-filters .tab.active {
+        padding: 6px 13px !important;
     }
 }
 
@@ -2441,12 +2505,21 @@ html {
     .prop-photo-banner {
         width: 90px !important;
     }
-    .nav-link {
-        padding: 0.4rem 0.5rem !important;
+    .nav-brand {
+        font-size: 0.9rem;
+    }
+    .nav-link,
+    .nav-link.active,
+    .nav-link:not(.active) {
+        padding: 0.38rem 0.75rem !important;
         font-size: 0.72rem !important;
     }
     .view-tab {
-        padding: 8px 12px !important;
-        font-size: 0.78rem !important;
+        padding: 7px 10px !important;
+        font-size: 0.72rem !important;
+    }
+    .analysis-filters .tab {
+        padding: 5px 10px !important;
+        font-size: 0.68rem !important;
     }
 }
