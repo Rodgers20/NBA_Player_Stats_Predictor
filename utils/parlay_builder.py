@@ -199,7 +199,7 @@ def build_ml_parlay(
 def build_alt_parlays(
     alt_lines: list[dict],
     tracker: _DiversityTracker,
-    n_parlays: int = 2,
+    n_parlays: int = 3,
     n_legs: int = 10,
 ) -> list[dict]:
     """Build n_parlays 10-leg parlays from 100% Alt Lines.
@@ -228,6 +228,9 @@ def build_alt_parlays(
                 continue
             # Diversity: at most 2 parlays per (player, stat, direction)
             if not tracker.can_use(player, stat, "alt"):
+                continue
+            # Skip garbage-time bench players from alt parlays
+            if alt.get("role") == "bench" and alt.get("l5_min_avg", 0) < 20:
                 continue
 
             prob = _streak_prob(alt["window"])

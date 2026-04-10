@@ -153,7 +153,6 @@ _COMBO_DEFS: list[tuple[list[str], str]] = [
 
 # Hit-rate thresholds — raised from old 50%/50% coinflip levels
 _OVER_MIN_HIT_RATE  = 0.52   # Over: need genuine edge, not a coin flip
-_UNDER_MIN_HIT_RATE = 0.62   # Under: much higher bar (natural positive skew in NBA)
 
 # Alt lines: lookback windows and minimum meaningful thresholds per stat
 # Thresholds are set to levels that sportsbooks actually offer lines for:
@@ -165,6 +164,7 @@ _UNDER_MIN_HIT_RATE = 0.62   # Under: much higher bar (natural positive skew in 
 #   STL  ≥1  — defense parlays (1+ steal per game in streak)
 _ALT_WINDOWS       = [5, 6, 7, 8, 10, 12, 15, 17, 18, 20]
 _ALT_MIN_THRESH    = {"PTS": 10, "AST": 3, "REB": 4, "FG3M": 2, "BLK": 1, "STL": 1}
+_VALUE_LINE_MIN    = {"PTS": 10.5, "AST": 3.5, "REB": 4.5, "FG3M": 1.5, "STL": 0.5, "BLK": 0.5}
 _ALT_STAT_LABELS   = {"PTS": "POINTS", "AST": "ASSISTS", "REB": "REBOUNDS",
                       "FG3M": "MADE THREES", "BLK": "BLOCKS", "STL": "STEALS"}
 
@@ -219,6 +219,12 @@ def _is_qualified_player(player_name: str, player_df: "pd.DataFrame") -> tuple[b
     if pd.isna(avg_min) or avg_min < 12:
         return False, 0.0
 
+    # Garbage-time exclusion: inconsistent low-minutes player (only plays in blowouts)
+    if avg_min < 18:
+        min_std = float(recent_min.std()) if len(recent_min) > 1 else 0.0
+        if not pd.isna(min_std) and min_std > 10:
+            return False, 0.0
+
     # Must have at least 8 games in the current season (was 10 — captures returning players)
     if "SEASON" in player_df.columns:
         current_rows = player_df[player_df["SEASON"].str.startswith("2025", na=False)]
@@ -241,7 +247,7 @@ def _get_player_role(avg_min: float) -> str:
     else:               return "bench"       # Reserve, end-of-bench
 
 
-def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=None, get_predictor_fn=None):
+def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=None, get_predictor_fn=None, team_injury_context=None):
     """Compute props data for the main Best Props page.
 
     Process ALL players from every team playing today — no arbitrary cap.
@@ -343,16 +349,29 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             # line should be ~20.5, not ~10.5 because of stale L10 data.
             l5_avg = float(recent_stats.head(5).mean()) if len(recent_stats) >= 5 else float(avg_stat)
 
-            if stat_type == "PTS":
-                line = math.floor(l5_avg) + 0.5 if l5_avg > 5 else 4.5
-            elif stat_type == "FG3M":
-                line = math.floor(l5_avg) + 0.5 if l5_avg > 1 else 0.5
-            elif stat_type in ("STL", "BLK"):
-                # Half-unit lines for defensive stats (0.5, 1.5, 2.5, ...)
-                line = math.floor(l5_avg * 2) / 2 if l5_avg >= 0.5 else 0.5
-                line = max(0.5, line)
-            else:  # AST, REB
-                line = math.floor(l5_avg) + 0.5 if l5_avg > 2 else 1.5
+            # Injury usage boost: if starters are OUT on this team, active players see more usage
+            _injury_boost_note: str = ""
+            if team_injury_context and player_team in team_injury_context and stat_type in ("PTS", "AST"):
+                _ctx = team_injury_context[player_team]
+                _missing = _ctx["missing_pts"]
+                _out_names = ", ".join(_ctx["out_players"][:2])  # show max 2 names
+                # Boost factor scales with role and missing usage
+                if role == "star":
+                    _bfactor = 1.0 + min(_missing * 0.10 / max(l5_avg, 8), 0.25)
+                elif role == "starter":
+                    _bfactor = 1.0 + min(_missing * 0.08 / max(l5_avg, 8), 0.20)
+                elif role == "rotation":
+                    _bfactor = 1.0 + min(_missing * 0.05 / max(l5_avg, 6), 0.12)
+                else:
+                    _bfactor = 1.0
+                if _bfactor > 1.02:  # only apply meaningful boosts
+                    l5_avg = l5_avg * _bfactor
+                    _injury_boost_note = f"⬆ {_out_names} OUT"
+
+            # Value line: 72% of L5 avg (nearest 0.5 below), with per-stat minimum floors
+            # This matches PrizePicks/Outlier logic: line well below average = high hit rate + value
+            raw_value_line = math.floor(l5_avg * 0.72 / 0.5) * 0.5
+            line = max(_VALUE_LINE_MIN.get(stat_type, 0.5), raw_value_line)
 
             n = len(recent_stats)
 
@@ -367,8 +386,9 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                         ml_pred = ml_result.get(f"predicted_{stat_type.lower()}")
                         if ml_pred and float(ml_pred) > 0:
                             ml_pred_stored = float(ml_pred)
-                            blended = 0.6 * ml_pred_stored + 0.4 * float(line)
-                            line = math.floor(blended) + 0.5
+                            blended = 0.6 * ml_pred_stored + 0.4 * float(l5_avg)
+                            raw_ml_line = math.floor(blended * 0.72 / 0.5) * 0.5
+                            line = max(_VALUE_LINE_MIN.get(stat_type, 0.5), raw_ml_line)
                 except Exception:
                     pass  # stay with L5-based line
 
@@ -410,16 +430,10 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     spread_factor = 0.25 if _blowout_spread >= 15 else 0.12
                     if _role in ("star", "starter"):
                         # Starters get rested → fewer minutes → OVERs suffer
-                        if direction == "Over":
-                            ev_value *= (1 - spread_factor)
-                        else:  # Under becomes more likely for resting starters
-                            ev_value *= (1 + spread_factor * 0.5)
+                        ev_value *= (1 - spread_factor)
                     else:  # rotation / bench
                         # Bench/rotation get garbage time → OVERs improve
-                        if direction == "Over":
-                            ev_value *= (1 + spread_factor * 0.4)
-                        else:  # Under for bench in blowout = nonsensical
-                            ev_value *= 0.30
+                        ev_value *= (1 + spread_factor * 0.4)
 
                 # Consistency penalty
                 ev_value *= _cons
@@ -439,16 +453,10 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                         f"⚠ Blowout risk ({_blowout_spread:.0f}-pt spread, {role_note}). "
                         + insight.get("narrative", "")
                     )
-                if direction == "Over":
-                    hr_home = (home_games[stat_type] >= bet_line).sum() / len(home_games) if not home_games.empty else 0
-                    hr_away = (away_games[stat_type] >= bet_line).sum() / len(away_games) if not away_games.empty else 0
-                    h_home  = (home_games[stat_type] >= bet_line).sum() if not home_games.empty else 0
-                    h_away  = (away_games[stat_type] >= bet_line).sum() if not away_games.empty else 0
-                else:
-                    hr_home = (home_games[stat_type] < bet_line).sum() / len(home_games) if not home_games.empty else 0
-                    hr_away = (away_games[stat_type] < bet_line).sum() / len(away_games) if not away_games.empty else 0
-                    h_home  = (home_games[stat_type] < bet_line).sum() if not home_games.empty else 0
-                    h_away  = (away_games[stat_type] < bet_line).sum() if not away_games.empty else 0
+                hr_home = (home_games[stat_type] >= bet_line).sum() / len(home_games) if not home_games.empty else 0
+                hr_away = (away_games[stat_type] >= bet_line).sum() / len(away_games) if not away_games.empty else 0
+                h_home  = (home_games[stat_type] >= bet_line).sum() if not home_games.empty else 0
+                h_away  = (away_games[stat_type] >= bet_line).sum() if not away_games.empty else 0
                 # model_pred: ML prediction when available, else L5 avg.
                 # Used in live-odds enrichment to compute true EV.
                 _model_pred_val = round(_model_pred, 1) if _model_pred else round(_l5_avg, 1)
@@ -477,18 +485,13 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "avg_home": round(home_games[stat_type].mean(), 1) if not home_games.empty else 0,
                     "avg_away": round(away_games[stat_type].mean(), 1) if not away_games.empty else 0,
                     "insight": insight,
+                    "value_score": round(bet_line / max(_l5_avg, 0.1), 3),
+                    "injury_boost": _injury_boost_note,
                 }
 
             # Over — require genuine edge (>52%)
             if hit_rate_over > _OVER_MIN_HIT_RATE:
                 props_data.append(_make_prop("Over", over_line, hit_rate_over, hits_over))
-
-            # Under — high bar (62%) AND must make contextual sense
-            under_makes_sense = not (blowout_risk and role in ("rotation", "bench"))
-            if (hit_rate_under > _UNDER_MIN_HIT_RATE
-                    and hit_rate_under != hit_rate_over
-                    and under_makes_sense):
-                props_data.append(_make_prop("Under", under_line, hit_rate_under, hits_under))
 
         # ── Combo props ───────────────────────────────────────────────────────
         for combo_stats, combo_label in _COMBO_DEFS:
@@ -687,8 +690,12 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
     _MIN_EV            = 0.05   # 5% real ROI edge (was 2%)
     _MIN_ODDS_AMERICAN = -180   # props must pay at least $56/$100 risked
     _LOCK_MIN_ODDS     = -250   # LOCKs get a more generous allowance
-    _MAX_PER_PLAYER    = 3      # up to 3 props per player (was 2)
+    _MAX_PER_PLAYER_TIER = {"star": 4, "starter": 3, "rotation": 2, "bench": 1}
     _HARD_CAP          = 100    # absolute max (was 60, raised for big slates)
+    _MEANINGFUL_LINE_FLOORS = {"PTS": 10.5, "AST": 3.5, "REB": 4.5}
+
+    # Identify star players in today's slate for relaxed quality gate
+    todays_stars: set[str] = {p["player"] for p in props_data if p.get("role") == "star"}
 
     quality_props = []
     for p in props_data:
@@ -698,12 +705,25 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             if odd >= _LOCK_MIN_ODDS:
                 quality_props.append(p)
             continue
+        # Meaningful line floor check — skip trivially low lines
+        stat = p.get("stat", "")
+        floor_val = _MEANINGFUL_LINE_FLOORS.get(stat)
+        if floor_val and p.get("line", 0) < floor_val:
+            continue
         mp = p.get("model_prob") or 0.0
         ev = p.get("ev") or 0.0
+        # Standard gate
         if mp >= _MIN_MODEL_PROB and ev >= _MIN_EV and odd >= _MIN_ODDS_AMERICAN:
             quality_props.append(p)
+            continue
+        # Star fallback — relax gate so elite players always have representation
+        if (p.get("player") in todays_stars
+                and mp >= 0.52
+                and ev >= 0.01
+                and odd >= -220):
+            quality_props.append(p)
 
-    # Deduplicate: keep top _MAX_PER_PLAYER props per player (by EV)
+    # Deduplicate: tiered cap per player by role
     from collections import defaultdict as _dd
     _per_player: dict = _dd(list)
     for p in quality_props:
@@ -712,10 +732,16 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
     deduped: list = []
     for _pprops in _per_player.values():
         _pprops.sort(key=lambda x: (not x.get("is_lock", False), -(x.get("ev") or 0)))
-        deduped.extend(_pprops[:_MAX_PER_PLAYER])
+        role_key = _pprops[0].get("role", "bench")
+        cap = _MAX_PER_PLAYER_TIER.get(role_key, 1)
+        deduped.extend(_pprops[:cap])
 
-    # Final sort: LOCKs first, then by EV descending
-    deduped.sort(key=lambda x: (not x.get("is_lock", False), -(x.get("ev") or 0)))
+    # Final sort: LOCKs first, then by EV descending, then value_score
+    deduped.sort(key=lambda x: (
+        not x.get("is_lock", False),
+        -(x.get("ev") or 0),
+        -(x.get("value_score") or 0),
+    ))
     props_data = deduped[:_HARD_CAP]
 
     print(f"[PropsCache] Quality gate: {len(props_data)} props (min model_prob={_MIN_MODEL_PROB}, min EV={_MIN_EV}, min odds={_MIN_ODDS_AMERICAN})")
@@ -1072,6 +1098,12 @@ def _compute_alt_lines(DF, PLAYER_POSITIONS, game_info, availability_map, player
                 if season_avg > 0 and (best_thresh / season_avg) < 0.55:
                     continue  # Trivial streak — threshold is too close to their average
 
+                # Compute role for alt parlay filtering
+                _alt_min_series = pd.to_numeric(player_df.head(10)["MIN"], errors="coerce")
+                _alt_avg_min = float(_alt_min_series.mean()) if not _alt_min_series.empty else 0.0
+                _alt_l5_min = float(pd.to_numeric(player_df.head(5)["MIN"], errors="coerce").mean()) if len(player_df) >= 5 else _alt_avg_min
+                _alt_role = "star" if _alt_avg_min >= 32 else ("starter" if _alt_avg_min >= 24 else ("rotation" if _alt_avg_min >= 17 else "bench"))
+
                 alt_lines.append({
                     "player":     player_name,
                     "team":       player_team,
@@ -1082,6 +1114,8 @@ def _compute_alt_lines(DF, PLAYER_POSITIONS, game_info, availability_map, player
                     "threshold":  best_thresh,
                     "window":     best_n,
                     "trend":      f"{best_n}/L{best_n}",
+                    "role":       _alt_role,
+                    "l5_min_avg": round(_alt_l5_min, 1),
                 })
 
     # Sort: longest streak → highest threshold → player name
@@ -1124,6 +1158,34 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
     # Batch availability check — no arbitrary cap, check all players
     availability_map = get_batch_availability(players_to_analyze)
 
+    # Build injury context: find teams with OUT starters and quantify missing usage
+    team_injury_context: dict[str, dict] = {}
+    for _pname in players_to_analyze:
+        _is_avail, _reason = availability_map.get(_pname, (True, ""))
+        if _is_avail:
+            continue
+        _pteam = _get_player_team(_pname, PLAYER_POSITIONS)
+        if not _pteam:
+            continue
+        _p_df = DF[DF["PLAYER_NAME"] == _pname].sort_values("_date", ascending=False)
+        if _p_df.empty:
+            continue
+        if "SEASON" in _p_df.columns:
+            _cs = _p_df[_p_df["SEASON"].str.startswith("2025", na=False)]
+            _r = _cs.head(10) if len(_cs) >= 5 else _p_df.head(10)
+        else:
+            _r = _p_df.head(10)
+        if "PTS" not in _r.columns or "MIN" not in _r.columns:
+            continue
+        _avg_pts = float(pd.to_numeric(_r["PTS"], errors="coerce").mean() or 0)
+        _avg_min = float(pd.to_numeric(_r["MIN"], errors="coerce").mean() or 0)
+        # Only count meaningful contributors (starter-level: 12+ PPG, 24+ MPG)
+        if _avg_pts >= 12 and _avg_min >= 24:
+            _ctx = team_injury_context.setdefault(_pteam, {"out_players": [], "missing_pts": 0.0})
+            _ctx["out_players"].append(_pname)
+            _ctx["missing_pts"] += _avg_pts
+            print(f"[PropsCache] InjuryBoost: {_pname} ({_pteam}) OUT — {_avg_pts:.1f} PPG redistributed")
+
     # Build game spreads dict for blowout risk detection
     game_spreads: dict = {}
     try:
@@ -1141,7 +1203,13 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
         print(f"[PropsCache] Could not fetch game spreads for blowout risk: {_e}")
 
     # Compute all 4 data sets
-    main_data     = _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=game_spreads, get_predictor_fn=get_predictor_fn)
+    main_data     = _compute_main_page_props(
+        DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info,
+        availability_map, players_to_analyze,
+        game_spreads=game_spreads,
+        get_predictor_fn=get_predictor_fn,
+        team_injury_context=team_injury_context,
+    )
     callback_data = _compute_callback_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, availability_map)
     sidebar_data  = _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn, availability_map=availability_map)
     # Preserve today's alt_lines across intra-day refreshes — recompute only when:
