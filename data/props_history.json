@@ -5079,7 +5079,7 @@
   },
   "2026-04-08": {
     "generated_at": "2026-04-08T21:12:16.069197+00:00",
-    "graded_at": null,
+    "graded_at": "2026-04-10T17:51:52.696974+00:00",
     "props": [
       {
         "direction": "Under",
@@ -5108,8 +5108,8 @@
         "is_lock": true,
         "ev": 0.844,
         "player": "John Collins",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5123,8 +5123,8 @@
         "is_lock": true,
         "ev": 0.844,
         "player": "Jarrett Allen",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5138,8 +5138,8 @@
         "is_lock": true,
         "ev": 0.789,
         "player": "Toumani Camara",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5153,8 +5153,8 @@
         "is_lock": true,
         "ev": 0.7587,
         "player": "Taurean Prince",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5168,8 +5168,8 @@
         "is_lock": true,
         "ev": 0.7558,
         "player": "Jordan Goodwin",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5183,8 +5183,8 @@
         "is_lock": true,
         "ev": 0.7558,
         "player": "Jared McCain",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5198,8 +5198,8 @@
         "is_lock": true,
         "ev": 0.7558,
         "player": "Jonathan Kuminga",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5213,8 +5213,8 @@
         "is_lock": true,
         "ev": 0.7558,
         "player": "Mouhamed Gueye",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5228,8 +5228,8 @@
         "is_lock": true,
         "ev": 0.7224,
         "player": "Scoot Henderson",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5243,8 +5243,8 @@
         "is_lock": true,
         "ev": 0.7189,
         "player": "Keon Ellis",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5273,8 +5273,8 @@
         "is_lock": true,
         "ev": 0.6825,
         "player": "Keon Ellis",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5288,8 +5288,8 @@
         "is_lock": true,
         "ev": 0.679,
         "player": "Dillon Brooks",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5303,8 +5303,8 @@
         "is_lock": true,
         "ev": 0.679,
         "player": "Brook Lopez",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5318,8 +5318,8 @@
         "is_lock": true,
         "ev": 0.679,
         "player": "Shai Gilgeous-Alexander",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5333,8 +5333,8 @@
         "is_lock": true,
         "ev": 0.679,
         "player": "Ajay Mitchell",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5348,8 +5348,8 @@
         "is_lock": true,
         "ev": 0.679,
         "player": "Keldon Johnson",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5363,8 +5363,8 @@
         "is_lock": true,
         "ev": 0.6764,
         "player": "De'Aaron Fox",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5378,8 +5378,8 @@
         "is_lock": true,
         "ev": 0.6764,
         "player": "Paolo Banchero",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5393,8 +5393,8 @@
         "is_lock": true,
         "ev": 0.6363,
         "player": "Jordan Goodwin",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5408,8 +5408,8 @@
         "is_lock": true,
         "ev": 0.6363,
         "player": "Luguentz Dort",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5423,8 +5423,8 @@
         "is_lock": true,
         "ev": 0.6363,
         "player": "Matisse Thybulle",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5438,8 +5438,8 @@
         "is_lock": true,
         "ev": 0.6363,
         "player": "Devin Vassell",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5453,8 +5453,8 @@
         "is_lock": true,
         "ev": 0.6363,
         "player": "Jalen Suggs",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5468,8 +5468,8 @@
         "is_lock": true,
         "ev": 0.6254,
         "player": "Max Christie",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5483,8 +5483,8 @@
         "is_lock": true,
         "ev": 0.5912,
         "player": "Jaylin Williams",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5498,8 +5498,8 @@
         "is_lock": true,
         "ev": 0.5912,
         "player": "Naz Reid",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5513,8 +5513,8 @@
         "is_lock": true,
         "ev": 0.5912,
         "player": "Aaron Gordon",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5528,8 +5528,8 @@
         "is_lock": true,
         "ev": 0.5912,
         "player": "Christian Braun",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5543,8 +5543,8 @@
         "is_lock": true,
         "ev": 0.5819,
         "player": "Derrick Jones Jr.",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5558,8 +5558,8 @@
         "is_lock": true,
         "ev": 0.5819,
         "player": "Jared McCain",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5573,8 +5573,8 @@
         "is_lock": true,
         "ev": 0.5643,
         "player": "Scoot Henderson",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5603,8 +5603,8 @@
         "is_lock": true,
         "ev": 0.5643,
         "player": "Anthony Black",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5618,8 +5618,8 @@
         "is_lock": true,
         "ev": 0.5643,
         "player": "Onyeka Okongwu",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5648,8 +5648,8 @@
         "is_lock": true,
         "ev": 0.5565,
         "player": "Isaiah Joe",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5663,8 +5663,8 @@
         "is_lock": true,
         "ev": 0.5565,
         "player": "Jericho Sims",
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5678,8 +5678,8 @@
         "is_lock": true,
         "ev": 0.5565,
         "player": "Julian Champagnie",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5693,8 +5693,8 @@
         "is_lock": true,
         "ev": 0.5441,
         "player": "Ousmane Dieng",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5708,8 +5708,8 @@
         "is_lock": true,
         "ev": 0.4969,
         "player": "Aaron Wiggins",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5723,8 +5723,8 @@
         "is_lock": true,
         "ev": 0.4956,
         "player": "Max Christie",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5738,8 +5738,8 @@
         "is_lock": true,
         "ev": 0.4956,
         "player": "Cooper Flagg",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5753,8 +5753,8 @@
         "is_lock": true,
         "ev": 0.4956,
         "player": "Donovan Clingan",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5768,8 +5768,8 @@
         "is_lock": true,
         "ev": 0.4956,
         "player": "Nikola Jokic",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5783,8 +5783,8 @@
         "is_lock": true,
         "ev": 0.4956,
         "player": "Dylan Harper",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5798,8 +5798,8 @@
         "is_lock": true,
         "ev": 0.4956,
         "player": "Luke Kornet",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5813,8 +5813,8 @@
         "is_lock": true,
         "ev": 0.4956,
         "player": "Daniss Jenkins",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5828,8 +5828,8 @@
         "is_lock": true,
         "ev": 0.4902,
         "player": "Taurean Prince",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "direction": "Under",
@@ -5843,8 +5843,8 @@
         "is_lock": true,
         "ev": 0.4902,
         "player": "Donte DiVincenzo",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5858,8 +5858,8 @@
         "is_lock": true,
         "ev": 0.4866,
         "player": "Cason Wallace",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5873,8 +5873,8 @@
         "is_lock": true,
         "ev": 0.4866,
         "player": "Pete Nance",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5888,8 +5888,8 @@
         "is_lock": true,
         "ev": 0.4866,
         "player": "CJ McCollum",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5903,8 +5903,8 @@
         "is_lock": true,
         "ev": 0.4643,
         "player": "Daniss Jenkins",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5918,8 +5918,8 @@
         "is_lock": true,
         "ev": 0.4551,
         "player": "Jrue Holiday",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5933,8 +5933,8 @@
         "is_lock": true,
         "ev": 0.4463,
         "player": "Matisse Thybulle",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5948,8 +5948,8 @@
         "is_lock": true,
         "ev": 0.4051,
         "player": "Devin Booker",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5963,8 +5963,8 @@
         "is_lock": true,
         "ev": 0.4051,
         "player": "Jalen Green",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": true
       },
       {
         "direction": "Under",
@@ -5978,6 +5978,1734 @@
         "is_lock": true,
         "ev": 0.4051,
         "player": "AJ Green",
+        "actual": 2.0,
+        "hit": true
+      }
+    ],
+    "summary": {
+      "hit": 44,
+      "miss": 12,
+      "total": 56,
+      "pct": 78.6,
+      "by_stat": {
+        "AST": {
+          "hit": 10,
+          "total": 16,
+          "pct": 62.5
+        },
+        "REB": {
+          "hit": 6,
+          "total": 7,
+          "pct": 85.7
+        },
+        "FG3M": {
+          "hit": 28,
+          "total": 33,
+          "pct": 84.8
+        }
+      }
+    }
+  },
+  "2026-04-09": {
+    "generated_at": "2026-04-10T03:46:32.497129+00:00",
+    "graded_at": "2026-04-10T05:00:00.100943+00:00",
+    "props": [
+      {
+        "is_lock": true,
+        "avg": 5.3,
+        "line": 6.5,
+        "player": "Brandin Podziemski",
+        "direction": "Under",
+        "team": "GSW",
+        "opponent": "LAL",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 0.8,
+        "stat": "REB",
+        "ev": 0.2169,
+        "actual": 1.0,
+        "hit": true
+      },
+      {
+        "is_lock": true,
+        "avg": 8.8,
+        "line": 12.5,
+        "player": "LJ Cryer",
+        "direction": "Under",
+        "team": "GSW",
+        "opponent": "LAL",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 0.8,
+        "stat": "PTS",
+        "ev": 0.1455,
+        "actual": 6.0,
+        "hit": true
+      },
+      {
+        "is_lock": true,
+        "avg": 1.1,
+        "line": 1.0,
+        "player": "Brandin Podziemski",
+        "direction": "Over",
+        "team": "GSW",
+        "opponent": "LAL",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 0.8,
+        "stat": "STL",
+        "ev": -0.2207,
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "is_lock": true,
+        "avg": 6.9,
+        "line": 3.5,
+        "player": "Deandre Ayton",
+        "direction": "Over",
+        "team": "LAL",
+        "opponent": "GSW",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 0.9,
+        "stat": "REB",
+        "ev": -0.3143,
+        "actual": 5.0,
+        "hit": true
+      },
+      {
+        "is_lock": true,
+        "avg": 1.2,
+        "line": 1.0,
+        "player": "Draymond Green",
+        "direction": "Over",
+        "team": "GSW",
+        "opponent": "LAL",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 0.9,
+        "stat": "STL",
+        "ev": -0.4956,
+        "actual": 1.0,
+        "hit": true
+      },
+      {
+        "is_lock": true,
+        "avg": 6.2,
+        "line": 3.5,
+        "player": "Jake LaRavia",
+        "direction": "Over",
+        "team": "LAL",
+        "opponent": "GSW",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 0.8,
+        "stat": "PTS",
+        "ev": -0.505,
+        "actual": 11.0,
+        "hit": true
+      },
+      {
+        "is_lock": true,
+        "avg": 5.6,
+        "line": 3.5,
+        "player": "Draymond Green",
+        "direction": "Over",
+        "team": "GSW",
+        "opponent": "LAL",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 0.9,
+        "stat": "REB",
+        "ev": -0.5813,
+        "actual": 5.0,
+        "hit": true
+      },
+      {
+        "is_lock": true,
+        "avg": 16.2,
+        "line": 9.5,
+        "player": "Brandin Podziemski",
+        "direction": "Over",
+        "team": "GSW",
+        "opponent": "LAL",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 0.9,
+        "stat": "PTS",
+        "ev": -0.7159,
+        "actual": 17.0,
+        "hit": true
+      },
+      {
+        "is_lock": true,
+        "avg": 11.1,
+        "line": 5.5,
+        "player": "Deandre Ayton",
+        "direction": "Over",
+        "team": "LAL",
+        "opponent": "GSW",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 1.0,
+        "stat": "PTS",
+        "ev": -0.803,
+        "actual": 21.0,
+        "hit": true
+      },
+      {
+        "is_lock": true,
+        "avg": 6.8,
+        "line": 3.5,
+        "player": "Draymond Green",
+        "direction": "Over",
+        "team": "GSW",
+        "opponent": "LAL",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 0.9,
+        "stat": "AST",
+        "ev": -1.0,
+        "actual": 6.0,
+        "hit": true
+      },
+      {
+        "is_lock": "False",
+        "avg": 7.2,
+        "line": 10.5,
+        "player": "Luke Kennard",
+        "direction": "Under",
+        "team": "LAL",
+        "opponent": "GSW",
+        "game_matchup": "LAL @ GSW",
+        "hit_rate": 0.7,
+        "stat": "PTS",
+        "ev": 0.0603,
+        "actual": 7.0,
+        "hit": true
+      }
+    ],
+    "summary": {
+      "hit": 10,
+      "miss": 1,
+      "total": 11,
+      "pct": 90.9,
+      "by_stat": {
+        "REB": {
+          "hit": 3,
+          "total": 3,
+          "pct": 100.0
+        },
+        "PTS": {
+          "hit": 5,
+          "total": 5,
+          "pct": 100.0
+        },
+        "STL": {
+          "hit": 1,
+          "total": 2,
+          "pct": 50.0
+        },
+        "AST": {
+          "hit": 1,
+          "total": 1,
+          "pct": 100.0
+        }
+      }
+    }
+  },
+  "2026-04-10": {
+    "generated_at": "2026-04-10T20:07:39.590706+00:00",
+    "graded_at": null,
+    "props": [
+      {
+        "player": "Kawhi Leonard",
+        "ev": -0.1965,
+        "is_lock": true,
+        "opponent": "POR",
+        "game_matchup": "LAC @ POR",
+        "line": 18.5,
+        "team": "LAC",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 25.9,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Onyeka Okongwu",
+        "ev": -0.2108,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 5.0,
+        "team": "ATL",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 7.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Deni Avdija",
+        "ev": -0.4072,
+        "is_lock": true,
+        "opponent": "LAC",
+        "game_matchup": "LAC @ POR",
+        "line": 17.0,
+        "team": "POR",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 24.7,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "LeBron James",
+        "ev": -0.4916,
+        "is_lock": true,
+        "opponent": "PHX",
+        "game_matchup": "PHX @ LAL",
+        "line": 4.5,
+        "team": "LAL",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 7.6,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jalen Duren",
+        "ev": -0.601,
+        "is_lock": true,
+        "opponent": "CHA",
+        "game_matchup": "DET @ CHA",
+        "line": 5.5,
+        "team": "DET",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 9.9,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Darius Garland",
+        "ev": -0.6485,
+        "is_lock": true,
+        "opponent": "POR",
+        "game_matchup": "LAC @ POR",
+        "line": 10.5,
+        "team": "LAC",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 21.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jalen Johnson",
+        "ev": -0.7711,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 4.5,
+        "team": "ATL",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 10.1,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Ace Bailey",
+        "ev": -0.7793,
+        "is_lock": true,
+        "opponent": "MEM",
+        "game_matchup": "MEM @ UTA",
+        "line": 10.5,
+        "team": "UTA",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 20.7,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "RJ Barrett",
+        "ev": -0.9128,
+        "is_lock": true,
+        "opponent": "NYK",
+        "game_matchup": "TOR @ NYK",
+        "line": 11.0,
+        "team": "TOR",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 20.7,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jalen Johnson",
+        "ev": -0.9158,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 10.5,
+        "team": "ATL",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 19.9,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Kennedy Chandler",
+        "ev": -0.9637,
+        "is_lock": true,
+        "opponent": "MEM",
+        "game_matchup": "MEM @ UTA",
+        "line": 3.5,
+        "team": "UTA",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 6.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jamal Shead",
+        "ev": -0.9826,
+        "is_lock": true,
+        "opponent": "NYK",
+        "game_matchup": "TOR @ NYK",
+        "line": 3.5,
+        "team": "TOR",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 7.8,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jalen Brunson",
+        "ev": -0.9853,
+        "is_lock": true,
+        "opponent": "TOR",
+        "game_matchup": "TOR @ NYK",
+        "line": 4.0,
+        "team": "NYK",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 8.6,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Stephon Castle",
+        "ev": -0.9929,
+        "is_lock": true,
+        "opponent": "DAL",
+        "game_matchup": "DAL @ SAN",
+        "line": 4.0,
+        "team": "SAN",
+        "hit_rate": 1.0,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 9.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Darius Garland",
+        "ev": 0.2736,
+        "is_lock": true,
+        "opponent": "POR",
+        "game_matchup": "LAC @ POR",
+        "line": 0.5,
+        "team": "LAC",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Keon Ellis",
+        "ev": 0.2067,
+        "is_lock": true,
+        "opponent": "ATL",
+        "game_matchup": "CLE @ ATL",
+        "line": 0.5,
+        "team": "CLE",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jalen Johnson",
+        "ev": 0.2067,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 0.5,
+        "team": "ATL",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Daniss Jenkins",
+        "ev": 0.1134,
+        "is_lock": true,
+        "opponent": "CHA",
+        "game_matchup": "DET @ CHA",
+        "line": 12.0,
+        "team": "DET",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 18.9,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Brandon Miller",
+        "ev": -0.1569,
+        "is_lock": true,
+        "opponent": "DET",
+        "game_matchup": "DET @ CHA",
+        "line": 3.0,
+        "team": "CHA",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "FG3M",
+        "avg": 3.7,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Karl-Anthony Towns",
+        "ev": -0.2786,
+        "is_lock": true,
+        "opponent": "TOR",
+        "game_matchup": "TOR @ NYK",
+        "line": 11.0,
+        "team": "NYK",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 18.6,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Victor Wembanyama",
+        "ev": -0.4149,
+        "is_lock": true,
+        "opponent": "DAL",
+        "game_matchup": "DAL @ SAN",
+        "line": 7.5,
+        "team": "SAN",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 13.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Victor Wembanyama",
+        "ev": -0.6275,
+        "is_lock": true,
+        "opponent": "DAL",
+        "game_matchup": "DAL @ SAN",
+        "line": 18.0,
+        "team": "SAN",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 27.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Deni Avdija",
+        "ev": -0.6552,
+        "is_lock": true,
+        "opponent": "LAC",
+        "game_matchup": "LAC @ POR",
+        "line": 3.5,
+        "team": "POR",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 6.5,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Robert Williams III",
+        "ev": -0.7663,
+        "is_lock": true,
+        "opponent": "LAC",
+        "game_matchup": "LAC @ POR",
+        "line": 4.5,
+        "team": "POR",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 6.7,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "CJ McCollum",
+        "ev": -0.7801,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 10.5,
+        "team": "ATL",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 17.5,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Scottie Barnes",
+        "ev": -0.7923,
+        "is_lock": true,
+        "opponent": "NYK",
+        "game_matchup": "TOR @ NYK",
+        "line": 4.5,
+        "team": "TOR",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 9.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jalen Duren",
+        "ev": -0.8051,
+        "is_lock": true,
+        "opponent": "CHA",
+        "game_matchup": "DET @ CHA",
+        "line": 10.5,
+        "team": "DET",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 21.5,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Keldon Johnson",
+        "ev": -0.8421,
+        "is_lock": true,
+        "opponent": "DAL",
+        "game_matchup": "DAL @ SAN",
+        "line": 10.5,
+        "team": "SAN",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 15.8,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Kawhi Leonard",
+        "ev": -0.8461,
+        "is_lock": true,
+        "opponent": "POR",
+        "game_matchup": "LAC @ POR",
+        "line": 4.5,
+        "team": "LAC",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 6.6,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Brandon Miller",
+        "ev": -0.8551,
+        "is_lock": true,
+        "opponent": "DET",
+        "game_matchup": "DET @ CHA",
+        "line": 10.5,
+        "team": "CHA",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 19.4,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Deni Avdija",
+        "ev": -0.8557,
+        "is_lock": true,
+        "opponent": "LAC",
+        "game_matchup": "LAC @ POR",
+        "line": 4.5,
+        "team": "POR",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 7.5,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Stephon Castle",
+        "ev": -0.8813,
+        "is_lock": true,
+        "opponent": "DAL",
+        "game_matchup": "DAL @ SAN",
+        "line": 10.5,
+        "team": "SAN",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 17.7,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Dylan Harper",
+        "ev": -0.8824,
+        "is_lock": true,
+        "opponent": "DAL",
+        "game_matchup": "DAL @ SAN",
+        "line": 10.5,
+        "team": "SAN",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 15.6,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Darius Garland",
+        "ev": -0.8975,
+        "is_lock": true,
+        "opponent": "POR",
+        "game_matchup": "LAC @ POR",
+        "line": 3.5,
+        "team": "LAC",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 6.9,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "James Harden",
+        "ev": -0.8975,
+        "is_lock": true,
+        "opponent": "ATL",
+        "game_matchup": "CLE @ ATL",
+        "line": 3.5,
+        "team": "CLE",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 7.9,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "LaMelo Ball",
+        "ev": -0.9355,
+        "is_lock": true,
+        "opponent": "DET",
+        "game_matchup": "DET @ CHA",
+        "line": 3.5,
+        "team": "CHA",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 7.1,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "De'Aaron Fox",
+        "ev": -0.9637,
+        "is_lock": true,
+        "opponent": "DAL",
+        "game_matchup": "DAL @ SAN",
+        "line": 3.5,
+        "team": "SAN",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 5.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Cade Cunningham",
+        "ev": -0.9637,
+        "is_lock": true,
+        "opponent": "CHA",
+        "game_matchup": "DET @ CHA",
+        "line": 3.5,
+        "team": "DET",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 10.5,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jalen Johnson",
+        "ev": -0.9998,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 3.5,
+        "team": "ATL",
+        "hit_rate": 0.9,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 7.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Oscar Tshiebwe",
+        "ev": 0.2678,
+        "is_lock": true,
+        "opponent": "MEM",
+        "game_matchup": "MEM @ UTA",
+        "line": 5.5,
+        "team": "UTA",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 6.7,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Daniss Jenkins",
+        "ev": 0.2046,
+        "is_lock": true,
+        "opponent": "CHA",
+        "game_matchup": "DET @ CHA",
+        "line": 5.5,
+        "team": "DET",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 7.5,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Ja'Kobe Walter",
+        "ev": 0.1844,
+        "is_lock": true,
+        "opponent": "NYK",
+        "game_matchup": "TOR @ NYK",
+        "line": 1.5,
+        "team": "TOR",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "FG3M",
+        "avg": 2.9,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Collin Gillespie",
+        "ev": 0.1844,
+        "is_lock": true,
+        "opponent": "LAL",
+        "game_matchup": "PHX @ LAL",
+        "line": 1.5,
+        "team": "PHX",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "FG3M",
+        "avg": 2.7,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Ryan Nembhard",
+        "ev": 0.0439,
+        "is_lock": true,
+        "opponent": "SAN",
+        "game_matchup": "DAL @ SAN",
+        "line": 3.5,
+        "team": "DAL",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 5.4,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Ausar Thompson",
+        "ev": -0.0325,
+        "is_lock": true,
+        "opponent": "CHA",
+        "game_matchup": "DET @ CHA",
+        "line": 1.5,
+        "team": "DET",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 2.7,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jalen Green",
+        "ev": -0.0539,
+        "is_lock": true,
+        "opponent": "LAL",
+        "game_matchup": "PHX @ LAL",
+        "line": 15.0,
+        "team": "PHX",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 19.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Josh Hart",
+        "ev": -0.0771,
+        "is_lock": true,
+        "opponent": "TOR",
+        "game_matchup": "TOR @ NYK",
+        "line": 6.0,
+        "team": "NYK",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 7.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Duncan Robinson",
+        "ev": -0.0806,
+        "is_lock": true,
+        "opponent": "CHA",
+        "game_matchup": "DET @ CHA",
+        "line": 2.0,
+        "team": "DET",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "FG3M",
+        "avg": 2.8,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Rayan Rupert",
+        "ev": -0.093,
+        "is_lock": true,
+        "opponent": "UTA",
+        "game_matchup": "MEM @ UTA",
+        "line": 1.0,
+        "team": "MEM",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.4,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Dyson Daniels",
+        "ev": -0.1291,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 2.0,
+        "team": "ATL",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 2.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Paul Reed",
+        "ev": -0.1386,
+        "is_lock": true,
+        "opponent": "CHA",
+        "game_matchup": "DET @ CHA",
+        "line": 0.5,
+        "team": "DET",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Bez Mbeng",
+        "ev": -0.2207,
+        "is_lock": true,
+        "opponent": "MEM",
+        "game_matchup": "MEM @ UTA",
+        "line": 1.0,
+        "team": "UTA",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.4,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Nolan Traore",
+        "ev": -0.2207,
+        "is_lock": true,
+        "opponent": "MIL",
+        "game_matchup": "BKN @ MIL",
+        "line": 1.0,
+        "team": "BKN",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Cade Cunningham",
+        "ev": -0.2207,
+        "is_lock": true,
+        "opponent": "CHA",
+        "game_matchup": "DET @ CHA",
+        "line": 1.0,
+        "team": "DET",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Donovan Clingan",
+        "ev": -0.2297,
+        "is_lock": true,
+        "opponent": "LAC",
+        "game_matchup": "LAC @ POR",
+        "line": 7.0,
+        "team": "POR",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 11.1,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "LaMelo Ball",
+        "ev": -0.2356,
+        "is_lock": true,
+        "opponent": "DET",
+        "game_matchup": "DET @ CHA",
+        "line": 15.5,
+        "team": "CHA",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 21.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Karl-Anthony Towns",
+        "ev": -0.256,
+        "is_lock": true,
+        "opponent": "TOR",
+        "game_matchup": "TOR @ NYK",
+        "line": 6.0,
+        "team": "NYK",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 10.8,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Evan Mobley",
+        "ev": -0.2763,
+        "is_lock": true,
+        "opponent": "ATL",
+        "game_matchup": "CLE @ ATL",
+        "line": 7.0,
+        "team": "CLE",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 11.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Grayson Allen",
+        "ev": -0.2797,
+        "is_lock": true,
+        "opponent": "LAL",
+        "game_matchup": "PHX @ LAL",
+        "line": 2.0,
+        "team": "PHX",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "FG3M",
+        "avg": 2.6,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Scottie Barnes",
+        "ev": -0.2797,
+        "is_lock": true,
+        "opponent": "NYK",
+        "game_matchup": "TOR @ NYK",
+        "line": 2.0,
+        "team": "TOR",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 2.1,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "LaMelo Ball",
+        "ev": -0.2875,
+        "is_lock": true,
+        "opponent": "DET",
+        "game_matchup": "DET @ CHA",
+        "line": 1.0,
+        "team": "CHA",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.4,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Onyeka Okongwu",
+        "ev": -0.2875,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 1.0,
+        "team": "ATL",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "BLK",
+        "avg": 1.1,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Javonte Green",
+        "ev": -0.2875,
+        "is_lock": true,
+        "opponent": "CHA",
+        "game_matchup": "DET @ CHA",
+        "line": 1.0,
+        "team": "DET",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.1,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "James Harden",
+        "ev": -0.2875,
+        "is_lock": true,
+        "opponent": "ATL",
+        "game_matchup": "CLE @ ATL",
+        "line": 1.0,
+        "team": "CLE",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.4,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Kawhi Leonard",
+        "ev": -0.3559,
+        "is_lock": true,
+        "opponent": "POR",
+        "game_matchup": "LAC @ POR",
+        "line": 1.0,
+        "team": "LAC",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.6,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jay Huff",
+        "ev": -0.3559,
+        "is_lock": true,
+        "opponent": "PHI",
+        "game_matchup": "PHI @ IND",
+        "line": 1.0,
+        "team": "IND",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "BLK",
+        "avg": 1.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Evan Mobley",
+        "ev": -0.3979,
+        "is_lock": true,
+        "opponent": "ATL",
+        "game_matchup": "CLE @ ATL",
+        "line": 15.0,
+        "team": "CLE",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 21.1,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Oso Ighodaro",
+        "ev": -0.4593,
+        "is_lock": true,
+        "opponent": "LAL",
+        "game_matchup": "PHX @ LAL",
+        "line": 4.5,
+        "team": "PHX",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 6.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Nickeil Alexander-Walker",
+        "ev": -0.5004,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 17.5,
+        "team": "ATL",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 24.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Toumani Camara",
+        "ev": -0.6056,
+        "is_lock": true,
+        "opponent": "LAC",
+        "game_matchup": "LAC @ POR",
+        "line": 10.5,
+        "team": "POR",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 19.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Dyson Daniels",
+        "ev": -0.6671,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 10.5,
+        "team": "ATL",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 13.5,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Dyson Daniels",
+        "ev": -0.7167,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 4.5,
+        "team": "ATL",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 6.8,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Dyson Daniels",
+        "ev": -0.7925,
+        "is_lock": true,
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 3.5,
+        "team": "ATL",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 4.4,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Scottie Barnes",
+        "ev": -0.803,
+        "is_lock": true,
+        "opponent": "NYK",
+        "game_matchup": "TOR @ NYK",
+        "line": 4.5,
+        "team": "TOR",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 5.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jakob Poeltl",
+        "ev": -0.8295,
+        "is_lock": true,
+        "opponent": "NYK",
+        "game_matchup": "TOR @ NYK",
+        "line": 10.5,
+        "team": "TOR",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 14.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Kon Knueppel",
+        "ev": -0.8438,
+        "is_lock": true,
+        "opponent": "DET",
+        "game_matchup": "DET @ CHA",
+        "line": 10.5,
+        "team": "CHA",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 14.9,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "John Collins",
+        "ev": -0.873,
+        "is_lock": true,
+        "opponent": "POR",
+        "game_matchup": "LAC @ POR",
+        "line": 10.5,
+        "team": "LAC",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 15.1,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Grayson Allen",
+        "ev": -0.9597,
+        "is_lock": true,
+        "opponent": "LAL",
+        "game_matchup": "PHX @ LAL",
+        "line": 10.5,
+        "team": "PHX",
+        "hit_rate": 0.8,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 14.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jaylen Brown",
+        "ev": 0.238,
+        "is_lock": "False",
+        "opponent": "NOP",
+        "game_matchup": "NOP @ BOS",
+        "line": 5.0,
+        "team": "BOS",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 5.8,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Derrick White",
+        "ev": 0.2367,
+        "is_lock": "False",
+        "opponent": "NOP",
+        "game_matchup": "NOP @ BOS",
+        "line": 4.5,
+        "team": "BOS",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 5.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "LeBron James",
+        "ev": 0.2067,
+        "is_lock": "False",
+        "opponent": "PHX",
+        "game_matchup": "PHX @ LAL",
+        "line": 0.5,
+        "team": "LAL",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "CJ McCollum",
+        "ev": 0.1844,
+        "is_lock": "False",
+        "opponent": "CLE",
+        "game_matchup": "CLE @ ATL",
+        "line": 1.5,
+        "team": "ATL",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "FG3M",
+        "avg": 2.1,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Pelle Larsson",
+        "ev": 0.172,
+        "is_lock": "False",
+        "opponent": "WAS",
+        "game_matchup": "MIA @ WAS",
+        "line": 13.0,
+        "team": "MIA",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 14.5,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Brandon Williams",
+        "ev": 0.1542,
+        "is_lock": "False",
+        "opponent": "SAN",
+        "game_matchup": "DAL @ SAN",
+        "line": 3.5,
+        "team": "DAL",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "AST",
+        "avg": 4.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Daeqwon Plowden",
+        "ev": 0.1468,
+        "is_lock": "False",
+        "opponent": "GSW",
+        "game_matchup": "GSW @ SAC",
+        "line": 13.0,
+        "team": "SAC",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 14.8,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Cameron Johnson",
+        "ev": 0.1422,
+        "is_lock": "False",
+        "opponent": "OKC",
+        "game_matchup": "OKC @ DEN",
+        "line": 14.0,
+        "team": "DEN",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "PTS",
+        "avg": 14.8,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jamir Watkins",
+        "ev": 0.1329,
+        "is_lock": "False",
+        "opponent": "MIA",
+        "game_matchup": "MIA @ WAS",
+        "line": 0.5,
+        "team": "WAS",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.4,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Moussa Diabate",
+        "ev": 0.1329,
+        "is_lock": "False",
+        "opponent": "DET",
+        "game_matchup": "DET @ CHA",
+        "line": 0.5,
+        "team": "CHA",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Tyler Burton",
+        "ev": 0.1329,
+        "is_lock": "False",
+        "opponent": "UTA",
+        "game_matchup": "MEM @ UTA",
+        "line": 0.5,
+        "team": "MEM",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jalen Brunson",
+        "ev": 0.1329,
+        "is_lock": "False",
+        "opponent": "TOR",
+        "game_matchup": "TOR @ NYK",
+        "line": 0.5,
+        "team": "NYK",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jordan Miller",
+        "ev": 0.1329,
+        "is_lock": "False",
+        "opponent": "POR",
+        "game_matchup": "LAC @ POR",
+        "line": 0.5,
+        "team": "LAC",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jahmai Mashack",
+        "ev": 0.1329,
+        "is_lock": "False",
+        "opponent": "UTA",
+        "game_matchup": "MEM @ UTA",
+        "line": 0.5,
+        "team": "MEM",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.3,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Max Christie",
+        "ev": 0.1329,
+        "is_lock": "False",
+        "opponent": "SAN",
+        "game_matchup": "DAL @ SAN",
+        "line": 0.5,
+        "team": "DAL",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.0,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Dylan Cardwell",
+        "ev": 0.097,
+        "is_lock": "False",
+        "opponent": "GSW",
+        "game_matchup": "GSW @ SAC",
+        "line": 5.5,
+        "team": "SAC",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "REB",
+        "avg": 7.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Jalen Green",
+        "ev": 0.0811,
+        "is_lock": "False",
+        "opponent": "LAL",
+        "game_matchup": "PHX @ LAL",
+        "line": 1.5,
+        "team": "PHX",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "FG3M",
+        "avg": 2.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Ayo Dosunmu",
+        "ev": 0.0811,
+        "is_lock": "False",
+        "opponent": "HOU",
+        "game_matchup": "MIN @ HOU",
+        "line": 1.5,
+        "team": "MIN",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "FG3M",
+        "avg": 2.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Blake Hinson",
+        "ev": 0.0811,
+        "is_lock": "False",
+        "opponent": "MEM",
+        "game_matchup": "MEM @ UTA",
+        "line": 1.5,
+        "team": "UTA",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "FG3M",
+        "avg": 1.9,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Obi Toppin",
+        "ev": 0.0811,
+        "is_lock": "False",
+        "opponent": "PHI",
+        "game_matchup": "PHI @ IND",
+        "line": 1.5,
+        "team": "IND",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "FG3M",
+        "avg": 2.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Derrick White",
+        "ev": 0.0513,
+        "is_lock": "False",
+        "opponent": "NOP",
+        "game_matchup": "NOP @ BOS",
+        "line": 0.5,
+        "team": "BOS",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "STL",
+        "avg": 1.2,
+        "actual": null,
+        "hit": null
+      },
+      {
+        "player": "Brook Lopez",
+        "ev": 0.0513,
+        "is_lock": "False",
+        "opponent": "POR",
+        "game_matchup": "LAC @ POR",
+        "line": 0.5,
+        "team": "LAC",
+        "hit_rate": 0.7,
+        "direction": "Over",
+        "stat": "BLK",
+        "avg": 1.3,
         "actual": null,
         "hit": null
       }
