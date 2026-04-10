@@ -344,62 +344,11 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 continue
 
             # ── L5 average — primary form signal (current performance level) ──
-            # Using L5 instead of L10 median so that old injury/rest games don't
-            # artificially drag the line down. If a player avg 20.5 over L5 the
-            # line should be ~20.5, not ~10.5 because of stale L10 data.
             l5_avg = float(recent_stats.head(5).mean()) if len(recent_stats) >= 5 else float(avg_stat)
-
-            # Injury usage boost: if starters are OUT on this team, active players see more usage
-            _injury_boost_note: str = ""
-            if team_injury_context and player_team in team_injury_context and stat_type in ("PTS", "AST"):
-                _ctx = team_injury_context[player_team]
-                _missing = _ctx["missing_pts"]
-                _out_names = ", ".join(_ctx["out_players"][:2])  # show max 2 names
-                # Boost factor scales with role and missing usage
-                if role == "star":
-                    _bfactor = 1.0 + min(_missing * 0.10 / max(l5_avg, 8), 0.25)
-                elif role == "starter":
-                    _bfactor = 1.0 + min(_missing * 0.08 / max(l5_avg, 8), 0.20)
-                elif role == "rotation":
-                    _bfactor = 1.0 + min(_missing * 0.05 / max(l5_avg, 6), 0.12)
-                else:
-                    _bfactor = 1.0
-                if _bfactor > 1.02:  # only apply meaningful boosts
-                    l5_avg = l5_avg * _bfactor
-                    _injury_boost_note = f"⬆ {_out_names} OUT"
-
-            # Value line: 72% of L5 avg (nearest 0.5 below), with per-stat minimum floors
-            # This matches PrizePicks/Outlier logic: line well below average = high hit rate + value
-            raw_value_line = math.floor(l5_avg * 0.80 / 0.5) * 0.5
-            line = max(_VALUE_LINE_MIN.get(stat_type, 0.5), raw_value_line)
 
             n = len(recent_stats)
 
-            # ── ML line blending (60% ML, 40% L5-based line) ──────────────────
-            # Store ml_pred_stored for use in EV calculation later.
-            ml_pred_stored: float | None = None
-            if get_predictor_fn:
-                try:
-                    predictor = get_predictor_fn(stat_type)
-                    if predictor:
-                        ml_result = predictor.predict_player_game(player_name, DF)
-                        ml_pred = ml_result.get(f"predicted_{stat_type.lower()}")
-                        if ml_pred and float(ml_pred) > 0:
-                            ml_pred_stored = float(ml_pred)
-                            blended = 0.6 * ml_pred_stored + 0.4 * float(l5_avg)
-                            raw_ml_line = math.floor(blended * 0.80 / 0.5) * 0.5
-                            line = max(_VALUE_LINE_MIN.get(stat_type, 0.5), raw_ml_line)
-                except Exception:
-                    pass  # stay with L5-based line
-
-            over_line  = line
-            under_line = over_line + 1.0
-
-            hits_over  = (recent_stats >= over_line).sum()
-            hits_under = (recent_stats <  under_line).sum()
-            hit_rate_over  = hits_over  / n
-            hit_rate_under = hits_under / n
-
+            # ── Opponent defense rank (computed early — needed for projection) ─
             opp_def  = DEFENSE_VS_POS[
                 (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) &
                 (DEFENSE_VS_POS["POSITION"] == position)
@@ -412,6 +361,79 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 else f"{_normalize_abbr(player_team)} @ {opponent}"
             )
 
+            # ── Injury usage boost ────────────────────────────────────────────
+            _injury_boost_note: str = ""
+            if team_injury_context and player_team in team_injury_context and stat_type in ("PTS", "AST"):
+                _ctx = team_injury_context[player_team]
+                _missing = _ctx["missing_pts"]
+                _out_names = ", ".join(_ctx["out_players"][:2])
+                if role == "star":
+                    _bfactor = 1.0 + min(_missing * 0.10 / max(l5_avg, 8), 0.25)
+                elif role == "starter":
+                    _bfactor = 1.0 + min(_missing * 0.08 / max(l5_avg, 8), 0.20)
+                elif role == "rotation":
+                    _bfactor = 1.0 + min(_missing * 0.05 / max(l5_avg, 6), 0.12)
+                else:
+                    _bfactor = 1.0
+                if _bfactor > 1.02:
+                    l5_avg = l5_avg * _bfactor
+                    _injury_boost_note = f"⬆ {_out_names} OUT"
+
+            # ── Contextual projection ─────────────────────────────────────────
+            # Build a realistic projection using L5 avg as base, then adjust
+            # for opponent defense, home/away splits, and ML model when available.
+            # Books typically set lines ~1-2pts above L5 avg; our value line sits
+            # at 92% of our contextual projection for genuine hit-rate value.
+            proj = l5_avg
+
+            # 1. Opponent defense adjustment (rank 1=best defense, 30=worst)
+            #    Weak defense (rank 20-30) → boost proj; strong defense → reduce
+            if def_rank is not None:
+                def_factor = max(0.92, min(1.08, 1.0 + (def_rank - 15) * 0.006))
+                proj = proj * def_factor
+
+            # 2. Home/Away split (40% weight toward actual split avg)
+            _ha_stat = pd.to_numeric(
+                (home_games[stat_type] if is_home_today else away_games[stat_type]),
+                errors="coerce"
+            ) if stat_type in (home_games.columns if is_home_today else away_games.columns) else pd.Series(dtype=float)
+            if len(_ha_stat.dropna()) >= 3:
+                _ha_avg = float(_ha_stat.mean())
+                proj = 0.60 * proj + 0.40 * _ha_avg
+
+            # 3. ML model blend (when available): 55% ML, 45% contextual
+            ml_pred_stored: float | None = None
+            if get_predictor_fn:
+                try:
+                    predictor = get_predictor_fn(stat_type)
+                    if predictor:
+                        ml_result = predictor.predict_player_game(player_name, DF)
+                        ml_pred = ml_result.get(f"predicted_{stat_type.lower()}")
+                        if ml_pred and float(ml_pred) > 0:
+                            ml_pred_stored = float(ml_pred)
+                            proj = 0.55 * ml_pred_stored + 0.45 * proj
+                except Exception:
+                    pass
+
+            # 4. Our displayed value line: 92% of contextual projection
+            #    (e.g., proj=21.0 → line=19.5; proj=8.5 → line=7.5)
+            #    Much more realistic than fixed 80% of raw l5_avg.
+            raw_line = math.floor(proj * 0.92 / 0.5) * 0.5
+            line = max(_VALUE_LINE_MIN.get(stat_type, 0.5), raw_line)
+
+            # 5. Simulated book line (used when no live sportsbook odds available)
+            #    Books typically set line = l5_avg + small buffer (mimics real books)
+            _SIM_BOOK_BUFFER = {"PTS": 1.5, "AST": 0.5, "REB": 1.0, "FG3M": 0.5, "STL": 0.5, "BLK": 0.5}
+            sim_book_line = math.ceil((l5_avg + _SIM_BOOK_BUFFER.get(stat_type, 1.0)) / 0.5) * 0.5
+
+            over_line  = line
+            under_line = over_line + 1.0
+
+            hits_over  = (recent_stats >= over_line).sum()
+            hits_under = (recent_stats <  under_line).sum()
+            hit_rate_over  = hits_over  / n
+            hit_rate_under = hits_under / n
+
             # ── Consistency multiplier (penalise high-variance players) ───────
             std_stat = recent_stats.std()
             cv = std_stat / avg_stat if avg_stat > 0 else 1.0
@@ -420,7 +442,8 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             def _make_prop(direction, bet_line, hit_rate, hits,
                            _role=role, _blowout_risk=blowout_risk,
                            _blowout_spread=blowout_spread, _cons=consistency_mult,
-                           _l5_avg=l5_avg, _model_pred=ml_pred_stored, _std=std_stat):
+                           _l5_avg=l5_avg, _model_pred=ml_pred_stored, _std=std_stat,
+                           _proj=proj, _sim_book=sim_book_line):
                 # EV initially from hit_rate; will be overwritten in live-odds
                 # enrichment step with true model_prob vs implied_prob.
                 ev_value = calculate_ev(hit_rate)
@@ -457,14 +480,16 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 hr_away = (away_games[stat_type] >= bet_line).sum() / len(away_games) if not away_games.empty else 0
                 h_home  = (home_games[stat_type] >= bet_line).sum() if not home_games.empty else 0
                 h_away  = (away_games[stat_type] >= bet_line).sum() if not away_games.empty else 0
-                # model_pred: ML prediction when available, else L5 avg.
-                # Used in live-odds enrichment to compute true EV.
-                _model_pred_val = round(_model_pred, 1) if _model_pred else round(_l5_avg, 1)
+                # model_pred: contextual projection (opponent/home-away/ML adjusted).
+                # Used in live-odds enrichment to compute true EV, and shown on card.
+                _model_pred_val = round(_model_pred, 1) if _model_pred else round(_proj, 1)
                 return {
                     "player": player_name, "team": player_team, "opponent": opponent, "position": position,
                     "role": _role,
                     "stat": stat_type, "line": bet_line, "avg": round(avg_stat, 1),
                     "l5_avg": round(_l5_avg, 1),
+                    "projection": round(_proj, 1),   # contextual projection (shown on card)
+                    "sim_book_line": round(_sim_book, 1),  # simulated book line
                     "model_pred": _model_pred_val,
                     "stat_std": round(_std, 2),
                     "direction": direction,
@@ -744,6 +769,8 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             prop["live_over_price"]  = None
             prop["live_under_price"] = None
             prop["live_bookmaker"]   = None
+            # Use simulated book line as book_line reference when no live odds
+            prop["book_line"] = prop.get("sim_book_line") or None
 
     # ── Quality gate — keep only genuine-edge props with meaningful payout ─
     # EV is now ROI-based (actual dollars, not just probability edge) so raising

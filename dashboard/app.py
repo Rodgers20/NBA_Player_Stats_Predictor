@@ -3275,11 +3275,12 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
         ev_class = "ev-green" if edge_pct >= 10 else "ev-orange" if edge_pct >= 5 else "ev-red"
         ev_arrow = " ↑" if edge_pct >= 10 else ""
 
-        # ── L5 avg and line gap for display ───────────────────────────────────
-        l5_avg_val = prop.get("l5_avg") or prop.get("avg", 0)
+        # ── L5 avg, projection and line gap for display ───────────────────────
+        l5_avg_val   = prop.get("l5_avg") or prop.get("avg", 0)
+        proj_val     = prop.get("projection") or l5_avg_val   # contextual projection
         line_val_num = prop.get("line", 0)
         try:
-            line_gap = round(float(l5_avg_val) - float(line_val_num), 1)
+            line_gap = round(float(proj_val) - float(line_val_num), 1)
         except Exception:
             line_gap = 0
 
@@ -3415,12 +3416,16 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
                     html.Span(stat_line_str, className="prop-stat-line"),
                 ], className="prop-stat-row"),
 
-                # L5 avg vs line — key value indicator
+                # L5 avg + contextual projection vs line
                 html.Div([
                     html.Span(
-                        f"L5 avg: {l5_avg_val}",
+                        f"L5: {l5_avg_val}",
                         style={"fontSize": "0.78rem", "color": "#94a3b8", "marginRight": "6px"},
                     ),
+                    html.Span(
+                        f"Proj: {proj_val}",
+                        style={"fontSize": "0.78rem", "color": "#2DD4BF", "fontWeight": "600", "marginRight": "6px"},
+                    ) if proj_val != l5_avg_val else None,
                     html.Span(
                         f"+{line_gap:.1f} over line" if line_gap > 0 else (f"{line_gap:.1f} vs line" if line_gap < 0 else ""),
                         style={
