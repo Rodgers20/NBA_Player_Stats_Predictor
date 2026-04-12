@@ -330,6 +330,11 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             "FG3M": 0.5, "STL": 0.5, "BLK": 0.3,
         }
 
+        # Default consistency multiplier — overwritten per stat below.
+        # Combo props use the value set by the last qualifying stat type,
+        # but need a safe fallback if no individual stat produced data.
+        consistency_mult = 1.0
+
         for stat_type in ["PTS", "AST", "REB", "FG3M", "STL", "BLK"]:
             if stat_type not in recent_10.columns:
                 continue
@@ -546,9 +551,17 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 continue
 
             raw_combo = recent_10[combo_stats].apply(pd.to_numeric, errors="coerce").sum(axis=1)
-            # Median-based combo line
-            line_combo = math.floor(raw_combo.median()) + 0.5
-            hits_combo    = (raw_combo >= line_combo).sum()
+            raw_combo = raw_combo.dropna()
+            if len(raw_combo) < 5:
+                continue
+
+            # Value line at 92% of L10 average — same methodology as individual stat props.
+            # Median-based lines (floor(median)+0.5) always yield ~50% hit rate for integer
+            # stats by definition, so the old 55% filter blocked every combo prop. Setting
+            # the line at 92% of average places it below typical output so genuine
+            # over-performers produce real 60–80% hit rates.
+            line_combo = max(2.5, math.floor(total_avg * 0.92 / 0.5) * 0.5)
+            hits_combo    = int((raw_combo >= line_combo).sum())
             hit_rate_combo = hits_combo / len(raw_combo) if len(raw_combo) > 0 else 0
 
             if hit_rate_combo <= 0.55:
