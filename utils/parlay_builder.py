@@ -90,14 +90,13 @@ def parlay_odds(legs: list[dict]) -> dict:
 # ── Diversity tracker ─────────────────────────────────────────────────────────
 
 class _DiversityTracker:
-    """Enforces the rule: any player appears in at most 2 parlays TOTAL.
+    """Enforces the rule: any player appears in at most max_uses parlays TOTAL.
 
-    Tracks by player name only — a player can't be in more than 2 parlays
-    regardless of stat type or direction.  User rule: max 2 parlays per player
-    across the entire slate.
+    Tracks by player name only — stat type and direction are irrelevant.
+    Default max_uses=1: each player can appear on exactly ONE slip.
     """
 
-    def __init__(self, max_uses: int = 2) -> None:
+    def __init__(self, max_uses: int = 1) -> None:
         self._uses: dict[tuple, int] = defaultdict(int)
         self._max = max_uses
 
@@ -210,6 +209,7 @@ def build_alt_parlays(
     Requires at least 8 qualifying legs to emit a parlay.
     """
     parlays: list[dict] = []
+    emitted_sets: set[frozenset] = set()
 
     for parlay_idx in range(n_parlays):
         legs: list[dict] = []
@@ -223,13 +223,10 @@ def build_alt_parlays(
             stat   = alt["stat"]
             key    = (player, stat)
 
-            # No duplicate (player, stat) within the same parlay
             if key in used_this_parlay:
                 continue
-            # Diversity: at most 2 parlays per (player, stat, direction)
             if not tracker.can_use(player, stat, "alt"):
                 continue
-            # Skip garbage-time bench players from alt parlays
             if alt.get("role") == "bench" and alt.get("l5_min_avg", 0) < 20:
                 continue
 
@@ -251,15 +248,23 @@ def build_alt_parlays(
             })
             used_this_parlay.add(key)
 
-        if len(legs) >= 8:
-            for leg in legs:
-                tracker.mark_used(leg["player"], leg["stat"], "alt")
-            parlays.append({
-                "label": f"10-Leg Alt Lines Parlay #{parlay_idx + 1}",
-                "type":  "alt",
-                "legs":  legs,
-                "odds":  parlay_odds(legs),
-            })
+        if len(legs) < 8:
+            continue
+
+        # No duplicate slips
+        leg_set = frozenset((l["player"], l["stat"]) for l in legs)
+        if leg_set in emitted_sets:
+            continue
+
+        emitted_sets.add(leg_set)
+        for leg in legs:
+            tracker.mark_used(leg["player"], leg["stat"], "alt")
+        parlays.append({
+            "label": f"10-Leg Alt Lines Parlay #{len(parlays) + 1}",
+            "type":  "alt",
+            "legs":  legs,
+            "odds":  parlay_odds(legs),
+        })
 
     return parlays
 
@@ -269,22 +274,29 @@ def build_alt_parlays(
 def build_over_parlays(
     props: list[dict],
     tracker: _DiversityTracker,
-    n_parlays: int = 15,
+    n_parlays: int = 8,
     n_legs: int = 3,
 ) -> list[dict]:
-    """Build up to n_parlays three-leg OVER parlays from the highest-probability props.
+    """Build up to n_parlays 3-leg OVER parlays from the highest-probability props.
 
-    First 10 go to the main Parlays section; next 5 go to the 100% Alt section.
-    Threshold lowered to 0.52 to match the over hit-rate entry bar — previously
-    0.56 caused many valid overs to be excluded from parlays entirely.
+    Quality gates:
+    - PTS / AST / REB only (no BLK/STL/FG3M — those belong in defense parlays)
+    - model_prob OR hit_rate >= 0.62 (not coin-flip territory)
+    - Stars and starters sorted first so every slip has at least 1 quality anchor
     """
+    _MAIN_STATS = {"PTS", "AST", "REB"}
     overs = [
         p for p in props
         if p.get("direction", "").lower() == "over"
-        and ((p.get("model_prob") or 0) >= 0.52 or p.get("hit_rate", 0) >= 0.52)
+        and (p.get("stat_type") or p.get("stat", "")) in _MAIN_STATS
+        and (p.get("model_prob") or p.get("hit_rate", 0)) >= 0.62
         and p.get("model_over_odds") is not None
     ]
-    overs.sort(key=lambda x: -(x.get("model_prob") or 0))
+    # Stars/starters first, then by model_prob desc
+    overs.sort(key=lambda x: (
+        x.get("role", "bench") not in ("star", "starter"),
+        -(x.get("model_prob") or x.get("hit_rate", 0)),
+    ))
 
     return _build_prop_parlays(
         sorted_props=overs,
@@ -292,7 +304,7 @@ def build_over_parlays(
         direction="over",
         odds_key="model_over_odds",
         n_parlays=n_parlays,
-        n_legs=4,       # try to fill 4 legs, emit if ≥3
+        n_legs=3,
         min_legs=3,
         parlay_type="over",
         label_prefix="Props OVER Parlay",
@@ -411,11 +423,19 @@ def _build_prop_parlays(
 ) -> list[dict]:
     """Greedy builder for Over/Under prop parlays.
 
-    Tries to fill n_legs per parlay.  Emits a parlay if at least min_legs were
-    collected — so a 3-or-4-leg parlay is valid when some candidates are
-    exhausted by the diversity rule.
+    Quality rules enforced here (in addition to pre-filtering in callers):
+    - No duplicate slips: same frozenset of (player, stat) legs → skip
+    - Minimum joint win probability: ≥10% for 3-leg, ≥6% for 4-leg
+    - At least 1 star or starter per slip (when any are in the pool)
+    - No player in more than 1 slip (enforced by tracker max_uses=1)
     """
     parlays: list[dict] = []
+    emitted_sets: set[frozenset] = set()
+
+    # Check if any stars/starters are in the pool
+    pool_has_quality = any(
+        p.get("role", "bench") in ("star", "starter") for p in sorted_props
+    )
 
     for parlay_idx in range(n_parlays):
         legs: list[dict] = []
@@ -437,11 +457,12 @@ def _build_prop_parlays(
             if not tracker.can_use(player, stat, direction):
                 continue
 
-            prob = prop.get("model_prob") or 0.56
+            prob = prop.get("model_prob") or prop.get("hit_rate", 0.56)
             legs.append({
                 "player":     player,
                 "team":       prop.get("team", ""),
                 "stat":       stat,
+                "role":       prop.get("role", "bench"),
                 "direction":  direction.capitalize(),
                 "line":       prop.get("line"),
                 "win_prob":   round(prob * 100, 1),
@@ -453,15 +474,35 @@ def _build_prop_parlays(
             })
             used_this_parlay.add(key)
 
-        if len(legs) >= min_legs:
-            for leg in legs:
-                tracker.mark_used(leg["player"], leg["stat"], direction)
-            parlays.append({
-                "label": f"{len(legs)}-Leg {label_prefix} #{parlay_idx + 1}",
-                "type":  parlay_type,
-                "legs":  legs,
-                "odds":  parlay_odds(legs),
-            })
+        if len(legs) < min_legs:
+            continue
+
+        # Deduplication: skip if this exact set of legs was already emitted
+        leg_set = frozenset((l["player"], l["stat"]) for l in legs)
+        if leg_set in emitted_sets:
+            continue
+
+        # Quality gate: at least 1 star/starter when pool has them
+        if pool_has_quality:
+            roles = [l.get("role", "bench") for l in legs]
+            if not any(r in ("star", "starter") for r in roles):
+                continue
+
+        # Minimum joint win probability
+        odds = parlay_odds(legs)
+        min_win = 6.0 if len(legs) >= 4 else 10.0
+        if odds["win_prob"] < min_win:
+            continue
+
+        emitted_sets.add(leg_set)
+        for leg in legs:
+            tracker.mark_used(leg["player"], leg["stat"], direction)
+        parlays.append({
+            "label": f"{len(legs)}-Leg {label_prefix} #{len(parlays) + 1}",
+            "type":  parlay_type,
+            "legs":  legs,
+            "odds":  odds,
+        })
 
     return parlays
 
@@ -825,8 +866,8 @@ def build_reduced_avg_parlays(
     # Sort: highest L5 average first (most dominant players lead)
     pool.sort(key=lambda x: -x.get("l5_avg_used", 0))
 
-    # Re-use generic builder — each leg uses pre-computed model_odds
     parlays: list[dict] = []
+    emitted_sets: set[frozenset] = set()
 
     for parlay_idx in range(n_parlays):
         legs: list[dict] = []
@@ -851,8 +892,8 @@ def build_reduced_avg_parlays(
                 "stat":       stat,
                 "stat_label": stat,
                 "direction":  "Over",
-                "line":       p["line"],       # reduced line
-                "book_line":  p["book_line"],  # original book line
+                "line":       p["line"],
+                "book_line":  p["book_line"],
                 "l5_avg":     p["l5_avg_used"],
                 "win_prob":   p["win_prob"],
                 "model_odds": p["model_odds"],
@@ -866,15 +907,23 @@ def build_reduced_avg_parlays(
             })
             used_this.add(key)
 
-        if len(legs) >= n_legs:
-            for leg in legs:
-                tracker.mark_used(leg["player"], leg["stat"], "over")
-            parlays.append({
-                "label": f"Safe Over Parlay #{parlay_idx + 1}  (Reduced Lines)",
-                "type":  "reduced",
-                "legs":  legs,
-                "odds":  parlay_odds(legs),
-            })
+        if len(legs) < n_legs:
+            continue
+
+        # Deduplicate: skip if this exact slip was already emitted
+        leg_set = frozenset((l["player"], l["stat"]) for l in legs)
+        if leg_set in emitted_sets:
+            continue
+
+        emitted_sets.add(leg_set)
+        for leg in legs:
+            tracker.mark_used(leg["player"], leg["stat"], "over")
+        parlays.append({
+            "label": f"Safe Over Parlay #{len(parlays) + 1}  (Reduced Lines)",
+            "type":  "reduced",
+            "legs":  legs,
+            "odds":  parlay_odds(legs),
+        })
 
     return parlays
 
@@ -1063,12 +1112,23 @@ def build_all_parlays(
         alt_lines:        100% Alt Line streaks (with stat, threshold, window).
         game_predictions: Game-level predictions with optional spread/model_total keys.
     """
-    tracker = _DiversityTracker(max_uses=2)
+    # max_uses=1: no player appears on more than 1 parlay slip
+    tracker = _DiversityTracker(max_uses=1)
 
-    # 15 over parlays total: first 10 → main section, next 5 → 100% Alt section
-    all_overs       = build_over_parlays(props, tracker, n_parlays=15, n_legs=3)
-    main_overs      = all_overs[:10]
-    alt_overs       = all_overs[10:]
+    # Cap n_parlays based on qualifying pool size — prevents duplicate slips
+    _qualifying = [
+        p for p in props
+        if p.get("direction", "").lower() == "over"
+        and (p.get("stat_type") or p.get("stat", "")) in ("PTS", "AST", "REB")
+        and (p.get("model_prob") or p.get("hit_rate", 0)) >= 0.62
+        and p.get("model_over_odds") is not None
+    ]
+    _n_main = max(1, len(_qualifying) // 3)   # 3 unique players per slip
+    _n_main = min(_n_main, 8)                 # hard cap at 8 slips
+
+    all_overs       = build_over_parlays(props, tracker, n_parlays=_n_main, n_legs=3)
+    main_overs      = all_overs
+    alt_overs: list = []
 
     # Game-level parlays (3 + 3 + 3)
     ml_parlays      = build_ml_trio(game_predictions, tracker)

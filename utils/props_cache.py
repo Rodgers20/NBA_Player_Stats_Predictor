@@ -344,24 +344,43 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 continue
 
             # ── Recency-weighted L5 average ───────────────────────────────────
-            # Simple mean treats a hot streak (last 2 games) the same as cold
-            # games from 5 games ago. Instead, weight recent games 2× vs older:
-            #   Game 1 (most recent): weight 3
-            #   Game 2:               weight 3
-            #   Game 3:               weight 2
-            #   Game 4:               weight 1
-            #   Game 5:               weight 1
-            # Example: LaMelo last 5 = [35.5, 35.5, 15.7, 15.7, 15.7]
-            #   Simple mean = 23.6; Weighted = (35.5×3 + 35.5×3 + 15.7×2 + 15.7×1 + 15.7×1) / 10 = 28.2
-            # This makes the projection respond correctly to recent hot/cold streaks.
-            if len(recent_stats) >= 5:
-                _r5 = recent_stats.head(5).values  # [game0=most_recent, game1, ..., game4]
-                _weights = [3, 3, 2, 1, 1]  # sum = 10
+            # Filter out injury/rest games (< 20 min) before computing L5 so that
+            # a player who sat out or played 8 minutes doesn't drag down the projection.
+            # Fall back to unfiltered if fewer than 5 active games available.
+            if "MIN" in recent_10.columns:
+                _min_series = pd.to_numeric(recent_10["MIN"], errors="coerce").fillna(0)
+                _active_mask = _min_series >= 20
+                _active_stats = pd.to_numeric(
+                    recent_10.loc[_active_mask, stat_type], errors="coerce"
+                ).dropna()
+            else:
+                _active_stats = recent_stats
+
+            _l5_source = _active_stats.head(5) if len(_active_stats) >= 5 else recent_stats.head(5)
+
+            # Weight recent games more heavily so hot/cold streaks dominate:
+            #   Game 1 (most recent): weight 3 | Game 2: weight 3 | Game 3: weight 2
+            #   Game 4: weight 1 | Game 5: weight 1
+            # Example: Ball last 5 active = [35.5, 35.5, 15.7, 15.7, 15.7]
+            #   Simple mean = 23.6; Weighted = 28.2 (recency-dominated)
+            if len(_l5_source) >= 5:
+                _r5 = _l5_source.values[:5]  # [game0=most_recent, ...]
+                _weights = [3, 3, 2, 1, 1]   # sum = 10
                 l5_avg = float(
                     sum(_r5[i] * _weights[i] for i in range(5)) / sum(_weights)
                 )
             else:
                 l5_avg = float(avg_stat)
+
+            # ── Season-average sanity floor ───────────────────────────────────
+            # If injury games dragged L5 below 65% of season avg, floor it.
+            # Prevents Ball showing 13 pts when he averages 22 on the season.
+            _season_stats = pd.to_numeric(player_df[stat_type], errors="coerce").dropna()
+            if len(_season_stats) >= 10:
+                _season_avg = float(_season_stats.mean())
+                _floor = _season_avg * 0.65
+                if l5_avg < _floor:
+                    l5_avg = _floor
 
             n = len(recent_stats)
 

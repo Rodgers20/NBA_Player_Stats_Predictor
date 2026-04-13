@@ -2404,10 +2404,25 @@ html {
         flex-wrap: wrap !important;
         gap: 6px !important;
     }
-    .tab {
-        min-height: 40px;
-        padding: 0.4rem 0.85rem !important;
-        font-size: 0.78rem !important;
+
+    /* Stat type filter pills: 4-column grid so all tabs are visible and equal */
+    .props-tabs .tab-group {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 6px !important;
+        width: 100% !important;
+    }
+    .props-tabs .tab {
+        padding: 9px 4px !important;
+        font-size: 0.72rem !important;
+        white-space: normal !important;
+        line-height: 1.25 !important;
+        text-align: center !important;
+        min-height: 40px !important;
+        width: 100% !important;
+    }
+    .props-tabs .tab.active {
+        padding: 9px 4px !important;
     }
 
     /* ── Props grid single column ─────────── */
