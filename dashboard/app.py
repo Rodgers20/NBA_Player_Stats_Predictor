@@ -1482,6 +1482,84 @@ def create_todays_games_page():
     ])
 
 
+def _make_prop_chart_figure(values: list, labels: list, line: float,
+                            stat_name: str = "", avg: float = 0) -> "go.Figure":
+    """Build a Plotly bar chart for a prop's game history window.
+
+    - Green bar  = player exceeded the book line
+    - Red bar    = player missed the book line
+    - Blue rule  = the book line itself
+    """
+    if not values:
+        return go.Figure().update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=160
+        )
+
+    colors = ["#22c55e" if v >= line else "#ef4444" for v in values]
+    max_y  = max(max(values) * 1.20, line * 1.30, 1.0) if values else max(line * 1.5, 1.0)
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=labels,
+        y=values,
+        marker_color=colors,
+        marker_line_width=0,
+        text=[str(v) for v in values],
+        textposition="outside",
+        textfont=dict(size=10, color="#cbd5e1"),
+        hovertemplate="%{x}<br>%{y}<extra></extra>",
+    ))
+
+    if line and line > 0:
+        # Horizontal line at the book line
+        fig.add_shape(
+            type="line",
+            x0=-0.5, x1=len(values) - 0.5,
+            y0=line, y1=line,
+            line=dict(color="#3b82f6", width=2),
+        )
+        # Line value label (dark blue pill, like reference image)
+        fig.add_annotation(
+            x=0, y=line,
+            text=f" {line} ",
+            showarrow=False,
+            xanchor="left",
+            yanchor="middle",
+            font=dict(color="#ffffff", size=11, family="monospace"),
+            bgcolor="#1d4ed8",
+            borderpad=3,
+            borderwidth=0,
+            xref="x", yref="y",
+        )
+
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(15,23,42,0.4)",
+        height=190,
+        margin=dict(l=30, r=10, t=5, b=50),
+        xaxis=dict(
+            tickfont=dict(size=9, color="#6b7280"),
+            tickangle=0,
+            gridcolor="rgba(255,255,255,0.04)",
+            showline=False,
+            tickmode="array",
+            tickvals=list(range(len(labels))),
+            ticktext=labels,
+        ),
+        yaxis=dict(
+            tickfont=dict(size=9, color="#6b7280"),
+            gridcolor="rgba(255,255,255,0.07)",
+            showline=False,
+            range=[0, max_y],
+            nticks=5,
+        ),
+        showlegend=False,
+        bargap=0.25,
+        hoverlabel=dict(bgcolor="#1e293b", font_size=12),
+    )
+    return fig
+
+
 def _create_alt_lines_section(alt_lines: list) -> "html.Div":
     """Build the 100% ALT LINES section card."""
     # ── Stat colour map ───────────────────────────────────────────────────────
@@ -3240,51 +3318,7 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
         p = int(price)
         return f"+{p}" if p > 0 else str(p)
 
-    # ── Helper: render L5 bar chart as HTML ──────────────────────────────────
-    def _render_l5_bars(l5_vals: list, line_val: float) -> "html.Div":
-        """CSS bar chart of last 5 games. l5_vals[0] = most recent."""
-        if not l5_vals:
-            return html.Div()
-        max_val = max(max(l5_vals), line_val * 1.1, 1.0)
-        bars = []
-        # Display oldest-to-newest (left to right), so reverse
-        for i, v in enumerate(reversed(l5_vals)):
-            pct = max(4.0, (v / max_val) * 100)
-            is_over = v >= line_val
-            bar_color = "#22c55e" if is_over else "#ef4444"
-            bars.append(html.Div([
-                html.Div(style={
-                    "width": "100%", "height": f"{pct}%",
-                    "background": bar_color, "borderRadius": "3px 3px 0 0",
-                    "transition": "height 0.3s ease",
-                }),
-                html.Span(str(v), style={
-                    "fontSize": "0.6rem", "color": "#94a3b8",
-                    "marginTop": "2px", "textAlign": "center", "display": "block",
-                }),
-            ], style={
-                "flex": "1", "display": "flex", "flexDirection": "column",
-                "justifyContent": "flex-end", "alignItems": "center",
-                "height": "100%",
-            }))
-        # Horizontal line marker for the book line
-        line_pct = min(100, (line_val / max_val) * 100) if max_val > 0 else 50
-        return html.Div([
-            html.Div([
-                # Bars
-                html.Div(bars, style={
-                    "display": "flex", "gap": "4px", "alignItems": "flex-end",
-                    "height": "70px", "position": "relative",
-                }),
-                # Line label
-                html.Div(
-                    f"Line: {line_val}",
-                    style={"position": "absolute", "right": "0", "top": f"{100 - line_pct}%",
-                           "fontSize": "0.62rem", "color": "#3b82f6", "fontWeight": "700",
-                           "transform": "translateY(-50%)"},
-                ),
-            ], style={"position": "relative", "height": "70px"}),
-        ])
+    # (CSS bar helper removed — now using Plotly via _make_prop_chart_figure)
 
     # Build prop list items (new list-style design)
     prop_cards = []
@@ -3469,17 +3503,53 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
                 ], className="pli-line-box pli-line-under"),
             ], className="pli-lines-row"),
 
-            # ── Expandable bar chart (hidden by default) ──────────────────────
+            # ── Expandable chart section (hidden by default) ──────────────────
             html.Div([
-                # L5 stats line
-                html.Div(
-                    f"L5 avg: {l5_avg_val}  •  Proj: {proj_val}  •  "
-                    f"{prop.get('hits_vs_book', hits)}/{prop.get('total_vs_book', total) or total} L5",
-                    className="pli-bar-stats",
+                # Stat name + L5 avg header (like reference image)
+                html.Div([
+                    html.Span(stat_label, style={"fontWeight": "700", "fontSize": "0.9rem",
+                                                  "color": "#e2e8f0"}),
+                    html.Span(
+                        f"  Last 5 Games avg – {l5_avg_val}",
+                        style={"fontSize": "0.8rem", "color": "#94a3b8"},
+                    ),
+                ], style={"marginBottom": "6px"}),
+
+                # Window selector tabs (L5 / L10 / L20 / Home / Away)
+                html.Div([
+                    html.Span("Last 5",  id={"type": "prop-win", "index": f"{card_idx}|l5"},   n_clicks=0, className="prop-win-tab prop-win-active"),
+                    html.Span("Last 10", id={"type": "prop-win", "index": f"{card_idx}|l10"},  n_clicks=0, className="prop-win-tab"),
+                    html.Span("Last 20", id={"type": "prop-win", "index": f"{card_idx}|l20"},  n_clicks=0, className="prop-win-tab"),
+                    html.Span("Home",    id={"type": "prop-win", "index": f"{card_idx}|home"}, n_clicks=0, className="prop-win-tab"),
+                    html.Span("Away",    id={"type": "prop-win", "index": f"{card_idx}|away"}, n_clicks=0, className="prop-win-tab"),
+                ], className="prop-win-tabs"),
+
+                # Hidden stores: chart data + active window
+                dcc.Store(
+                    id={"type": "prop-chart-data", "index": card_idx},
+                    data={
+                        **(prop.get("chart_windows") or {}),
+                        "line":   float(display_line) if display_line else 0,
+                        "stat":   stat_label,
+                        "l5_avg": float(l5_avg_val),
+                    }
                 ),
-                # Bar chart
-                _render_l5_bars(l5_values, float(display_line) if display_line else 0),
-                # Insight text
+                dcc.Store(id={"type": "prop-chart-window", "index": card_idx}, data="l5"),
+
+                # Plotly figure
+                dcc.Graph(
+                    id={"type": "prop-chart-fig", "index": card_idx},
+                    figure=_make_prop_chart_figure(
+                        (prop.get("chart_windows") or {}).get("l5", {}).get("values", l5_values),
+                        (prop.get("chart_windows") or {}).get("l5", {}).get("labels", []),
+                        float(display_line) if display_line else 0,
+                        stat_label, float(l5_avg_val),
+                    ),
+                    config={"displayModeBar": False, "responsive": True},
+                    style={"height": "190px"},
+                ),
+
+                # Narrative
                 html.Div(narrative, className="pli-narrative") if narrative else None,
             ], id={"type": "prop-chart-div", "index": card_idx},
                className="pli-chart-wrap",
@@ -3498,12 +3568,65 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
     prevent_initial_call=True,
 )
 def toggle_prop_chart(n_clicks, current_style):
-    """Toggle the expandable L5 bar chart on a prop list item."""
+    """Toggle the expandable chart section on a prop list item."""
     if not n_clicks:
         from dash.exceptions import PreventUpdate
         raise PreventUpdate
     is_visible = (current_style or {}).get("display", "none") not in (None, "none")
     return {"display": "none" if is_visible else "block"}
+
+
+@callback(
+    Output({"type": "prop-chart-window", "index": ALL}, "data"),
+    Input({"type": "prop-win", "index": ALL}, "n_clicks"),
+    State({"type": "prop-chart-window", "index": ALL}, "data"),
+    prevent_initial_call=True,
+)
+def update_prop_window_store(all_clicks, current_windows):
+    """Update the active window store when a tab is clicked."""
+    from dash import ctx
+    if not any(all_clicks):
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    triggered = ctx.triggered_id
+    if not triggered:
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    # triggered["index"] is like "Bam Adebayo|AST|l10"
+    raw = triggered["index"]
+    parts = raw.rsplit("|", 1)
+    if len(parts) != 2:
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    card_idx = parts[0]
+    window   = parts[1]
+    # Only update the store whose index matches the clicked card
+    result = []
+    for store_data, out_id in zip(current_windows, ctx.outputs_list[0]):
+        if out_id["id"]["index"] == card_idx:
+            result.append(window)
+        else:
+            result.append(store_data)
+    return result
+
+
+@callback(
+    Output({"type": "prop-chart-fig", "index": MATCH}, "figure"),
+    Input({"type": "prop-chart-window", "index": MATCH}, "data"),
+    State({"type": "prop-chart-data", "index": MATCH}, "data"),
+    prevent_initial_call=True,
+)
+def render_prop_chart_window(window, chart_data):
+    """Re-render the Plotly chart when the active window changes."""
+    if not chart_data or not window:
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    win_data  = chart_data.get(window) or chart_data.get("l5") or {"values": [], "labels": []}
+    line      = float(chart_data.get("line", 0))
+    stat      = chart_data.get("stat", "")
+    l5_avg    = float(chart_data.get("l5_avg", 0))
+    return _make_prop_chart_figure(win_data.get("values", []), win_data.get("labels", []),
+                                   line, stat, l5_avg)
 
 
 @callback(

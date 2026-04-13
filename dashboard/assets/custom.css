@@ -2719,6 +2719,45 @@ html {
     font-style: italic;
 }
 
+/* Window selector tabs (L5 / L10 / L20 / Home / Away) */
+.prop-win-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.prop-win-tab {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.prop-win-tab:hover {
+    background: rgba(255,255,255,0.1);
+    color: #cbd5e1;
+}
+
+.prop-win-active {
+    background: #1d4ed8;
+    color: #ffffff;
+    border-color: #1d4ed8;
+    font-weight: 700;
+}
+
+/* Plotly chart inside the expand section */
+.pli-chart-wrap .js-plotly-plot {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
 /* Mobile tweaks for prop list items */
 @media (max-width: 480px) {
     .pli-matchup-bold,

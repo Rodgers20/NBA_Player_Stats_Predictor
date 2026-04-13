@@ -151,8 +151,9 @@ _COMBO_DEFS: list[tuple[list[str], str]] = [
     (["PTS", "AST", "REB"], "Pts+Ast+Reb"),
 ]
 
-# Hit-rate thresholds — raised from old 50%/50% coinflip levels
-_OVER_MIN_HIT_RATE  = 0.52   # Over: need genuine edge, not a coin flip
+# Hit-rate thresholds — include all props with any positive edge;
+# quality gate below does the heavy filtering.
+_OVER_MIN_HIT_RATE  = 0.50   # Over: allow all props into enrichment pipeline
 
 # Alt lines: lookback windows and minimum meaningful thresholds per stat
 # Thresholds are set to levels that sportsbooks actually offer lines for:
@@ -191,6 +192,25 @@ def _prob_to_american(prob: float, vig: float = 0.0476) -> int:
     if viggged >= 0.5:
         return int(-100 * viggged / (1 - viggged))
     return int(100 * (1 - viggged) / viggged)
+
+
+def _extract_chart_window(df: "pd.DataFrame", stat_type: str) -> tuple[list[float], list[str]]:
+    """Extract (values, labels) for a chart window — oldest game first (left→right).
+
+    Labels are formatted as "(H)\\nWAS" or "(A)\\nTOR" from the MATCHUP column.
+    """
+    if df.empty or stat_type not in df.columns:
+        return [], []
+    vals_series = pd.to_numeric(df[stat_type], errors="coerce").fillna(0)
+    labels: list[str] = []
+    for _, row in df.iterrows():
+        matchup = str(row.get("MATCHUP", ""))
+        is_home = "vs." in matchup
+        opp = extract_opponent_from_matchup(matchup) or "OPP"
+        labels.append(f"({'H' if is_home else 'A'})\n{opp[:3]}")
+    v_list = [round(float(v), 1) for v in vals_series.tolist()]
+    # Reverse so oldest is on the left (same as reference image)
+    return list(reversed(v_list)), list(reversed(labels))
 
 
 def _is_qualified_player(player_name: str, player_df: "pd.DataFrame") -> tuple[bool, float]:
@@ -361,6 +381,29 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             # Store raw L5 game values (most-recent first) for bar chart rendering
             _l5_raw_values: list[float] = [round(float(v), 1) for v in _l5_source.values[:5]]
 
+            # ── Multi-window chart data ───────────────────────────────────────
+            # Build per-window (values, labels) for the expandable bar chart.
+            # L5 uses recent_10 rows that had active minutes; L10/L20 use full history.
+            _split_base = (
+                player_df[player_df["SEASON"].str.startswith("2025", na=False)]
+                if "SEASON" in player_df.columns and
+                   len(player_df[player_df["SEASON"].str.startswith("2025", na=False)]) >= 5
+                else player_df
+            )
+            _l20_df = _split_base.head(20)
+            _cw_l5_v,  _cw_l5_l  = _extract_chart_window(recent_10.head(5),  stat_type)
+            _cw_l10_v, _cw_l10_l = _extract_chart_window(recent_10,           stat_type)
+            _cw_l20_v, _cw_l20_l = _extract_chart_window(_l20_df,             stat_type)
+            _cw_home_v, _cw_home_l = _extract_chart_window(home_games.head(10), stat_type)
+            _cw_away_v, _cw_away_l = _extract_chart_window(away_games.head(10), stat_type)
+            _chart_windows: dict = {
+                "l5":   {"values": _cw_l5_v,   "labels": _cw_l5_l},
+                "l10":  {"values": _cw_l10_v,  "labels": _cw_l10_l},
+                "l20":  {"values": _cw_l20_v,  "labels": _cw_l20_l},
+                "home": {"values": _cw_home_v, "labels": _cw_home_l},
+                "away": {"values": _cw_away_v, "labels": _cw_away_l},
+            }
+
             # Weight recent games more heavily so hot/cold streaks dominate:
             #   Game 1 (most recent): weight 3 | Game 2: weight 3 | Game 3: weight 2
             #   Game 4: weight 1 | Game 5: weight 1
@@ -489,7 +532,8 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                            _blowout_spread=blowout_spread, _cons=consistency_mult,
                            _l5_avg=l5_avg, _model_pred=ml_pred_stored, _std=std_stat,
                            _proj=proj, _sim_book=sim_book_line,
-                           _l5_vals=_l5_raw_values):
+                           _l5_vals=_l5_raw_values,
+                           _chart_wins=_chart_windows):
                 # EV initially from hit_rate; will be overwritten in live-odds
                 # enrichment step with true model_prob vs implied_prob.
                 ev_value = calculate_ev(hit_rate)
@@ -558,8 +602,9 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "insight": insight,
                     "value_score": round(bet_line / max(_l5_avg, 0.1), 3),
                     "injury_boost": _injury_boost_note,
-                    "l5_values": list(_l5_vals),  # raw per-game values for bar chart
-                    "hit_rate_vs_book": None,      # filled in live-odds enrichment
+                    "l5_values": list(_l5_vals),      # raw per-game values for bar chart
+                    "chart_windows": dict(_chart_wins), # multi-window chart data
+                    "hit_rate_vs_book": None,           # filled in live-odds enrichment
                     "hits_vs_book": None,
                 }
 
