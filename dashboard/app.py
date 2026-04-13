@@ -20,7 +20,7 @@ import pandas as pd
 import numpy as np
 import threading
 from datetime import datetime
-from dash import Dash, html, dcc, Input, Output, callback, ALL, State
+from dash import Dash, html, dcc, Input, Output, callback, ALL, MATCH, State
 import plotly.graph_objects as go
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -2346,8 +2346,8 @@ def create_best_props_page():
                     # Stat count badges — populated by update_props_list callback
                     html.Div(id="props-stat-counts-row", style={"marginBottom": "8px"}),
 
-                    # LOCKS banner — gold-accented, full-width, always visible
-                    html.Div("LOCKS ★", id="props-filter-lock", n_clicks=0, className="locks-banner"),
+                    # Hidden LOCKS anchor kept for callback compatibility
+                    html.Div(id="props-filter-lock", n_clicks=0, style={"display": "none"}),
 
                     # Row 2: Direction | Location | Game | Sort — one compact line
                     html.Div([
@@ -2415,7 +2415,7 @@ def create_best_props_page():
                 ),
 
                 # Content area — props list OR alt lines, controlled by view store
-                html.Div(id="props-list"),
+                html.Div(id="props-list", className="props-list"),
 
                 html.Div(f"Last updated: {datetime.now().strftime('%I:%M %p')}", style={"color": "var(--text-muted)", "fontSize": "0.8rem", "textAlign": "center", "marginTop": "24px"})
 
@@ -3007,13 +3007,10 @@ def update_stat_filter(*_):
         "props-filter-dd":   ("DD",          11),
         "props-filter-td":   ("TD",          12),
     }
-    if triggered == "props-filter-lock":
-        # LOCKS banner active — deactivate all stat tabs
-        return ["LOCK"] + _cls(None) + ["locks-banner active"]
     if triggered in mapping:
         val, idx = mapping[triggered]
-        return [val] + _cls(idx) + ["locks-banner"]
-    return ["all"] + _cls(0) + ["locks-banner"]
+        return [val] + _cls(idx) + [""]
+    return ["all"] + _cls(0) + [""]
 
 
 @callback(
@@ -3177,7 +3174,6 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
 
     # ── Compute per-stat counts BEFORE stat filter (for count badges) ─────────
     stat_count_map: dict = {}
-    lock_count = sum(1 for p in props_data if p.get("is_lock"))
     for p in props_data:
         stat = p.get("stat", "")
         key = "COMBO" if "+" in stat else stat
@@ -3190,14 +3186,11 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
         for k, lbl in _BADGE_ORDER if stat_count_map.get(k, 0) > 0
     ]
     counts_row = html.Div(count_badges, className="stat-counts-row") if count_badges else _empty_counts
-    locks_label = f"LOCKS ★  {lock_count}" if lock_count > 0 else _default_lock_label
+    locks_label = _default_lock_label  # LOCKS section removed
 
     # Filter by stat type
     if stat_filter and stat_filter != "all":
-        if stat_filter == "LOCK":
-            props_data = [p for p in props_data if p.get("is_lock")]
-        else:
-            props_data = [p for p in props_data if p.get("stat") == stat_filter]
+        props_data = [p for p in props_data if p.get("stat") == stat_filter]
 
     # Filter props based on game
     game_filtered = []
@@ -3240,7 +3233,60 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
             locks_label,
         ]
 
-    # Build prop cards — no arbitrary cap, show everything that passed filters
+    # ── Helper: format American odds ─────────────────────────────────────────
+    def _fmt_american(price) -> str:
+        if price is None:
+            return ""
+        p = int(price)
+        return f"+{p}" if p > 0 else str(p)
+
+    # ── Helper: render L5 bar chart as HTML ──────────────────────────────────
+    def _render_l5_bars(l5_vals: list, line_val: float) -> "html.Div":
+        """CSS bar chart of last 5 games. l5_vals[0] = most recent."""
+        if not l5_vals:
+            return html.Div()
+        max_val = max(max(l5_vals), line_val * 1.1, 1.0)
+        bars = []
+        # Display oldest-to-newest (left to right), so reverse
+        for i, v in enumerate(reversed(l5_vals)):
+            pct = max(4.0, (v / max_val) * 100)
+            is_over = v >= line_val
+            bar_color = "#22c55e" if is_over else "#ef4444"
+            bars.append(html.Div([
+                html.Div(style={
+                    "width": "100%", "height": f"{pct}%",
+                    "background": bar_color, "borderRadius": "3px 3px 0 0",
+                    "transition": "height 0.3s ease",
+                }),
+                html.Span(str(v), style={
+                    "fontSize": "0.6rem", "color": "#94a3b8",
+                    "marginTop": "2px", "textAlign": "center", "display": "block",
+                }),
+            ], style={
+                "flex": "1", "display": "flex", "flexDirection": "column",
+                "justifyContent": "flex-end", "alignItems": "center",
+                "height": "100%",
+            }))
+        # Horizontal line marker for the book line
+        line_pct = min(100, (line_val / max_val) * 100) if max_val > 0 else 50
+        return html.Div([
+            html.Div([
+                # Bars
+                html.Div(bars, style={
+                    "display": "flex", "gap": "4px", "alignItems": "flex-end",
+                    "height": "70px", "position": "relative",
+                }),
+                # Line label
+                html.Div(
+                    f"Line: {line_val}",
+                    style={"position": "absolute", "right": "0", "top": f"{100 - line_pct}%",
+                           "fontSize": "0.62rem", "color": "#3b82f6", "fontWeight": "700",
+                           "transform": "translateY(-50%)"},
+                ),
+            ], style={"position": "relative", "height": "70px"}),
+        ])
+
+    # Build prop list items (new list-style design)
     prop_cards = []
     for prop in filtered_props:
         # Choose hit rate based on filter
@@ -3285,9 +3331,6 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
             line_gap = 0
 
         is_home_today = prop.get("is_home_today", True)
-        player_photo = get_player_headshot_url(prop.get("player", ""))
-
-        location_label = "At Home" if location_filter == "home" else "On Road" if location_filter == "away" else "Overall"
 
         # Pull insight data from pre-computed cache
         _raw_insight = prop.get("insight") or {}
@@ -3295,232 +3338,172 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
             insight_data = {"narrative": _raw_insight, "factors": [], "matchup_grade": "C", "trend": "neutral"}
         else:
             insight_data = _raw_insight
-        narrative = insight_data.get("narrative", "")
-        factors = insight_data.get("factors", [])
-        trend = insight_data.get("trend", "neutral")
+        narrative = (insight_data.get("narrative", "") if isinstance(insight_data, dict) else "")
 
-        # ── Bottom tag: first factor or fallback hit rate ─────────────────────
-        if factors:
-            best = factors[0]
-            tag_positive = best.get("positive")
-            tag_text = best.get("text", "")
-        else:
-            tag_positive = hit_pct >= 65
-            tag_text = f"{location_label}: {hits}/{total} ({hit_pct}%)"
-        tag_dot_color = "#22c55e" if tag_positive is True else "#f97316" if tag_positive is False else "#6b7280"
-
-        # ── Stat line label ───────────────────────────────────────────────────
+        # ── Stat label ────────────────────────────────────────────────────────
         STAT_LABELS = {"PTS": "Points", "AST": "Assists", "REB": "Rebounds",
                        "FG3M": "3-Pointers", "STL": "Steals", "BLK": "Blocks"}
-        raw_stat = prop.get("stat", "PTS")
+        raw_stat  = prop.get("stat", "PTS")
         stat_label = STAT_LABELS.get(raw_stat, raw_stat)
-        direction = prop.get("direction", "Over")
-        line_val = prop.get("line", "")
-        stat_line_str = f"{direction} {line_val}" if line_val else direction
-        book_line_val = prop.get("book_line")
-        value_line_val = prop.get("line")
+        direction  = prop.get("direction", "Over")
 
-        # ── Team logo ─────────────────────────────────────────────────────────
-        team_logo = get_team_logo_url(prop.get("team", ""))
+        # ── Primary display line: book line → sim book line → value line ─────
+        display_line = prop.get("book_line") or prop.get("sim_book_line") or prop.get("line") or ""
 
-        # ── Badge helpers ─────────────────────────────────────────────────────
-        lock_badge = html.Span("LOCK", style={
-            "fontSize": "0.6rem", "fontWeight": "800", "letterSpacing": "0.06em",
-            "color": "#fff", "background": "linear-gradient(90deg,#f59e0b,#ef4444)",
-            "borderRadius": "4px", "padding": "1px 6px", "marginLeft": "6px",
-        }) if prop.get("is_lock") else None
+        # ── Confidence %: hit_rate vs book line is most meaningful ────────────
+        conf_raw = prop.get("hit_rate_vs_book") or hit_rate
+        conf_pct = int(round(conf_raw * 100))
+        if conf_pct >= 80:
+            conf_color = "#22c55e"
+            conf_class = "pli-conf-green"
+        elif conf_pct >= 60:
+            conf_color = "#f97316"
+            conf_class = "pli-conf-orange"
+        else:
+            conf_color = "#ef4444"
+            conf_class = "pli-conf-red"
 
+        # ── Over / Under prices ───────────────────────────────────────────────
+        over_price  = prop.get("live_over_price")  or prop.get("model_over_odds")
+        under_price = prop.get("live_under_price") or prop.get("model_under_odds")
+
+        # ── Team logo & player info ───────────────────────────────────────────
+        team_logo       = get_team_logo_url(prop.get("team", ""))
+        player_name_str = prop.get("player", "")
+        initial_letter  = player_name_str.split()[-1][0].upper() if player_name_str else "?"
+        card_idx        = f"{player_name_str}|{raw_stat}"
+
+        # ── L5 values for bar chart ───────────────────────────────────────────
+        l5_avg_val = prop.get("l5_avg") or prop.get("avg", 0)
+        proj_val   = prop.get("projection") or l5_avg_val
+        l5_values  = prop.get("l5_values") or []
+
+        # ── Badges ───────────────────────────────────────────────────────────
         combo_badge = html.Span("COMBO", style={
-            "fontSize": "0.6rem", "fontWeight": "700",
+            "fontSize": "0.58rem", "fontWeight": "700",
             "color": "#a78bfa", "border": "1px solid #a78bfa",
-            "borderRadius": "4px", "padding": "1px 5px", "marginLeft": "6px",
+            "borderRadius": "3px", "padding": "1px 5px",
         }) if prop.get("is_combo") else None
 
         blowout_badge = html.Span(
-            f"BLOWOUT RISK ({prop['blowout_spread']:.0f}pt)", style={
-                "fontSize": "0.6rem", "fontWeight": "700",
+            f"BLOWOUT", style={
+                "fontSize": "0.58rem", "fontWeight": "700",
                 "color": "#fb923c", "border": "1px solid rgba(251,146,60,0.5)",
-                "borderRadius": "4px", "padding": "1px 5px", "marginLeft": "6px",
+                "borderRadius": "3px", "padding": "1px 4px",
             }
         ) if prop.get("blowout_risk") else None
 
-        player_name_str = prop.get("player", "")
-        initial_letter  = player_name_str.split()[-1][0].upper() if player_name_str else "?"
-
-        # Team color accent for fallback gradient (teal for most, violet for alt)
-        banner_bg = (
-            f"url({player_photo}), "
-            "linear-gradient(135deg, rgba(20,184,166,0.18) 0%, rgba(139,92,246,0.18) 100%)"
-        ) if player_photo else "linear-gradient(135deg, rgba(20,184,166,0.18) 0%, rgba(139,92,246,0.18) 100%)"
-
-        # ── Badge color: based on true model edge now ─────────────────────────
-        badge_color = "#22c55e" if edge_pct >= 10 else "#f97316" if edge_pct >= 5 else "#ef4444"
-
-        # EV badge label: "+18%" edge format when positive, "70%" model prob otherwise
-        if edge_pct > 0:
-            ev_badge_pct_str = f"+{edge_pct}%"
-            ev_badge_label   = " edge"
-        else:
-            ev_badge_pct_str = f"{model_pct}%"
-            ev_badge_label   = " prob"
-
+        # ── Build list item ───────────────────────────────────────────────────
         prop_card = html.Div([
-            # ── Photo banner (CSS background-image → 404-safe) ────────────────
+
+            # ── Main row: logo | name+info | confidence | chart toggle ────────
             html.Div([
-                # Fallback initial (always rendered behind photo)
-                html.Span(initial_letter, className="prop-photo-initial"),
-                # Edge badge overlaid on photo bottom-left
+                # Team logo / player initial
                 html.Div([
-                    html.Span(ev_badge_pct_str, className="prop-ev-badge-pct"),
-                    html.Span(ev_badge_label, className="prop-ev-badge-label"),
-                ], className="prop-ev-badge",
-                   style={"borderColor": badge_color, "color": badge_color}),
-                # Team logo top-right
-                html.Img(src=team_logo, className="prop-team-logo") if team_logo else None,
-            ],
-                className="prop-photo-banner",
-                style={"backgroundImage": banner_bg,
-                       "backgroundSize": "cover, cover",
-                       "backgroundPosition": "top center, center"},
-                id={"type": "prop-player-photo", "index": f"{player_name_str}|{prop.get('stat','PTS')}"},
-                n_clicks=0,
-            ),
+                    html.Img(src=team_logo, className="pli-team-logo") if team_logo else None,
+                    html.Span(initial_letter, className="pli-initial"),
+                ], className="pli-logo-wrap",
+                   id={"type": "prop-player-photo", "index": card_idx},
+                   n_clicks=0),
 
-            # ── Card body ─────────────────────────────────────────────────────
-            html.Div([
-                # Player name (+ badges on same line)
+                # Player name + matchup
                 html.Div([
-                    html.Span(
-                        player_name_str,
-                        id={"type": "prop-player-name", "index": f"{player_name_str}|{prop.get('stat','PTS')}"},
-                        n_clicks=0,
-                        style={"fontWeight": "800", "fontSize": "1.05rem",
-                               "color": "#f0f4ff", "cursor": "pointer"},
-                    ),
-                    lock_badge,
-                    combo_badge,
-                    blowout_badge,
-                ], style={"display": "flex", "alignItems": "center", "flexWrap": "wrap",
-                          "marginBottom": "2px"}),
-
-                # Team, position, matchup
-                html.Div(
-                    f"{prop.get('team','')}  •  {prop.get('position','')}  •  "
-                    f"{'vs' if is_home_today else '@'} {prop.get('opponent','')}",
-                    style={"fontSize": "0.78rem", "color": "#6b7280", "marginBottom": "10px"}
-                ),
-
-                # Stat line — hero element
-                html.Div([
-                    html.Span(stat_label, className="prop-stat-label"),
-                    html.Span(stat_line_str, className="prop-stat-line"),
-                ], className="prop-stat-row"),
-
-                # L5 avg + contextual projection vs line
-                html.Div([
-                    html.Span(
-                        f"L5: {l5_avg_val}",
-                        style={"fontSize": "0.78rem", "color": "#94a3b8", "marginRight": "6px"},
-                    ),
-                    html.Span(
-                        f"Proj: {proj_val}",
-                        style={"fontSize": "0.78rem", "color": "#2DD4BF", "fontWeight": "600", "marginRight": "6px"},
-                    ) if proj_val != l5_avg_val else None,
-                    html.Span(
-                        f"+{line_gap:.1f} over line" if line_gap > 0 else (f"{line_gap:.1f} vs line" if line_gap < 0 else ""),
-                        style={
-                            "fontSize": "0.72rem", "fontWeight": "700",
-                            "color": "#22c55e" if line_gap > 1 else "#f97316" if line_gap > 0 else "#94a3b8",
-                        },
-                    ) if line_gap != 0 else None,
-                ], style={"display": "flex", "alignItems": "center", "marginBottom": "4px"}),
-
-                # Book line vs value line indicator (only shown when book line is available)
-                html.Div([
-                    html.Span(
-                        f"Alt: {value_line_val}  \u2192  Book: {book_line_val}",
-                        style={
-                            "fontSize": "0.72rem",
-                            "color": "#14b8a6",
-                            "fontWeight": "600",
-                            "background": "rgba(20,184,166,0.08)",
-                            "padding": "2px 8px",
-                            "borderRadius": "4px",
-                            "border": "1px solid rgba(20,184,166,0.2)",
-                        },
-                    ),
-                ], style={"marginBottom": "6px"}) if book_line_val else None,
-
-                # Over odds row (show live odds when available, model odds as fallback)
-                *(lambda _over_price=prop.get("live_over_price") or prop.get("model_over_odds"): [
                     html.Div([
                         html.Span(
-                            f"OVER {value_line_val}",
-                            style={"fontWeight": "700", "fontSize": "0.8rem", "color": "#f0f4ff"},
+                            player_name_str,
+                            id={"type": "prop-player-name", "index": card_idx},
+                            n_clicks=0,
+                            className="pli-player-name",
                         ),
-                        html.Span(
-                            f"  {'+' if _over_price > 0 else ''}{_over_price}",
-                            style={"fontWeight": "700", "fontSize": "0.85rem",
-                                   "color": "#22c55e" if _over_price > 0 else "#94a3b8",
-                                   "marginLeft": "6px"},
-                        ),
-                    ], style={
-                        "display": "flex", "alignItems": "center",
-                        "padding": "6px 10px",
-                        "background": "rgba(34,197,94,0.06)",
-                        "borderRadius": "6px",
-                        "border": "1px solid rgba(34,197,94,0.15)",
-                        "marginBottom": "6px",
-                    }),
-                ] if _over_price else [])(),
+                        combo_badge,
+                        blowout_badge,
+                    ], style={"display": "flex", "alignItems": "center", "gap": "5px",
+                               "flexWrap": "wrap"}),
+                    html.Div(
+                        f"{stat_label}  •  {prop.get('game_matchup', '')}",
+                        className="pli-matchup",
+                    ),
+                ], className="pli-info"),
 
-                # Hits record pill
+                # Confidence badge
                 html.Div(
-                    f"{hits}/{total} L{total}  •  {hit_pct}% hit rate",
-                    className="prop-hits-pill",
+                    f"{conf_pct}%",
+                    className="pli-conf",
+                    style={"color": conf_color, "borderColor": conf_color},
                 ),
 
-                # AI Insight
+                # Bar chart toggle icon
                 html.Div(
-                    narrative or f"{location_label}: {hits}/{total} games hit",
-                    className="prop-insight-text",
+                    html.Span("▐▌", style={"fontSize": "0.9rem", "letterSpacing": "-1px"}),
+                    id={"type": "prop-chart-btn", "index": card_idx},
+                    n_clicks=0,
+                    className="pli-chart-btn",
+                    title="Show last 5 games",
                 ),
+            ], className="pli-main-row"),
 
-                # Bottom tag
+            # ── Matchup bold header (like reference image) ────────────────────
+            html.Div(
+                prop.get("game_matchup", ""),
+                className="pli-matchup-bold",
+            ),
+
+            # ── Over / Under lines row ────────────────────────────────────────
+            html.Div([
                 html.Div([
-                    html.Div(className="prop-tag-dot",
-                             style={"backgroundColor": tag_dot_color}),
-                    html.Span(tag_text,
-                              style={"color": tag_dot_color, "fontSize": "0.78rem",
-                                     "fontWeight": "500"}),
-                ], className="prop-bottom-tag"),
+                    html.Span(f"Over {display_line}",
+                              style={"fontWeight": "700", "fontSize": "0.85rem",
+                                     "color": "#f0f4ff"}),
+                    html.Span(f"  {_fmt_american(over_price)}",
+                              style={"fontSize": "0.85rem", "fontWeight": "600",
+                                     "color": "#22c55e" if (over_price or 0) > 0 else "#94a3b8",
+                                     "marginLeft": "4px"}),
+                ], className="pli-line-box pli-line-over"),
+                html.Div([
+                    html.Span(f"Under {display_line}",
+                              style={"fontWeight": "700", "fontSize": "0.85rem",
+                                     "color": "#f0f4ff"}),
+                    html.Span(f"  {_fmt_american(under_price)}",
+                              style={"fontSize": "0.85rem", "fontWeight": "600",
+                                     "color": "#94a3b8", "marginLeft": "4px"}),
+                ], className="pli-line-box pli-line-under"),
+            ], className="pli-lines-row"),
 
-            ], className="prop-card-body-v2"),
-        ], className="prop-card-v2")
-        prop_cards.append((prop.get("is_lock", False), prop_card))
+            # ── Expandable bar chart (hidden by default) ──────────────────────
+            html.Div([
+                # L5 stats line
+                html.Div(
+                    f"L5 avg: {l5_avg_val}  •  Proj: {proj_val}  •  "
+                    f"{prop.get('hits_vs_book', hits)}/{prop.get('total_vs_book', total) or total} L5",
+                    className="pli-bar-stats",
+                ),
+                # Bar chart
+                _render_l5_bars(l5_values, float(display_line) if display_line else 0),
+                # Insight text
+                html.Div(narrative, className="pli-narrative") if narrative else None,
+            ], id={"type": "prop-chart-div", "index": card_idx},
+               className="pli-chart-wrap",
+               style={"display": "none"}),
 
-    # ── Split into LOCKS section (pinned top) + regular props ─────────────────
-    lock_cards    = [c for is_lock, c in prop_cards if is_lock]
-    regular_cards = [c for is_lock, c in prop_cards if not is_lock]
+        ], className="prop-list-item")
+        prop_cards.append(prop_card)
 
-    sections = []
+    return [prop_cards, counts_row, locks_label]
 
-    # Always show LOCKS section at top when any lock cards exist
-    if lock_cards:
-        locks_header = html.Div([
-            html.Span("★", style={"color": "#f59e0b", "marginRight": "8px", "fontSize": "1rem"}),
-            html.Span("LOCKS", style={"fontWeight": "800", "color": "#f59e0b",
-                                      "letterSpacing": "0.06em", "fontSize": "0.9rem"}),
-            html.Span(f"  {len(lock_cards)}", style={"color": "#6b7280",
-                                                       "marginLeft": "6px", "fontSize": "0.85rem"}),
-        ], className="locks-section-header")
-        sections.append(html.Div([locks_header, html.Div(lock_cards, className="props-grid")],
-                                  className="locks-section"))
 
-    if regular_cards:
-        sections.append(html.Div(regular_cards, className="props-grid"))
-
-    return [html.Div(sections), counts_row, locks_label]
+@callback(
+    Output({"type": "prop-chart-div", "index": MATCH}, "style"),
+    Input({"type": "prop-chart-btn", "index": MATCH}, "n_clicks"),
+    State({"type": "prop-chart-div", "index": MATCH}, "style"),
+    prevent_initial_call=True,
+)
+def toggle_prop_chart(n_clicks, current_style):
+    """Toggle the expandable L5 bar chart on a prop list item."""
+    if not n_clicks:
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    is_visible = (current_style or {}).get("display", "none") not in (None, "none")
+    return {"display": "none" if is_visible else "block"}
 
 
 @callback(

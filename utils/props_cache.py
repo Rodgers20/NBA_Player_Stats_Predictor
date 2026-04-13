@@ -358,6 +358,9 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
 
             _l5_source = _active_stats.head(5) if len(_active_stats) >= 5 else recent_stats.head(5)
 
+            # Store raw L5 game values (most-recent first) for bar chart rendering
+            _l5_raw_values: list[float] = [round(float(v), 1) for v in _l5_source.values[:5]]
+
             # Weight recent games more heavily so hot/cold streaks dominate:
             #   Game 1 (most recent): weight 3 | Game 2: weight 3 | Game 3: weight 2
             #   Game 4: weight 1 | Game 5: weight 1
@@ -447,7 +450,13 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                         ml_pred = ml_result.get(f"predicted_{stat_type.lower()}")
                         if ml_pred and float(ml_pred) > 0:
                             ml_pred_stored = float(ml_pred)
-                            proj = 0.55 * ml_pred_stored + 0.45 * proj
+                            raw_blend = 0.55 * ml_pred_stored + 0.45 * proj
+                            # Clamp: ML model can't drag projection more than 25% below
+                            # or 30% above the L5 average. Prevents stale/biased ML
+                            # models from producing absurd lines (e.g. 17.5 for a 26.5 avg).
+                            _ml_clamp_lo = l5_avg * 0.75
+                            _ml_clamp_hi = l5_avg * 1.30
+                            proj = max(_ml_clamp_lo, min(_ml_clamp_hi, raw_blend))
                 except Exception:
                     pass
 
@@ -479,7 +488,8 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                            _role=role, _blowout_risk=blowout_risk,
                            _blowout_spread=blowout_spread, _cons=consistency_mult,
                            _l5_avg=l5_avg, _model_pred=ml_pred_stored, _std=std_stat,
-                           _proj=proj, _sim_book=sim_book_line):
+                           _proj=proj, _sim_book=sim_book_line,
+                           _l5_vals=_l5_raw_values):
                 # EV initially from hit_rate; will be overwritten in live-odds
                 # enrichment step with true model_prob vs implied_prob.
                 ev_value = calculate_ev(hit_rate)
@@ -548,6 +558,9 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     "insight": insight,
                     "value_score": round(bet_line / max(_l5_avg, 0.1), 3),
                     "injury_boost": _injury_boost_note,
+                    "l5_values": list(_l5_vals),  # raw per-game values for bar chart
+                    "hit_rate_vs_book": None,      # filled in live-odds enrichment
+                    "hits_vs_book": None,
                 }
 
             # Over — require genuine edge (>52%)
@@ -759,6 +772,14 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             prop["book_line"]        = sb_line      # store book line separately
             # DO NOT overwrite prop["line"] — keep our value line
 
+            # Compute hit_rate against the actual book line (for confidence display)
+            _l5v = prop.get("l5_values", [])
+            if _l5v and sb_line:
+                _dir = prop.get("direction", "Over")
+                _hvb = sum(1 for v in _l5v if (v >= sb_line if _dir == "Over" else v < sb_line))
+                prop["hit_rate_vs_book"] = round(_hvb / len(_l5v), 4)
+                prop["hits_vs_book"]     = _hvb
+
             # DO NOT recalculate hit_rate against sb_line — keep hit_rate at value line
             # (hit_rate was computed against our value line during _make_prop and is correct)
 
@@ -806,31 +827,33 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             prop["live_under_price"] = None
             prop["live_bookmaker"]   = None
             # Use simulated book line as book_line reference when no live odds
-            prop["book_line"] = prop.get("sim_book_line") or None
+            _sim_bl = prop.get("sim_book_line") or None
+            prop["book_line"] = _sim_bl
+            # Compute hit_rate against sim book line for confidence display
+            _l5v = prop.get("l5_values", [])
+            if _l5v and _sim_bl:
+                _dir = prop.get("direction", "Over")
+                _hvb = sum(1 for v in _l5v if (v >= _sim_bl if _dir == "Over" else v < _sim_bl))
+                prop["hit_rate_vs_book"] = round(_hvb / len(_l5v), 4)
+                prop["hits_vs_book"]     = _hvb
 
     # ── Quality gate — keep only genuine-edge props with meaningful payout ─
     # EV is now ROI-based (actual dollars, not just probability edge) so raising
     # the bar from 2% to 5% filters out chalk props where you risk $400 to win $25.
     # Odds minimum ensures nothing shows that pays less than $56 per $100 risked.
-    _MIN_MODEL_PROB    = 0.54   # slightly relaxed — EV gate does the heavy lifting
-    _MIN_EV            = 0.05   # 5% real ROI edge (was 2%)
+    _MIN_MODEL_PROB    = 0.53   # relaxed slightly — more players shown
+    _MIN_EV            = 0.04   # relaxed (4% ROI edge) so more props surface
     _MIN_ODDS_AMERICAN = -180   # props must pay at least $56/$100 risked
-    _LOCK_MIN_ODDS     = -250   # LOCKs get a more generous allowance
     _MAX_PER_PLAYER_TIER = {"star": 4, "starter": 3, "rotation": 2, "bench": 1}
-    _HARD_CAP          = 100    # absolute max (was 60, raised for big slates)
-    _MEANINGFUL_LINE_FLOORS = {"PTS": 10.5, "AST": 3.5, "REB": 4.5}
+    _HARD_CAP          = 120    # absolute max — raised to capture big slates
+    _MEANINGFUL_LINE_FLOORS = {"PTS": 9.5, "AST": 3.5, "REB": 4.5}
 
-    # Identify star players in today's slate for relaxed quality gate
-    todays_stars: set[str] = {p["player"] for p in props_data if p.get("role") == "star"}
+    # Identify star + starter players in today's slate for relaxed quality gate
+    todays_stars: set[str] = {p["player"] for p in props_data if p.get("role") in ("star", "starter")}
 
     quality_props = []
     for p in props_data:
         odd = p.get("model_over_odds") or -300
-        if p.get("is_lock"):
-            # LOCKs shown if odds aren't extreme (-250 max)
-            if odd >= _LOCK_MIN_ODDS:
-                quality_props.append(p)
-            continue
         # Meaningful line floor check — skip trivially low lines
         stat = p.get("stat", "")
         floor_val = _MEANINGFUL_LINE_FLOORS.get(stat)
@@ -838,15 +861,24 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             continue
         mp = p.get("model_prob") or 0.0
         ev = p.get("ev") or 0.0
+        # Combo props get a relaxed gate: high hit_rate is enough
+        if p.get("is_combo") and p.get("hit_rate", 0) >= 0.60 and odd >= -220:
+            quality_props.append(p)
+            continue
         # Standard gate
         if mp >= _MIN_MODEL_PROB and ev >= _MIN_EV and odd >= _MIN_ODDS_AMERICAN:
             quality_props.append(p)
             continue
-        # Star fallback — relax gate so elite players always have representation
+        # Star/Starter fallback — relax gate so elite players always have representation
         if (p.get("player") in todays_stars
-                and mp >= 0.52
+                and mp >= 0.51
                 and ev >= 0.01
-                and odd >= -220):
+                and odd >= -230):
+            quality_props.append(p)
+            continue
+        # High hit_rate vs book line — surface obvious value regardless of model_prob
+        hvb = p.get("hit_rate_vs_book") or 0.0
+        if hvb >= 0.80 and odd >= -200:
             quality_props.append(p)
 
     # Deduplicate: tiered cap per player by role
@@ -857,15 +889,17 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
 
     deduped: list = []
     for _pprops in _per_player.values():
-        _pprops.sort(key=lambda x: (not x.get("is_lock", False), -(x.get("ev") or 0)))
+        _pprops.sort(key=lambda x: (
+            -(x.get("hit_rate_vs_book") or x.get("hit_rate") or 0),
+            -(x.get("ev") or 0),
+        ))
         role_key = _pprops[0].get("role", "bench")
         cap = _MAX_PER_PLAYER_TIER.get(role_key, 1)
         deduped.extend(_pprops[:cap])
 
-    # Final sort: LOCKs first, then by hit_rate descending, then EV, then value_score
+    # Final sort: by hit_rate_vs_book (when available), then hit_rate, then EV
     deduped.sort(key=lambda x: (
-        not x.get("is_lock", False),
-        -(x.get("hit_rate") or 0),
+        -(x.get("hit_rate_vs_book") or x.get("hit_rate") or 0),
         -(x.get("ev") or 0),
         -(x.get("value_score") or 0),
     ))
