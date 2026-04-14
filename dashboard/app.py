@@ -605,16 +605,15 @@ STAT_TYPES = [
     {"id": "PTS", "label": "PTS"},
     {"id": "AST", "label": "AST"},
     {"id": "REB", "label": "REB"},
-    # Combos
-    {"id": "PTS+AST", "label": "PTS+AST"},
-    {"id": "PTS+REB", "label": "PTS+REB"},
-    {"id": "AST+REB", "label": "AST+REB"},
-    {"id": "PTS+AST+REB", "label": "PRA"},
-    # Other stats
     {"id": "FG3M", "label": "3PM"},
     {"id": "BLK", "label": "BLK"},
     {"id": "STL", "label": "STL"},
-    {"id": "STL+BLK", "label": "STL+BLK"},
+    # Combos — short labels so they fit on mobile
+    {"id": "PTS+AST", "label": "P+A"},
+    {"id": "PTS+REB", "label": "P+R"},
+    {"id": "AST+REB", "label": "A+R"},
+    {"id": "PTS+AST+REB", "label": "PRA"},
+    {"id": "STL+BLK", "label": "S+B"},
 ]
 
 # =============================================================================
