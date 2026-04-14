@@ -3268,248 +3268,817 @@
     }
   },
   "2026-04-13": {
-    "generated_at": "2026-04-13T06:25:03.699123+00:00",
+    "generated_at": "2026-04-14T03:46:00.455801+00:00",
     "graded_at": null,
     "parlays": [
       {
-        "label": "4-Leg Props OVER Parlay #1",
-        "type": "over",
+        "label": "10-Leg Alt Lines Parlay #1",
+        "type": "alt",
         "legs": [
-          {
-            "player": "Brandon Miller",
-            "stat": "FG3M",
-            "direction": "Over",
-            "line": 2.5,
-            "actual": null,
-            "hit": null
-          },
-          {
-            "player": "Donovan Clingan",
-            "stat": "BLK",
-            "direction": "Over",
-            "line": 1.5,
-            "actual": null,
-            "hit": null
-          },
           {
             "player": "Bam Adebayo",
-            "stat": "FG3M",
+            "stat": "PTS",
             "direction": "Over",
-            "line": 1.5,
-            "actual": null,
-            "hit": null
-          },
-          {
-            "player": "Moussa Diabate",
-            "stat": "STL",
-            "direction": "Over",
-            "line": 0.5,
-            "actual": null,
-            "hit": null
-          }
-        ],
-        "odds_american": 627,
-        "odds_decimal": 7.27,
-        "win_prob": 13.8,
-        "result": null,
-        "profit_10": null
-      },
-      {
-        "label": "4-Leg Props OVER Parlay #2",
-        "type": "over",
-        "legs": [
-          {
-            "player": "Brandon Miller",
-            "stat": "FG3M",
-            "direction": "Over",
-            "line": 2.5,
-            "actual": null,
-            "hit": null
-          },
-          {
-            "player": "Donovan Clingan",
-            "stat": "BLK",
-            "direction": "Over",
-            "line": 1.5,
-            "actual": null,
-            "hit": null
-          },
-          {
-            "player": "Bam Adebayo",
-            "stat": "FG3M",
-            "direction": "Over",
-            "line": 1.5,
-            "actual": null,
-            "hit": null
-          },
-          {
-            "player": "Moussa Diabate",
-            "stat": "STL",
-            "direction": "Over",
-            "line": 0.5,
-            "actual": null,
-            "hit": null
-          }
-        ],
-        "odds_american": 627,
-        "odds_decimal": 7.27,
-        "win_prob": 13.8,
-        "result": null,
-        "profit_10": null
-      },
-      {
-        "label": "4-Leg Props OVER Parlay #3",
-        "type": "over",
-        "legs": [
-          {
-            "player": "Oso Ighodaro",
-            "stat": "REB",
-            "direction": "Over",
-            "line": 4.5,
+            "line": 13.0,
             "actual": null,
             "hit": null
           },
           {
             "player": "Deni Avdija",
-            "stat": "PTS",
+            "stat": "REB",
             "direction": "Over",
-            "line": 17.5,
+            "line": 4.0,
             "actual": null,
             "hit": null
           },
           {
-            "player": "Tyler Herro",
+            "player": "Coby White",
             "stat": "PTS",
             "direction": "Over",
-            "line": 10.5,
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Pelle Larsson",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 3.0,
             "actual": null,
             "hit": null
           },
           {
             "player": "Toumani Camara",
-            "stat": "PTS",
+            "stat": "FG3M",
             "direction": "Over",
-            "line": 10.5,
+            "line": 2.0,
             "actual": null,
             "hit": null
-          }
-        ],
-        "odds_american": 23562,
-        "odds_decimal": 236.63,
-        "win_prob": 0.4,
-        "result": null,
-        "profit_10": null
-      },
-      {
-        "label": "4-Leg Props OVER Parlay #4",
-        "type": "over",
-        "legs": [
+          },
           {
-            "player": "Oso Ighodaro",
-            "stat": "REB",
+            "player": "Jrue Holiday",
+            "stat": "PTS",
             "direction": "Over",
-            "line": 4.5,
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Miles Bridges",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Toumani Camara",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
             "actual": null,
             "hit": null
           },
           {
             "player": "Deni Avdija",
-            "stat": "PTS",
+            "stat": "AST",
             "direction": "Over",
-            "line": 17.5,
-            "actual": null,
-            "hit": null
-          },
-          {
-            "player": "Tyler Herro",
-            "stat": "PTS",
-            "direction": "Over",
-            "line": 10.5,
+            "line": 5.0,
             "actual": null,
             "hit": null
           },
           {
             "player": "Toumani Camara",
-            "stat": "PTS",
+            "stat": "REB",
             "direction": "Over",
-            "line": 10.5,
+            "line": 4.0,
             "actual": null,
             "hit": null
           }
         ],
-        "odds_american": 23562,
-        "odds_decimal": 236.63,
-        "win_prob": 0.4,
+        "odds_american": 787,
+        "odds_decimal": 8.88,
+        "win_prob": 11.3,
         "result": null,
         "profit_10": null
       },
       {
-        "label": "3-Leg Props OVER Parlay #5",
-        "type": "over",
+        "label": "10-Leg Alt Lines Parlay #2",
+        "type": "alt",
         "legs": [
           {
-            "player": "Robert Williams III",
-            "stat": "REB",
+            "player": "Andrew Wiggins",
+            "stat": "BLK",
             "direction": "Over",
-            "line": 4.5,
+            "line": 1.0,
             "actual": null,
             "hit": null
           },
           {
-            "player": "Kon Knueppel",
+            "player": "Norman Powell",
             "stat": "PTS",
             "direction": "Over",
-            "line": 10.5,
+            "line": 15.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jaime Jaquez Jr.",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 14.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Scoot Henderson",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 14.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Andrew Wiggins",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 12.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Brandon Miller",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Andrew Wiggins",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Devin Booker",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 860,
+        "odds_decimal": 9.6,
+        "win_prob": 10.4,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #1  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Grayson Allen",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 10.0,
             "actual": null,
             "hit": null
           },
           {
             "player": "Davion Mitchell",
-            "stat": "AST",
+            "stat": "PTS",
             "direction": "Over",
-            "line": 3.5,
-            "actual": null,
-            "hit": null
-          }
-        ],
-        "odds_american": 337247,
-        "odds_decimal": 3373.48,
-        "win_prob": 0.0,
-        "result": null,
-        "profit_10": null
-      },
-      {
-        "label": "3-Leg Props OVER Parlay #6",
-        "type": "over",
-        "legs": [
-          {
-            "player": "Robert Williams III",
-            "stat": "REB",
-            "direction": "Over",
-            "line": 4.5,
+            "line": 9.0,
             "actual": null,
             "hit": null
           },
           {
-            "player": "Kon Knueppel",
+            "player": "Donovan Clingan",
             "stat": "PTS",
             "direction": "Over",
-            "line": 10.5,
+            "line": 6.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #2  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Collin Gillespie",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 6.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Mark Williams",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 5.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Robert Williams III",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 5.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "10-Leg Alt Lines Parlay #1",
+        "type": "alt",
+        "legs": [
+          {
+            "player": "Bam Adebayo",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 13.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Deni Avdija",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Coby White",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Pelle Larsson",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Toumani Camara",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jrue Holiday",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Miles Bridges",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Toumani Camara",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Deni Avdija",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 5.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Toumani Camara",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 787,
+        "odds_decimal": 8.88,
+        "win_prob": 11.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "10-Leg Alt Lines Parlay #2",
+        "type": "alt",
+        "legs": [
+          {
+            "player": "Andrew Wiggins",
+            "stat": "BLK",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Norman Powell",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 15.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jaime Jaquez Jr.",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 14.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Scoot Henderson",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 14.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Andrew Wiggins",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 12.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Brandon Miller",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Andrew Wiggins",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Devin Booker",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 860,
+        "odds_decimal": 9.6,
+        "win_prob": 10.4,
+        "result": null,
+        "profit_10": null
+      }
+    ],
+    "summary": {}
+  },
+  "2026-04-14": {
+    "generated_at": "2026-04-14T17:03:32.210804+00:00",
+    "graded_at": null,
+    "parlays": [
+      {
+        "label": "10-Leg Alt Lines Parlay #1",
+        "type": "alt",
+        "legs": [
+          {
+            "player": "Bam Adebayo",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 13.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Deni Avdija",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Coby White",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Pelle Larsson",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Toumani Camara",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jrue Holiday",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Miles Bridges",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Toumani Camara",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Deni Avdija",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 5.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Toumani Camara",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 787,
+        "odds_decimal": 8.88,
+        "win_prob": 11.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "10-Leg Alt Lines Parlay #2",
+        "type": "alt",
+        "legs": [
+          {
+            "player": "Andrew Wiggins",
+            "stat": "BLK",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Norman Powell",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 15.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jaime Jaquez Jr.",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 14.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Scoot Henderson",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 14.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Andrew Wiggins",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 12.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Brandon Miller",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Andrew Wiggins",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Devin Booker",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 860,
+        "odds_decimal": 9.6,
+        "win_prob": 10.4,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #1  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Grayson Allen",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 10.0,
             "actual": null,
             "hit": null
           },
           {
             "player": "Davion Mitchell",
-            "stat": "AST",
+            "stat": "PTS",
             "direction": "Over",
-            "line": 3.5,
+            "line": 9.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Donovan Clingan",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 6.5,
             "actual": null,
             "hit": null
           }
         ],
-        "odds_american": 337247,
-        "odds_decimal": 3373.48,
-        "win_prob": 0.0,
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #2  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Collin Gillespie",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 6.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Mark Williams",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 5.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Robert Williams III",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 5.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "10-Leg Alt Lines Parlay #1",
+        "type": "alt",
+        "legs": [
+          {
+            "player": "Bam Adebayo",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 13.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Deni Avdija",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Coby White",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Pelle Larsson",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Toumani Camara",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jrue Holiday",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Miles Bridges",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 11.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Toumani Camara",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Deni Avdija",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 5.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Toumani Camara",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 787,
+        "odds_decimal": 8.88,
+        "win_prob": 11.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "10-Leg Alt Lines Parlay #2",
+        "type": "alt",
+        "legs": [
+          {
+            "player": "Andrew Wiggins",
+            "stat": "BLK",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Norman Powell",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 15.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Jaime Jaquez Jr.",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 14.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Scoot Henderson",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 14.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Andrew Wiggins",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 12.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Brandon Miller",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Andrew Wiggins",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Devin Booker",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 860,
+        "odds_decimal": 9.6,
+        "win_prob": 10.4,
         "result": null,
         "profit_10": null
       }
