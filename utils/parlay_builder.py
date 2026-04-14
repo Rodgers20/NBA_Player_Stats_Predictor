@@ -933,12 +933,13 @@ def build_reduced_avg_parlays(
 def build_ml_trio(
     game_predictions: list[dict],
     tracker: _DiversityTracker,
+    n_parlays: int = 5,
 ) -> list[dict]:
-    """Build 3 distinct 3-leg Moneyline parlays from today's game predictions.
+    """Build up to n_parlays distinct 3-leg Moneyline parlays from today's game predictions.
 
-    Picks the top 9 qualifying games (HIGH/MEDIUM confidence), assigns them
-    to 3 non-overlapping groups of 3.  Returns 1–3 parlays depending on how
-    many qualify.
+    Picks the top qualifying games (HIGH/MEDIUM confidence), assigns them to
+    non-overlapping groups of 3. Returns 1–n_parlays parlays depending on how
+    many qualify. With ≥15 qualifying picks → 5 parlays; fewer games → fewer parlays.
     """
     CONF_TO_PROB = {"HIGH": 0.78, "MEDIUM": 0.62}
 
@@ -968,8 +969,26 @@ def build_ml_trio(
     candidates.sort(key=lambda x: -x["win_prob"])
 
     parlays: list[dict] = []
-    for i in range(3):
-        group = candidates[i * 3 : i * 3 + 3]
+    n = len(candidates)
+    for i in range(n_parlays):
+        if n < 3:
+            break
+        if n >= n_parlays * 3:
+            # Enough games for fully non-overlapping parlays
+            group = candidates[i * 3 : i * 3 + 3]
+        else:
+            # Smaller slate — allow overlapping via circular offset (step by 2)
+            offset = (i * 2) % n
+            group = [candidates[(offset + j) % n] for j in range(3)]
+            # Deduplicate group in case circular wrap creates a repeat
+            seen = set()
+            unique = []
+            for leg in group:
+                key = leg["game"]
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(leg)
+            group = unique
         if len(group) < 3:
             break
         parlays.append({
@@ -1104,58 +1123,48 @@ def build_all_parlays(
 ) -> dict:
     """Build all parlay groups in one call.
 
-    Returns dict with 29 target distinct parlays:
-        over (10) + ml (3) + spread (3) + totals (3) + alt_over (5) + reduced (5) = 29
+    Target counts:
+        over (5) + ml (≤5, depends on slate) + totals (1) + alt (3, 100% hit-rate) + reduced (5)
 
     Args:
         props:            Main page props (with model_over_odds / model_under_odds).
         alt_lines:        100% Alt Line streaks (with stat, threshold, window).
         game_predictions: Game-level predictions with optional spread/model_total keys.
     """
-    # max_uses=1: no player appears on more than 1 parlay slip
     tracker = _DiversityTracker(max_uses=1)
 
-    # Cap n_parlays based on qualifying pool size — prevents duplicate slips
-    _qualifying = [
-        p for p in props
-        if p.get("direction", "").lower() == "over"
-        and (p.get("stat_type") or p.get("stat", "")) in ("PTS", "AST", "REB")
-        and (p.get("model_prob") or p.get("hit_rate", 0)) >= 0.62
-        and p.get("model_over_odds") is not None
-    ]
-    _n_main = max(1, len(_qualifying) // 3)   # 3 unique players per slip
-    _n_main = min(_n_main, 8)                 # hard cap at 8 slips
+    # Exactly 5 OVER parlays (3-leg each)
+    main_overs = build_over_parlays(props, tracker, n_parlays=5, n_legs=3)
 
-    all_overs       = build_over_parlays(props, tracker, n_parlays=_n_main, n_legs=3)
-    main_overs      = all_overs
-    alt_overs: list = []
+    # Up to 5 Moneyline parlays — fewer when slate is small
+    ml_parlays = build_ml_trio(game_predictions, tracker, n_parlays=5)
 
-    # Game-level parlays (3 + 3 + 3)
-    ml_parlays      = build_ml_trio(game_predictions, tracker)
-    spread_parlays  = build_spread_parlays(game_predictions, tracker, n_parlays=3)
-    total_parlays   = build_total_parlays(game_predictions, tracker, n_parlays=3)
+    # Exactly 1 Game Totals parlay
+    total_parlays = build_total_parlays(game_predictions, tracker, n_parlays=1)
 
-    # Alt section: 5 safe-over (reduced-avg) parlays
+    # Exactly 3 Alt Lines parlays (100% hit-rate streaks, 10-leg)
+    alt_parlays = build_alt_parlays(alt_lines, tracker, n_parlays=3, n_legs=10)
+
+    # 5 safe-over (reduced-avg) parlays
     reduced_parlays = build_reduced_avg_parlays(props, tracker, n_parlays=5, n_legs=3)
 
     total = (
         len(main_overs)
-        + len(alt_overs)
         + len(ml_parlays)
-        + len(spread_parlays)
         + len(total_parlays)
+        + len(alt_parlays)
         + len(reduced_parlays)
     )
 
     return {
-        "over":        main_overs,      # 10x main section
-        "ml":          ml_parlays,      # 3x
-        "spread":      spread_parlays,  # 3x
-        "totals":      total_parlays,   # 3x
-        "alt_over":    alt_overs,       # 5x (100% Alt section)
-        "reduced":     reduced_parlays, # 5x (100% Alt section)
+        "over":        main_overs,      # 5x target
+        "ml":          ml_parlays,      # ≤5x (depends on slate size)
+        "spread":      [],              # removed
+        "totals":      total_parlays,   # 1x
+        "alt_over":    alt_parlays,     # 3x (100% alt lines)
+        "reduced":     reduced_parlays, # 5x
         # Kept for backward compat (grading history)
-        "alt":         [],
+        "alt":         alt_parlays,
         "under":       [],
         "defense":     [],
         "total_count": total,

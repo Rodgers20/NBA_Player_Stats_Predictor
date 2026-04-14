@@ -3254,11 +3254,22 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
     stat_count_map: dict = {}
     for p in props_data:
         stat = p.get("stat", "")
-        key = "COMBO" if "+" in stat else stat
-        stat_count_map[key] = stat_count_map.get(key, 0) + 1
+        stat_count_map[stat] = stat_count_map.get(stat, 0) + 1
 
-    _BADGE_ORDER = [("PTS", "PTS"), ("AST", "AST"), ("REB", "REB"),
-                    ("FG3M", "3PM"), ("COMBO", "Combos")]
+    _BADGE_ORDER = [
+        ("PTS",         "PTS"),
+        ("AST",         "AST"),
+        ("REB",         "REB"),
+        ("FG3M",        "3PM"),
+        ("STL",         "STL"),
+        ("BLK",         "BLK"),
+        ("PTS+AST",     "Pts+Ast"),
+        ("PTS+REB",     "Pts+Reb"),
+        ("AST+REB",     "Ast+Reb"),
+        ("PTS+AST+REB", "PRA"),
+        ("DD",          "Dbl-Dbl"),
+        ("TD",          "Tri-Dbl"),
+    ]
     count_badges = [
         html.Span(f"{lbl} {stat_count_map[k]}", className="stat-count-badge")
         for k, lbl in _BADGE_ORDER if stat_count_map.get(k, 0) > 0
@@ -3296,7 +3307,14 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
         hit_rate_key = "hit_rate_away"
 
     if sort_by == "hit_rate":
-        filtered_props.sort(key=lambda x: x.get(hit_rate_key, 0), reverse=True)
+        # Sort by L5 hit rate (highest first).
+        # Use explicit None check — 0.0 is a valid score and must not fall through.
+        def _sort_key(x):
+            l5 = x.get("hit_rate_l5")
+            if l5 is not None:
+                return l5
+            return x.get(hit_rate_key) or 0.0
+        filtered_props.sort(key=_sort_key, reverse=True)
     else:
         # EV sort = model probability edge over implied odds (true value ranking)
         filtered_props.sort(key=lambda x: x.get("model_prob") or x.get("ev", 0), reverse=True)
@@ -3384,8 +3402,9 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
         # ── Primary display line: book line → sim book line → value line ─────
         display_line = prop.get("book_line") or prop.get("sim_book_line") or prop.get("line") or ""
 
-        # ── Confidence %: hit_rate vs book line is most meaningful ────────────
-        conf_raw = prop.get("hit_rate_vs_book") or hit_rate
+        # ── Confidence %: always matches the sort order (hit_rate_l5 primary) ───
+        _l5hr = prop.get("hit_rate_l5")
+        conf_raw = _l5hr if _l5hr is not None else (prop.get("hit_rate_vs_book") or hit_rate)
         conf_pct = int(round(conf_raw * 100))
         if conf_pct >= 80:
             conf_color = "#22c55e"
@@ -3401,11 +3420,11 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
         over_price  = prop.get("live_over_price")  or prop.get("model_over_odds")
         under_price = prop.get("live_under_price") or prop.get("model_under_odds")
 
-        # ── Team logo & player info ───────────────────────────────────────────
-        team_logo       = get_team_logo_url(prop.get("team", ""))
-        player_name_str = prop.get("player", "")
-        initial_letter  = player_name_str.split()[-1][0].upper() if player_name_str else "?"
-        card_idx        = f"{player_name_str}|{raw_stat}"
+        # ── Player headshot & info ────────────────────────────────────────────
+        player_name_str  = prop.get("player", "")
+        headshot_url     = get_player_headshot_url(player_name_str)
+        initial_letter   = player_name_str.split()[-1][0].upper() if player_name_str else "?"
+        card_idx         = f"{player_name_str}|{raw_stat}"
 
         # ── L5 values for bar chart ───────────────────────────────────────────
         l5_avg_val = prop.get("l5_avg") or prop.get("avg", 0)
@@ -3432,13 +3451,15 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
 
             # ── Main row: logo | name+info | confidence | chart toggle ────────
             html.Div([
-                # Team logo / player initial
-                html.Div([
-                    html.Img(src=team_logo, className="pli-team-logo") if team_logo else None,
-                    html.Span(initial_letter, className="pli-initial"),
-                ], className="pli-logo-wrap",
-                   id={"type": "prop-player-photo", "index": card_idx},
-                   n_clicks=0),
+                # Player headshot (or fallback initial)
+                html.Div(
+                    html.Img(src=headshot_url, className="pli-player-headshot")
+                    if headshot_url
+                    else html.Span(initial_letter, className="pli-initial"),
+                    className="pli-logo-wrap",
+                    id={"type": "prop-player-photo", "index": card_idx},
+                    n_clicks=0,
+                ),
 
                 # Player name + matchup
                 html.Div([
@@ -3600,10 +3621,12 @@ def update_prop_window_store(all_clicks, current_windows):
         raise PreventUpdate
     card_idx = parts[0]
     window   = parts[1]
-    # Only update the store whose index matches the clicked card
+    # Only update the store whose index matches the clicked card.
+    # ctx.outputs_list is a flat list of output descriptors in Dash 2.x
     result = []
-    for store_data, out_id in zip(current_windows, ctx.outputs_list[0]):
-        if out_id["id"]["index"] == card_idx:
+    for store_data, out_id in zip(current_windows, ctx.outputs_list):
+        out_idx = out_id["id"]["index"] if isinstance(out_id.get("id"), dict) else str(out_id.get("id", ""))
+        if out_idx == card_idx:
             result.append(window)
         else:
             result.append(store_data)
@@ -3621,12 +3644,55 @@ def render_prop_chart_window(window, chart_data):
     if not chart_data or not window:
         from dash.exceptions import PreventUpdate
         raise PreventUpdate
-    win_data  = chart_data.get(window) or chart_data.get("l5") or {"values": [], "labels": []}
-    line      = float(chart_data.get("line", 0))
-    stat      = chart_data.get("stat", "")
-    l5_avg    = float(chart_data.get("l5_avg", 0))
+    # Fall back to l5 data when the requested window is empty (e.g. no home games)
+    win_data = chart_data.get(window) or {}
+    if not win_data.get("values"):
+        win_data = chart_data.get("l5") or {}
+    if not win_data.get("values"):
+        # Still nothing — prevent re-render to avoid blank flash
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    line   = float(chart_data.get("line", 0))
+    stat   = chart_data.get("stat", "")
+    l5_avg = float(chart_data.get("l5_avg", 0))
     return _make_prop_chart_figure(win_data.get("values", []), win_data.get("labels", []),
                                    line, stat, l5_avg)
+
+
+@callback(
+    Output({"type": "prop-win", "index": ALL}, "className"),
+    Input({"type": "prop-win", "index": ALL}, "n_clicks"),
+    State({"type": "prop-win", "index": ALL}, "className"),
+    prevent_initial_call=True,
+)
+def update_prop_win_tab_classes(all_clicks, current_classes):
+    """Update which window tab appears visually active."""
+    from dash import ctx
+    if not any(all_clicks):
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    triggered = ctx.triggered_id
+    if not triggered:
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    triggered_index = triggered["index"]          # e.g. "LeBron James|PTS|l10"
+    parts = triggered_index.rsplit("|", 1)
+    if len(parts) != 2:
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    card_idx = parts[0]
+    # ctx.outputs_list is a flat list of output descriptors in Dash 2.x
+    new_classes = []
+    for cls, out_id in zip(current_classes, ctx.outputs_list):
+        out_index = out_id["id"]["index"] if isinstance(out_id.get("id"), dict) else str(out_id.get("id", ""))
+        tab_card = out_index.rsplit("|", 1)[0]    # e.g. "LeBron James|PTS"
+        if tab_card == card_idx:
+            # Mark active only for the clicked tab; deactivate siblings
+            base = "prop-win-tab"
+            new_classes.append(f"{base} prop-win-active" if out_index == triggered_index else base)
+        else:
+            new_classes.append(cls)
+    return new_classes
 
 
 @callback(

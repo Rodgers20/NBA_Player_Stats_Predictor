@@ -313,20 +313,32 @@ def get_todays_games() -> pd.DataFrame:
     global _todays_games_cache
 
     now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+
     if _todays_games_cache["data"] is not None and _todays_games_cache["timestamp"]:
         age = (now - _todays_games_cache["timestamp"]).total_seconds()
         if age < _CACHE_TTL_SECONDS:
             return _todays_games_cache["data"]
 
-    today = now.strftime("%Y-%m-%d")
     result = _get_games_from_espn(today)
 
     if not result.empty:
         print(f"[Games] Found {len(result)} games for {today}")
+        # Always update cache when we have valid data
+        _todays_games_cache["data"] = result
+        _todays_games_cache["timestamp"] = now
+    else:
+        # ESPN returned empty — keep existing non-empty cache to prevent data disappearing
+        # Only update timestamp if we had no data at all (first call)
+        if _todays_games_cache["data"] is None:
+            _todays_games_cache["data"] = result
+            _todays_games_cache["timestamp"] = now
+        else:
+            # Extend the TTL so we retry soon, but don't wipe valid data
+            _todays_games_cache["timestamp"] = now - timedelta(seconds=_CACHE_TTL_SECONDS - 60)
+            print(f"[Games] ESPN returned empty for {today} — keeping existing cache")
 
-    _todays_games_cache["data"] = result
-    _todays_games_cache["timestamp"] = datetime.now()
-    return result
+    return _todays_games_cache["data"] if _todays_games_cache["data"] is not None else result
 
 
 # Cache for upcoming games (separate from today's cache since it may target tomorrow)
@@ -335,13 +347,14 @@ _upcoming_games_cache = {"data": None, "target_date": None, "timestamp": None}
 
 def get_upcoming_games() -> tuple[pd.DataFrame, str]:
     """
-    Get games that haven't finished yet, with fallback to tomorrow's slate.
+    Get today's games for prop/prediction generation.
 
     Logic:
     1. Fetch today's games from ESPN
-    2. Filter out games with status "Final" (already played)
-    3. If no unplayed games today, fetch tomorrow's full schedule
-    4. Cache for 5 minutes
+    2. If any games exist today (pre-game, in-progress, or final), use them ALL DAY
+       so props/predictions never disappear mid-day.
+    3. Only fall back to tomorrow's slate when there are literally no games today.
+    4. Cache for 5 minutes.
 
     Returns:
         (games_df, target_date_str) — target_date_str is "YYYY-MM-DD"
@@ -349,6 +362,9 @@ def get_upcoming_games() -> tuple[pd.DataFrame, str]:
     global _upcoming_games_cache
 
     now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+
     if (
         _upcoming_games_cache["data"] is not None
         and _upcoming_games_cache["timestamp"]
@@ -356,24 +372,32 @@ def get_upcoming_games() -> tuple[pd.DataFrame, str]:
     ):
         return _upcoming_games_cache["data"], _upcoming_games_cache["target_date"]
 
-    today = now.strftime("%Y-%m-%d")
-    tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
-
     # ESPN is the primary (and only) source — fast, no auth, always works
     today_games = _get_games_from_espn(today)
 
-    # Filter to only unplayed / in-progress games
-    if not today_games.empty and "GAME_STATUS_TEXT" in today_games.columns:
-        upcoming_today = today_games[
-            ~today_games["GAME_STATUS_TEXT"].str.lower().str.contains("final", na=False)
-        ]
+    if not today_games.empty:
+        # Prefer unplayed / in-progress games for ordering purposes,
+        # but fall back to ALL today's games so props stay visible after games finish.
+        if "GAME_STATUS_TEXT" in today_games.columns:
+            upcoming_today = today_games[
+                ~today_games["GAME_STATUS_TEXT"].str.lower().str.contains("final", na=False)
+            ]
+        else:
+            upcoming_today = today_games
+
         if not upcoming_today.empty:
             print(f"[Games] {len(upcoming_today)} upcoming game(s) today ({today})")
             _upcoming_games_cache = {"data": upcoming_today, "target_date": today, "timestamp": now}
             return upcoming_today, today
 
-    # All today's games are done (or no games today) — use tomorrow's slate
-    print(f"[Games] No upcoming games today, fetching tomorrow ({tomorrow})...")
+        # All games finished for today — but keep using today's teams all day until midnight
+        # so props/predictions remain visible. Only switch to tomorrow after midnight.
+        print(f"[Games] All {len(today_games)} game(s) final today — keeping today's slate until midnight")
+        _upcoming_games_cache = {"data": today_games, "target_date": today, "timestamp": now}
+        return today_games, today
+
+    # No games today at all — use tomorrow's slate
+    print(f"[Games] No games found for {today}, fetching tomorrow ({tomorrow})...")
     tomorrow_games = _get_games_from_espn(tomorrow)
 
     target = tomorrow if not tomorrow_games.empty else today
