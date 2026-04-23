@@ -192,6 +192,7 @@ def generate_player_insight(
     defense_vs_pos: pd.DataFrame,
     is_home: bool,
     position: str,
+    l5_avg_override: float | None = None,
 ) -> dict:
     """
     Generate a contextual insight dict for a player prop card.
@@ -215,7 +216,9 @@ def generate_player_insight(
     recent_5 = sorted_df.head(5)
     recent_10 = sorted_df.head(10)
 
-    l5_avg = recent_5[stat].mean() if stat in recent_5.columns else 0.0
+    l5_avg = l5_avg_override if l5_avg_override is not None else (
+        recent_5[stat].mean() if stat in recent_5.columns else 0.0
+    )
     l10_avg = recent_10[stat].mean() if stat in recent_10.columns else 0.0
 
     trend = _trend(l5_avg, l10_avg)

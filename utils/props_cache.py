@@ -32,8 +32,8 @@ _props_cache = {
     "alt_lines_data": [],       # 100% alt lines (hit every game in streak)
     "alt_lines_date": None,     # "YYYY-MM-DD" of when alt_lines were last computed
     "parlays_data": {           # Recommended parlays built from props + alt lines
-        "ml": None, "alt": [], "over": [], "under": [],
-        "reduced": [], "defense": [], "total_count": 0
+        "ml": None, "alt": [], "over": [], "pts": [], "reb": [], "ast": [],
+        "combo": [], "under": [], "totals": [], "reduced": [], "defense": [], "total_count": 0
     },
     "has_todays_games": False,
     "game_matchups": [],
@@ -398,13 +398,17 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
             if "MIN" in recent_10.columns:
                 _min_series = pd.to_numeric(recent_10["MIN"], errors="coerce").fillna(0)
                 _active_mask = _min_series >= 20
+                _active_df = recent_10.loc[_active_mask]
                 _active_stats = pd.to_numeric(
-                    recent_10.loc[_active_mask, stat_type], errors="coerce"
+                    _active_df[stat_type], errors="coerce"
                 ).dropna()
             else:
+                _active_df = recent_10
                 _active_stats = recent_stats
 
             _l5_source = _active_stats.head(5) if len(_active_stats) >= 5 else recent_stats.head(5)
+            # The L5 bar chart should show the same games used for l5_avg (active ≥20 MIN)
+            _l5_df = _active_df.head(5) if len(_active_df) >= 5 else recent_10.head(5)
 
             # Store raw L5 game values (most-recent first) for bar chart rendering
             _l5_raw_values: list[float] = [round(float(v), 1) for v in _l5_source.values[:5]]
@@ -419,7 +423,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                 else player_df
             )
             _l20_df = _split_base.head(20)
-            _cw_l5_v,  _cw_l5_l  = _extract_chart_window(recent_10.head(5),  stat_type)
+            _cw_l5_v,  _cw_l5_l  = _extract_chart_window(_l5_df,             stat_type)
             _cw_l10_v, _cw_l10_l = _extract_chart_window(recent_10,           stat_type)
             _cw_l20_v, _cw_l20_l = _extract_chart_window(_l20_df,             stat_type)
             _cw_home_v, _cw_home_l = _extract_chart_window(home_games.head(10), stat_type)
@@ -599,6 +603,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     player_name=player_name, stat=stat_type, line=bet_line,
                     opponent=opponent, player_df=player_df,
                     defense_vs_pos=DEFENSE_VS_POS, is_home=is_home_today, position=position,
+                    l5_avg_override=round(l5_avg, 1),
                 )
                 if _blowout_risk:
                     role_note = "starter benched" if _role in ("star", "starter") else "bench gets garbage time"
@@ -1510,6 +1515,34 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
     # Batch availability check — no arbitrary cap, check all players
     availability_map = get_batch_availability(players_to_analyze)
 
+    # ── Override stale ESPN injury data ──────────────────────────────────────
+    # If ESPN marks a player as OUT/DOUBTFUL but they have a game in our data
+    # within the last 45 days (same window as _is_qualified_player), trust the
+    # game logs over the injury report.  This prevents stale ESPN data from
+    # silently excluding active players like LaMelo Ball who returned from injury.
+    _now_dt = datetime.now()
+    for _pname in players_to_analyze:
+        _is_avail, _reason = availability_map.get(_pname, (True, ""))
+        if _is_avail:
+            continue  # already available — nothing to override
+        _p_df = DF[DF["PLAYER_NAME"] == _pname]
+        if _p_df.empty or "_date" not in _p_df.columns:
+            continue
+        _last_date = _p_df["_date"].max()
+        try:
+            _days_since = (_now_dt - _last_date.to_pydatetime()).days
+        except Exception:
+            try:
+                _days_since = (_now_dt - _last_date).days
+            except Exception:
+                continue
+        if _days_since <= 45:
+            print(
+                f"[PropsCache] AvailabilityOverride: {_pname} ESPN={_reason!r} "
+                f"but played {_days_since}d ago → marking ACTIVE"
+            )
+            availability_map[_pname] = (True, "ACTIVE (recent game data overrides ESPN)")
+
     # Build injury context: find teams with OUT starters and quantify missing usage
     team_injury_context: dict[str, dict] = {}
     for _pname in players_to_analyze:
@@ -1581,6 +1614,14 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
     # win_prob ≈ 50% + |spread| / 28  (Massey-Peabody approximation)
     # Confidence thresholds: HIGH ≥ 68%, MEDIUM ≥ 58%, LOW < 58%
     game_predictions_for_parlay: list[dict] = []
+    # Re-fetch raw odds to extract total lines (game_spreads only has spread data)
+    _raw_odds_for_totals: dict = {}
+    try:
+        from utils.odds_fetcher import get_game_odds
+        _raw_odds_for_totals = get_game_odds()
+    except Exception:
+        pass
+
     for home_team, opponent in game_info.get("team_to_opponent", {}).items():
         is_home = game_info.get("teams_home_away", {}).get(home_team, "home") == "home"
         if not is_home:
@@ -1600,11 +1641,20 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
             winner, conf, wp = away_team, "MEDIUM", 1 - home_win_prob
         else:
             winner, conf, wp = home_team, "LOW",    home_win_prob
+
+        # Extract live O/U total line from odds fetcher
+        _game_key = f"{away_team}@{home_team}"
+        _total_data = _raw_odds_for_totals.get(_game_key, {}).get("total") or {}
+        _total_line = float(_total_data.get("line", 220.0))
+        # NBA totals go Over ~54% historically — apply slight Over lean as model estimate
+        _model_total = _total_line + 3.0
+
         game_predictions_for_parlay.append({
             "home": home_team, "away": away_team,
             "winner_pick": winner, "winner_confidence": conf,
-            "spread": spread,        # home line (negative = home favored)
-            "model_total": None,     # not yet computed — totals parlay skipped gracefully
+            "spread": spread,            # home line (negative = home favored)
+            "total_line": _total_line,   # live O/U line (or 220.0 default)
+            "model_total": _model_total, # estimated model total (Over lean)
         })
 
     # ── Build all parlays ──────────────────────────────────────────────────
@@ -1623,7 +1673,7 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
             print(f"[PropsCache] Parlay save error (non-fatal): {_pte}")
     except Exception as _pe:
         print(f"[PropsCache] Parlay build error (non-fatal): {_pe}")
-        parlays_data = {"over": [], "ml": [], "spread": [], "totals": [], "alt_over": [], "reduced": [], "alt": [], "under": [], "defense": [], "total_count": 0}
+        parlays_data = {"over": [], "pts": [], "reb": [], "ast": [], "combo": [], "ml": [], "spread": [], "totals": [], "alt_over": [], "reduced": [], "alt": [], "under": [], "defense": [], "total_count": 0}
 
     elapsed = (datetime.now() - start).total_seconds()
 

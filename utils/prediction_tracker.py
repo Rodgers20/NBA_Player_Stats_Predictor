@@ -401,7 +401,7 @@ def get_props_record() -> dict:
         "pct":         _pct(all_hit, all_total),
         "recent_7d":   _pct(recent_hits, recent_total),
         "by_stat":     by_stat_pct,
-        "days_graded": len([d for d in history if history[d].get("graded_at")]),
+        "days_graded": len(history),
     }
 
 
@@ -622,7 +622,7 @@ def get_model_record() -> dict:
             "spread":    _pct(r_sp_c, r_sp_t),
             "total":     _pct(r_ou_c, r_ou_t),
         },
-        "days_graded": len([d for d in history if history[d].get("graded_at")]),
+        "days_graded": len(history),
     }
 
 

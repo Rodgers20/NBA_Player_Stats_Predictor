@@ -110,7 +110,8 @@ def save_daily_parlays(date: str, parlays: dict) -> None:
         })
 
     # Collect all parlay types — handle both old and new dict shapes
-    for key in ("over", "ml", "spread", "totals", "alt_over", "reduced",
+    for key in ("over", "pts", "reb", "ast", "combo",
+                "ml", "spread", "totals", "alt_over", "reduced",
                 "two_leg", "three_leg", "alt", "under", "defense"):
         val = parlays.get(key)
         if not val:
@@ -261,9 +262,9 @@ def get_parlays_record() -> dict:
     recent_wins = recent_losses = 0
 
     for date_str, rec in sorted(history.items()):
+        days_graded += 1
         if not rec.get("graded_at"):
             continue
-        days_graded += 1
 
         for parlay in rec.get("parlays", []):
             result = parlay.get("result")

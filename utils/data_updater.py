@@ -274,7 +274,9 @@ def _fetch_nba_api_games(from_date: str) -> pd.DataFrame:
         return df
 
     except Exception as e:
+        import traceback
         print(f"[DataUpdater] NBA Stats API fallback failed: {e}")
+        traceback.print_exc()
         return pd.DataFrame()
 
 

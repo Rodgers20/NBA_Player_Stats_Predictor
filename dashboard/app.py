@@ -1663,13 +1663,16 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
     """Render all recommended parlays in a dedicated page view.
 
     Sections (in order):
-      A. Props OVER Parlays        (10x 3-leg over combos)
-      B. Moneyline Parlays         (3x 3-leg game winner picks)
-      C. Spread Parlays            (3x 3-leg ATS game picks)
-      D. Game Totals Parlays       (3x 3-leg O/U game picks)
-      E. 100% Alt — Best Overs     (5x 3-leg secondary over picks)
-      F. 100% Alt — Reduced Lines  (5x 3-leg ~22% below avg, mid-tier only)
-    Total target: 29 distinct parlays.
+      A.  Props OVER Parlays       (5x 3-leg mixed PTS/AST/REB)
+      A2. Points Parlays           (5x 3-leg PTS only)
+      A3. Rebounds Parlays         (5x 3-leg REB only)
+      A4. Assists Parlays          (5x 3-leg AST only)
+      A5. Combo Parlays            (5x 3-leg combo stats)
+      B.  Moneyline Parlays        (2-3 leg, depends on slate)
+      C.  Game Totals Parlays      (1-3 leg, live O/U lines)
+      D.  100% Alt — Best Overs    (3x 10-leg streaks)
+      E.  100% Alt — Reduced Lines (5x 3-leg ~22% below avg)
+    Total target: 35+ distinct parlays.
     """
     if not parlays or parlays.get("total_count", 0) == 0:
         return html.Div([
@@ -1971,77 +1974,100 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
     # ── Assemble all sections ──────────────────────────────────────────────
     cards: list = []
 
-    # ── Section A: Props OVER Parlays (10) ────────────────────────────────
-    over_list = parlays.get("over", [])
-    if over_list:
-        avg_wp = sum(p["odds"]["win_prob"] for p in over_list) / len(over_list)
-        cards.append(_section_header(
-            f"Props OVER Parlays  ({len(over_list)})",
-            f"Best OVER combos by model probability · avg win prob: {avg_wp:.1f}%",
-        ))
-        cards.append(_two_col_grid([_parlay_card(p) for p in over_list]))
-    else:
-        cards.append(_section_header("Props OVER Parlays", "Not enough qualifying OVER props today"))
+    def _render_section(title: str, subtitle_ok: str, subtitle_empty: str,
+                        key: str) -> None:
+        lst = parlays.get(key, [])
+        if lst:
+            avg_wp = sum(p["odds"]["win_prob"] for p in lst) / len(lst)
+            cards.append(_section_header(
+                f"{title}  ({len(lst)})",
+                f"{subtitle_ok} · avg win prob: {avg_wp:.1f}%",
+            ))
+            cards.append(_two_col_grid([_parlay_card(p) for p in lst]))
+        else:
+            cards.append(_section_header(title, subtitle_empty))
 
-    # ── Section B: Moneyline Parlays (3) ──────────────────────────────────
+    # ── Section A: Props OVER Parlays (5 mixed) ───────────────────────────
+    _render_section(
+        "Props OVER Parlays",
+        "Best OVER combos by hit-rate (mixed PTS/AST/REB)",
+        "Not enough qualifying OVER props today",
+        "over",
+    )
+
+    # ── Section A2: Points Parlays (5) ────────────────────────────────────
+    _render_section(
+        "Points Parlays",
+        "5 × 3-leg parlays using PTS props · sorted highest hit-rate first",
+        "Not enough qualifying Points props today",
+        "pts",
+    )
+
+    # ── Section A3: Rebounds Parlays (5) ──────────────────────────────────
+    _render_section(
+        "Rebounds Parlays",
+        "5 × 3-leg parlays using REB props · sorted highest hit-rate first",
+        "Not enough qualifying Rebounds props today",
+        "reb",
+    )
+
+    # ── Section A4: Assists Parlays (5) ───────────────────────────────────
+    _render_section(
+        "Assists Parlays",
+        "5 × 3-leg parlays using AST props · sorted highest hit-rate first",
+        "Not enough qualifying Assists props today",
+        "ast",
+    )
+
+    # ── Section A5: Combo Parlays (5) ─────────────────────────────────────
+    _render_section(
+        "Combo Parlays",
+        "5 × 3-leg parlays using PTS+REB / PTS+AST / PTS+AST+REB combos",
+        "Not enough qualifying Combo props today",
+        "combo",
+    )
+
+    # ── Section B: Moneyline Parlays ──────────────────────────────────────
     ml_list = parlays.get("ml", [])
     if ml_list:
         avg_wp = sum(p["odds"]["win_prob"] for p in ml_list) / len(ml_list)
+        leg_counts = set(len(p["legs"]) for p in ml_list)
+        leg_desc = f"{min(leg_counts)}-{max(leg_counts)}-leg" if len(leg_counts) > 1 else f"{next(iter(leg_counts))}-leg"
         cards.append(_section_header(
             f"Moneyline Parlays  ({len(ml_list)})",
-            f"3 non-overlapping game winner combos · avg win prob: {avg_wp:.1f}%",
+            f"{leg_desc} game winner combos · avg win prob: {avg_wp:.1f}%",
         ))
         cards.append(_two_col_grid([_parlay_card(p) for p in ml_list]))
     else:
         cards.append(_section_header("Moneyline Parlays", "Not enough HIGH/MEDIUM confidence games today"))
 
-    # ── Section C: Spread Parlays (3) ─────────────────────────────────────
-    spread_list = parlays.get("spread", [])
-    if spread_list:
-        avg_wp = sum(p["odds"]["win_prob"] for p in spread_list) / len(spread_list)
-        cards.append(_section_header(
-            f"Spread Parlays  ({len(spread_list)})",
-            f"Against-the-spread game combos · avg win prob: {avg_wp:.1f}%",
-        ))
-        cards.append(_two_col_grid([_parlay_card(p) for p in spread_list]))
-    else:
-        cards.append(_section_header("Spread Parlays", "Not enough qualifying spread picks today"))
-
-    # ── Section D: Game Totals Parlays (3) ────────────────────────────────
+    # ── Section C: Game Totals Parlays ────────────────────────────────────
     totals_list = parlays.get("totals", [])
     if totals_list:
         avg_wp = sum(p["odds"]["win_prob"] for p in totals_list) / len(totals_list)
         cards.append(_section_header(
             f"Game Totals Parlays  ({len(totals_list)})",
-            f"Over/Under game total combos · avg win prob: {avg_wp:.1f}%",
+            f"Over/Under game total combos using live O/U lines · avg win prob: {avg_wp:.1f}%",
         ))
         cards.append(_two_col_grid([_parlay_card(p) for p in totals_list]))
     else:
-        cards.append(_section_header("Game Totals Parlays", "Not enough model total predictions today"))
+        cards.append(_section_header("Game Totals Parlays", "No game total lines available today"))
 
-    # ── Section E: 100% Alt — Best Over Parlays (5) ───────────────────────
-    alt_over_list = parlays.get("alt_over", [])
-    if alt_over_list:
-        avg_wp = sum(p["odds"]["win_prob"] for p in alt_over_list) / len(alt_over_list)
-        cards.append(_section_header(
-            f"100% Alt — Best Over Parlays  ({len(alt_over_list)})",
-            f"Secondary over picks from the best props pool · avg win prob: {avg_wp:.1f}%",
-        ))
-        cards.append(_two_col_grid([_parlay_card(p) for p in alt_over_list]))
-    else:
-        cards.append(_section_header("100% Alt — Best Over Parlays", "Not enough qualifying OVER props today"))
+    # ── Section D: 100% Alt — Best Over Parlays ───────────────────────────
+    _render_section(
+        "100% Alt — Best Over Parlays",
+        "Secondary over picks from the best props pool",
+        "Not enough qualifying OVER props today",
+        "alt_over",
+    )
 
-    # ── Section F: 100% Alt — Reduced Lines (5) ───────────────────────────
-    reduced_list = parlays.get("reduced", [])
-    if reduced_list:
-        avg_wp = sum(p["odds"]["win_prob"] for p in reduced_list) / len(reduced_list)
-        cards.append(_section_header(
-            f"100% Alt — Reduced Lines  ({len(reduced_list)})",
-            f"Lines ~22% below player's L5 avg · mid-tier players only · avg win prob: {avg_wp:.1f}%",
-        ))
-        cards.append(_two_col_grid([_parlay_card(p) for p in reduced_list]))
-    else:
-        cards.append(_section_header("100% Alt — Reduced Lines", "Not enough qualifying mid-tier players today"))
+    # ── Section E: 100% Alt — Reduced Lines ───────────────────────────────
+    _render_section(
+        "100% Alt — Reduced Lines",
+        "Lines ~22% below player's L5 avg · mid-tier players only",
+        "Not enough qualifying mid-tier players today",
+        "reduced",
+    )
 
     # ── Parlay record banner ───────────────────────────────────────────────
     try:
@@ -2179,7 +2205,7 @@ def _create_parlays_section(parlays: dict) -> "html.Div":
             ], style={"display": "flex", "alignItems": "center", "marginBottom": "4px"}),
             html.Div(
                 "Odds are model-estimated (4.76% vig). "
-                "Same player-prop in at most 2 parlays.",
+                "Each player appears at most once per parlay slip.",
                 style={"color": "#4b5563", "fontSize": "0.78rem"},
             ),
         ], style={"marginBottom": "16px"}),
@@ -2453,7 +2479,7 @@ def create_best_props_page():
                                 style={"width": "185px"},
                                 className="game-filter-dropdown"
                             ),
-                        ], style={"display": "flex" if game_matchups else "none", "alignItems": "center", "gap": "0"}),
+                        ], style={"display": "flex", "alignItems": "center", "gap": "0"}),
 
                         html.Div([
                             html.Span("Sort:", style={"color": "var(--text-muted)", "fontSize": "0.85rem", "marginRight": "8px", "whiteSpace": "nowrap"}),
@@ -3188,15 +3214,24 @@ def _build_odds_row(prop: dict, stat_color: str, avg: float, location_label: str
 
 @callback(
     [Output("props-data-store", "data", allow_duplicate=True),
-     Output("props-reload-interval", "disabled")],
+     Output("props-reload-interval", "disabled"),
+     Output("props-game-filter", "options")],
     Input("props-reload-interval", "n_intervals"),
     prevent_initial_call=True,
 )
 def refresh_props_store(n_intervals):
-    """Re-read props cache on interval tick; disable once data arrives."""
+    """Re-read props cache on interval tick; disable once data arrives.
+    Also refreshes the game filter dropdown options from the latest matchups.
+    """
     from utils.props_cache import get_cached_props
-    data = get_cached_props()["main_page_data"]
-    return data, bool(data)  # disable interval once cache is populated
+    cache = get_cached_props()
+    data = cache["main_page_data"]
+    # Build game filter options from actual game matchups in cache
+    matchups = cache.get("game_matchups", [])
+    game_options = [{"label": "All Games", "value": "all"}] + [
+        {"label": m, "value": m} for m in sorted(set(matchups))
+    ]
+    return data, bool(data), game_options
 
 
 @callback(
@@ -3282,11 +3317,17 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
 
     # Filter props based on game
     game_filtered = []
+    _gf_normalized = (game_filter or "").strip().upper()
     for prop in props_data:
-        if game_filter == "all" or not game_filter:
+        if _gf_normalized in ("", "ALL"):
             game_filtered.append(prop)
-        elif prop.get("game_matchup", "") == game_filter:
-            game_filtered.append(prop)
+        else:
+            _prop_matchup = prop.get("game_matchup", "").strip().upper()
+            # Match if the filter value equals the prop matchup (or either team abbr appears)
+            if _prop_matchup == _gf_normalized:
+                game_filtered.append(prop)
+            elif _gf_normalized in _prop_matchup or _prop_matchup in _gf_normalized:
+                game_filtered.append(prop)
 
     # Then filter by location
     filtered_props = []

@@ -4,18 +4,20 @@ parlay_builder.py
 Constructs recommended parlays from the model's best props and game predictions.
 
 Parlays produced each cache refresh:
-    1x  3-leg Moneyline parlay      (from game predictions — HIGH/MEDIUM confidence only)
-    2x 10-leg 100% Alt Line parlays  (longest streaks first)
-    5x  3-leg Props OVER parlays     (highest model probability)
-    3x  3-leg Props UNDER parlays    (highest model probability)
-    3x  3-leg Defense parlays        (BLK/STL alt lines only)
+    5x  3-leg Props OVER parlays     (highest hit-rate, mixed PTS/AST/REB)
+    5x  3-leg Points parlays         (PTS props only, sorted by hit-rate)
+    5x  3-leg Rebounds parlays       (REB props only, sorted by hit-rate)
+    5x  3-leg Assists parlays        (AST props only, sorted by hit-rate)
+    5x  3-leg Combo parlays          (PTS+REB, PTS+AST, PTS+AST+REB combos)
+    ≤5x Moneyline parlays            (2-leg if only 2 games, else 3-leg)
+    ≤3x Game Totals parlays          (uses live O/U lines; 1-2 legs OK on small slate)
+    3x  10-leg 100% Alt Lines        (longest streaks first)
+    5x  3-leg Reduced Lines          (~22% below L5 avg, mid-tier only)
 
 Diversity rule
 --------------
-Same (player, stat, direction) combo may appear in **at most 2 parlays** across
-the entire output. A player can appear in more than 2 parlays if different
-stat types or directions are used (e.g. LaMelo on PTS in 2 parlays, then
-on AST in 2 more parlays is fine).
+Within a single parlay slip: each player appears AT MOST ONCE.
+Across different parlay slips: players may repeat (stat-specific parlays need this).
 """
 
 from __future__ import annotations
@@ -970,29 +972,30 @@ def build_ml_trio(
 
     parlays: list[dict] = []
     n = len(candidates)
+    min_legs = 2  # allow 2-leg parlay when only 2 games qualify
     for i in range(n_parlays):
-        if n < 3:
+        if n < min_legs:
             break
-        if n >= n_parlays * 3:
+        target = min(3, n)   # prefer 3-leg; fall back to 2-leg on small slates
+        if n >= n_parlays * target:
             # Enough games for fully non-overlapping parlays
-            group = candidates[i * 3 : i * 3 + 3]
+            group = candidates[i * target : i * target + target]
         else:
-            # Smaller slate — allow overlapping via circular offset (step by 2)
+            # Smaller slate — allow overlapping via circular offset
             offset = (i * 2) % n
-            group = [candidates[(offset + j) % n] for j in range(3)]
-            # Deduplicate group in case circular wrap creates a repeat
-            seen = set()
-            unique = []
-            for leg in group:
-                key = leg["game"]
-                if key not in seen:
-                    seen.add(key)
-                    unique.append(leg)
-            group = unique
-        if len(group) < 3:
+            raw = [candidates[(offset + j) % n] for j in range(target)]
+            # Deduplicate in case circular wrap creates a repeat
+            seen: set = set()
+            group = []
+            for leg in raw:
+                if leg["game"] not in seen:
+                    seen.add(leg["game"])
+                    group.append(leg)
+        if len(group) < min_legs:
             break
+        legs_label = len(group)
         parlays.append({
-            "label": f"Moneyline Parlay #{i + 1}",
+            "label": f"{legs_label}-Leg Moneyline Parlay #{i + 1}",
             "type":  "ml",
             "legs":  group,
             "odds":  parlay_odds(group),
@@ -1065,52 +1068,252 @@ def build_total_parlays(
     n_parlays: int = 3,
     default_nba_total: float = 220.0,
 ) -> list[dict]:
-    """Build 3x 3-leg game total (Over/Under) parlays.
+    """Build game total (Over/Under) parlays from today's O/U lines.
 
-    Requires 'model_total' key in game_predictions.  Compares model's predicted
-    total against the actual O/U line (or 220 default if not available).
-    Only emits legs where the model disagrees by at least 3 points.
+    Uses live total lines from game_predictions['total_line'].
+    When model_total is available, picks Over/Under based on model vs line.
+    When model_total is None, applies a slight Over lean (NBA totals skew high).
+    Works with any slate size: 1 game → 1-leg, 2 games → 2-leg, 3+ → 3-leg.
     """
+    _NBA_OVER_LEAN = 3.0   # NBA totals go Over ~54% — model favours Over by default
+
     def _total_prob(diff: float) -> float:
         return min(0.70, max(0.52, 0.52 + abs(diff) / 20.0))
 
     candidates: list[dict] = []
     for g in game_predictions:
-        model_total = g.get("model_total")
-        if model_total is None:
-            continue
         home = g.get("home", "")
         away = g.get("away", "")
-        ou_line = g.get("total_line", default_nba_total)
+        ou_line = float(g.get("total_line") or g.get("default_total", default_nba_total))
+        model_total = g.get("model_total")
+
+        if model_total is None:
+            # No explicit model prediction — apply slight Over lean
+            model_total = ou_line + _NBA_OVER_LEAN
+
         diff = model_total - ou_line
-        if abs(diff) < 3.0:
+        # Only take a side when model disagrees by at least 1.5 pts (was 3.0)
+        if abs(diff) < 1.5:
             continue
 
         direction = "Over" if diff > 0 else "Under"
         prob = _total_prob(diff)
+        live_flag = "live" if g.get("total_line") else "est"
         candidates.append({
-            "player":    f"{away} @ {home}",
-            "stat":      "TOTAL",
-            "direction": direction,
-            "win_prob":  round(prob * 100, 1),
+            "player":     f"{away} @ {home}",
+            "stat":       "TOTAL",
+            "direction":  direction,
+            "win_prob":   round(prob * 100, 1),
             "model_odds": _prob_to_american(prob),
-            "label":     f"{direction} {ou_line} (model: {model_total:.0f})",
-            "game":      f"{away} @ {home}",
+            "label":      f"{direction} {ou_line} ({live_flag}·model: {model_total:.0f})",
+            "game":       f"{away} @ {home}",
         })
 
     candidates.sort(key=lambda x: -x["win_prob"])
 
+    if not candidates:
+        return []
+
+    # With small slates generate smaller parlays (1- or 2-leg) rather than nothing
+    n_games = len(candidates)
+    target_legs = min(3, n_games)   # prefer 3-leg; use what's available
+    min_legs    = 1                  # always emit at least 1-leg when data exists
+
     parlays: list[dict] = []
     for i in range(n_parlays):
-        group = candidates[i * 3 : i * 3 + 3]
-        if len(group) < 3:
+        if n_games >= n_parlays * target_legs:
+            group = candidates[i * target_legs : i * target_legs + target_legs]
+        else:
+            # Small slate — circular offset so each parlay uses best available
+            offset = (i * 1) % n_games
+            raw = [candidates[(offset + j) % n_games] for j in range(target_legs)]
+            seen: set = set()
+            group = []
+            for leg in raw:
+                if leg["game"] not in seen:
+                    seen.add(leg["game"])
+                    group.append(leg)
+
+        if len(group) < min_legs:
             break
+
+        legs_label = len(group)
         parlays.append({
-            "label": f"Game Totals Parlay #{i + 1}",
+            "label": f"{legs_label}-Leg Game Totals Parlay #{i + 1}",
             "type":  "totals",
             "legs":  group,
             "odds":  parlay_odds(group),
         })
+
+    return parlays
+
+
+# ── Stat-specific OVER parlays (PTS / REB / AST) ─────────────────────────────
+
+def build_stat_parlays(
+    props: list[dict],
+    stat_type: str,
+    n_parlays: int = 5,
+    n_legs: int = 3,
+) -> list[dict]:
+    """Build n_parlays 3-leg parlays using only ``stat_type`` props.
+
+    Sorted by hit_rate descending so the highest-confidence props lead.
+    No global diversity tracker: players CAN appear across different parlays.
+    Within each slip: each player appears AT MOST ONCE.
+    """
+    eligible = [
+        p for p in props
+        if (p.get("stat") or p.get("stat_type", "")) == stat_type
+        and p.get("direction", "").lower() == "over"
+        and (p.get("model_over_odds") or p.get("model_prob")) is not None
+    ]
+    # Highest hit_rate first, then model_prob as tiebreaker
+    eligible.sort(key=lambda x: (-x.get("hit_rate", 0), -x.get("model_prob", 0)))
+
+    parlays: list[dict] = []
+    emitted_sets: set[frozenset] = set()
+
+    for _idx in range(n_parlays):
+        legs: list[dict] = []
+        used_players: set[str] = set()
+
+        for prop in eligible:
+            if len(legs) >= n_legs:
+                break
+            player = prop["player"]
+            if player in used_players:
+                continue
+
+            prob      = prop.get("model_prob") or prop.get("hit_rate", 0.56)
+            model_odd = prop.get("model_over_odds") or _prob_to_american(prob)
+            legs.append({
+                "player":     player,
+                "team":       prop.get("team", ""),
+                "stat":       stat_type,
+                "direction":  "Over",
+                "line":       prop.get("line"),
+                "win_prob":   round(prob * 100, 1),
+                "model_odds": model_odd,
+                "hit_rate":   prop.get("hit_rate"),
+                "ev":         prop.get("ev"),
+                "label":      f"{player} Over {prop.get('line')} {stat_type}",
+                "game":       prop.get("game_matchup", ""),
+                "role":       prop.get("role", ""),
+            })
+            used_players.add(player)
+
+        if len(legs) < n_legs:
+            continue
+
+        leg_set = frozenset((l["player"], l["stat"]) for l in legs)
+        if leg_set in emitted_sets:
+            continue
+
+        # Minimum joint win probability
+        odds = parlay_odds(legs)
+        if odds["win_prob"] < 10.0:
+            continue
+
+        emitted_sets.add(leg_set)
+        # Rotate pool so next parlay picks different players
+        # Move all used players to the END of eligible list so next iteration
+        # naturally prefers the next tier of players.
+        used_names = {l["player"] for l in legs}
+        eligible = [p for p in eligible if p["player"] not in used_names] + \
+                   [p for p in eligible if p["player"] in used_names]
+
+        stat_label_map = {"PTS": "Points", "REB": "Rebounds", "AST": "Assists", "FG3M": "Threes"}
+        parlays.append({
+            "label": f"{stat_label_map.get(stat_type, stat_type)} Parlay #{len(parlays) + 1}",
+            "type":  f"{stat_type.lower()}_props",
+            "legs":  legs,
+            "odds":  odds,
+        })
+
+    return parlays
+
+
+# ── Combo stat parlays (PTS+REB, PTS+AST, PTS+AST+REB) ───────────────────────
+
+def build_combo_parlays(
+    props: list[dict],
+    n_parlays: int = 5,
+    n_legs: int = 3,
+) -> list[dict]:
+    """Build n_parlays 3-leg combo parlays using is_combo=True props.
+
+    Uses combo props (PTS+REB, PTS+AST, AST+REB, PTS+AST+REB).
+    Sorted by hit_rate descending. No player duplication within same slip.
+    No global tracker — players can appear across different combo parlays.
+    """
+    combos = [
+        p for p in props
+        if p.get("is_combo", False)
+        and p.get("direction", "").lower() == "over"
+    ]
+    combos.sort(key=lambda x: (-x.get("hit_rate", 0), -x.get("ev", 0)))
+
+    parlays: list[dict] = []
+    emitted_sets: set[frozenset] = set()
+
+    for _idx in range(n_parlays):
+        legs: list[dict] = []
+        used_players: set[str] = set()
+
+        for prop in combos:
+            if len(legs) >= n_legs:
+                break
+            player = prop["player"]
+            if player in used_players:
+                continue
+
+            stat      = prop.get("stat", prop.get("stat_label", "Combo"))
+            stat_disp = prop.get("stat_label", stat)
+            prob      = prop.get("hit_rate", 0.60)
+            model_odd = prop.get("model_over_odds") or _prob_to_american(prob)
+
+            legs.append({
+                "player":     player,
+                "team":       prop.get("team", ""),
+                "stat":       stat,
+                "stat_label": stat_disp,
+                "direction":  "Over",
+                "line":       prop.get("line"),
+                "win_prob":   round(prob * 100, 1),
+                "model_odds": model_odd,
+                "hit_rate":   prop.get("hit_rate"),
+                "ev":         prop.get("ev"),
+                "label":      f"{player} Over {prop.get('line')} {stat_disp}",
+                "game":       prop.get("game_matchup", ""),
+                "role":       prop.get("role", ""),
+            })
+            used_players.add(player)
+
+        if len(legs) < n_legs:
+            continue
+
+        leg_set = frozenset((l["player"], l["stat"]) for l in legs)
+        if leg_set in emitted_sets:
+            continue
+
+        odds = parlay_odds(legs)
+        if odds["win_prob"] < 8.0:
+            continue
+
+        emitted_sets.add(leg_set)
+        # Rotate pool to get different players in next parlay
+        used_names = {l["player"] for l in legs}
+        combos = [p for p in combos if p["player"] not in used_names] + \
+                 [p for p in combos if p["player"] in used_names]
+
+        parlays.append({
+            "label": f"Combo Parlay #{len(parlays) + 1}",
+            "type":  "combo",
+            "legs":  legs,
+            "odds":  odds,
+        })
+
     return parlays
 
 
@@ -1133,16 +1336,25 @@ def build_all_parlays(
     """
     tracker = _DiversityTracker(max_uses=1)
 
-    # Exactly 5 OVER parlays (3-leg each)
+    # 5 general OVER parlays (3-leg each, mixed PTS/AST/REB)
     main_overs = build_over_parlays(props, tracker, n_parlays=5, n_legs=3)
 
-    # Up to 5 Moneyline parlays — fewer when slate is small
+    # 5 stat-specific OVER parlays for PTS, REB, AST (sorted by hit_rate)
+    # Each set uses its own rotation — players may appear across sets
+    pts_parlays   = build_stat_parlays(props, "PTS",  n_parlays=5, n_legs=3)
+    reb_parlays   = build_stat_parlays(props, "REB",  n_parlays=5, n_legs=3)
+    ast_parlays   = build_stat_parlays(props, "AST",  n_parlays=5, n_legs=3)
+
+    # 5 combo stat parlays (PTS+REB, PTS+AST, PTS+AST+REB, etc.)
+    combo_parlays = build_combo_parlays(props, n_parlays=5, n_legs=3)
+
+    # Up to 5 Moneyline parlays — 2-leg OK when only 2 games qualify
     ml_parlays = build_ml_trio(game_predictions, tracker, n_parlays=5)
 
-    # Exactly 1 Game Totals parlay
-    total_parlays = build_total_parlays(game_predictions, tracker, n_parlays=1)
+    # Game Totals parlays — 1-2 legs on small slates, up to 3x
+    total_parlays = build_total_parlays(game_predictions, tracker, n_parlays=3)
 
-    # Exactly 3 Alt Lines parlays (100% hit-rate streaks, 10-leg)
+    # 3 Alt Lines parlays (100% hit-rate streaks, 10-leg)
     alt_parlays = build_alt_parlays(alt_lines, tracker, n_parlays=3, n_legs=10)
 
     # 5 safe-over (reduced-avg) parlays
@@ -1150,6 +1362,10 @@ def build_all_parlays(
 
     total = (
         len(main_overs)
+        + len(pts_parlays)
+        + len(reb_parlays)
+        + len(ast_parlays)
+        + len(combo_parlays)
         + len(ml_parlays)
         + len(total_parlays)
         + len(alt_parlays)
@@ -1157,13 +1373,17 @@ def build_all_parlays(
     )
 
     return {
-        "over":        main_overs,      # 5x target
-        "ml":          ml_parlays,      # ≤5x (depends on slate size)
-        "spread":      [],              # removed
-        "totals":      total_parlays,   # 1x
-        "alt_over":    alt_parlays,     # 3x (100% alt lines)
-        "reduced":     reduced_parlays, # 5x
-        # Kept for backward compat (grading history)
+        "over":        main_overs,      # 5x  general over (mixed stats)
+        "pts":         pts_parlays,     # 5x  Points only
+        "reb":         reb_parlays,     # 5x  Rebounds only
+        "ast":         ast_parlays,     # 5x  Assists only
+        "combo":       combo_parlays,   # 5x  Combo stats
+        "ml":          ml_parlays,      # ≤5x (2-leg OK on small slate)
+        "totals":      total_parlays,   # ≤3x (1-2 legs OK on small slate)
+        "alt_over":    alt_parlays,     # 3x  100% alt lines
+        "reduced":     reduced_parlays, # 5x  reduced lines
+        # Backward compat
+        "spread":      [],
         "alt":         alt_parlays,
         "under":       [],
         "defense":     [],
