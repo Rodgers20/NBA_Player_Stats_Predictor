@@ -226,16 +226,27 @@ def _fetch_nba_api_games(from_date: str) -> pd.DataFrame:
         date_from_str = from_dt.strftime("%m/%d/%Y")   # NBA API format: MM/DD/YYYY
 
         print(f"[DataUpdater] Fetching NBA Stats API games from {date_from_str} ...")
-        lg = LeagueGameLog(
-            season="2025-26",
-            player_or_team_abbreviation="P",   # player-level stats
-            date_from_nullable=date_from_str,
-            timeout=30,
-        )
-        df = lg.get_data_frames()[0]
-        if df.empty:
+        frames = []
+        for season_type in ("Regular Season", "Playoffs", "PlayIn"):
+            try:
+                lg = LeagueGameLog(
+                    season="2025-26",
+                    player_or_team_abbreviation="P",
+                    season_type_all_star=season_type,
+                    date_from_nullable=date_from_str,
+                    timeout=30,
+                )
+                f = lg.get_data_frames()[0]
+                if not f.empty:
+                    frames.append(f)
+            except Exception as _st_err:
+                print(f"[DataUpdater] LeagueGameLog({season_type}) failed: {_st_err}")
+        if not frames:
             print("[DataUpdater] NBA Stats API returned no games")
             return pd.DataFrame()
+        df = pd.concat(frames, ignore_index=True).drop_duplicates(
+            subset=["PLAYER_NAME", "GAME_DATE", "MATCHUP"], keep="last"
+        )
 
         # Rename columns to match pipeline schema
         rename_map = {
@@ -269,6 +280,16 @@ def _fetch_nba_api_games(from_date: str) -> pd.DataFrame:
             except Exception:
                 return d
         df["GAME_DATE"] = df["GAME_DATE"].apply(_reformat_date)
+
+        # Assign SEASON so props_cache season filters include these games
+        def _to_season(d):
+            try:
+                dt = _dt.strptime(str(d), "%b %d, %Y")
+                year = dt.year if dt.month >= 10 else dt.year - 1
+                return f"{year}-{str(year + 1)[-2:]}"
+            except Exception:
+                return "2025-26"
+        df["SEASON"] = df["GAME_DATE"].apply(_to_season)
 
         print(f"[DataUpdater] NBA Stats API: {len(df)} player-game rows fetched")
         return df

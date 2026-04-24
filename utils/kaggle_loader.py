@@ -239,8 +239,8 @@ def load_player_game_logs(num_seasons: int = 3) -> pd.DataFrame:
 
     df = pd.read_csv(csv_path, low_memory=False)
 
-    # Filter to Regular Season NBA games only
-    df = df[df["gameType"] == "Regular Season"]
+    # Include Regular Season and Playoffs (so playoff game logs appear in charts)
+    df = df[df["gameType"].isin(["Regular Season", "Playoffs", "Play-in Tournament"])]
 
     # Parse dates and filter to recent seasons
     df["_dt"] = pd.to_datetime(df["gameDateTimeEst"])
