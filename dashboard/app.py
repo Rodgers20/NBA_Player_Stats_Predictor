@@ -101,6 +101,20 @@ def load_data():
             # Ensure _date column exists
             if "_date" not in df.columns:
                 df["_date"] = pd.to_datetime(df["GAME_DATE"], format="%b %d, %Y", errors="coerce")
+            # Fill missing SEASON values so props_cache season filters work on
+            # games that were fetched via the NBA API gap-fill before the SEASON
+            # column was added to _fetch_nba_api_games.
+            if "SEASON" not in df.columns or df["SEASON"].isna().any():
+                def _dt_to_season(dt):
+                    if pd.isna(dt):
+                        return None
+                    year = dt.year if dt.month >= 10 else dt.year - 1
+                    return f"{year}-{str(year + 1)[-2:]}"
+                if "SEASON" not in df.columns:
+                    df["SEASON"] = df["_date"].apply(_dt_to_season)
+                else:
+                    missing = df["SEASON"].isna()
+                    df.loc[missing, "SEASON"] = df.loc[missing, "_date"].apply(_dt_to_season)
             print(f"  Loaded {len(df)} records from Parquet (fast path)")
             return df, team_def, positions_df, def_vs_pos
         except Exception as e:
@@ -265,6 +279,16 @@ def merge_new_games(new_games_df):
                     subset=["PLAYER_NAME", "GAME_DATE", "MATCHUP"],
                     keep="last"
                 ).sort_values(["PLAYER_NAME", "_date"])
+
+                # Ensure every row has a SEASON value (gap-fill rows may lack it)
+                if "SEASON" in DF.columns and DF["SEASON"].isna().any():
+                    def _dt_to_season_merge(dt):
+                        if pd.isna(dt):
+                            return None
+                        year = dt.year if dt.month >= 10 else dt.year - 1
+                        return f"{year}-{str(year + 1)[-2:]}"
+                    missing = DF["SEASON"].isna()
+                    DF.loc[missing, "SEASON"] = DF.loc[missing, "_date"].apply(_dt_to_season_merge)
 
                 print(f"[App] Global DF updated: now has {len(DF)} records")
 
