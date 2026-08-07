@@ -26,6 +26,8 @@ dist/
 # OS files
 .DS_Store
 Thumbs.db
+# macOS AppleDouble sidecars (created on non-APFS filesystems like ExFAT)
+._*
 
 # Environment variables
 .env

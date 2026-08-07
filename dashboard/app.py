@@ -65,7 +65,14 @@ from utils.injury_news import get_player_injury_status, get_team_injuries
 from utils.prop_calculator import generate_best_props, calculate_hit_probability
 from utils.data_fetch import get_todays_games, get_teams_playing_today, get_next_opponent_for_team
 from utils.prop_scorer import calculate_smart_prop_score, detect_player_role
-from models.predictor import NBAPredictor
+from models.predictor import StatPredictor
+from utils.league_config import get_config
+
+# League defaults to NBA. Phase 1 Step 5 introduces per-league routing.
+_ACTIVE_LEAGUE = "nba"
+_LEAGUE_CFG = get_config(_ACTIVE_LEAGUE)
+_DATA_DIR = str(_LEAGUE_CFG.data_dir)
+_MODELS_DIR = str(_LEAGUE_CFG.models_dir)
 
 # =============================================================================
 # DATA LOADING (Optimized with Parquet caching)
@@ -80,7 +87,7 @@ def load_data():
     2. Fall back to CSV + feature engineering (~30 seconds)
     3. Save Parquet for next startup
     """
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+    data_dir = _DATA_DIR
     parquet_path = os.path.join(data_dir, "engineered_data.parquet")
 
     # Load supporting data (small files, always needed)
@@ -165,12 +172,11 @@ def get_predictor(stat: str):
         if stat in _models_cache:
             return _models_cache[stat]
 
-        models_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
-        filepath = os.path.join(models_dir, f"{stat.lower()}_predictor.pkl")
+        filepath = os.path.join(_MODELS_DIR, f"{stat.lower()}_predictor.pkl")
 
         if os.path.exists(filepath):
             print(f"Loading {stat} predictor (lazy load)...")
-            _models_cache[stat] = NBAPredictor.load(filepath)
+            _models_cache[stat] = StatPredictor.load(filepath)
             return _models_cache[stat]
 
         return None
@@ -186,7 +192,7 @@ print("Loading data...")
 DF, TEAM_DEF, PLAYER_POSITIONS, DEFENSE_VS_POS = load_data()
 
 # Offensive team stats (team_stats.csv) — used by matchup card Team Rankings
-_team_off_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "team_stats.csv")
+_team_off_path = os.path.join(_DATA_DIR, "team_stats.csv")
 TEAM_OFF = pd.read_csv(_team_off_path) if os.path.exists(_team_off_path) else pd.DataFrame()
 if not TEAM_OFF.empty and "SEASON" in TEAM_OFF.columns:
     TEAM_OFF = TEAM_OFF[TEAM_OFF["SEASON"] == CURRENT_SEASON]
@@ -236,6 +242,129 @@ print("Game predictor initialized.")
 
 
 # =============================================================================
+# WNBA DATA (Phase 1)
+# =============================================================================
+
+_WNBA_DATA_DIR = str(get_config("wnba").data_dir)
+_WNBA_MODELS_DIR = str(get_config("wnba").models_dir)
+
+
+def _load_wnba_data():
+    """Load WNBA parquet (built by scripts/setup_wnba_data.py)."""
+    parquet_path = os.path.join(_WNBA_DATA_DIR, "engineered_data.parquet")
+    if not os.path.exists(parquet_path):
+        print(f"[WNBA] parquet not found at {parquet_path} — WNBA page will show empty state")
+        return pd.DataFrame()
+    df = pd.read_parquet(parquet_path)
+    if "_date" not in df.columns and "GAME_DATE" in df.columns:
+        df["_date"] = pd.to_datetime(df["GAME_DATE"], format="%b %d, %Y", errors="coerce")
+    return df
+
+
+WNBA_DF = _load_wnba_data()
+WNBA_PLAYERS = sorted(WNBA_DF["PLAYER_NAME"].unique().tolist()) if not WNBA_DF.empty else []
+print(f"WNBA loaded: {len(WNBA_DF)} rows, {len(WNBA_PLAYERS)} players")
+
+_wnba_models_cache: dict = {}
+
+
+def get_wnba_predictor(stat: str):
+    """Lazy-load WNBA stat predictor."""
+    stat = stat.upper()
+    if stat in _wnba_models_cache:
+        return _wnba_models_cache[stat]
+    filepath = os.path.join(_WNBA_MODELS_DIR, f"{stat.lower()}_predictor.pkl")
+    if os.path.exists(filepath):
+        _wnba_models_cache[stat] = StatPredictor.load(filepath)
+        return _wnba_models_cache[stat]
+    return None
+
+
+# WNBA supporting data for games page (loaded lazily on first request)
+_WNBA_TEAM_DEF: "pd.DataFrame | None" = None
+_WNBA_GAME_PREDICTOR = None
+_WNBA_DEF_VS_POS: "pd.DataFrame | None" = None
+_WNBA_POSITIONS: "pd.DataFrame | None" = None
+
+
+def _get_wnba_game_predictor():
+    """Build a WNBA GamePredictor on first call, cache it."""
+    global _WNBA_TEAM_DEF, _WNBA_GAME_PREDICTOR
+    if _WNBA_GAME_PREDICTOR is not None:
+        return _WNBA_GAME_PREDICTOR
+    if WNBA_DF.empty:
+        return None
+    td_path = os.path.join(_WNBA_DATA_DIR, "team_defensive_stats.csv")
+    if not os.path.exists(td_path):
+        print(f"[WNBA] team_defensive_stats.csv missing — game predictor unavailable")
+        return None
+    _WNBA_TEAM_DEF = pd.read_csv(td_path)
+    _WNBA_GAME_PREDICTOR = _GamePredictor(team_def_df=_WNBA_TEAM_DEF, player_logs_df=WNBA_DF)
+    return _WNBA_GAME_PREDICTOR
+
+
+# WNBA props cache (props are re-fetched on request; cheap since utils/wnba_odds_fetcher has 15-min TTL)
+_wnba_props_cache: "list | None" = None
+_wnba_props_cache_ts: float = 0.0
+_WNBA_PROPS_TTL = 5 * 60
+
+
+def get_wnba_props(force: bool = False):
+    """Return list of WnbaProp objects, refreshing at most every 5 min."""
+    global _wnba_props_cache, _wnba_props_cache_ts, _WNBA_TEAM_DEF, _WNBA_DEF_VS_POS
+    import time
+    if not force and _wnba_props_cache is not None and (time.time() - _wnba_props_cache_ts) < _WNBA_PROPS_TTL:
+        return _wnba_props_cache
+    if WNBA_DF.empty:
+        return []
+    try:
+        from utils.wnba_odds_fetcher import get_live_wnba_odds
+        from utils.wnba_props import generate_wnba_props
+        from utils.wnba_data_fetch import get_todays_wnba_games
+
+        odds = get_live_wnba_odds()
+
+        # Load reference tables so we can build tonight-context feature rows
+        if _WNBA_TEAM_DEF is None:
+            _WNBA_TEAM_DEF = pd.read_csv(os.path.join(_WNBA_DATA_DIR, "team_defensive_stats.csv"))
+        if _WNBA_DEF_VS_POS is None:
+            _WNBA_DEF_VS_POS = pd.read_csv(os.path.join(_WNBA_DATA_DIR, "defense_vs_position.csv"))
+        team_stats_path = os.path.join(_WNBA_DATA_DIR, "team_stats.csv")
+        team_stats_df = pd.read_csv(team_stats_path) if os.path.exists(team_stats_path) else None
+        try:
+            games = get_todays_wnba_games()
+        except Exception:
+            games = []
+
+        props = generate_wnba_props(
+            WNBA_DF, get_wnba_predictor, odds,
+            todays_games=games,
+            team_def=_WNBA_TEAM_DEF,
+            def_vs_pos=_WNBA_DEF_VS_POS,
+            team_stats=team_stats_df,
+        )
+        _wnba_props_cache = props
+        _wnba_props_cache_ts = time.time()
+        return props
+    except Exception as e:
+        print(f"[WNBA-Props] generation failed: {e}")
+        return _wnba_props_cache or []
+
+
+def get_wnba_parlays():
+    """Build parlays from current props (cached alongside props)."""
+    from utils.wnba_parlays import build_wnba_parlays
+    props = get_wnba_props()
+    if not props:
+        return []
+    try:
+        return build_wnba_parlays(props)
+    except Exception as e:
+        print(f"[WNBA-Parlays] build failed: {e}")
+        return []
+
+
+# =============================================================================
 # BACKGROUND DATA UPDATER
 # =============================================================================
 
@@ -257,8 +386,7 @@ def merge_new_games(new_games_df):
     with _data_lock:
         try:
             # Reload PLAYER_POSITIONS (in case of trades)
-            data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-            positions_path = os.path.join(data_dir, "player_positions.csv")
+            positions_path = os.path.join(_DATA_DIR, "player_positions.csv")
             if os.path.exists(positions_path):
                 PLAYER_POSITIONS = pd.read_csv(positions_path)
                 print(f"[App] Roster updated: {len(PLAYER_POSITIONS)} players")
@@ -294,8 +422,7 @@ def merge_new_games(new_games_df):
 
                 # Update Parquet cache for faster next startup
                 try:
-                    data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-                    parquet_path = os.path.join(data_dir, "engineered_data.parquet")
+                    parquet_path = os.path.join(_DATA_DIR, "engineered_data.parquet")
                     df_to_save = DF.copy()
                     # Coerce numeric columns that arrive as strings from live API
                     for col in ["MIN", "PTS", "REB", "AST", "FG3M", "FGM", "FGA", "FG3A", "FTM", "FTA"]:
@@ -476,6 +603,24 @@ try:
             refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predictor_fn=get_predictor)
         except Exception as e:
             print(f"[App] Props cache warm failed (will retry in 30 min): {e}")
+
+        # 3. WNBA daily prediction snapshot + grade past dates + refresh calibration
+        try:
+            from utils.wnba_prediction_tracker import (
+                record_predictions, grade_pending, compute_calibration_offsets,
+            )
+            wnba_props = get_wnba_props()
+            recorded = record_predictions(wnba_props)
+            if recorded:
+                print(f"[App] WNBA predictions recorded: {recorded}")
+            graded = grade_pending(WNBA_DF)
+            if graded:
+                print(f"[App] WNBA past predictions graded: {graded}")
+            offsets = compute_calibration_offsets()
+            if offsets:
+                print(f"[App] WNBA calibration offsets: {offsets}")
+        except Exception as e:
+            print(f"[App] WNBA tracker warm failed: {e}")
 
     _warmup_thread = _threading.Thread(target=_warmup_caches, daemon=True, name="startup-warmup")
     _warmup_thread.start()
@@ -700,15 +845,21 @@ app.layout = html.Div([
 
     # Navigation header
     html.Div([
-        # Logo/Title
-        html.Div("NBA Props AI", className="nav-brand"),
-        
-        # Navigation links
+        # Logo/Title (updated by callback based on active league)
+        html.Div("NBA Props AI", className="nav-brand", id="nav-brand"),
+
+        # Navigation links (hrefs updated by callback based on active league)
         html.Div([
-            dcc.Link("Player Analysis", href="/", className="nav-link", id="nav-player"),
-            dcc.Link("Today's Games", href="/games", className="nav-link", id="nav-games"),
-            dcc.Link("Best Props", href="/props", className="nav-link", id="nav-props"),
-        ], className="nav-links")
+            dcc.Link("Player Analysis", href="/nba/", className="nav-link", id="nav-player"),
+            dcc.Link("Today's Games", href="/nba/games", className="nav-link", id="nav-games"),
+            dcc.Link("Best Props", href="/nba/props", className="nav-link", id="nav-props"),
+        ], className="nav-links"),
+
+        # League toggle
+        html.Div([
+            dcc.Link("NBA", href="/nba/", className="league-pill active", id="league-toggle-nba"),
+            dcc.Link("WNBA", href="/wnba/", className="league-pill", id="league-toggle-wnba"),
+        ], className="league-toggle"),
     ], className="nav-header"),
 
     # Page content container
@@ -2561,20 +2712,660 @@ def create_best_props_page():
     [Output("page-content", "children"),
      Output("nav-player", "className"),
      Output("nav-games", "className"),
-     Output("nav-props", "className")],
+     Output("nav-props", "className"),
+     Output("nav-player", "href"),
+     Output("nav-games", "href"),
+     Output("nav-props", "href"),
+     Output("nav-brand", "children"),
+     Output("league-toggle-nba", "className"),
+     Output("league-toggle-wnba", "className")],
     Input("url", "pathname")
 )
 def display_page(pathname):
-    """Route to the correct page based on URL"""
+    """Route to the correct page based on URL. Supports /nba/* and /wnba/*."""
     active = "nav-link active"
     inactive = "nav-link"
+    league_active = "league-pill active"
+    league_inactive = "league-pill"
 
-    if pathname == "/games":
-        return create_todays_games_page(), inactive, active, inactive
-    elif pathname == "/props":
-        return create_best_props_page(), inactive, inactive, active
+    path = (pathname or "/").rstrip("/") or "/"
+
+    # WNBA routes
+    if path.startswith("/wnba"):
+        wnba_hrefs = ("/wnba/", "/wnba/games", "/wnba/props")
+        brand = get_config("wnba").brand
+        if path == "/wnba/games":
+            return (create_wnba_games_page(),
+                    inactive, active, inactive,
+                    *wnba_hrefs, brand,
+                    league_inactive, league_active)
+        if path == "/wnba/props":
+            return (create_wnba_props_page(),
+                    inactive, inactive, active,
+                    *wnba_hrefs, brand,
+                    league_inactive, league_active)
+        return (create_wnba_player_analysis_page(),
+                active, inactive, inactive,
+                *wnba_hrefs, brand,
+                league_inactive, league_active)
+
+    # NBA routes (default). Accept legacy /games and /props too.
+    nba_hrefs = ("/nba/", "/nba/games", "/nba/props")
+    brand = get_config("nba").brand
+    if path in ("/games", "/nba/games"):
+        return (create_todays_games_page(),
+                inactive, active, inactive,
+                *nba_hrefs, brand,
+                league_active, league_inactive)
+    if path in ("/props", "/nba/props"):
+        return (create_best_props_page(),
+                inactive, inactive, active,
+                *nba_hrefs, brand,
+                league_active, league_inactive)
+    return (create_player_analysis_page(),
+            active, inactive, inactive,
+            *nba_hrefs, brand,
+            league_active, league_inactive)
+
+
+# =============================================================================
+# WNBA PLAYER ANALYSIS CALLBACKS
+# =============================================================================
+
+
+@callback(
+    [Output("wnba-selected-stat", "data"),
+     Output({"type": "wnba-stat-pill", "stat": ALL}, "className")],
+    Input({"type": "wnba-stat-pill", "stat": ALL}, "n_clicks"),
+    State({"type": "wnba-stat-pill", "stat": ALL}, "id"),
+    prevent_initial_call=True,
+)
+def _wnba_select_stat(_clicks, ids):
+    from dash import ctx
+    from dash.exceptions import PreventUpdate
+    triggered = ctx.triggered_id
+    if not triggered:
+        raise PreventUpdate
+    selected = triggered["stat"]
+    classes = ["wnba-pill" + (" active" if i["stat"] == selected else "") for i in (ids or [])]
+    return selected, classes
+
+
+@callback(
+    [Output("wnba-selected-period", "data"),
+     Output({"type": "wnba-period-pill", "period": ALL}, "className")],
+    Input({"type": "wnba-period-pill", "period": ALL}, "n_clicks"),
+    State({"type": "wnba-period-pill", "period": ALL}, "id"),
+    prevent_initial_call=True,
+)
+def _wnba_select_period(_clicks, ids):
+    from dash import ctx
+    from dash.exceptions import PreventUpdate
+    triggered = ctx.triggered_id
+    if not triggered:
+        raise PreventUpdate
+    selected = triggered["period"]
+    classes = ["wnba-pill" + (" active" if i["period"] == selected else "") for i in (ids or [])]
+    return selected, classes
+
+
+def _wnba_player_slice(player_df: pd.DataFrame, period: str) -> pd.DataFrame:
+    """Return the subset of player games for a chosen period."""
+    df = player_df.sort_values("_date", ascending=False)
+    if period == "L5":
+        return df.head(5)
+    if period == "L10":
+        return df.head(10)
+    if period == "L20":
+        return df.head(20)
+    if period == "H/A":
+        # Home games (MATCHUP contains "vs.")
+        return df[df["MATCHUP"].str.contains(" vs.", na=False)]
+    if period in ("2025", "2026"):
+        return df[df["SEASON"].astype(str) == period]
+    return df
+
+
+def _wnba_stat_value(row, stat: str) -> float:
+    """Compute stat value, incl. combos (not used in Phase 2, kept simple)."""
+    return float(row.get(stat, 0) or 0)
+
+
+@callback(
+    [Output("wnba-player-header", "children"),
+     Output("wnba-hitrate-block", "children"),
+     Output("wnba-threshold-block", "children"),
+     Output("wnba-perf-chart", "children"),
+     Output("wnba-player-prediction", "children"),
+     Output("wnba-player-injury", "children"),
+     Output("wnba-player-matchup", "children"),
+     Output("wnba-player-recent", "children")],
+    [Input("wnba-player-dropdown", "value"),
+     Input("wnba-selected-stat", "data"),
+     Input("wnba-selected-period", "data")],
+)
+def _wnba_render_player(player_name, stat, period):
+    """Render the full WNBA player analysis panel (NBA-style)."""
+    stat = (stat or "PTS").upper()
+    period = period or "L10"
+
+    if not player_name or WNBA_DF.empty:
+        empty = html.Div("Select a player.", style={"color": "#6b7280"})
+        return empty, "", "", "", "", "", "", ""
+
+    pdf = WNBA_DF[WNBA_DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+    if pdf.empty:
+        empty = html.Div("No data.", style={"color": "#6b7280"})
+        return empty, "", "", "", "", "", "", ""
+
+    last = pdf.iloc[0]
+    team = last.get("TEAM_ABBREVIATION", "—")
+
+    # Season averages (current season)
+    curr = str(last.get("SEASON", ""))
+    season_df = pdf[pdf["SEASON"].astype(str) == curr] if curr else pdf
+    ppg = season_df["PTS"].mean() if not season_df.empty else 0
+    apg = season_df["AST"].mean() if not season_df.empty else 0
+    rpg = season_df["REB"].mean() if not season_df.empty else 0
+    fg_pct = season_df["FG_PCT"].mean() * 100 if not season_df.empty and "FG_PCT" in season_df.columns else 0
+
+    # Header: headshot + name + team + season averages
+    player_id = last.get("Player_ID") or last.get("PLAYER_ID")
+    headshot_url = ""
+    if player_id is not None and not pd.isna(player_id):
+        wnba_cfg = get_config("wnba")
+        headshot_url = wnba_cfg.headshot_cdn_template.format(player_id=int(player_id))
+
+    header = html.Div(
+        [
+            html.Img(src=headshot_url, className="wnba-headshot", alt=player_name) if headshot_url else html.Div(),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Span(player_name, style={"fontSize": "26px", "color": "#e5e7eb", "fontWeight": "700"}),
+                            html.Span(team, className="wnba-team-badge"),
+                        ],
+                        style={"display": "flex", "alignItems": "center", "gap": "12px"},
+                    ),
+                    html.Div(
+                        [
+                            html.Span([html.Strong(f"{ppg:.1f}", style={"color": "#14b8a6"}), html.Span(" PTS", style={"color": "#9ca3af"})], style={"marginRight": "16px"}),
+                            html.Span([html.Strong(f"{apg:.1f}", style={"color": "#a78bfa"}), html.Span(" AST", style={"color": "#9ca3af"})], style={"marginRight": "16px"}),
+                            html.Span([html.Strong(f"{rpg:.1f}", style={"color": "#f59e0b"}), html.Span(" REB", style={"color": "#9ca3af"})], style={"marginRight": "16px"}),
+                            html.Span([html.Strong(f"{fg_pct:.1f}%", style={"color": "#e5e7eb"}), html.Span(" FG", style={"color": "#9ca3af"})]),
+                        ],
+                        style={"marginTop": "8px", "fontSize": "14px"},
+                    ),
+                ]
+            ),
+        ],
+        style={"display": "flex", "alignItems": "center", "gap": "16px"},
+    )
+
+    # Compute default threshold from L10 average (handles combos via sum)
+    l10 = pdf.head(10)
+    l10_series = _wnba_stat_series(l10, stat)
+    default_threshold = max(1, round(l10_series.mean())) if not l10_series.empty else 1
+
+    # Threshold slider — max is the player's highest single-game value on this stat
+    full_series = _wnba_stat_series(pdf, stat)
+    max_val = int(full_series.max()) if not full_series.empty else 50
+    max_val = max(max_val, 10)
+    threshold_block = html.Div(
+        [
+            html.Div(
+                [
+                    html.Span("Threshold: ", style={"color": "#9ca3af", "marginRight": "12px"}),
+                    dcc.Slider(
+                        id="wnba-threshold-slider",
+                        min=0, max=max_val, step=0.5, value=default_threshold,
+                        marks={i: str(i) for i in range(0, max_val + 1, max(1, max_val // 5))},
+                        tooltip={"placement": "bottom", "always_visible": False},
+                    ),
+                ],
+                style={"padding": "8px 0"},
+            ),
+        ]
+    )
+
+    # Hit rate summary (multi-period)
+    hitrate_block = _wnba_hitrate_summary(pdf, stat, default_threshold, player_name)
+
+    # Bar chart: performance in selected period vs threshold
+    chart = _wnba_perf_bar_chart(pdf, stat, period, default_threshold)
+
+    # Prediction card
+    prediction = _wnba_prediction_card(pdf)
+
+    # Injury context
+    injury = _wnba_injury_card(player_name)
+
+    # Matchup card (opponent defense vs player's position)
+    matchup = _wnba_matchup_card(pdf)
+
+    # Recent games table
+    recent = _wnba_recent_games_table(pdf)
+
+    return header, hitrate_block, threshold_block, chart, prediction, injury, matchup, recent
+
+
+@callback(
+    [Output("wnba-hitrate-block", "children", allow_duplicate=True),
+     Output("wnba-perf-chart", "children", allow_duplicate=True)],
+    [Input("wnba-threshold-slider", "value"),
+     Input("wnba-player-dropdown", "value"),
+     Input("wnba-selected-stat", "data"),
+     Input("wnba-selected-period", "data")],
+    prevent_initial_call=True,
+)
+def _wnba_update_threshold(threshold, player_name, stat, period):
+    stat = (stat or "PTS").upper()
+    period = period or "L10"
+    if not player_name or WNBA_DF.empty or threshold is None:
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    pdf = WNBA_DF[WNBA_DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+    if pdf.empty:
+        from dash.exceptions import PreventUpdate
+        raise PreventUpdate
+    return _wnba_hitrate_summary(pdf, stat, threshold, player_name), _wnba_perf_bar_chart(pdf, stat, period, threshold)
+
+
+def _wnba_hitrate_summary(pdf: pd.DataFrame, stat: str, threshold: float, player_name: str) -> html.Div:
+    """Multi-period hit rate display: Last N, L5, L20, 2025, 2024.
+
+    Uses summed component columns for combo stats (P+R / P+A / PRA).
+    """
+    components = _WNBA_STAT_COMPONENTS.get(stat, [stat])
+    if any(c not in pdf.columns for c in components):
+        return html.Div(f"No data for {stat}", style={"color": "#6b7280"})
+
+    def _hit_rate(slice_df: pd.DataFrame) -> tuple[float, int, int]:
+        if slice_df.empty:
+            return 0.0, 0, 0
+        values = _wnba_stat_series(slice_df, stat)
+        hits = int((values >= threshold).sum())
+        return (hits / len(slice_df) * 100), hits, len(slice_df)
+
+    l10_pct, l10_hits, l10_n = _hit_rate(pdf.head(10))
+    l5_pct, _, _ = _hit_rate(pdf.head(5))
+    l20_pct, _, _ = _hit_rate(pdf.head(20))
+    s2026_pct, _, _ = _hit_rate(pdf[pdf["SEASON"].astype(str) == "2026"])
+    s2025_pct, _, _ = _hit_rate(pdf[pdf["SEASON"].astype(str) == "2025"])
+
+    def _pct_color(p):
+        if p >= 65: return "#22c55e"
+        if p >= 50: return "#f59e0b"
+        return "#ef4444"
+
+    def _sec(label, pct):
+        return html.Div(
+            [
+                html.Div(label, style={"color": "#9ca3af", "fontSize": "11px", "textTransform": "uppercase", "letterSpacing": "0.05em"}),
+                html.Div(f"{pct:.0f}%", style={"color": _pct_color(pct), "fontSize": "20px", "fontWeight": "700"}),
+            ],
+            style={"textAlign": "center", "padding": "4px 12px"},
+        )
+
+    color = _WNBA_STAT_COLORS.get(stat, "#14b8a6")
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.Span("% ", style={"color": color, "fontWeight": "700"}),
+                    html.Span(f"{player_name} — {stat}", style={"color": "#e5e7eb", "fontWeight": "600"}),
+                ],
+                style={"fontSize": "14px", "marginBottom": "12px"},
+            ),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Div("Last 10", style={"color": "#9ca3af", "fontSize": "11px", "textTransform": "uppercase"}),
+                            html.Div(
+                                [
+                                    html.Span(f"{l10_pct:.0f}%", style={"color": _pct_color(l10_pct), "fontSize": "32px", "fontWeight": "800"}),
+                                    html.Span(f"  {l10_hits} of {l10_n}", style={"color": "#9ca3af", "fontSize": "13px", "marginLeft": "8px"}),
+                                ],
+                            ),
+                        ],
+                        style={"marginRight": "24px"},
+                    ),
+                    _sec("L5", l5_pct),
+                    _sec("L20", l20_pct),
+                    _sec("2026", s2026_pct),
+                    _sec("2025", s2025_pct),
+                ],
+                style={"display": "flex", "alignItems": "center", "flexWrap": "wrap", "gap": "8px"},
+            ),
+        ]
+    )
+
+
+def _wnba_perf_bar_chart(pdf: pd.DataFrame, stat: str, period: str, threshold: float) -> dcc.Graph:
+    """Bar chart: each bar is one game's stat, dashed line at threshold.
+
+    Supports combo stats (P+R / P+A / PRA) by summing component columns.
+    """
+    slice_df = _wnba_player_slice(pdf, period).sort_values("_date")
+    components = _WNBA_STAT_COMPONENTS.get(stat, [stat])
+    if slice_df.empty or any(c not in slice_df.columns for c in components):
+        return dcc.Graph(figure=go.Figure().update_layout(
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            annotations=[dict(text="No data", x=0.5, y=0.5, showarrow=False, font=dict(color="#6b7280"))],
+        ))
+
+    values = _wnba_stat_series(slice_df, stat).tolist()
+    dates = slice_df["_date"].dt.strftime("%m/%d").tolist()
+    matchups = slice_df["MATCHUP"].tolist()
+    xlabels = [f"{d}<br><span style='font-size:10px'>{m.split()[-2]} {m.split()[-1]}</span>" if m else d
+               for d, m in zip(dates, matchups)]
+
+    # Bar colors: above threshold = stat color, below = muted
+    bar_color = _WNBA_STAT_COLORS.get(stat, "#a78bfa")
+    colors = [bar_color if v >= threshold else "rgba(148, 163, 184, 0.45)" for v in values]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=xlabels, y=values,
+        marker_color=colors,
+        text=[str(int(v)) if v == int(v) else f"{v:.1f}" for v in values],
+        textposition="outside",
+        textfont=dict(color="#e5e7eb", size=11),
+        hovertemplate="%{y} " + stat + "<br>%{x}<extra></extra>",
+        showlegend=False,
+    ))
+    fig.add_hline(y=threshold, line_dash="dash", line_color=bar_color,
+                  annotation_text=f"Threshold: {threshold}", annotation_position="right",
+                  annotation_font_color=bar_color)
+    ymax = max(max(values), threshold) * 1.2 if values else 10
+    fig.update_layout(
+        title=dict(text=f"{period} Games Performance vs. Threshold",
+                   font=dict(color="#e5e7eb", size=14), x=0.02),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#e5e7eb"),
+        xaxis=dict(gridcolor="rgba(255,255,255,0.03)", tickfont=dict(size=10, color="#9ca3af")),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", range=[0, ymax]),
+        height=380, margin=dict(l=50, r=40, t=50, b=60),
+        bargap=0.25,
+    )
+    return dcc.Graph(figure=fig, config={"displayModeBar": False})
+
+
+def _wnba_prediction_card(pdf: pd.DataFrame) -> html.Div:
+    """Next-game prediction card.
+
+    Builds a proper tonight-context feature row (correct opponent, home/away,
+    days rest, position-vs-opponent-defense) so predictions reflect the actual
+    upcoming matchup rather than the player's most recent game.
+    """
+    from utils.wnba_predict import build_tonight_feature_row, get_tonight_matchup_for_player
+    from utils.wnba_data_fetch import get_todays_wnba_games
+    from utils.wnba_prediction_tracker import get_calibration_offsets
+
+    children = [html.H4("Next Game Prediction", style={"color": "#e5e7eb", "marginBottom": "12px", "fontSize": "14px"})]
+    try:
+        # Resolve tonight's matchup
+        player_team = pdf.iloc[0].get("TEAM_ABBREVIATION", "")
+        matchup_info = None
+        try:
+            todays_games = get_todays_wnba_games()
+            matchup_info = get_tonight_matchup_for_player(player_team, todays_games)
+        except Exception:
+            pass
+
+        # Fallback: use last game's opponent if not playing tonight
+        if matchup_info is None:
+            last = pdf.iloc[0]
+            m = str(last.get("MATCHUP", ""))
+            opp = m.split()[-1] if m else ""
+            is_home = " vs." in m
+            subtitle = f"Last matchup: {opp}"
+        else:
+            opp, is_home = matchup_info
+            subtitle = f"Tonight: {'vs' if is_home else '@'} {opp}"
+
+        # Reference tables (lazy load)
+        global _WNBA_TEAM_DEF, _WNBA_DEF_VS_POS
+        if _WNBA_TEAM_DEF is None:
+            _WNBA_TEAM_DEF = pd.read_csv(os.path.join(_WNBA_DATA_DIR, "team_defensive_stats.csv"))
+        if _WNBA_DEF_VS_POS is None:
+            _WNBA_DEF_VS_POS = pd.read_csv(os.path.join(_WNBA_DATA_DIR, "defense_vs_position.csv"))
+        team_stats_path = os.path.join(_WNBA_DATA_DIR, "team_stats.csv")
+        team_stats_df = pd.read_csv(team_stats_path) if os.path.exists(team_stats_path) else None
+
+        feat_row = build_tonight_feature_row(
+            pdf, tonight_opponent=opp, is_home=is_home,
+            team_def=_WNBA_TEAM_DEF, def_vs_pos=_WNBA_DEF_VS_POS, team_stats=team_stats_df,
+        )
+
+        # Calibration: subtract observed model bias per stat
+        offsets = get_calibration_offsets()
+
+        from utils.wnba_props import _clip_prediction as _clip
+
+        cards = []
+        for stat, color in [("PTS", "#14b8a6"), ("AST", "#a78bfa"), ("REB", "#f59e0b")]:
+            model = get_wnba_predictor(stat)
+            if model is None:
+                continue
+            try:
+                pred = model.predict(feat_row)
+                raw = float(pred.get("predicted_value", pred) if isinstance(pred, dict) else pred)
+                val = _clip(stat, raw - offsets.get(stat, 0.0))
+                cards.append(html.Div(
+                    [
+                        html.Div(stat, style={"fontSize": "11px", "color": "#9ca3af", "letterSpacing": "0.05em"}),
+                        html.Div(f"{val:.1f}", style={"fontSize": "26px", "color": color, "fontWeight": "700"}),
+                    ],
+                    style={
+                        "textAlign": "center", "padding": "12px 20px",
+                        "background": "rgba(255,255,255,0.03)", "borderRadius": "10px",
+                        "border": "1px solid rgba(255,255,255,0.06)", "flex": "1",
+                    },
+                ))
+            except Exception:
+                pass
+        children.append(html.Div(cards, style={"display": "flex", "gap": "8px"}))
+        children.append(html.Div(subtitle, style={"color": "#6b7280", "fontSize": "11px", "marginTop": "8px"}))
+    except Exception as e:
+        children.append(html.Div(f"Unavailable: {e}", style={"color": "#ef4444", "fontSize": "12px"}))
+    return html.Div(children, className="wnba-card")
+
+
+def _wnba_matchup_card(pdf: pd.DataFrame) -> html.Div:
+    """Show opponent's defense vs the player's position (rank + PTS/AST/REB allowed).
+
+    Opponent = most recent game's opponent from MATCHUP.
+    """
+    global _WNBA_DEF_VS_POS, _WNBA_POSITIONS
+    if _WNBA_DEF_VS_POS is None:
+        dvp_path = os.path.join(_WNBA_DATA_DIR, "defense_vs_position.csv")
+        _WNBA_DEF_VS_POS = pd.read_csv(dvp_path) if os.path.exists(dvp_path) else pd.DataFrame()
+    if _WNBA_POSITIONS is None:
+        pos_path = os.path.join(_WNBA_DATA_DIR, "player_positions.csv")
+        _WNBA_POSITIONS = pd.read_csv(pos_path) if os.path.exists(pos_path) else pd.DataFrame()
+
+    fallback = html.Div(
+        [
+            html.H4("Matchup Analysis", className=""),
+            html.Div("Defense-vs-position data unavailable.", style={"color": "#6b7280", "fontSize": "12px"}),
+        ],
+        className="wnba-matchup-card",
+    )
+
+    if _WNBA_DEF_VS_POS.empty or pdf.empty:
+        return fallback
+
+    last = pdf.iloc[0]
+    matchup_str = str(last.get("MATCHUP", ""))
+    parts = matchup_str.split()
+    opp = parts[-1] if parts else ""
+    if not opp:
+        return fallback
+
+    # Player position (latest season)
+    pid = last.get("Player_ID") or last.get("PLAYER_ID")
+    season = str(last.get("SEASON", ""))
+    pos_row = _WNBA_POSITIONS[
+        (_WNBA_POSITIONS["PLAYER_ID"] == pid) & (_WNBA_POSITIONS["SEASON"].astype(str) == season)
+    ]
+    position = pos_row.iloc[0]["POSITION"] if not pos_row.empty else "F"
+
+    dvp = _WNBA_DEF_VS_POS[
+        (_WNBA_DEF_VS_POS["TEAM_ABBREVIATION"] == opp)
+        & (_WNBA_DEF_VS_POS["SEASON"].astype(str) == season)
+        & (_WNBA_DEF_VS_POS["POSITION"] == position)
+    ]
+    if dvp.empty:
+        return html.Div(
+            [
+                html.H4(f"Matchup: vs {opp} (as {position})"),
+                html.Div("No matchup data for this opponent yet.", style={"color": "#6b7280", "fontSize": "12px"}),
+            ],
+            className="wnba-matchup-card",
+        )
+    row = dvp.iloc[0]
+
+    def _rank_color(rank_val):
+        # Rank 1 = strongest defense (bad for offense); 13 = weakest
+        if rank_val <= 5:
+            return "#ef4444"    # tough matchup for the player
+        if rank_val >= 9:
+            return "#22c55e"    # soft matchup — good for the player
+        return "#f59e0b"
+
+    def _stat_row(label, val, rank):
+        return html.Div(
+            [
+                html.Span(label, style={"color": "#9ca3af"}),
+                html.Span(
+                    [
+                        html.Span(f"#{rank}", style={"color": _rank_color(int(rank)), "fontWeight": "700", "marginRight": "8px"}),
+                        html.Span(f"{val:.1f}", style={"color": "#e5e7eb"}),
+                    ],
+                ),
+            ],
+            className="wnba-matchup-stat-row",
+        )
+
+    return html.Div(
+        [
+            html.H4(f"Matchup: vs {opp} · {position}"),
+            html.Div(
+                [
+                    _stat_row("Points allowed", row["PTS"], row["PTS_RANK"]),
+                    _stat_row("Assists allowed", row["AST"], row["AST_RANK"]),
+                    _stat_row("Rebounds allowed", row["REB"], row["REB_RANK"]),
+                    _stat_row("3-Pointers allowed", row["FG3M"], row["FG3M_RANK"]),
+                ]
+            ),
+            html.Div(
+                "Rank 1 = strongest defense against " + position + "s",
+                style={"color": "#6b7280", "fontSize": "10px", "marginTop": "10px", "fontStyle": "italic"},
+            ),
+        ],
+        className="wnba-matchup-card",
+    )
+
+
+def _wnba_injury_card(player_name: str) -> html.Div:
+    from utils.wnba_injuries import get_wnba_player_injury
+    inj = None
+    try:
+        inj = get_wnba_player_injury(player_name)
+    except Exception:
+        pass
+
+    if inj is None:
+        body = html.Div("Active — no injury news.", style={"color": "#22c55e", "fontSize": "13px"})
     else:
-        return create_player_analysis_page(), active, inactive, inactive
+        body = html.Div(
+            [
+                html.Div(inj.get("status", "OUT"), style={"color": "#ef4444", "fontWeight": "700", "fontSize": "14px"}),
+                html.Div(inj.get("reason", ""), style={"color": "#9ca3af", "fontSize": "12px", "marginTop": "4px"}),
+            ]
+        )
+    return html.Div(
+        [
+            html.H4("Injury Context", style={"color": "#e5e7eb", "marginBottom": "10px", "fontSize": "14px"}),
+            body,
+        ],
+        className="wnba-card",
+    )
+
+
+def _wnba_recent_games_table(pdf: pd.DataFrame) -> html.Div:
+    recent_rows = pdf.head(10)[["GAME_DATE", "MATCHUP", "WL", "MIN", "PTS", "AST", "REB", "FG3M"]]
+    return html.Div(
+        [
+            html.H4("Recent Games", style={"color": "#e5e7eb", "marginBottom": "12px", "fontSize": "14px"}),
+            html.Table(
+                [
+                    html.Thead(html.Tr([html.Th(c) for c in recent_rows.columns])),
+                    html.Tbody([
+                        html.Tr([html.Td(recent_rows.iloc[i][c]) for c in recent_rows.columns])
+                        for i in range(len(recent_rows))
+                    ]),
+                ],
+                className="wnba-recent-table",
+                style={"width": "100%", "color": "#e5e7eb", "fontSize": "13px", "borderCollapse": "collapse"},
+            ),
+        ]
+    )
+
+
+# =============================================================================
+# WNBA BEST PROPS CALLBACKS
+# =============================================================================
+
+
+@callback(
+    [Output("wnba-props-filter", "data"),
+     Output({"type": "wnba-props-stat-filter", "stat": ALL}, "className")],
+    Input({"type": "wnba-props-stat-filter", "stat": ALL}, "n_clicks"),
+    State({"type": "wnba-props-stat-filter", "stat": ALL}, "id"),
+    prevent_initial_call=True,
+)
+def _wnba_props_select_filter(_clicks, ids):
+    from dash import ctx
+    from dash.exceptions import PreventUpdate
+    triggered = ctx.triggered_id
+    if not triggered:
+        raise PreventUpdate
+    selected = triggered["stat"]
+    classes = ["wnba-pill" + (" active" if i["stat"] == selected else "") for i in (ids or [])]
+    return selected, classes
+
+
+@callback(
+    Output("wnba-props-list", "children"),
+    Input("wnba-props-filter", "data"),
+)
+def _wnba_props_render(stat_filter):
+    props = get_wnba_props()
+    if not props:
+        return html.Div("No props available.", style={"color": "#6b7280", "padding": "20px"})
+    if stat_filter and stat_filter != "ALL":
+        props = [p for p in props if p.stat == stat_filter]
+    # Show top 40
+    return html.Div([_wnba_props_row(p) for p in props[:40]])
+
+
+@callback(
+    Output("wnba-parlays-list", "children"),
+    Input("wnba-props-filter", "data"),  # any filter change re-triggers
+)
+def _wnba_parlays_render(_stat_filter):
+    parlays = get_wnba_parlays()
+    if not parlays:
+        return html.Div(
+            "No positive-EV parlays available from the current prop pool.",
+            style={"color": "#6b7280", "padding": "12px", "fontSize": "13px"},
+        )
+    # Show top 6 across all sizes
+    return html.Div([_wnba_parlay_card(p) for p in parlays[:6]])
 
 
 # =============================================================================
@@ -5169,6 +5960,690 @@ def _build_defense_radar(pts_rank, ast_rank, reb_rank, tpm_rank):
         height=220,
     )
     return fig
+
+
+def create_coming_soon_page(feature_name: str, league: str = "WNBA") -> html.Div:
+    """Placeholder for WNBA features not yet built (Phase 2/3)."""
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.H2(f"{feature_name} — Coming Soon", style={
+                        "color": "#e5e7eb", "marginBottom": "12px",
+                    }),
+                    html.P(
+                        f"{league} {feature_name} isn't wired up yet — it ships in the next phase.",
+                        style={"color": "#9ca3af", "fontSize": "16px"},
+                    ),
+                    html.P(
+                        "For now, head to Player Analysis to browse WNBA player stats.",
+                        style={"color": "#6b7280", "fontSize": "14px", "marginTop": "8px"},
+                    ),
+                    dcc.Link(
+                        "→ Go to WNBA Player Analysis",
+                        href="/wnba/",
+                        style={
+                            "color": "#14b8a6", "textDecoration": "none",
+                            "fontSize": "15px", "marginTop": "20px", "display": "inline-block",
+                        },
+                    ),
+                ],
+                style={
+                    "textAlign": "center", "padding": "80px 40px",
+                    "maxWidth": "540px", "margin": "0 auto",
+                },
+            ),
+        ],
+        className="page-container",
+    )
+
+
+def create_wnba_games_page() -> html.Div:
+    """WNBA today's games — matchups + spread/total predictions + injury summary."""
+    from utils.wnba_data_fetch import get_todays_wnba_games
+    from utils.wnba_injuries import get_wnba_team_injuries
+
+    games = []
+    try:
+        games = get_todays_wnba_games()
+    except Exception as e:
+        print(f"[WNBA-Games] fetch failed: {e}")
+
+    if not games:
+        return html.Div(
+            [
+                html.H2("WNBA Today's Games", style={"color": "#e5e7eb", "marginBottom": "8px"}),
+                html.P("No WNBA games scheduled today.", style={"color": "#9ca3af"}),
+            ],
+            style={"padding": "60px 40px", "maxWidth": "900px", "margin": "0 auto"},
+        )
+
+    predictor = _get_wnba_game_predictor()
+    cards = []
+    for g in games:
+        home, away = g["home"], g["away"]
+        pred = None
+        if predictor is not None:
+            try:
+                pred = predictor.predict_game(home["abbrev"], away["abbrev"])
+            except Exception as e:
+                print(f"[WNBA-Games] predict {away['abbrev']}@{home['abbrev']} failed: {e}")
+
+        # Injuries
+        home_inj = get_wnba_team_injuries(home["abbrev"])
+        away_inj = get_wnba_team_injuries(away["abbrev"])
+
+        cards.append(_wnba_game_card(g, pred, home_inj, away_inj))
+
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.H2("WNBA Today's Games", style={"color": "#e5e7eb", "marginBottom": "4px"}),
+                    html.P(f"{len(games)} game{'s' if len(games) != 1 else ''} scheduled",
+                           style={"color": "#9ca3af", "fontSize": "13px", "marginBottom": "24px"}),
+                    html.Div(cards, style={"display": "flex", "flexDirection": "column", "gap": "16px"}),
+                ],
+                style={"padding": "24px 40px", "maxWidth": "1100px", "margin": "0 auto"},
+            ),
+        ],
+        className="page-container",
+    )
+
+
+def _wnba_game_card(game: dict, pred: "dict | None", home_inj: list, away_inj: list) -> html.Div:
+    home, away = game["home"], game["away"]
+    status = game["status_text"] or game["status"]
+
+    # Prediction line
+    pred_block = html.Div("Prediction unavailable.", style={"color": "#6b7280", "fontSize": "13px"})
+    if pred:
+        home_score = pred.get("predicted_home_score", 0)
+        away_score = pred.get("predicted_away_score", 0)
+        total = pred.get("predicted_total", 0)
+        spread = pred.get("predicted_spread", 0)
+        winner = pred.get("winner", "—")
+        conf = pred.get("winner_confidence", "—")
+
+        pred_block = html.Div(
+            [
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Div("PROJ SCORE", style={"fontSize": "10px", "color": "#6b7280", "letterSpacing": "0.08em"}),
+                                html.Div(f"{away['abbrev']} {away_score:.0f} — {home_score:.0f} {home['abbrev']}",
+                                         style={"fontSize": "18px", "color": "#e5e7eb", "fontWeight": "600", "marginTop": "2px"}),
+                            ],
+                            style={"flex": "1"},
+                        ),
+                        html.Div(
+                            [
+                                html.Div("SPREAD", style={"fontSize": "10px", "color": "#6b7280", "letterSpacing": "0.08em"}),
+                                html.Div(
+                                    f"{winner} {'-' if spread else ''}{abs(spread):.1f}" if spread else winner,
+                                    style={"fontSize": "18px", "color": "#14b8a6", "fontWeight": "600", "marginTop": "2px"},
+                                ),
+                            ],
+                            style={"flex": "1", "textAlign": "center"},
+                        ),
+                        html.Div(
+                            [
+                                html.Div("TOTAL", style={"fontSize": "10px", "color": "#6b7280", "letterSpacing": "0.08em"}),
+                                html.Div(f"{total:.1f}", style={"fontSize": "18px", "color": "#a78bfa", "fontWeight": "600", "marginTop": "2px"}),
+                            ],
+                            style={"flex": "1", "textAlign": "right"},
+                        ),
+                    ],
+                    style={"display": "flex", "gap": "20px", "marginTop": "12px"},
+                ),
+                html.Div(f"Confidence: {conf}", style={"fontSize": "11px", "color": "#6b7280", "marginTop": "6px"}),
+            ]
+        )
+
+    # Injury pills
+    def _inj_pills(inj_list: list, label: str):
+        if not inj_list:
+            return html.Div(f"{label}: no injuries reported",
+                            style={"fontSize": "11px", "color": "#6b7280"})
+        top = inj_list[:3]
+        pills = [
+            html.Span(f"{p['name']} ({p['status']})",
+                      style={"fontSize": "11px", "background": "rgba(239,68,68,0.12)",
+                             "color": "#fca5a5", "padding": "2px 8px", "borderRadius": "999px",
+                             "marginRight": "6px", "display": "inline-block"})
+            for p in top
+        ]
+        extra = html.Span(f"+{len(inj_list)-3} more", style={"fontSize": "11px", "color": "#6b7280"}) if len(inj_list) > 3 else None
+        children = [html.Span(f"{label}: ", style={"fontSize": "11px", "color": "#9ca3af", "marginRight": "8px"})] + pills
+        if extra is not None:
+            children.append(extra)
+        return html.Div(children, style={"marginTop": "6px"})
+
+    return html.Div(
+        [
+            # Header row: matchup + tip time
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Span(f"{away['abbrev']}", style={"fontSize": "22px", "color": "#e5e7eb", "fontWeight": "700"}),
+                            html.Span(f" ({away['wins']}-{away['losses']})", style={"fontSize": "13px", "color": "#9ca3af", "marginLeft": "6px"}),
+                            html.Span(" @ ", style={"fontSize": "22px", "color": "#6b7280", "margin": "0 10px"}),
+                            html.Span(f"{home['abbrev']}", style={"fontSize": "22px", "color": "#e5e7eb", "fontWeight": "700"}),
+                            html.Span(f" ({home['wins']}-{home['losses']})", style={"fontSize": "13px", "color": "#9ca3af", "marginLeft": "6px"}),
+                        ]
+                    ),
+                    html.Div(status, style={"fontSize": "13px", "color": "#14b8a6", "fontWeight": "500"}),
+                ],
+                style={"display": "flex", "justifyContent": "space-between", "alignItems": "center"},
+            ),
+            pred_block,
+            html.Div(
+                [
+                    _inj_pills(away_inj, away["abbrev"]),
+                    _inj_pills(home_inj, home["abbrev"]),
+                ],
+                style={"marginTop": "12px", "paddingTop": "12px", "borderTop": "1px solid rgba(255,255,255,0.05)"},
+            ),
+        ],
+        style={
+            "background": "rgba(255,255,255,0.03)",
+            "border": "1px solid rgba(255,255,255,0.06)",
+            "borderRadius": "12px",
+            "padding": "16px 20px",
+        },
+    )
+
+
+# =============================================================================
+# WNBA BEST PROPS PAGE
+# =============================================================================
+
+
+def create_wnba_props_page() -> html.Div:
+    """Best WNBA prop picks ranked by Expected Value."""
+    props = get_wnba_props()
+
+    if not props:
+        # Diagnose why we have nothing to show
+        try:
+            from utils.wnba_data_fetch import get_todays_wnba_games
+            from utils.wnba_odds_fetcher import get_wnba_requests_remaining
+            games = get_todays_wnba_games()
+            quota = get_wnba_requests_remaining()
+        except Exception:
+            games = []
+            quota = None
+
+        if not games:
+            reason = "No WNBA games scheduled tonight — check back on a game day."
+        elif quota is not None and quota < len(games):
+            reason = (
+                f"Odds API quota low ({quota} requests remaining). "
+                "Props will refresh once quota resets or when the cache expires."
+            )
+        else:
+            reason = (
+                "Odds not available for tonight's games yet. "
+                "Sportsbooks typically post WNBA lines a few hours before tip-off."
+            )
+
+        return html.Div(
+            [
+                html.H2("WNBA Best Props", style={"color": "#e5e7eb", "marginBottom": "8px"}),
+                html.P(reason, style={"color": "#9ca3af", "marginBottom": "6px"}),
+                html.P(
+                    f"Tonight's games: {', '.join(g['away']['abbrev'] + '@' + g['home']['abbrev'] for g in games)}"
+                    if games else "",
+                    style={"color": "#6b7280", "fontSize": "12px"},
+                ),
+            ],
+            style={"padding": "60px 40px", "maxWidth": "900px", "margin": "0 auto"},
+        )
+
+    # Stat filter pills
+    stat_options = ["ALL", "PTS", "AST", "REB", "FG3M", "PTS+REB", "PTS+AST", "PTS+REB+AST"]
+    stat_pills = html.Div(
+        [
+            html.Button(
+                s, id={"type": "wnba-props-stat-filter", "stat": s},
+                className="wnba-pill" + (" active" if s == "ALL" else ""),
+                n_clicks=0,
+            )
+            for s in stat_options
+        ],
+        className="wnba-pill-row",
+        style={"marginBottom": "16px"},
+    )
+
+    return html.Div(
+        [
+            dcc.Store(id="wnba-props-filter", data="ALL"),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.H2("WNBA Best Props", style={"color": "#e5e7eb", "marginBottom": "4px"}),
+                            html.P(
+                                f"{len(props)} props ranked by expected value · "
+                                f"updated {_format_last_updated()}",
+                                style={"color": "#9ca3af", "fontSize": "13px"},
+                            ),
+                        ],
+                    ),
+                    _wnba_synthetic_banner(props),
+                    _wnba_accuracy_card(),
+                    stat_pills,
+                    html.Div(id="wnba-props-list"),
+
+                    # Parlays section
+                    html.H3(
+                        "Recommended Parlays",
+                        style={
+                            "color": "#e5e7eb", "marginTop": "28px", "marginBottom": "10px",
+                            "fontSize": "16px", "letterSpacing": "0.02em",
+                        },
+                    ),
+                    html.P(
+                        "Multi-leg tickets combining top HIGH/MED confidence picks. "
+                        "Combined hit % assumes independent legs.",
+                        style={"color": "#9ca3af", "fontSize": "12px", "marginBottom": "10px"},
+                    ),
+                    html.Div(id="wnba-parlays-list"),
+                ],
+                style={"padding": "24px 40px", "maxWidth": "1100px", "margin": "0 auto"},
+            ),
+        ],
+        className="page-container",
+    )
+
+
+def _wnba_parlay_card(parlay) -> html.Div:
+    """Render a single parlay ticket."""
+    leg_count = len(parlay.legs)
+    payout = f"+{parlay.combined_american}" if parlay.combined_american > 0 else str(parlay.combined_american)
+
+    leg_rows = []
+    for leg in parlay.legs:
+        pick_color = "#22c55e" if leg.pick == "OVER" else "#ef4444"
+        leg_rows.append(html.Div(
+            [
+                html.Span(f"{leg.player_name}", style={"flex": "2", "color": "#e5e7eb"}),
+                html.Span(f"{leg.stat}", style={"flex": "0", "color": "#9ca3af", "minWidth": "40px"}),
+                html.Span(
+                    [
+                        html.Span(leg.pick, style={"color": pick_color, "fontWeight": "700"}),
+                        html.Span(f" {leg.line}", style={"color": "#e5e7eb", "marginLeft": "4px"}),
+                    ],
+                    style={"flex": "0", "minWidth": "80px", "textAlign": "right"},
+                ),
+                html.Span(f"{leg.hit_prob*100:.0f}%", style={"flex": "0", "minWidth": "40px", "textAlign": "right", "color": "#9ca3af"}),
+            ],
+            className="wnba-parlay-leg",
+            style={"display": "flex", "gap": "10px", "alignItems": "center"},
+        ))
+
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Span(f"{leg_count}-leg parlay", style={"color": "#14b8a6", "fontWeight": "700", "fontSize": "13px"}),
+                            html.Span(f" · {payout}", style={"color": "#e5e7eb", "fontWeight": "600", "marginLeft": "6px"}),
+                        ]
+                    ),
+                    html.Div(
+                        [
+                            html.Span(f"HIT %  ", style={"color": "#6b7280", "fontSize": "11px"}),
+                            html.Span(f"{parlay.hit_prob*100:.1f}%", style={"color": "#e5e7eb", "fontWeight": "700", "marginRight": "16px"}),
+                            html.Span(f"EV  ", style={"color": "#6b7280", "fontSize": "11px"}),
+                            html.Span(f"{parlay.ev:+.2f}", style={"color": "#22c55e" if parlay.ev > 0 else "#ef4444", "fontWeight": "700"}),
+                        ],
+                        style={"fontSize": "13px"},
+                    ),
+                ],
+                style={"display": "flex", "justifyContent": "space-between", "marginBottom": "10px"},
+            ),
+            html.Div(leg_rows),
+        ],
+        className="wnba-parlay-card",
+    )
+
+
+def _wnba_synthetic_banner(props) -> html.Div:
+    """Yellow banner when the props list is mostly/all synthetic (no live odds)."""
+    if not props:
+        return html.Div()
+    synthetic = sum(1 for p in props if p.bookmaker == "L20 avg")
+    total = len(props)
+    if synthetic == 0:
+        return html.Div()
+
+    if synthetic == total:
+        msg = ("No live sportsbook odds available (Odds API unreachable or over quota). "
+               "All lines below are synthesized from each player's last-20-game average — "
+               "picks reflect where the model expects a deviation from recent form.")
+    else:
+        pct = int(synthetic / total * 100)
+        msg = f"{synthetic}/{total} props ({pct}%) use synthetic L20 lines because live odds weren't available for those players."
+
+    return html.Div(
+        [
+            html.Span("⚠ ", style={"color": "#facc15", "fontWeight": "700"}),
+            html.Span(msg, style={"color": "#e5e7eb", "fontSize": "12px"}),
+        ],
+        style={
+            "background": "rgba(250, 204, 21, 0.08)",
+            "border": "1px solid rgba(250, 204, 21, 0.25)",
+            "borderRadius": "8px",
+            "padding": "10px 14px",
+            "margin": "8px 0 12px 0",
+        },
+    )
+
+
+def _wnba_accuracy_card() -> html.Div:
+    """System record: how the WNBA predictions have graded over the last 30 days."""
+    try:
+        from utils.wnba_prediction_tracker import get_accuracy_summary
+        s = get_accuracy_summary(lookback_days=30)
+    except Exception as e:
+        return html.Div(f"Accuracy unavailable: {e}", style={"color": "#6b7280", "fontSize": "12px"})
+
+    total = s["wins"] + s["losses"]
+    if total == 0 and s["pending"] == 0:
+        # No history yet — silent (avoids clutter on first-ever run)
+        return html.Div()
+
+    hit_rate_color = "#22c55e" if s["hit_rate"] >= 0.55 else ("#f59e0b" if s["hit_rate"] >= 0.5 else "#ef4444")
+    high_color = "#22c55e" if s["high_hit_rate"] >= 0.6 else ("#f59e0b" if s["high_hit_rate"] >= 0.5 else "#ef4444")
+
+    def _metric(label, value, color="#e5e7eb"):
+        return html.Div(
+            [
+                html.Div(label, style={"color": "#6b7280", "fontSize": "10px", "letterSpacing": "0.08em", "textTransform": "uppercase"}),
+                html.Div(value, style={"color": color, "fontSize": "18px", "fontWeight": "700", "marginTop": "2px"}),
+            ],
+            style={"textAlign": "center", "minWidth": "70px"},
+        )
+
+    return html.Div(
+        [
+            html.Div("System Record (last 30 days)",
+                     style={"color": "#9ca3af", "fontSize": "11px",
+                            "textTransform": "uppercase", "letterSpacing": "0.08em",
+                            "marginBottom": "10px"}),
+            html.Div(
+                [
+                    _metric("Record", f"{s['wins']}-{s['losses']}" + (f"-{s['pushes']}" if s['pushes'] else "")),
+                    _metric("Hit Rate", f"{s['hit_rate']*100:.0f}%", hit_rate_color) if total else _metric("Hit Rate", "—"),
+                    _metric("HIGH Conf", f"{s['high_wins']}-{s['high_losses']}"),
+                    _metric("HIGH Rate", f"{s['high_hit_rate']*100:.0f}%", high_color) if (s['high_wins']+s['high_losses']) else _metric("HIGH Rate", "—"),
+                    _metric("Pending", str(s["pending"])),
+                ],
+                style={"display": "flex", "gap": "16px", "flexWrap": "wrap", "alignItems": "center"},
+            ),
+        ],
+        style={
+            "background": "rgba(255,255,255,0.03)",
+            "border": "1px solid rgba(255,255,255,0.06)",
+            "borderRadius": "12px",
+            "padding": "14px 18px",
+            "margin": "12px 0 20px 0",
+        },
+    )
+
+
+def _format_last_updated() -> str:
+    from datetime import datetime
+    return datetime.now().strftime("%I:%M %p").lstrip("0")
+
+
+def _wnba_props_row(prop) -> html.Div:
+    """Card for a single prop pick."""
+    color_by_stat = {"PTS": "#14b8a6", "AST": "#a78bfa", "REB": "#f59e0b", "FG3M": "#60a5fa"}
+    stat_color = color_by_stat.get(prop.stat, "#9ca3af")
+    conf_color = {"HIGH": "#22c55e", "MED": "#f59e0b", "LOW": "#6b7280"}.get(prop.confidence, "#6b7280")
+    pick_color = "#22c55e" if prop.pick == "OVER" else "#ef4444"
+
+    price = prop.over_price if prop.pick == "OVER" else prop.under_price
+    price_str = f"+{price}" if price and price > 0 else str(price or "N/A")
+
+    return html.Div(
+        [
+            # Left: player + team + stat
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Span(prop.player_name, style={"color": "#e5e7eb", "fontSize": "15px", "fontWeight": "600"}),
+                            html.Span(prop.team, className="wnba-team-badge", style={"marginLeft": "8px", "fontSize": "10px"}),
+                        ]
+                    ),
+                    html.Div(
+                        [
+                            html.Span(prop.stat, style={"color": stat_color, "fontWeight": "700"}),
+                            html.Span(
+                                f" · {prop.bookmaker}",
+                                style={
+                                    "color": "#facc15" if prop.bookmaker == "L20 avg" else "#6b7280",
+                                    "fontSize": "12px",
+                                    "fontStyle": "italic" if prop.bookmaker == "L20 avg" else "normal",
+                                },
+                                title="Synthetic line based on last-20-game average (no live sportsbook odds available)"
+                                if prop.bookmaker == "L20 avg" else "",
+                            ),
+                        ],
+                        style={"marginTop": "2px", "fontSize": "13px"},
+                    ),
+                ],
+                style={"flex": "2"},
+            ),
+            # Middle: pick + line + projection
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Span(prop.pick, style={"color": pick_color, "fontWeight": "700", "fontSize": "14px"}),
+                            html.Span(f" {prop.line}", style={"color": "#e5e7eb", "fontWeight": "600", "marginLeft": "6px"}),
+                        ]
+                    ),
+                    html.Div(
+                        f"Projected: {prop.projected:.1f}",
+                        style={"color": "#9ca3af", "fontSize": "12px", "marginTop": "2px"},
+                    ),
+                ],
+                style={"flex": "1"},
+            ),
+            # Metrics: EV / hit% / edge
+            html.Div(
+                [
+                    html.Div("EV", style={"color": "#6b7280", "fontSize": "10px", "letterSpacing": "0.08em"}),
+                    html.Div(f"{prop.ev:+.2f}",
+                             style={"color": "#22c55e" if prop.ev > 0 else "#ef4444", "fontSize": "15px", "fontWeight": "700"}),
+                ],
+                style={"textAlign": "center", "minWidth": "60px"},
+            ),
+            html.Div(
+                [
+                    html.Div("HIT %", style={"color": "#6b7280", "fontSize": "10px", "letterSpacing": "0.08em"}),
+                    html.Div(f"{prop.hit_prob*100:.0f}%",
+                             style={"color": "#e5e7eb", "fontSize": "15px", "fontWeight": "700"}),
+                ],
+                style={"textAlign": "center", "minWidth": "60px"},
+            ),
+            html.Div(
+                [
+                    html.Div("EDGE", style={"color": "#6b7280", "fontSize": "10px", "letterSpacing": "0.08em"}),
+                    html.Div(f"{prop.edge:+.1f}",
+                             style={"color": "#e5e7eb", "fontSize": "15px", "fontWeight": "700"}),
+                ],
+                style={"textAlign": "center", "minWidth": "60px"},
+            ),
+            # Confidence pill + price
+            html.Div(
+                [
+                    html.Div(prop.confidence, style={
+                        "color": conf_color, "fontSize": "11px", "fontWeight": "700",
+                        "letterSpacing": "0.05em", "textAlign": "right",
+                    }),
+                    html.Div(price_str, style={
+                        "color": "#9ca3af", "fontSize": "12px", "marginTop": "2px", "textAlign": "right",
+                    }),
+                ],
+                style={"minWidth": "70px"},
+            ),
+        ],
+        style={
+            "display": "flex", "alignItems": "center", "gap": "16px",
+            "background": "rgba(255,255,255,0.03)",
+            "border": "1px solid rgba(255,255,255,0.06)",
+            "borderRadius": "10px",
+            "padding": "12px 16px",
+            "marginBottom": "8px",
+        },
+    )
+
+
+# =============================================================================
+# WNBA PLAYER ANALYSIS PAGE — NBA-style layout with bar graphs
+# =============================================================================
+
+_WNBA_STATS = ["PTS", "AST", "REB", "FG3M", "BLK", "STL", "P+R", "P+A", "PRA"]
+# Display label -> component columns for combos (added Phase 7)
+_WNBA_STAT_COMPONENTS = {
+    "P+R": ["PTS", "REB"],
+    "P+A": ["PTS", "AST"],
+    "PRA": ["PTS", "REB", "AST"],
+}
+_WNBA_PERIODS = [
+    ("L5", "Last 5"), ("L10", "Last 10"), ("L20", "Last 20"),
+    ("H/A", "Home/Away"), ("2026", "2026"), ("2025", "2025"),
+]
+
+_WNBA_STAT_COLORS = {
+    "PTS": "#14b8a6", "AST": "#a78bfa", "REB": "#f59e0b",
+    "FG3M": "#60a5fa", "BLK": "#ef4444", "STL": "#22c55e",
+    "P+R": "#fb923c", "P+A": "#c084fc", "PRA": "#facc15",
+}
+
+
+def _wnba_stat_series(pdf: pd.DataFrame, stat: str) -> pd.Series:
+    """Return per-game stat values, summing components for combo stats (P+R/P+A/PRA)."""
+    components = _WNBA_STAT_COMPONENTS.get(stat, [stat])
+    if any(c not in pdf.columns for c in components):
+        return pd.Series(dtype=float, index=pdf.index)
+    total = pdf[components[0]].fillna(0).astype(float)
+    for c in components[1:]:
+        total = total + pdf[c].fillna(0).astype(float)
+    return total
+
+
+def create_wnba_player_analysis_page() -> html.Div:
+    """WNBA player analysis — matches NBA layout with bar charts."""
+    if WNBA_DF.empty or not WNBA_PLAYERS:
+        return html.Div(
+            [
+                html.H2("WNBA Player Analysis", style={"color": "#e5e7eb"}),
+                html.P(
+                    "WNBA data not loaded. Run: python scripts/setup_wnba_data.py",
+                    style={"color": "#f59e0b"},
+                ),
+            ],
+            style={"padding": "60px 40px", "maxWidth": "800px", "margin": "0 auto"},
+        )
+
+    default_player = "A'ja Wilson" if "A'ja Wilson" in WNBA_PLAYERS else WNBA_PLAYERS[0]
+
+    # Stat pills
+    stat_pills = html.Div(
+        [
+            html.Button(
+                s, id={"type": "wnba-stat-pill", "stat": s},
+                className="wnba-pill" + (" active" if s == "PTS" else ""),
+                n_clicks=0,
+            )
+            for s in _WNBA_STATS
+        ],
+        className="wnba-pill-row",
+    )
+
+    # Period pills
+    period_pills = html.Div(
+        [
+            html.Button(
+                label, id={"type": "wnba-period-pill", "period": p},
+                className="wnba-pill" + (" active" if p == "L10" else ""),
+                n_clicks=0,
+            )
+            for p, label in _WNBA_PERIODS
+        ],
+        className="wnba-pill-row",
+    )
+
+    # Main content column
+    main_column = html.Div(
+        [
+            # Header: player card (headshot + name + team + averages)
+            html.Div(id="wnba-player-header", style={"marginBottom": "20px"}),
+
+            stat_pills,
+            period_pills,
+
+            # Hit rate summary
+            html.Div(id="wnba-hitrate-block", style={"marginTop": "16px"}),
+
+            # Threshold slider
+            html.Div(id="wnba-threshold-block", style={"marginTop": "16px"}),
+
+            # Bar chart
+            html.Div(id="wnba-perf-chart", style={"marginTop": "16px"}),
+
+            # Prediction card (left) + injury card (right) — below chart
+            html.Div(
+                [
+                    html.Div(id="wnba-player-prediction", style={"flex": "1", "minWidth": "260px"}),
+                    html.Div(id="wnba-player-injury", style={"flex": "1", "minWidth": "260px"}),
+                ],
+                style={"display": "flex", "gap": "16px", "marginTop": "20px", "flexWrap": "wrap"},
+            ),
+
+            # Recent games table
+            html.Div(id="wnba-player-recent", style={"marginTop": "20px"}),
+        ],
+        className="wnba-main-col",
+    )
+
+    # Right sidebar: dropdown at top, then matchup card
+    sidebar = html.Div(
+        [
+            dcc.Dropdown(
+                id="wnba-player-dropdown",
+                options=[{"label": p, "value": p} for p in WNBA_PLAYERS],
+                value=default_player,
+                clearable=False,
+                style={"marginBottom": "20px"},
+            ),
+            html.Div(id="wnba-player-matchup"),
+        ],
+        className="wnba-sidebar",
+    )
+
+    return html.Div(
+        [
+            # Hidden stores for stat/period selection
+            dcc.Store(id="wnba-selected-stat", data="PTS"),
+            dcc.Store(id="wnba-selected-period", data="L10"),
+
+            html.Div(
+                [main_column, sidebar],
+                className="wnba-page-grid",
+            ),
+        ],
+        className="page-container",
+    )
 
 
 def create_matchup_content(player_name, stat):

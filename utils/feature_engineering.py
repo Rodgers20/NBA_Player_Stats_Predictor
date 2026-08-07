@@ -277,17 +277,18 @@ def add_opponent_features(
                 "OPP_FG3_PCT": "opp_def_fg3_pct",
             })
 
-            # Merge on opponent and season
+            # Drop TEAM_ABBREVIATION from the right side BEFORE the merge to
+            # prevent overwriting the player's own team column. The merge key
+            # on the right becomes redundant (matches "opponent" from left).
+            def_lookup_merge = def_lookup.rename(columns={"TEAM_ABBREVIATION": "_opp_team_key"})
             df = df.merge(
-                def_lookup,
+                def_lookup_merge,
                 left_on=["opponent", "SEASON"],
-                right_on=["TEAM_ABBREVIATION", "SEASON"],
-                how="left"
+                right_on=["_opp_team_key", "SEASON"],
+                how="left",
             )
-
-            # Clean up
-            if "TEAM_ABBREVIATION" in df.columns:
-                df = df.drop("TEAM_ABBREVIATION", axis=1)
+            if "_opp_team_key" in df.columns:
+                df = df.drop("_opp_team_key", axis=1)
 
     return df
 
@@ -467,29 +468,28 @@ def add_pace_features(
     # Extract player's team from matchup (first part before vs. or @)
     df["player_team"] = df["MATCHUP"].str.split().str[0]
 
-    # Merge player's team pace
-    pace_lookup = team_stats[["TEAM_ABBREVIATION", "SEASON", "PACE"]].copy()
+    # Rename the TEAM_ABBREVIATION merge key so it doesn't overwrite the
+    # player's own TEAM_ABBREVIATION column on the left side.
+    pace_base = team_stats[["TEAM_ABBREVIATION", "SEASON", "PACE"]].copy()
 
     df = df.merge(
-        pace_lookup.rename(columns={"PACE": "team_pace"}),
+        pace_base.rename(columns={"PACE": "team_pace", "TEAM_ABBREVIATION": "_pace_team_key"}),
         left_on=["player_team", "SEASON"],
-        right_on=["TEAM_ABBREVIATION", "SEASON"],
-        how="left"
+        right_on=["_pace_team_key", "SEASON"],
+        how="left",
     )
-
-    if "TEAM_ABBREVIATION" in df.columns:
-        df = df.drop("TEAM_ABBREVIATION", axis=1)
+    if "_pace_team_key" in df.columns:
+        df = df.drop("_pace_team_key", axis=1)
 
     # Merge opponent team pace
     df = df.merge(
-        pace_lookup.rename(columns={"PACE": "opp_pace", "TEAM_ABBREVIATION": "_opp_team"}),
+        pace_base.rename(columns={"PACE": "opp_pace", "TEAM_ABBREVIATION": "_opp_pace_key"}),
         left_on=["opponent", "SEASON"],
-        right_on=["_opp_team", "SEASON"],
-        how="left"
+        right_on=["_opp_pace_key", "SEASON"],
+        how="left",
     )
-
-    if "_opp_team" in df.columns:
-        df = df.drop("_opp_team", axis=1)
+    if "_opp_pace_key" in df.columns:
+        df = df.drop("_opp_pace_key", axis=1)
 
     # Game pace is average of both teams
     df["team_pace"] = df["team_pace"].fillna(100.0)
@@ -531,19 +531,17 @@ def add_matchup_difficulty(
     if defense_vs_pos_df is not None and not defense_vs_pos_df.empty:
         # Use position-specific rankings
         if "POSITION" in df.columns:
+            dvp_base = defense_vs_pos_df[[
+                "TEAM_ABBREVIATION", "POSITION", "SEASON", "PTS_RANK", "AST_RANK", "REB_RANK"
+            ]].rename(columns={"TEAM_ABBREVIATION": "_dvp_team_key"})
             df = df.merge(
-                defense_vs_pos_df[["TEAM_ABBREVIATION", "POSITION", "SEASON", "PTS_RANK", "AST_RANK", "REB_RANK"]],
+                dvp_base,
                 left_on=["opponent", "POSITION", "SEASON"],
-                right_on=["TEAM_ABBREVIATION", "POSITION", "SEASON"],
+                right_on=["_dvp_team_key", "POSITION", "SEASON"],
                 how="left",
-                suffixes=("", "_def")
             )
-
-            if "TEAM_ABBREVIATION_def" in df.columns:
-                df = df.drop("TEAM_ABBREVIATION_def", axis=1)
-            if "TEAM_ABBREVIATION" in df.columns and "opponent" in df.columns:
-                # Only drop if it's a duplicate from merge
-                pass
+            if "_dvp_team_key" in df.columns:
+                df = df.drop("_dvp_team_key", axis=1)
 
             df["opp_pts_def_rank"] = df["PTS_RANK"].fillna(15)
             df["opp_ast_def_rank"] = df["AST_RANK"].fillna(15)

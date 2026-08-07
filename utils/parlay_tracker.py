@@ -47,7 +47,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-DATA_DIR      = Path(__file__).parent.parent / "data"
+from utils.league_config import get_config
+DATA_DIR      = get_config("nba").data_dir
 PARLAYS_FILE  = DATA_DIR / "parlays_history.json"
 
 

@@ -2776,3 +2776,175 @@ html {
         font-size: 0.9rem;
     }
 }
+
+/* League toggle (NBA/WNBA switch in navbar) */
+.league-toggle {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.league-pill {
+    padding: 6px 14px;
+    border-radius: 999px;
+    color: #9ca3af;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transition: all 0.15s ease;
+}
+.league-pill:hover {
+    color: #e5e7eb;
+    background: rgba(255, 255, 255, 0.04);
+}
+.league-pill.active {
+    background: linear-gradient(135deg, #14b8a6, #0d9488);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(20, 184, 166, 0.25);
+}
+
+/* WNBA recent games table */
+.wnba-recent-table th,
+.wnba-recent-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.wnba-recent-table th {
+    color: #9ca3af;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+.wnba-recent-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* WNBA player analysis: NBA-style stat/period pills */
+.wnba-pill-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+.wnba-pill {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: transparent;
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.wnba-pill:hover {
+    color: #e5e7eb;
+    border-color: rgba(20, 184, 166, 0.5);
+}
+.wnba-pill.active {
+    background: rgba(20, 184, 166, 0.15);
+    color: #14b8a6;
+    border-color: rgba(20, 184, 166, 0.7);
+}
+
+/* Small team badge next to player name */
+.wnba-team-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(20, 184, 166, 0.08);
+    color: #14b8a6;
+    border: 1px solid rgba(20, 184, 166, 0.3);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+/* Generic card container used for prediction / injury */
+.wnba-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 16px 20px;
+}
+
+/* WNBA player headshot in analysis page header */
+.wnba-headshot {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.25);
+}
+
+/* Matchup card on right sidebar of WNBA player analysis */
+.wnba-matchup-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 16px 20px;
+}
+.wnba-matchup-card h4 {
+    color: #e5e7eb;
+    margin: 0 0 12px 0;
+    font-size: 14px;
+}
+.wnba-matchup-stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.wnba-matchup-stat-row:last-child { border: none; }
+
+/* WNBA parlay card on props page */
+.wnba-parlay-card {
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.08), rgba(167, 139, 250, 0.06));
+    border: 1px solid rgba(20, 184, 166, 0.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+}
+.wnba-parlay-leg {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 12px;
+    color: #cbd5e1;
+    border-top: 1px dashed rgba(255, 255, 255, 0.05);
+}
+.wnba-parlay-leg:first-of-type { border-top: none; }
+
+/* WNBA player analysis: two-column grid (main + right sidebar) */
+.wnba-page-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 24px;
+    padding: 24px 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+    align-items: start;
+}
+.wnba-main-col {
+    min-width: 0;
+}
+.wnba-sidebar {
+    position: sticky;
+    top: 20px;
+}
+@media (max-width: 1024px) {
+    .wnba-page-grid {
+        grid-template-columns: 1fr;
+    }
+    .wnba-sidebar {
+        position: static;
+    }
+}

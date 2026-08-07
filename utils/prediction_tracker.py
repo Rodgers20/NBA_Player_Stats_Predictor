@@ -20,7 +20,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-DATA_DIR         = Path(__file__).parent.parent / "data"
+from utils.league_config import get_config
+DATA_DIR         = get_config("nba").data_dir
 HISTORY_FILE     = DATA_DIR / "prediction_history.json"
 PROPS_FILE       = DATA_DIR / "props_history.json"
 CALIBRATION_FILE = DATA_DIR / "model_calibration.json"

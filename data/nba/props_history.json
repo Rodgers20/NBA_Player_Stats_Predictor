@@ -25974,7 +25974,7 @@
   },
   "2026-04-26": {
     "generated_at": "2026-04-26T21:23:45.806688+00:00",
-    "graded_at": null,
+    "graded_at": "2026-08-03T03:48:15.256564+00:00",
     "props": [
       {
         "hit_rate": 1.0,
@@ -25988,8 +25988,8 @@
         "opponent": "PHI",
         "player": "Jaylen Brown",
         "avg": 41.0,
-        "actual": null,
-        "hit": null
+        "actual": 28.0,
+        "hit": false
       },
       {
         "hit_rate": 1.0,
@@ -26003,8 +26003,8 @@
         "opponent": "PHI",
         "player": "Jaylen Brown",
         "avg": 35.1,
-        "actual": null,
-        "hit": null
+        "actual": 21.0,
+        "hit": false
       },
       {
         "hit_rate": 1.0,
@@ -26018,8 +26018,8 @@
         "opponent": "BOS",
         "player": "Paul George",
         "avg": 8.8,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "hit_rate": 1.0,
@@ -26033,8 +26033,8 @@
         "opponent": "PHI",
         "player": "Jaylen Brown",
         "avg": 10.8,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -26048,8 +26048,8 @@
         "opponent": "SAN",
         "player": "Scoot Henderson",
         "avg": 1.0,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -26063,8 +26063,8 @@
         "opponent": "PHI",
         "player": "Jaylen Brown",
         "avg": 1.1,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -26078,8 +26078,8 @@
         "opponent": "HOU",
         "player": "Deandre Ayton",
         "avg": 1.1,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -26093,8 +26093,8 @@
         "opponent": "PHI",
         "player": "Payton Pritchard",
         "avg": 22.8,
-        "actual": null,
-        "hit": null
+        "actual": 41.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26108,8 +26108,8 @@
         "opponent": "PHI",
         "player": "Payton Pritchard",
         "avg": 19.4,
-        "actual": null,
-        "hit": null
+        "actual": 37.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26123,8 +26123,8 @@
         "opponent": "PHI",
         "player": "Payton Pritchard",
         "avg": 19.2,
-        "actual": null,
-        "hit": null
+        "actual": 36.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26138,8 +26138,8 @@
         "opponent": "POR",
         "player": "Dylan Harper",
         "avg": 19.5,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -26153,8 +26153,8 @@
         "opponent": "SAN",
         "player": "Jrue Holiday",
         "avg": 28.9,
-        "actual": null,
-        "hit": null
+        "actual": 30.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26168,8 +26168,8 @@
         "opponent": "POR",
         "player": "Stephon Castle",
         "avg": 26.1,
-        "actual": null,
-        "hit": null
+        "actual": 24.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26183,8 +26183,8 @@
         "opponent": "POR",
         "player": "Keldon Johnson",
         "avg": 16.2,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26198,8 +26198,8 @@
         "opponent": "BOS",
         "player": "Paul George",
         "avg": 30.1,
-        "actual": null,
-        "hit": null
+        "actual": 21.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -26213,8 +26213,8 @@
         "opponent": "LAL",
         "player": "Alperen Sengun",
         "avg": 39.6,
-        "actual": null,
-        "hit": null
+        "actual": 27.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -26228,8 +26228,8 @@
         "opponent": "BOS",
         "player": "Tyrese Maxey",
         "avg": 28.5,
-        "actual": null,
-        "hit": null
+        "actual": 24.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26243,8 +26243,8 @@
         "opponent": "SAN",
         "player": "Jrue Holiday",
         "avg": 24.1,
-        "actual": null,
-        "hit": null
+        "actual": 24.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26258,8 +26258,8 @@
         "opponent": "POR",
         "player": "De'Aaron Fox",
         "avg": 26.1,
-        "actual": null,
-        "hit": null
+        "actual": 41.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26273,8 +26273,8 @@
         "opponent": "LAL",
         "player": "Reed Sheppard",
         "avg": 18.6,
-        "actual": null,
-        "hit": null
+        "actual": 20.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -26288,8 +26288,8 @@
         "opponent": "LAL",
         "player": "Alperen Sengun",
         "avg": 32.9,
-        "actual": null,
-        "hit": null
+        "actual": 25.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -26303,8 +26303,8 @@
         "opponent": "BOS",
         "player": "Paul George",
         "avg": 26.3,
-        "actual": null,
-        "hit": null
+        "actual": 20.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26318,8 +26318,8 @@
         "opponent": "BOS",
         "player": "Tyrese Maxey",
         "avg": 35.7,
-        "actual": null,
-        "hit": null
+        "actual": 30.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26333,8 +26333,8 @@
         "opponent": "PHI",
         "player": "Jaylen Brown",
         "avg": 36.1,
-        "actual": null,
-        "hit": null
+        "actual": 27.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -26348,8 +26348,8 @@
         "opponent": "POR",
         "player": "Dylan Harper",
         "avg": 16.5,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -26363,8 +26363,8 @@
         "opponent": "PHI",
         "player": "Neemias Queta",
         "avg": 16.4,
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26378,8 +26378,8 @@
         "opponent": "LAL",
         "player": "Amen Thompson",
         "avg": 22.7,
-        "actual": null,
-        "hit": null
+        "actual": 27.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26393,8 +26393,8 @@
         "opponent": "LAL",
         "player": "Amen Thompson",
         "avg": 28.0,
-        "actual": null,
-        "hit": null
+        "actual": 34.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -26408,8 +26408,8 @@
         "opponent": "LAL",
         "player": "Alperen Sengun",
         "avg": 30.3,
-        "actual": null,
-        "hit": null
+        "actual": 21.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -26423,8 +26423,8 @@
         "opponent": "POR",
         "player": "Stephon Castle",
         "avg": 24.7,
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -26438,8 +26438,8 @@
         "opponent": "BOS",
         "player": "Paul George",
         "avg": 25.1,
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -26453,8 +26453,8 @@
         "opponent": "PHI",
         "player": "Sam Hauser",
         "avg": 12.6,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26468,8 +26468,8 @@
         "opponent": "BOS",
         "player": "Joel Embiid",
         "avg": 26.1,
-        "actual": null,
-        "hit": null
+        "actual": 32.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26483,8 +26483,8 @@
         "opponent": "SAN",
         "player": "Donovan Clingan",
         "avg": 15.0,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26498,8 +26498,8 @@
         "opponent": "POR",
         "player": "De'Aaron Fox",
         "avg": 22.4,
-        "actual": null,
-        "hit": null
+        "actual": 35.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26513,8 +26513,8 @@
         "opponent": "POR",
         "player": "Stephon Castle",
         "avg": 32.3,
-        "actual": null,
-        "hit": null
+        "actual": 25.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -26528,8 +26528,8 @@
         "opponent": "POR",
         "player": "De'Aaron Fox",
         "avg": 20.7,
-        "actual": null,
-        "hit": null
+        "actual": 34.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26543,8 +26543,8 @@
         "opponent": "BOS",
         "player": "Joel Embiid",
         "avg": 33.2,
-        "actual": null,
-        "hit": null
+        "actual": 42.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26558,8 +26558,8 @@
         "opponent": "BOS",
         "player": "Tyrese Maxey",
         "avg": 32.0,
-        "actual": null,
-        "hit": null
+        "actual": 28.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26573,8 +26573,8 @@
         "opponent": "BOS",
         "player": "Joel Embiid",
         "avg": 30.0,
-        "actual": null,
-        "hit": null
+        "actual": 36.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26588,8 +26588,8 @@
         "opponent": "POR",
         "player": "Julian Champagnie",
         "avg": 14.4,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26603,8 +26603,8 @@
         "opponent": "BOS",
         "player": "VJ Edgecombe",
         "avg": 19.8,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -26618,8 +26618,8 @@
         "opponent": "LAL",
         "player": "Alperen Sengun",
         "avg": 16.0,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -26633,8 +26633,8 @@
         "opponent": "SAN",
         "player": "Jrue Holiday",
         "avg": 10.8,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -26648,8 +26648,8 @@
         "opponent": "POR",
         "player": "Devin Vassell",
         "avg": 17.6,
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26663,8 +26663,8 @@
         "opponent": "POR",
         "player": "Devin Vassell",
         "avg": 19.6,
-        "actual": null,
-        "hit": null
+        "actual": 20.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26678,8 +26678,8 @@
         "opponent": "LAL",
         "player": "Amen Thompson",
         "avg": 11.5,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26693,8 +26693,8 @@
         "opponent": "BOS",
         "player": "Quentin Grimes",
         "avg": 9.9,
-        "actual": null,
-        "hit": null
+        "actual": 14.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26708,8 +26708,8 @@
         "opponent": "BOS",
         "player": "Joel Embiid",
         "avg": 10.3,
-        "actual": null,
-        "hit": null
+        "actual": 16.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26723,8 +26723,8 @@
         "opponent": "POR",
         "player": "Devin Vassell",
         "avg": 14.1,
-        "actual": null,
-        "hit": null
+        "actual": 14.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26738,8 +26738,8 @@
         "opponent": "POR",
         "player": "De'Aaron Fox",
         "avg": 9.1,
-        "actual": null,
-        "hit": null
+        "actual": 13.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -26753,8 +26753,8 @@
         "opponent": "BOS",
         "player": "VJ Edgecombe",
         "avg": 22.1,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -26768,8 +26768,8 @@
         "opponent": "PHI",
         "player": "Derrick White",
         "avg": 15.1,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26783,8 +26783,8 @@
         "opponent": "BOS",
         "player": "Paul George",
         "avg": 2.1,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26798,8 +26798,8 @@
         "opponent": "POR",
         "player": "Devin Vassell",
         "avg": 7.5,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26813,8 +26813,8 @@
         "opponent": "PHI",
         "player": "Payton Pritchard",
         "avg": 7.0,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26828,8 +26828,8 @@
         "opponent": "PHI",
         "player": "Derrick White",
         "avg": 19.0,
-        "actual": null,
-        "hit": null
+        "actual": 15.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -26843,8 +26843,8 @@
         "opponent": "HOU",
         "player": "LeBron James",
         "avg": 16.3,
-        "actual": null,
-        "hit": null
+        "actual": 13.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -26858,8 +26858,8 @@
         "opponent": "LAL",
         "player": "Amen Thompson",
         "avg": 21.8,
-        "actual": null,
-        "hit": null
+        "actual": 30.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -26873,8 +26873,8 @@
         "opponent": "PHI",
         "player": "Derrick White",
         "avg": 8.2,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -26888,8 +26888,8 @@
         "opponent": "BOS",
         "player": "Tyrese Maxey",
         "avg": 10.9,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -26903,8 +26903,8 @@
         "opponent": "HOU",
         "player": "LeBron James",
         "avg": 27.2,
-        "actual": null,
-        "hit": null
+        "actual": 14.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -26918,8 +26918,8 @@
         "opponent": "BOS",
         "player": "VJ Edgecombe",
         "avg": 25.7,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -26933,8 +26933,8 @@
         "opponent": "PHI",
         "player": "Derrick White",
         "avg": 14.7,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -26948,8 +26948,8 @@
         "opponent": "PHI",
         "player": "Nikola Vucevic",
         "avg": 10.1,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -26963,8 +26963,8 @@
         "opponent": "POR",
         "player": "Julian Champagnie",
         "avg": 0.9,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -26978,8 +26978,8 @@
         "opponent": "BOS",
         "player": "Kelly Oubre Jr.",
         "avg": 17.7,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -26993,8 +26993,8 @@
         "opponent": "PHI",
         "player": "Jayson Tatum",
         "avg": 33.6,
-        "actual": null,
-        "hit": null
+        "actual": 37.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -27008,8 +27008,8 @@
         "opponent": "HOU",
         "player": "Rui Hachimura",
         "avg": 15.0,
-        "actual": null,
-        "hit": null
+        "actual": 16.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -27038,8 +27038,8 @@
         "opponent": "LAL",
         "player": "Jabari Smith Jr.",
         "avg": 24.9,
-        "actual": null,
-        "hit": null
+        "actual": 24.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27053,8 +27053,8 @@
         "opponent": "LAL",
         "player": "Reed Sheppard",
         "avg": 1.0,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -27068,8 +27068,8 @@
         "opponent": "POR",
         "player": "Luke Kornet",
         "avg": 7.3,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27083,8 +27083,8 @@
         "opponent": "SAN",
         "player": "Toumani Camara",
         "avg": 3.1,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -27098,8 +27098,8 @@
         "opponent": "PHI",
         "player": "Derrick White",
         "avg": 1.6,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -27113,8 +27113,8 @@
         "opponent": "SAN",
         "player": "Donovan Clingan",
         "avg": 1.6,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -27128,8 +27128,8 @@
         "opponent": "SAN",
         "player": "Toumani Camara",
         "avg": 2.3,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -27143,8 +27143,8 @@
         "opponent": "BOS",
         "player": "Andre Drummond",
         "avg": 0.9,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -27158,8 +27158,8 @@
         "opponent": "POR",
         "player": "Stephon Castle",
         "avg": 0.8,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27173,8 +27173,8 @@
         "opponent": "LAL",
         "player": "Alperen Sengun",
         "avg": 1.4,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -27188,8 +27188,8 @@
         "opponent": "PHI",
         "player": "Jayson Tatum",
         "avg": 17.4,
-        "actual": null,
-        "hit": null
+        "actual": 18.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -27203,8 +27203,8 @@
         "opponent": "LAL",
         "player": "Reed Sheppard",
         "avg": 3.6,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -27218,8 +27218,8 @@
         "opponent": "BOS",
         "player": "Joel Embiid",
         "avg": 1.6,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -27233,8 +27233,8 @@
         "opponent": "SAN",
         "player": "Robert Williams III",
         "avg": 0.5,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -27248,8 +27248,8 @@
         "opponent": "POR",
         "player": "Julian Champagnie",
         "avg": 0.8,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -27263,8 +27263,8 @@
         "opponent": "HOU",
         "player": "Luke Kennard",
         "avg": 18.0,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -27278,8 +27278,8 @@
         "opponent": "HOU",
         "player": "Austin Reaves",
         "avg": 16.1,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -27293,8 +27293,8 @@
         "opponent": "PHI",
         "player": "Jayson Tatum",
         "avg": 29.2,
-        "actual": null,
-        "hit": null
+        "actual": 41.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -27308,8 +27308,8 @@
         "opponent": "POR",
         "player": "Keldon Johnson",
         "avg": 5.6,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -27323,8 +27323,8 @@
         "opponent": "HOU",
         "player": "LeBron James",
         "avg": 35.5,
-        "actual": null,
-        "hit": null
+        "actual": 23.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -27338,8 +27338,8 @@
         "opponent": "BOS",
         "player": "VJ Edgecombe",
         "avg": 9.5,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -27353,8 +27353,8 @@
         "opponent": "HOU",
         "player": "Austin Reaves",
         "avg": 1.5,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -27368,8 +27368,8 @@
         "opponent": "PHI",
         "player": "Jayson Tatum",
         "avg": 40.1,
-        "actual": null,
-        "hit": null
+        "actual": 48.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -27383,8 +27383,8 @@
         "opponent": "HOU",
         "player": "LeBron James",
         "avg": 27.5,
-        "actual": null,
-        "hit": null
+        "actual": 19.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -27398,8 +27398,8 @@
         "opponent": "HOU",
         "player": "Luke Kennard",
         "avg": 16.2,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": false
       },
       {
         "hit_rate": 0.4,
@@ -27413,8 +27413,8 @@
         "opponent": "HOU",
         "player": "Luke Kennard",
         "avg": 21.1,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -27443,8 +27443,8 @@
         "opponent": "LAL",
         "player": "Tari Eason",
         "avg": 1.4,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -27458,8 +27458,8 @@
         "opponent": "PHI",
         "player": "Derrick White",
         "avg": 4.3,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -27473,8 +27473,8 @@
         "opponent": "SAN",
         "player": "Toumani Camara",
         "avg": 13.9,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -27488,8 +27488,8 @@
         "opponent": "SAN",
         "player": "Donovan Clingan",
         "avg": 8.2,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -27503,8 +27503,8 @@
         "opponent": "PHI",
         "player": "Payton Pritchard",
         "avg": 15.8,
-        "actual": null,
-        "hit": null
+        "actual": 32.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -27518,8 +27518,8 @@
         "opponent": "BOS",
         "player": "Paul George",
         "avg": 5.0,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -27533,8 +27533,8 @@
         "opponent": "POR",
         "player": "Victor Wembanyama",
         "avg": 12.4,
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -27548,8 +27548,8 @@
         "opponent": "HOU",
         "player": "Jarred Vanderbilt",
         "avg": 3.6,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -27563,8 +27563,8 @@
         "opponent": "HOU",
         "player": "Austin Reaves",
         "avg": 4.1,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -27578,8 +27578,8 @@
         "opponent": "POR",
         "player": "Stephon Castle",
         "avg": 6.2,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -27593,8 +27593,8 @@
         "opponent": "SAN",
         "player": "Deni Avdija",
         "avg": 6.4,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -27608,8 +27608,8 @@
         "opponent": "PHI",
         "player": "Jayson Tatum",
         "avg": 22.7,
-        "actual": null,
-        "hit": null
+        "actual": 30.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -27623,8 +27623,8 @@
         "opponent": "PHI",
         "player": "Jayson Tatum",
         "avg": 10.9,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -27638,8 +27638,8 @@
         "opponent": "LAL",
         "player": "Reed Sheppard",
         "avg": 4.8,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -27653,8 +27653,8 @@
         "opponent": "POR",
         "player": "Victor Wembanyama",
         "avg": 40.5,
-        "actual": null,
-        "hit": null
+        "actual": 39.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27668,8 +27668,8 @@
         "opponent": "POR",
         "player": "Victor Wembanyama",
         "avg": 44.0,
-        "actual": null,
-        "hit": null
+        "actual": 42.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27743,8 +27743,8 @@
         "opponent": "SAN",
         "player": "Deni Avdija",
         "avg": 36.5,
-        "actual": null,
-        "hit": null
+        "actual": 36.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27773,8 +27773,8 @@
         "opponent": "HOU",
         "player": "Austin Reaves",
         "avg": 24.0,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -27788,8 +27788,8 @@
         "opponent": "SAN",
         "player": "Toumani Camara",
         "avg": 18.7,
-        "actual": null,
-        "hit": null
+        "actual": 13.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27818,8 +27818,8 @@
         "opponent": "POR",
         "player": "Victor Wembanyama",
         "avg": 31.6,
-        "actual": null,
-        "hit": null
+        "actual": 30.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27833,8 +27833,8 @@
         "opponent": "SAN",
         "player": "Deni Avdija",
         "avg": 30.0,
-        "actual": null,
-        "hit": null
+        "actual": 33.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27848,8 +27848,8 @@
         "opponent": "HOU",
         "player": "Austin Reaves",
         "avg": 20.2,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -27863,8 +27863,8 @@
         "opponent": "SAN",
         "player": "Deni Avdija",
         "avg": 30.1,
-        "actual": null,
-        "hit": null
+        "actual": 29.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27878,8 +27878,8 @@
         "opponent": "HOU",
         "player": "Austin Reaves",
         "avg": 19.9,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -27893,8 +27893,8 @@
         "opponent": "SAN",
         "player": "Jrue Holiday",
         "avg": 22.9,
-        "actual": null,
-        "hit": null
+        "actual": 26.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27908,8 +27908,8 @@
         "opponent": "HOU",
         "player": "Deandre Ayton",
         "avg": 18.1,
-        "actual": null,
-        "hit": null
+        "actual": 29.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27923,8 +27923,8 @@
         "opponent": "POR",
         "player": "Dylan Harper",
         "avg": 15.9,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -27938,8 +27938,8 @@
         "opponent": "SAN",
         "player": "Scoot Henderson",
         "avg": 19.9,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -27953,8 +27953,8 @@
         "opponent": "POR",
         "player": "Stephon Castle",
         "avg": 13.8,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -27968,8 +27968,8 @@
         "opponent": "LAL",
         "player": "Tari Eason",
         "avg": 16.7,
-        "actual": null,
-        "hit": null
+        "actual": 28.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -27998,8 +27998,8 @@
         "opponent": "HOU",
         "player": "Jaxson Hayes",
         "avg": 13.6,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -28028,8 +28028,8 @@
         "opponent": "SAN",
         "player": "Deni Avdija",
         "avg": 12.9,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -28043,8 +28043,8 @@
         "opponent": "HOU",
         "player": "Austin Reaves",
         "avg": 7.9,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -28058,8 +28058,8 @@
         "opponent": "SAN",
         "player": "Robert Williams III",
         "avg": 13.4,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -28073,8 +28073,8 @@
         "opponent": "PHI",
         "player": "Sam Hauser",
         "avg": 2.2,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -28088,8 +28088,8 @@
         "opponent": "POR",
         "player": "Dylan Harper",
         "avg": 6.6,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -28103,8 +28103,8 @@
         "opponent": "HOU",
         "player": "Marcus Smart",
         "avg": 15.0,
-        "actual": null,
-        "hit": null
+        "actual": 14.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -28118,8 +28118,8 @@
         "opponent": "POR",
         "player": "Luke Kornet",
         "avg": 13.9,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -28133,8 +28133,8 @@
         "opponent": "POR",
         "player": "Luke Kornet",
         "avg": 8.6,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -28148,8 +28148,8 @@
         "opponent": "PHI",
         "player": "Payton Pritchard",
         "avg": 2.6,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -28178,8 +28178,8 @@
         "opponent": "LAL",
         "player": "Reed Sheppard",
         "avg": 13.8,
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -28193,8 +28193,8 @@
         "opponent": "SAN",
         "player": "Scoot Henderson",
         "avg": 2.8,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -28208,8 +28208,8 @@
         "opponent": "PHI",
         "player": "Jaylen Brown",
         "avg": 5.9,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -28223,8 +28223,8 @@
         "opponent": "POR",
         "player": "Devin Vassell",
         "avg": 2.0,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -28238,8 +28238,8 @@
         "opponent": "HOU",
         "player": "Jake LaRavia",
         "avg": 8.6,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -28253,8 +28253,8 @@
         "opponent": "POR",
         "player": "Luke Kornet",
         "avg": 11.9,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -28268,8 +28268,8 @@
         "opponent": "BOS",
         "player": "Tyrese Maxey",
         "avg": 0.7,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -28283,8 +28283,8 @@
         "opponent": "SAN",
         "player": "Robert Williams III",
         "avg": 1.1,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -28298,8 +28298,8 @@
         "opponent": "HOU",
         "player": "Jake LaRavia",
         "avg": 1.0,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -28313,8 +28313,8 @@
         "opponent": "POR",
         "player": "Victor Wembanyama",
         "avg": 3.2,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -28343,8 +28343,8 @@
         "opponent": "POR",
         "player": "Victor Wembanyama",
         "avg": 0.8,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -28358,8 +28358,8 @@
         "opponent": "HOU",
         "player": "Rui Hachimura",
         "avg": 0.8,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -28373,8 +28373,8 @@
         "opponent": "POR",
         "player": "Stephon Castle",
         "avg": 1.8,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -28388,8 +28388,8 @@
         "opponent": "LAL",
         "player": "Reed Sheppard",
         "avg": 1.8,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -28403,8 +28403,8 @@
         "opponent": "HOU",
         "player": "Jaxson Hayes",
         "avg": 10.1,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -28418,8 +28418,8 @@
         "opponent": "BOS",
         "player": "Kelly Oubre Jr.",
         "avg": 0.6,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.4,
@@ -28433,8 +28433,8 @@
         "opponent": "BOS",
         "player": "Andre Drummond",
         "avg": 10.9,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -28448,8 +28448,8 @@
         "opponent": "PHI",
         "player": "Neemias Queta",
         "avg": 1.5,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -28463,8 +28463,8 @@
         "opponent": "LAL",
         "player": "Amen Thompson",
         "avg": 1.7,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -28478,8 +28478,8 @@
         "opponent": "SAN",
         "player": "Donovan Clingan",
         "avg": 0.5,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -28493,8 +28493,8 @@
         "opponent": "SAN",
         "player": "Deni Avdija",
         "avg": 0.6,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -28508,8 +28508,8 @@
         "opponent": "POR",
         "player": "Dylan Harper",
         "avg": 0.6,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -28523,8 +28523,8 @@
         "opponent": "LAL",
         "player": "Jabari Smith Jr.",
         "avg": 3.3,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -28538,8 +28538,8 @@
         "opponent": "HOU",
         "player": "Rui Hachimura",
         "avg": 1.6,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -28553,8 +28553,8 @@
         "opponent": "HOU",
         "player": "LeBron James",
         "avg": 0.6,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -28568,8 +28568,8 @@
         "opponent": "PHI",
         "player": "Derrick White",
         "avg": 0.9,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -28583,8 +28583,8 @@
         "opponent": "POR",
         "player": "Keldon Johnson",
         "avg": 0.8,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -28598,8 +28598,8 @@
         "opponent": "HOU",
         "player": "Jaxson Hayes",
         "avg": 1.6,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -28628,8 +28628,8 @@
         "opponent": "PHI",
         "player": "Jayson Tatum",
         "avg": 1.4,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -28643,8 +28643,8 @@
         "opponent": "POR",
         "player": "Devin Vassell",
         "avg": 1.0,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -28658,8 +28658,8 @@
         "opponent": "SAN",
         "player": "Deni Avdija",
         "avg": 23.6,
-        "actual": null,
-        "hit": null
+        "actual": 26.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -28673,8 +28673,8 @@
         "opponent": "HOU",
         "player": "LeBron James",
         "avg": 19.2,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -28688,8 +28688,8 @@
         "opponent": "BOS",
         "player": "Tyrese Maxey",
         "avg": 24.8,
-        "actual": null,
-        "hit": null
+        "actual": 22.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -28703,8 +28703,8 @@
         "opponent": "LAL",
         "player": "Amen Thompson",
         "avg": 6.2,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -28718,8 +28718,8 @@
         "opponent": "POR",
         "player": "De'Aaron Fox",
         "avg": 17.0,
-        "actual": null,
-        "hit": null
+        "actual": 28.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -28748,8 +28748,8 @@
         "opponent": "POR",
         "player": "Keldon Johnson",
         "avg": 10.6,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -28763,8 +28763,8 @@
         "opponent": "HOU",
         "player": "Deandre Ayton",
         "avg": 7.2,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -28778,8 +28778,8 @@
         "opponent": "PHI",
         "player": "Neemias Queta",
         "avg": 6.2,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -28808,8 +28808,8 @@
         "opponent": "POR",
         "player": "Devin Vassell",
         "avg": 12.1,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -28823,8 +28823,8 @@
         "opponent": "POR",
         "player": "Victor Wembanyama",
         "avg": 3.5,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -28838,8 +28838,8 @@
         "opponent": "BOS",
         "player": "Joel Embiid",
         "avg": 7.1,
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -28853,8 +28853,8 @@
         "opponent": "SAN",
         "player": "Deni Avdija",
         "avg": 6.5,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -28868,8 +28868,8 @@
         "opponent": "BOS",
         "player": "Andre Drummond",
         "avg": 5.2,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -28883,8 +28883,8 @@
         "opponent": "BOS",
         "player": "Kelly Oubre Jr.",
         "avg": 5.8,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -28898,8 +28898,8 @@
         "opponent": "LAL",
         "player": "Tari Eason",
         "avg": 10.6,
-        "actual": null,
-        "hit": null
+        "actual": 20.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -28913,8 +28913,8 @@
         "opponent": "LAL",
         "player": "Tari Eason",
         "avg": 6.1,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -28928,8 +28928,8 @@
         "opponent": "PHI",
         "player": "Jaylen Brown",
         "avg": 4.9,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -28943,8 +28943,8 @@
         "opponent": "POR",
         "player": "Julian Champagnie",
         "avg": 5.4,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -28958,8 +28958,8 @@
         "opponent": "HOU",
         "player": "Deandre Ayton",
         "avg": 10.9,
-        "actual": null,
-        "hit": null
+        "actual": 19.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -28973,8 +28973,8 @@
         "opponent": "BOS",
         "player": "Paul George",
         "avg": 3.8,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -28988,8 +28988,8 @@
         "opponent": "LAL",
         "player": "Alperen Sengun",
         "avg": 6.7,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -29003,8 +29003,8 @@
         "opponent": "PHI",
         "player": "Derrick White",
         "avg": 3.9,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -29018,8 +29018,8 @@
         "opponent": "LAL",
         "player": "Amen Thompson",
         "avg": 5.3,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -29033,8 +29033,8 @@
         "opponent": "SAN",
         "player": "Robert Williams III",
         "avg": 6.9,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -29048,8 +29048,8 @@
         "opponent": "PHI",
         "player": "Payton Pritchard",
         "avg": 3.6,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -29078,8 +29078,8 @@
         "opponent": "POR",
         "player": "De'Aaron Fox",
         "avg": 5.4,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -29093,8 +29093,8 @@
         "opponent": "BOS",
         "player": "Tyrese Maxey",
         "avg": 7.2,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -29108,8 +29108,8 @@
         "opponent": "POR",
         "player": "Stephon Castle",
         "avg": 7.6,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -29123,8 +29123,8 @@
         "opponent": "POR",
         "player": "Victor Wembanyama",
         "avg": 15.9,
-        "actual": null,
-        "hit": null
+        "actual": 15.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -29138,8 +29138,8 @@
         "opponent": "PHI",
         "player": "Nikola Vucevic",
         "avg": 4.1,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -29153,8 +29153,8 @@
         "opponent": "SAN",
         "player": "Jrue Holiday",
         "avg": 3.5,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -29168,8 +29168,8 @@
         "opponent": "BOS",
         "player": "VJ Edgecombe",
         "avg": 16.2,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -29183,8 +29183,8 @@
         "opponent": "BOS",
         "player": "Paul George",
         "avg": 3.2,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -29198,8 +29198,8 @@
         "opponent": "POR",
         "player": "De'Aaron Fox",
         "avg": 1.2,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.9,
@@ -29213,8 +29213,8 @@
         "opponent": "PHI",
         "player": "Jayson Tatum",
         "avg": 2.9,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -29228,8 +29228,8 @@
         "opponent": "BOS",
         "player": "Tyrese Maxey",
         "avg": 0.8,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -29243,8 +29243,8 @@
         "opponent": "HOU",
         "player": "Luke Kennard",
         "avg": 13.1,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -29258,8 +29258,8 @@
         "opponent": "HOU",
         "player": "Marcus Smart",
         "avg": 11.3,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -29273,8 +29273,8 @@
         "opponent": "LAL",
         "player": "Alperen Sengun",
         "avg": 9.3,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -29288,8 +29288,8 @@
         "opponent": "SAN",
         "player": "Jrue Holiday",
         "avg": 18.1,
-        "actual": null,
-        "hit": null
+        "actual": 20.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -29303,8 +29303,8 @@
         "opponent": "POR",
         "player": "Luke Kornet",
         "avg": 0.7,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -29318,8 +29318,8 @@
         "opponent": "BOS",
         "player": "VJ Edgecombe",
         "avg": 1.7,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 1.0,
@@ -29333,8 +29333,8 @@
         "opponent": "BOS",
         "player": "Paul George",
         "avg": 21.3,
-        "actual": null,
-        "hit": null
+        "actual": 16.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -29348,8 +29348,8 @@
         "opponent": "LAL",
         "player": "Alperen Sengun",
         "avg": 1.7,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -29363,8 +29363,8 @@
         "opponent": "HOU",
         "player": "LeBron James",
         "avg": 1.3,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -29378,8 +29378,8 @@
         "opponent": "HOU",
         "player": "Marcus Smart",
         "avg": 2.1,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -29393,8 +29393,8 @@
         "opponent": "LAL",
         "player": "Tari Eason",
         "avg": 1.2,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "hit_rate": 0.2,
@@ -29408,8 +29408,8 @@
         "opponent": "HOU",
         "player": "Luke Kennard",
         "avg": 8.0,
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "hit_rate": 0.8,
@@ -29423,8 +29423,8 @@
         "opponent": "BOS",
         "player": "VJ Edgecombe",
         "avg": 1.3,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -29438,8 +29438,8 @@
         "opponent": "POR",
         "player": "Victor Wembanyama",
         "avg": 1.7,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -29453,8 +29453,8 @@
         "opponent": "PHI",
         "player": "Derrick White",
         "avg": 0.9,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -29468,8 +29468,8 @@
         "opponent": "HOU",
         "player": "Deandre Ayton",
         "avg": 0.5,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -29498,8 +29498,8 @@
         "opponent": "BOS",
         "player": "Kelly Oubre Jr.",
         "avg": 11.9,
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "hit_rate": 0.5,
@@ -29513,8 +29513,8 @@
         "opponent": "POR",
         "player": "Devin Vassell",
         "avg": 5.5,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -29528,8 +29528,8 @@
         "opponent": "LAL",
         "player": "Alperen Sengun",
         "avg": 23.6,
-        "actual": null,
-        "hit": null
+        "actual": 19.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -29543,8 +29543,8 @@
         "opponent": "SAN",
         "player": "Jrue Holiday",
         "avg": 4.8,
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -29558,8 +29558,8 @@
         "opponent": "POR",
         "player": "Luke Kornet",
         "avg": 5.3,
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -29573,8 +29573,8 @@
         "opponent": "HOU",
         "player": "Rui Hachimura",
         "avg": 11.9,
-        "actual": null,
-        "hit": null
+        "actual": 13.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -29588,8 +29588,8 @@
         "opponent": "LAL",
         "player": "Jabari Smith Jr.",
         "avg": 7.6,
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "hit_rate": 0.8,
@@ -29603,8 +29603,8 @@
         "opponent": "HOU",
         "player": "LeBron James",
         "avg": 8.3,
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -29618,8 +29618,8 @@
         "opponent": "BOS",
         "player": "Joel Embiid",
         "avg": 22.9,
-        "actual": null,
-        "hit": null
+        "actual": 26.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -29633,8 +29633,8 @@
         "opponent": "LAL",
         "player": "Amen Thompson",
         "avg": 16.5,
-        "actual": null,
-        "hit": null
+        "actual": 23.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -29648,8 +29648,8 @@
         "opponent": "HOU",
         "player": "LeBron James",
         "avg": 8.0,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -29663,8 +29663,8 @@
         "opponent": "LAL",
         "player": "Jabari Smith Jr.",
         "avg": 17.3,
-        "actual": null,
-        "hit": null
+        "actual": 16.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -29678,8 +29678,8 @@
         "opponent": "PHI",
         "player": "Jayson Tatum",
         "avg": 6.5,
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -29693,8 +29693,8 @@
         "opponent": "SAN",
         "player": "Jrue Holiday",
         "avg": 6.0,
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -29708,8 +29708,8 @@
         "opponent": "SAN",
         "player": "Scoot Henderson",
         "avg": 17.5,
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "hit_rate": 0.7,
@@ -29723,8 +29723,8 @@
         "opponent": "PHI",
         "player": "Jaylen Brown",
         "avg": 2.3,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": true
       },
       {
         "hit_rate": 0.5,
@@ -29738,8 +29738,8 @@
         "opponent": "SAN",
         "player": "Jrue Holiday",
         "avg": 0.9,
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "hit_rate": 0.6,
@@ -29753,8 +29753,8 @@
         "opponent": "POR",
         "player": "Dylan Harper",
         "avg": 12.9,
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "hit_rate": 0.9,
@@ -29768,8 +29768,8 @@
         "opponent": "PHI",
         "player": "Jaylen Brown",
         "avg": 30.2,
-        "actual": null,
-        "hit": null
+        "actual": 20.0,
+        "hit": false
       },
       {
         "hit_rate": 0.6,
@@ -29798,8 +29798,8 @@
         "opponent": "POR",
         "player": "Stephon Castle",
         "avg": 18.5,
-        "actual": null,
-        "hit": null
+        "actual": 16.0,
+        "hit": true
       },
       {
         "hit_rate": 0.7,
@@ -29892,11 +29892,68 @@
         "hit": null
       }
     ],
-    "summary": {}
+    "summary": {
+      "hit": 136,
+      "miss": 101,
+      "total": 237,
+      "pct": 57.4,
+      "by_stat": {
+        "PTS+AST+REB": {
+          "hit": 10,
+          "total": 21,
+          "pct": 47.6
+        },
+        "PTS+AST": {
+          "hit": 13,
+          "total": 24,
+          "pct": 54.2
+        },
+        "AST+REB": {
+          "hit": 14,
+          "total": 21,
+          "pct": 66.7
+        },
+        "STL": {
+          "hit": 19,
+          "total": 30,
+          "pct": 63.3
+        },
+        "BLK": {
+          "hit": 7,
+          "total": 13,
+          "pct": 53.8
+        },
+        "PTS+REB": {
+          "hit": 26,
+          "total": 38,
+          "pct": 68.4
+        },
+        "FG3M": {
+          "hit": 11,
+          "total": 19,
+          "pct": 57.9
+        },
+        "PTS": {
+          "hit": 15,
+          "total": 29,
+          "pct": 51.7
+        },
+        "REB": {
+          "hit": 14,
+          "total": 26,
+          "pct": 53.8
+        },
+        "AST": {
+          "hit": 7,
+          "total": 16,
+          "pct": 43.8
+        }
+      }
+    }
   },
   "2026-05-25": {
-    "generated_at": "2026-05-25T22:09:49.049054+00:00",
-    "graded_at": null,
+    "generated_at": "2026-05-26T03:39:48.576947+00:00",
+    "graded_at": "2026-08-03T03:48:15.616277+00:00",
     "props": [
       {
         "ev": 0.8843,
@@ -29910,8 +29967,8 @@
         "hit_rate": 1.0,
         "team": "NYK",
         "stat": "PTS+REB",
-        "actual": null,
-        "hit": null
+        "actual": 24.0,
+        "hit": true
       },
       {
         "ev": 0.6061,
@@ -29925,8 +29982,8 @@
         "hit_rate": 0.9,
         "team": "CLE",
         "stat": "AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "ev": 0.5046,
@@ -29940,8 +29997,8 @@
         "hit_rate": 1.0,
         "team": "CLE",
         "stat": "AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "ev": 0.4765,
@@ -29955,8 +30012,8 @@
         "hit_rate": 0.9,
         "team": "NYK",
         "stat": "AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "ev": 0.8843,
@@ -29970,8 +30027,8 @@
         "hit_rate": 0.9,
         "team": "CLE",
         "stat": "PTS+REB",
-        "actual": null,
-        "hit": null
+        "actual": 35.0,
+        "hit": true
       },
       {
         "ev": 0.8808,
@@ -29985,8 +30042,8 @@
         "hit_rate": 0.9,
         "team": "CLE",
         "stat": "PTS+AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 36.0,
+        "hit": true
       },
       {
         "ev": 0.8631,
@@ -30000,8 +30057,8 @@
         "hit_rate": 0.8,
         "team": "CLE",
         "stat": "PTS+AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 18.0,
+        "hit": false
       },
       {
         "ev": 0.8442,
@@ -30015,8 +30072,8 @@
         "hit_rate": 0.8,
         "team": "CLE",
         "stat": "PTS+AST",
-        "actual": null,
-        "hit": null
+        "actual": 14.0,
+        "hit": false
       },
       {
         "ev": 0.7816,
@@ -30030,8 +30087,8 @@
         "hit_rate": 0.8,
         "team": "CLE",
         "stat": "PTS+REB",
-        "actual": null,
-        "hit": null
+        "actual": 16.0,
+        "hit": false
       },
       {
         "ev": 0.7323,
@@ -30045,8 +30102,8 @@
         "hit_rate": 0.9,
         "team": "NYK",
         "stat": "PTS+AST",
-        "actual": null,
-        "hit": null
+        "actual": 22.0,
+        "hit": true
       },
       {
         "ev": 0.7323,
@@ -30060,8 +30117,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "PTS+AST",
-        "actual": null,
-        "hit": null
+        "actual": 32.0,
+        "hit": true
       },
       {
         "ev": 0.7075,
@@ -30075,8 +30132,8 @@
         "hit_rate": 0.9,
         "team": "NYK",
         "stat": "PTS+REB",
-        "actual": null,
-        "hit": null
+        "actual": 33.0,
+        "hit": true
       },
       {
         "ev": 0.6985,
@@ -30090,8 +30147,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "PTS+REB",
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": false
       },
       {
         "ev": 0.6985,
@@ -30105,8 +30162,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "PTS+AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": false
       },
       {
         "ev": 0.6985,
@@ -30120,8 +30177,8 @@
         "hit_rate": 0.9,
         "team": "NYK",
         "stat": "PTS+AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 36.0,
+        "hit": true
       },
       {
         "ev": 0.6061,
@@ -30135,8 +30192,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "PTS+AST",
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": false
       },
       {
         "ev": 0.5317,
@@ -30150,8 +30207,8 @@
         "hit_rate": 0.8,
         "team": "CLE",
         "stat": "PTS+AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 26.0,
+        "hit": true
       },
       {
         "ev": 0.4906,
@@ -30165,8 +30222,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "PTS+AST",
-        "actual": null,
-        "hit": null
+        "actual": 19.0,
+        "hit": true
       },
       {
         "ev": 0.4765,
@@ -30180,8 +30237,8 @@
         "hit_rate": 0.9,
         "team": "CLE",
         "stat": "AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "ev": 0.4322,
@@ -30195,8 +30252,8 @@
         "hit_rate": 0.7,
         "team": "NYK",
         "stat": "PTS+AST",
-        "actual": null,
-        "hit": null
+        "actual": 20.0,
+        "hit": false
       },
       {
         "ev": 0.3986,
@@ -30210,8 +30267,8 @@
         "hit_rate": 0.9,
         "team": "NYK",
         "stat": "FG3M",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "ev": 0.3341,
@@ -30225,8 +30282,8 @@
         "hit_rate": 0.9,
         "team": "CLE",
         "stat": "BLK",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "ev": 0.3031,
@@ -30240,8 +30297,8 @@
         "hit_rate": 0.8,
         "team": "CLE",
         "stat": "AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "ev": 0.1796,
@@ -30255,8 +30312,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "PTS+REB",
-        "actual": null,
-        "hit": null
+        "actual": 22.0,
+        "hit": false
       },
       {
         "ev": 0.1613,
@@ -30270,8 +30327,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "PTS+REB",
-        "actual": null,
-        "hit": null
+        "actual": 9.0,
+        "hit": false
       },
       {
         "ev": 0.143,
@@ -30285,8 +30342,8 @@
         "hit_rate": 0.7,
         "team": "NYK",
         "stat": "AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "ev": 0.1329,
@@ -30300,8 +30357,8 @@
         "hit_rate": 0.8,
         "team": "CLE",
         "stat": "STL",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "ev": 0.1059,
@@ -30315,8 +30372,8 @@
         "hit_rate": 0.7,
         "team": "NYK",
         "stat": "PTS+AST",
-        "actual": null,
-        "hit": null
+        "actual": 20.0,
+        "hit": true
       },
       {
         "ev": 0.0811,
@@ -30330,8 +30387,8 @@
         "hit_rate": 0.9,
         "team": "CLE",
         "stat": "BLK",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "ev": 0.0811,
@@ -30345,8 +30402,8 @@
         "hit_rate": 0.6,
         "team": "CLE",
         "stat": "FG3M",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "ev": 0.0683,
@@ -30360,8 +30417,8 @@
         "hit_rate": 0.7,
         "team": "NYK",
         "stat": "AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 8.0,
+        "hit": true
       },
       {
         "ev": 0.0513,
@@ -30375,8 +30432,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "STL",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "ev": -0.0075,
@@ -30390,8 +30447,8 @@
         "hit_rate": 0.4,
         "team": "NYK",
         "stat": "PTS+AST",
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": false
       },
       {
         "ev": -0.0645,
@@ -30405,8 +30462,8 @@
         "hit_rate": 0.6,
         "team": "NYK",
         "stat": "PTS+REB",
-        "actual": null,
-        "hit": null
+        "actual": 18.0,
+        "hit": false
       },
       {
         "ev": -0.0798,
@@ -30420,8 +30477,8 @@
         "hit_rate": 0.7,
         "team": "NYK",
         "stat": "REB",
-        "actual": null,
-        "hit": null
+        "actual": 11.0,
+        "hit": true
       },
       {
         "ev": -0.1403,
@@ -30435,8 +30492,8 @@
         "hit_rate": 0.4,
         "team": "NYK",
         "stat": "PTS+REB",
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": false
       },
       {
         "ev": -0.1592,
@@ -30450,8 +30507,8 @@
         "hit_rate": 0.7,
         "team": "NYK",
         "stat": "PTS+AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 23.0,
+        "hit": false
       },
       {
         "ev": -0.3066,
@@ -30465,8 +30522,8 @@
         "hit_rate": 0.4,
         "team": "NYK",
         "stat": "PTS+AST+REB",
-        "actual": null,
-        "hit": null
+        "actual": 23.0,
+        "hit": false
       },
       {
         "ev": -0.3986,
@@ -30480,8 +30537,8 @@
         "hit_rate": 0.5,
         "team": "CLE",
         "stat": "REB",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "ev": -0.7659,
@@ -30495,8 +30552,8 @@
         "hit_rate": 0.9,
         "team": "NYK",
         "stat": "AST",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "ev": -0.77,
@@ -30510,8 +30567,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "REB",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": false
       },
       {
         "ev": 0.3341,
@@ -30525,8 +30582,8 @@
         "hit_rate": 0.6,
         "team": "NYK",
         "stat": "STL",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "ev": 0.3085,
@@ -30540,8 +30597,8 @@
         "hit_rate": 0.8,
         "team": "NYK",
         "stat": "REB",
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "ev": 0.2736,
@@ -30555,8 +30612,8 @@
         "hit_rate": 0.8,
         "team": "NYK",
         "stat": "BLK",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "ev": 0.2224,
@@ -30570,8 +30627,8 @@
         "hit_rate": 0.8,
         "team": "CLE",
         "stat": "PTS",
-        "actual": null,
-        "hit": null
+        "actual": 12.0,
+        "hit": false
       },
       {
         "ev": 0.2067,
@@ -30585,8 +30642,8 @@
         "hit_rate": 0.8,
         "team": "NYK",
         "stat": "STL",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "ev": 0.1844,
@@ -30600,8 +30657,8 @@
         "hit_rate": 0.5,
         "team": "CLE",
         "stat": "FG3M",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "ev": -0.039,
@@ -30615,8 +30672,8 @@
         "hit_rate": 0.7,
         "team": "NYK",
         "stat": "BLK",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "ev": -0.1386,
@@ -30630,8 +30687,8 @@
         "hit_rate": 0.5,
         "team": "CLE",
         "stat": "STL",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "ev": -0.1642,
@@ -30645,8 +30702,8 @@
         "hit_rate": 0.7,
         "team": "NYK",
         "stat": "PTS",
-        "actual": null,
-        "hit": null
+        "actual": 15.0,
+        "hit": false
       },
       {
         "ev": -0.2201,
@@ -30660,8 +30717,8 @@
         "hit_rate": 0.5,
         "team": "CLE",
         "stat": "REB",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "ev": -0.2875,
@@ -30675,8 +30732,8 @@
         "hit_rate": 0.5,
         "team": "CLE",
         "stat": "FG3M",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": false
       },
       {
         "ev": -0.5747,
@@ -30690,8 +30747,8 @@
         "hit_rate": 0.6,
         "team": "CLE",
         "stat": "PTS",
-        "actual": null,
-        "hit": null
+        "actual": 15.0,
+        "hit": true
       },
       {
         "ev": -0.6611,
@@ -30705,8 +30762,8 @@
         "hit_rate": 0.5,
         "team": "NYK",
         "stat": "REB",
-        "actual": null,
-        "hit": null
+        "actual": 10.0,
+        "hit": true
       },
       {
         "ev": -0.7272,
@@ -30720,8 +30777,8 @@
         "hit_rate": 0.6,
         "team": "CLE",
         "stat": "AST",
-        "actual": null,
-        "hit": null
+        "actual": 4.0,
+        "hit": true
       },
       {
         "ev": -0.7931,
@@ -30735,8 +30792,8 @@
         "hit_rate": 0.8,
         "team": "CLE",
         "stat": "PTS",
-        "actual": null,
-        "hit": null
+        "actual": 31.0,
+        "hit": true
       },
       {
         "ev": -0.8891,
@@ -30750,8 +30807,8 @@
         "hit_rate": 0.7,
         "team": "NYK",
         "stat": "REB",
-        "actual": null,
-        "hit": null
+        "actual": 14.0,
+        "hit": true
       },
       {
         "ev": -0.9572,
@@ -30765,8 +30822,8 @@
         "hit_rate": 0.7,
         "team": "NYK",
         "stat": "PTS",
-        "actual": null,
-        "hit": null
+        "actual": 15.0,
+        "hit": false
       },
       {
         "ev": -0.9588,
@@ -30780,8 +30837,8 @@
         "hit_rate": 0.9,
         "team": "NYK",
         "stat": "PTS",
-        "actual": null,
-        "hit": null
+        "actual": 17.0,
+        "hit": true
       },
       {
         "ev": 0.3606,
@@ -30795,8 +30852,8 @@
         "hit_rate": 0.5,
         "team": "CLE",
         "stat": "FG3M",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "ev": 0.2254,
@@ -30810,8 +30867,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "PTS",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "ev": 0.1329,
@@ -30825,8 +30882,8 @@
         "hit_rate": 0.6,
         "team": "NYK",
         "stat": "STL",
-        "actual": null,
-        "hit": null
+        "actual": 0.0,
+        "hit": false
       },
       {
         "ev": 0.0811,
@@ -30840,8 +30897,8 @@
         "hit_rate": 0.5,
         "team": "NYK",
         "stat": "FG3M",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "ev": 0.0811,
@@ -30855,8 +30912,8 @@
         "hit_rate": 0.9,
         "team": "CLE",
         "stat": "STL",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "ev": 0.0256,
@@ -30870,8 +30927,8 @@
         "hit_rate": 0.5,
         "team": "NYK",
         "stat": "STL",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": true
       },
       {
         "ev": 0.0128,
@@ -30885,8 +30942,8 @@
         "hit_rate": 0.9,
         "team": "CLE",
         "stat": "FG3M",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": true
       },
       {
         "ev": -0.0812,
@@ -30900,8 +30957,8 @@
         "hit_rate": 0.5,
         "team": "CLE",
         "stat": "REB",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "ev": -0.1386,
@@ -30915,8 +30972,8 @@
         "hit_rate": 0.5,
         "team": "CLE",
         "stat": "STL",
-        "actual": null,
-        "hit": null
+        "actual": 1.0,
+        "hit": true
       },
       {
         "ev": -0.1524,
@@ -30930,8 +30987,8 @@
         "hit_rate": 0.9,
         "team": "CLE",
         "stat": "REB",
-        "actual": null,
-        "hit": null
+        "actual": 7.0,
+        "hit": true
       },
       {
         "ev": -0.336,
@@ -30945,8 +31002,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "REB",
-        "actual": null,
-        "hit": null
+        "actual": 3.0,
+        "hit": false
       },
       {
         "ev": -0.6417,
@@ -30960,8 +31017,8 @@
         "hit_rate": 0.9,
         "team": "NYK",
         "stat": "PTS",
-        "actual": null,
-        "hit": null
+        "actual": 19.0,
+        "hit": true
       },
       {
         "ev": -0.831,
@@ -30975,8 +31032,8 @@
         "hit_rate": 0.6,
         "team": "NYK",
         "stat": "PTS",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": false
       },
       {
         "ev": -0.8975,
@@ -30990,8 +31047,8 @@
         "hit_rate": 0.7,
         "team": "CLE",
         "stat": "AST",
-        "actual": null,
-        "hit": null
+        "actual": 2.0,
+        "hit": false
       },
       {
         "ev": -0.9177,
@@ -31005,8 +31062,8 @@
         "hit_rate": 0.6,
         "team": "NYK",
         "stat": "AST",
-        "actual": null,
-        "hit": null
+        "actual": 6.0,
+        "hit": true
       },
       {
         "ev": -0.9994,
@@ -31020,8 +31077,8 @@
         "hit_rate": 0.8,
         "team": "NYK",
         "stat": "AST",
-        "actual": null,
-        "hit": null
+        "actual": 5.0,
+        "hit": false
       },
       {
         "ev": 0.9091,
@@ -31039,6 +31096,4098 @@
         "hit": null
       }
     ],
+    "summary": {
+      "hit": 36,
+      "miss": 39,
+      "total": 75,
+      "pct": 48.0,
+      "by_stat": {
+        "PTS+REB": {
+          "hit": 3,
+          "total": 9,
+          "pct": 33.3
+        },
+        "AST+REB": {
+          "hit": 5,
+          "total": 7,
+          "pct": 71.4
+        },
+        "PTS+AST+REB": {
+          "hit": 3,
+          "total": 7,
+          "pct": 42.9
+        },
+        "PTS+AST": {
+          "hit": 4,
+          "total": 8,
+          "pct": 50.0
+        },
+        "FG3M": {
+          "hit": 2,
+          "total": 7,
+          "pct": 28.6
+        },
+        "BLK": {
+          "hit": 2,
+          "total": 4,
+          "pct": 50.0
+        },
+        "STL": {
+          "hit": 6,
+          "total": 9,
+          "pct": 66.7
+        },
+        "REB": {
+          "hit": 5,
+          "total": 10,
+          "pct": 50.0
+        },
+        "AST": {
+          "hit": 2,
+          "total": 5,
+          "pct": 40.0
+        },
+        "PTS": {
+          "hit": 4,
+          "total": 9,
+          "pct": 44.4
+        }
+      }
+    }
+  },
+  "2026-05-26": {
+    "generated_at": "2026-05-26T21:39:48.702890+00:00",
+    "graded_at": "2026-08-03T03:48:15.729654+00:00",
+    "props": [
+      {
+        "ev": 0.8789,
+        "is_lock": true,
+        "line": 22.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 30.6,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": 35.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8543,
+        "is_lock": true,
+        "line": 16.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 23.6,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 29.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8194,
+        "is_lock": true,
+        "line": 26.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 32.7,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": 41.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8096,
+        "is_lock": true,
+        "line": 19.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 25.5,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": 30.0,
+        "hit": true
+      },
+      {
+        "ev": 0.7159,
+        "is_lock": true,
+        "line": 17.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 22.1,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": 17.0,
+        "hit": true
+      },
+      {
+        "ev": 0.65,
+        "is_lock": true,
+        "line": 10.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 14.4,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": 16.0,
+        "hit": true
+      },
+      {
+        "ev": 0.5183,
+        "is_lock": true,
+        "line": 9.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 12.3,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": 11.0,
+        "hit": true
+      },
+      {
+        "ev": 0.4906,
+        "is_lock": true,
+        "line": 9.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 12.1,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": 11.0,
+        "hit": true
+      },
+      {
+        "ev": 0.0872,
+        "is_lock": true,
+        "line": 5.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 5.7,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": 9.0,
+        "hit": true
+      },
+      {
+        "ev": -0.0455,
+        "is_lock": "False",
+        "line": 19.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 19.0,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 10.0,
+        "hit": false
+      },
+      {
+        "ev": -0.0645,
+        "is_lock": "False",
+        "line": 27.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 26.9,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": 21.0,
+        "hit": false
+      },
+      {
+        "ev": -0.1592,
+        "is_lock": "False",
+        "line": 22.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 21.4,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 13.0,
+        "hit": false
+      },
+      {
+        "ev": -0.2797,
+        "is_lock": "False",
+        "line": 2.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 2.0,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 2.0,
+        "hit": true
+      },
+      {
+        "ev": -0.635,
+        "is_lock": true,
+        "line": 1.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.0,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "STL",
+        "actual": 3.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8602,
+        "is_lock": true,
+        "line": 16.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 24.3,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": 27.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8543,
+        "is_lock": true,
+        "line": 13.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 21.1,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": 14.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8511,
+        "is_lock": true,
+        "line": 11.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 18.5,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 11.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8325,
+        "is_lock": true,
+        "line": 11.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 18.0,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": 27.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8096,
+        "is_lock": true,
+        "line": 14.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 21.0,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": 31.0,
+        "hit": true
+      },
+      {
+        "ev": 0.7159,
+        "is_lock": true,
+        "line": 20.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 25.1,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.65,
+        "is_lock": true,
+        "line": 8.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 12.4,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": 16.0,
+        "hit": true
+      },
+      {
+        "ev": 0.5576,
+        "is_lock": "False",
+        "line": 11.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 15.1,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": 7.0,
+        "hit": false
+      },
+      {
+        "ev": 0.5317,
+        "is_lock": true,
+        "line": 17.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 20.4,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.4906,
+        "is_lock": true,
+        "line": 5.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 8.1,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.4906,
+        "is_lock": true,
+        "line": 8.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 11.6,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": 19.0,
+        "hit": true
+      },
+      {
+        "ev": 0.4765,
+        "is_lock": "False",
+        "line": 8.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 11.5,
+        "direction": "Over",
+        "player": "Keldon Johnson",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 19.0,
+        "hit": true
+      },
+      {
+        "ev": 0.3201,
+        "is_lock": "False",
+        "line": 36.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 38.0,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 26.0,
+        "hit": false
+      },
+      {
+        "ev": 0.286,
+        "is_lock": "False",
+        "line": 19.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 20.8,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.2736,
+        "is_lock": true,
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.1,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.223,
+        "is_lock": "False",
+        "line": 2.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 2.8,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "BLK",
+        "actual": 3.0,
+        "hit": true
+      },
+      {
+        "ev": 0.1978,
+        "is_lock": "False",
+        "line": 15.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 16.8,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": 10.0,
+        "hit": false
+      },
+      {
+        "ev": 0.143,
+        "is_lock": "False",
+        "line": 28.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 29.5,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": 21.0,
+        "hit": false
+      },
+      {
+        "ev": 0.0683,
+        "is_lock": "False",
+        "line": 7.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 7.6,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": 8.0,
+        "hit": true
+      },
+      {
+        "ev": 0.0513,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 0.7,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "BLK",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": -0.0075,
+        "is_lock": "False",
+        "line": 21.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 21.7,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": 14.0,
+        "hit": false
+      },
+      {
+        "ev": -0.039,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 0.6,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "BLK",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": -0.0834,
+        "is_lock": "False",
+        "line": 41.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 41.3,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": 27.0,
+        "hit": false
+      },
+      {
+        "ev": -0.1558,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.3,
+        "direction": "Over",
+        "player": "Alex Caruso",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 3.0,
+        "hit": true
+      },
+      {
+        "ev": -0.3597,
+        "is_lock": "False",
+        "line": 12.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 10.3,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": 12.0,
+        "hit": true
+      },
+      {
+        "ev": -0.6665,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 5.9,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": 6.0,
+        "hit": true
+      },
+      {
+        "ev": -0.9958,
+        "is_lock": "False",
+        "line": 5.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 4.9,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": 4.0,
+        "hit": false
+      },
+      {
+        "ev": 0.7877,
+        "is_lock": true,
+        "line": 8.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 14.1,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 30.0,
+        "hit": true
+      },
+      {
+        "ev": 0.5824,
+        "is_lock": "False",
+        "line": 7.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 10.8,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": 12.0,
+        "hit": true
+      },
+      {
+        "ev": 0.5448,
+        "is_lock": "False",
+        "line": 5.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 9.0,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.5236,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.0,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "BLK",
+        "actual": 1.0,
+        "hit": true
+      },
+      {
+        "ev": 0.4765,
+        "is_lock": "False",
+        "line": 5.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 8.5,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": 9.0,
+        "hit": true
+      },
+      {
+        "ev": 0.2736,
+        "is_lock": true,
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.1,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "STL",
+        "actual": 3.0,
+        "hit": true
+      },
+      {
+        "ev": 0.2321,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.9,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "FG3M",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": 0.1329,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 0.9,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": 0.0846,
+        "is_lock": true,
+        "line": 5.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 8.4,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "REB",
+        "actual": 11.0,
+        "hit": true
+      },
+      {
+        "ev": 0.0513,
+        "is_lock": true,
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.3,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "STL",
+        "actual": 3.0,
+        "hit": true
+      },
+      {
+        "ev": -0.0119,
+        "is_lock": true,
+        "line": 12.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 16.6,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": 9.0,
+        "hit": false
+      },
+      {
+        "ev": -0.0325,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 2.0,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": 1.0,
+        "hit": false
+      },
+      {
+        "ev": -0.0724,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 15.7,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.093,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.8,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "FG3M",
+        "actual": 4.0,
+        "hit": true
+      },
+      {
+        "ev": -0.093,
+        "is_lock": true,
+        "line": 1.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.4,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 2.0,
+        "hit": true
+      },
+      {
+        "ev": -0.1291,
+        "is_lock": true,
+        "line": 2.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 2.6,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "FG3M",
+        "actual": 2.0,
+        "hit": true
+      },
+      {
+        "ev": -0.1386,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 0.9,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "BLK",
+        "actual": 1.0,
+        "hit": true
+      },
+      {
+        "ev": -0.1386,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 0.6,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "BLK",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": -0.2287,
+        "is_lock": "False",
+        "line": 2.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.5,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.3551,
+        "is_lock": true,
+        "line": 19.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 24.7,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": 32.0,
+        "hit": true
+      },
+      {
+        "ev": -0.3559,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.8,
+        "direction": "Over",
+        "player": "Jared McCain",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": 3.0,
+        "hit": true
+      },
+      {
+        "ev": -0.5153,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 4.3,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.7152,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 12.6,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": 5.0,
+        "hit": false
+      },
+      {
+        "ev": -0.8247,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 5.1,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": 5.0,
+        "hit": true
+      },
+      {
+        "ev": -0.8358,
+        "is_lock": "False",
+        "line": 25.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 26.2,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": 20.0,
+        "hit": false
+      },
+      {
+        "ev": -0.8599,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 5.6,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": 8.0,
+        "hit": true
+      },
+      {
+        "ev": -0.9826,
+        "is_lock": "False",
+        "line": 3.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 4.5,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9826,
+        "is_lock": "False",
+        "line": 3.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 4.7,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9998,
+        "is_lock": true,
+        "line": 6.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 7.0,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "AST",
+        "actual": 6.0,
+        "hit": true
+      },
+      {
+        "ev": -1.0,
+        "is_lock": true,
+        "line": 7.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 8.0,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": 9.0,
+        "hit": true
+      },
+      {
+        "ev": 0.89,
+        "is_lock": "False",
+        "line": 14.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 23.8,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8602,
+        "is_lock": "False",
+        "line": 11.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 19.3,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8574,
+        "is_lock": "False",
+        "line": 12.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 20.2,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.7619,
+        "is_lock": "False",
+        "line": 9.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 15.2,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": 8.0,
+        "hit": false
+      },
+      {
+        "ev": -0.1558,
+        "is_lock": "False",
+        "line": 1.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 0.9,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "STL",
+        "actual": 2.0,
+        "hit": true
+      },
+      {
+        "ev": -0.2463,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 9.7,
+        "direction": "Over",
+        "player": "Jared McCain",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": 20.0,
+        "hit": true
+      },
+      {
+        "ev": -0.2467,
+        "is_lock": "False",
+        "line": 7.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 11.8,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": 6.0,
+        "hit": false
+      },
+      {
+        "ev": -0.2488,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 0.6,
+        "direction": "Over",
+        "player": "Keldon Johnson",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "STL",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": -0.4989,
+        "is_lock": "False",
+        "line": 17.0,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 16.1,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.8956,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 15.9,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": 16.0,
+        "hit": true
+      },
+      {
+        "ev": -0.936,
+        "is_lock": true,
+        "line": 13.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 18.5,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": 24.0,
+        "hit": true
+      },
+      {
+        "ev": -0.9387,
+        "is_lock": "False",
+        "line": 8.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 8.6,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "REB",
+        "actual": 15.0,
+        "hit": true
+      },
+      {
+        "ev": -0.979,
+        "is_lock": "False",
+        "line": 13.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 14.1,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": 6.0,
+        "hit": false
+      },
+      {
+        "ev": -0.9989,
+        "is_lock": true,
+        "line": 5.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 5.5,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "AST",
+        "actual": 8.0,
+        "hit": true
+      },
+      {
+        "ev": 0.2067,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.4,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "STL",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": 0.1432,
+        "is_lock": "False",
+        "line": 2.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 2.3,
+        "direction": "Over",
+        "player": "Alex Caruso",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": 4.0,
+        "hit": true
+      },
+      {
+        "ev": 0.0513,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "SAN @ OKC",
+        "avg": 0.9,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 1.0,
+        "hit": true
+      },
+      {
+        "ev": -0.3559,
+        "is_lock": "False",
+        "line": 1.0,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 1.1,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "STL",
+        "actual": 3.0,
+        "hit": true
+      },
+      {
+        "ev": 0.9091,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "OKC",
+        "game_matchup": "SAN @ OKC",
+        "avg": 50.0,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "DD",
+        "actual": null,
+        "hit": null
+      }
+    ],
+    "summary": {
+      "hit": 50,
+      "miss": 24,
+      "total": 74,
+      "pct": 67.6,
+      "by_stat": {
+        "PTS+AST+REB": {
+          "hit": 4,
+          "total": 7,
+          "pct": 57.1
+        },
+        "PTS+REB": {
+          "hit": 7,
+          "total": 10,
+          "pct": 70.0
+        },
+        "PTS+AST": {
+          "hit": 5,
+          "total": 8,
+          "pct": 62.5
+        },
+        "AST+REB": {
+          "hit": 6,
+          "total": 7,
+          "pct": 85.7
+        },
+        "STL": {
+          "hit": 9,
+          "total": 12,
+          "pct": 75.0
+        },
+        "BLK": {
+          "hit": 3,
+          "total": 6,
+          "pct": 50.0
+        },
+        "REB": {
+          "hit": 5,
+          "total": 7,
+          "pct": 71.4
+        },
+        "FG3M": {
+          "hit": 4,
+          "total": 6,
+          "pct": 66.7
+        },
+        "PTS": {
+          "hit": 4,
+          "total": 8,
+          "pct": 50.0
+        },
+        "AST": {
+          "hit": 3,
+          "total": 3,
+          "pct": 100.0
+        }
+      }
+    }
+  },
+  "2026-05-27": {
+    "generated_at": "2026-05-28T00:39:44.901546+00:00",
+    "graded_at": null,
+    "props": [
+      {
+        "ev": 0.9015,
+        "is_lock": true,
+        "line": 27.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 37.6,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8955,
+        "is_lock": true,
+        "line": 22.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 31.8,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8887,
+        "is_lock": true,
+        "line": 16.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 25.2,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8789,
+        "is_lock": true,
+        "line": 26.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 34.6,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8749,
+        "is_lock": true,
+        "line": 26.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 34.4,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8511,
+        "is_lock": true,
+        "line": 19.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 26.5,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8442,
+        "is_lock": true,
+        "line": 13.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.3,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8146,
+        "is_lock": true,
+        "line": 21.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 27.6,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8045,
+        "is_lock": true,
+        "line": 14.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.4,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.7991,
+        "is_lock": true,
+        "line": 8.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 14.3,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.7934,
+        "is_lock": true,
+        "line": 7.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 13.2,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.7688,
+        "is_lock": true,
+        "line": 10.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 15.8,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.6985,
+        "is_lock": true,
+        "line": 21.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 25.9,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.68,
+        "is_lock": true,
+        "line": 10.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 14.7,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.5945,
+        "is_lock": true,
+        "line": 17.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.9,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.5046,
+        "is_lock": true,
+        "line": 9.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 12.2,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.462,
+        "is_lock": true,
+        "line": 9.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 11.9,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.4169,
+        "is_lock": true,
+        "line": 10.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 12.6,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.1613,
+        "is_lock": true,
+        "line": 5.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 6.1,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.1592,
+        "is_lock": "False",
+        "line": 8.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 7.4,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.2875,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.9,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.3066,
+        "is_lock": "False",
+        "line": 12.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 10.6,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.3828,
+        "is_lock": true,
+        "line": 2.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.7,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "FG3M",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.4343,
+        "is_lock": "False",
+        "line": 2.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.0,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9998,
+        "is_lock": true,
+        "line": 6.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 6.6,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8442,
+        "is_lock": true,
+        "line": 13.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.3,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8406,
+        "is_lock": true,
+        "line": 10.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 17.7,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.7159,
+        "is_lock": true,
+        "line": 20.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 25.1,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.6061,
+        "is_lock": "False",
+        "line": 18.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 22.5,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.5317,
+        "is_lock": true,
+        "line": 17.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.4,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.4906,
+        "is_lock": true,
+        "line": 5.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 8.1,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.4471,
+        "is_lock": true,
+        "line": 5.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 8.3,
+        "direction": "Over",
+        "player": "Luguentz Dort",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.3367,
+        "is_lock": true,
+        "line": 6.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 8.6,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.3341,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.9,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "BLK",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.286,
+        "is_lock": "False",
+        "line": 19.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.8,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.1838,
+        "is_lock": true,
+        "line": 2.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.7,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "BLK",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.1796,
+        "is_lock": "False",
+        "line": 17.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 18.7,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.1329,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.7,
+        "direction": "Over",
+        "player": "Isaiah Joe",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.1059,
+        "is_lock": "False",
+        "line": 21.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 21.8,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.0513,
+        "is_lock": true,
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.1,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.093,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.7,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.2705,
+        "is_lock": "False",
+        "line": 13.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 12.3,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.6821,
+        "is_lock": true,
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 6.0,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.7877,
+        "is_lock": true,
+        "line": 11.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 17.6,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.7476,
+        "is_lock": "False",
+        "line": 10.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 15.5,
+        "direction": "Over",
+        "player": "Alex Caruso",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.6894,
+        "is_lock": true,
+        "line": 12.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 16.8,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.6176,
+        "is_lock": "False",
+        "line": 7.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 11.1,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.5448,
+        "is_lock": "False",
+        "line": 5.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 9.0,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.196,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 12.5,
+        "direction": "Over",
+        "player": "Jared McCain",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.0256,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.0,
+        "direction": "Over",
+        "player": "Jared McCain",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.0325,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.4,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "FG3M",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.0724,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 15.7,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.1386,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.6,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "BLK",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.1386,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.8,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "BLK",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.1558,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.3,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.2411,
+        "is_lock": "False",
+        "line": 3.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.6,
+        "direction": "Over",
+        "player": "Alex Caruso",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.3311,
+        "is_lock": "False",
+        "line": 2.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.5,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.341,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 9.2,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.5153,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 4.3,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.6945,
+        "is_lock": true,
+        "line": 20.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 24.4,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.7932,
+        "is_lock": true,
+        "line": 10.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 13.0,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.837,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 5.3,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9742,
+        "is_lock": "False",
+        "line": 3.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.5,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9769,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 14.3,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.98,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 4.6,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9826,
+        "is_lock": "False",
+        "line": 3.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 4.5,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9826,
+        "is_lock": "False",
+        "line": 3.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 4.7,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -1.0,
+        "is_lock": true,
+        "line": 7.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 8.4,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.89,
+        "is_lock": "False",
+        "line": 14.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 23.8,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8602,
+        "is_lock": "False",
+        "line": 11.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 19.3,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8574,
+        "is_lock": "False",
+        "line": 12.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.2,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.2774,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.0,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "FG3M",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.0811,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.8,
+        "direction": "Over",
+        "player": "Alex Caruso",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.039,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.8,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.0789,
+        "is_lock": true,
+        "line": 5.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 10.0,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.1558,
+        "is_lock": true,
+        "line": 1.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.5,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.2488,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.7,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "BLK",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.3553,
+        "is_lock": true,
+        "line": 19.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 26.2,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 1.0,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.4989,
+        "is_lock": "False",
+        "line": 17.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 16.1,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.5687,
+        "is_lock": true,
+        "line": 7.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 8.2,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9452,
+        "is_lock": true,
+        "line": 13.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 19.9,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9674,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 5.7,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9989,
+        "is_lock": true,
+        "line": 5.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 5.6,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.2113,
+        "is_lock": true,
+        "line": 10.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 15.3,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.6709,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 11.7,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      }
+    ],
     "summary": {}
+  },
+  "2026-05-28": {
+    "generated_at": "2026-05-29T02:39:49.863124+00:00",
+    "graded_at": "2026-08-03T03:48:15.879750+00:00",
+    "props": [
+      {
+        "ev": 0.9015,
+        "is_lock": true,
+        "line": 27.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 37.6,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": 35.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8955,
+        "is_lock": true,
+        "line": 22.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 31.8,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": 25.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8887,
+        "is_lock": true,
+        "line": 16.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 25.2,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 18.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8789,
+        "is_lock": true,
+        "line": 26.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 34.6,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": 19.0,
+        "hit": false
+      },
+      {
+        "ev": 0.8749,
+        "is_lock": true,
+        "line": 26.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 34.4,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 33.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8511,
+        "is_lock": true,
+        "line": 19.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 26.5,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": 21.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8442,
+        "is_lock": true,
+        "line": 13.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.3,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 6.0,
+        "hit": false
+      },
+      {
+        "ev": 0.8146,
+        "is_lock": true,
+        "line": 21.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 27.6,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": 26.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8045,
+        "is_lock": true,
+        "line": 14.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.4,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": 15.0,
+        "hit": true
+      },
+      {
+        "ev": 0.7991,
+        "is_lock": true,
+        "line": 8.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 14.3,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": 20.0,
+        "hit": true
+      },
+      {
+        "ev": 0.7934,
+        "is_lock": true,
+        "line": 7.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 13.2,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": 11.0,
+        "hit": true
+      },
+      {
+        "ev": 0.7688,
+        "is_lock": true,
+        "line": 10.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 15.8,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": 14.0,
+        "hit": true
+      },
+      {
+        "ev": 0.6985,
+        "is_lock": true,
+        "line": 21.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 25.9,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": 13.0,
+        "hit": false
+      },
+      {
+        "ev": 0.68,
+        "is_lock": true,
+        "line": 10.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 14.7,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": 15.0,
+        "hit": true
+      },
+      {
+        "ev": 0.5945,
+        "is_lock": true,
+        "line": 17.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.9,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "PTS+AST",
+        "actual": 9.0,
+        "hit": false
+      },
+      {
+        "ev": 0.5046,
+        "is_lock": true,
+        "line": 9.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 12.2,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": 14.0,
+        "hit": true
+      },
+      {
+        "ev": 0.462,
+        "is_lock": true,
+        "line": 9.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 11.9,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": 11.0,
+        "hit": true
+      },
+      {
+        "ev": 0.4169,
+        "is_lock": true,
+        "line": 10.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 12.6,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": 8.0,
+        "hit": false
+      },
+      {
+        "ev": 0.1613,
+        "is_lock": true,
+        "line": 5.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 6.1,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": 4.0,
+        "hit": false
+      },
+      {
+        "ev": -0.1592,
+        "is_lock": "False",
+        "line": 8.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 7.4,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": 3.0,
+        "hit": false
+      },
+      {
+        "ev": -0.2875,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.9,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": 3.0,
+        "hit": true
+      },
+      {
+        "ev": -0.3066,
+        "is_lock": "False",
+        "line": 12.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 10.6,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": 11.0,
+        "hit": false
+      },
+      {
+        "ev": -0.3828,
+        "is_lock": true,
+        "line": 2.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.7,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 1.0,
+        "team": "SAN",
+        "stat": "FG3M",
+        "actual": 4.0,
+        "hit": true
+      },
+      {
+        "ev": -0.4343,
+        "is_lock": "False",
+        "line": 2.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.0,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 3.0,
+        "hit": true
+      },
+      {
+        "ev": -0.9998,
+        "is_lock": true,
+        "line": 6.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 6.6,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "AST",
+        "actual": 7.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8442,
+        "is_lock": true,
+        "line": 13.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.3,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+AST+REB",
+        "actual": 26.0,
+        "hit": true
+      },
+      {
+        "ev": 0.8406,
+        "is_lock": true,
+        "line": 10.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 17.7,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.9,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 24.0,
+        "hit": true
+      },
+      {
+        "ev": 0.7159,
+        "is_lock": true,
+        "line": 20.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 25.1,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": 2.0,
+        "hit": false
+      },
+      {
+        "ev": 0.6061,
+        "is_lock": "False",
+        "line": 18.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 22.5,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": 19.0,
+        "hit": true
+      },
+      {
+        "ev": 0.5317,
+        "is_lock": true,
+        "line": 17.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.4,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": 1.0,
+        "hit": false
+      },
+      {
+        "ev": 0.4906,
+        "is_lock": true,
+        "line": 5.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 8.1,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.4471,
+        "is_lock": true,
+        "line": 5.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 8.3,
+        "direction": "Over",
+        "player": "Luguentz Dort",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": 6.0,
+        "hit": true
+      },
+      {
+        "ev": 0.3367,
+        "is_lock": true,
+        "line": 6.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 8.6,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "AST+REB",
+        "actual": 8.0,
+        "hit": true
+      },
+      {
+        "ev": 0.3341,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.9,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "BLK",
+        "actual": 1.0,
+        "hit": true
+      },
+      {
+        "ev": 0.286,
+        "is_lock": "False",
+        "line": 19.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.8,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": 2.0,
+        "hit": false
+      },
+      {
+        "ev": 0.1838,
+        "is_lock": true,
+        "line": 2.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.7,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "BLK",
+        "actual": 2.0,
+        "hit": false
+      },
+      {
+        "ev": 0.1796,
+        "is_lock": "False",
+        "line": 17.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 18.7,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": 15.0,
+        "hit": false
+      },
+      {
+        "ev": 0.1329,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.7,
+        "direction": "Over",
+        "player": "Isaiah Joe",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": 0.1059,
+        "is_lock": "False",
+        "line": 21.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 21.8,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": 18.0,
+        "hit": false
+      },
+      {
+        "ev": 0.0513,
+        "is_lock": true,
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.1,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": -0.093,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.7,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": -0.2705,
+        "is_lock": "False",
+        "line": 13.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 12.3,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": 13.0,
+        "hit": false
+      },
+      {
+        "ev": -0.6821,
+        "is_lock": true,
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 6.0,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": 6.0,
+        "hit": true
+      },
+      {
+        "ev": 0.7877,
+        "is_lock": true,
+        "line": 11.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 17.6,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 13.0,
+        "hit": true
+      },
+      {
+        "ev": 0.7476,
+        "is_lock": "False",
+        "line": 10.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 15.5,
+        "direction": "Over",
+        "player": "Alex Caruso",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": 7.0,
+        "hit": false
+      },
+      {
+        "ev": 0.6894,
+        "is_lock": true,
+        "line": 12.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 16.8,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS+REB",
+        "actual": 16.0,
+        "hit": true
+      },
+      {
+        "ev": 0.6176,
+        "is_lock": "False",
+        "line": 7.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 11.1,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": 12.0,
+        "hit": true
+      },
+      {
+        "ev": 0.5448,
+        "is_lock": "False",
+        "line": 5.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 9.0,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "AST+REB",
+        "actual": 1.0,
+        "hit": false
+      },
+      {
+        "ev": 0.196,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 12.5,
+        "direction": "Over",
+        "player": "Jared McCain",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": 5.0,
+        "hit": false
+      },
+      {
+        "ev": 0.0256,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.0,
+        "direction": "Over",
+        "player": "Jared McCain",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": 1.0,
+        "hit": false
+      },
+      {
+        "ev": -0.0325,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.4,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "FG3M",
+        "actual": 4.0,
+        "hit": true
+      },
+      {
+        "ev": -0.0724,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 15.7,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.1386,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.6,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "BLK",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": -0.1386,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.8,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "BLK",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": -0.1558,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.3,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": -0.2411,
+        "is_lock": "False",
+        "line": 3.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.6,
+        "direction": "Over",
+        "player": "Alex Caruso",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "FG3M",
+        "actual": 1.0,
+        "hit": false
+      },
+      {
+        "ev": -0.3311,
+        "is_lock": "False",
+        "line": 2.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.5,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.341,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 9.2,
+        "direction": "Over",
+        "player": "Isaiah Hartenstein",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": 10.0,
+        "hit": false
+      },
+      {
+        "ev": -0.5153,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 4.3,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "REB",
+        "actual": 0.0,
+        "hit": false
+      },
+      {
+        "ev": -0.6945,
+        "is_lock": true,
+        "line": 20.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 24.4,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": 24.0,
+        "hit": true
+      },
+      {
+        "ev": -0.7932,
+        "is_lock": true,
+        "line": 10.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 13.0,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": 12.0,
+        "hit": true
+      },
+      {
+        "ev": -0.837,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 5.3,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": 4.0,
+        "hit": false
+      },
+      {
+        "ev": -0.9742,
+        "is_lock": "False",
+        "line": 3.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.5,
+        "direction": "Over",
+        "player": "Cason Wallace",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": 1.0,
+        "hit": false
+      },
+      {
+        "ev": -0.9769,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 14.3,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": 8.0,
+        "hit": false
+      },
+      {
+        "ev": -0.98,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 4.6,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": 1.0,
+        "hit": false
+      },
+      {
+        "ev": -0.9826,
+        "is_lock": "False",
+        "line": 3.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 4.5,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": -0.9826,
+        "is_lock": "False",
+        "line": 3.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 4.7,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": 1.0,
+        "hit": false
+      },
+      {
+        "ev": -1.0,
+        "is_lock": true,
+        "line": 7.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 8.4,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 0.9,
+        "team": "OKC",
+        "stat": "AST",
+        "actual": 4.0,
+        "hit": false
+      },
+      {
+        "ev": 0.89,
+        "is_lock": "False",
+        "line": 14.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 23.8,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8602,
+        "is_lock": "False",
+        "line": 11.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 19.3,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+REB",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.8574,
+        "is_lock": "False",
+        "line": 12.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 20.2,
+        "direction": "Over",
+        "player": "Ajay Mitchell",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "PTS+AST",
+        "actual": null,
+        "hit": null
+      },
+      {
+        "ev": 0.2774,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 2.0,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "FG3M",
+        "actual": 2.0,
+        "hit": true
+      },
+      {
+        "ev": 0.0811,
+        "is_lock": "False",
+        "line": 1.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.8,
+        "direction": "Over",
+        "player": "Alex Caruso",
+        "hit_rate": 0.7,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 1.0,
+        "hit": false
+      },
+      {
+        "ev": -0.039,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.8,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.5,
+        "team": "OKC",
+        "stat": "STL",
+        "actual": 1.0,
+        "hit": true
+      },
+      {
+        "ev": -0.0789,
+        "is_lock": true,
+        "line": 5.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 10.0,
+        "direction": "Over",
+        "player": "Victor Wembanyama",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": 9.0,
+        "hit": true
+      },
+      {
+        "ev": -0.1558,
+        "is_lock": true,
+        "line": 1.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 1.5,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "STL",
+        "actual": 1.0,
+        "hit": true
+      },
+      {
+        "ev": -0.2488,
+        "is_lock": "False",
+        "line": 0.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 0.7,
+        "direction": "Over",
+        "player": "Devin Vassell",
+        "hit_rate": 0.6,
+        "team": "SAN",
+        "stat": "BLK",
+        "actual": 2.0,
+        "hit": true
+      },
+      {
+        "ev": -0.3553,
+        "is_lock": true,
+        "line": 19.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 26.2,
+        "direction": "Over",
+        "player": "Shai Gilgeous-Alexander",
+        "hit_rate": 1.0,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": 15.0,
+        "hit": false
+      },
+      {
+        "ev": -0.4989,
+        "is_lock": "False",
+        "line": 17.0,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 16.1,
+        "direction": "Over",
+        "player": "Jalen Williams",
+        "hit_rate": 0.6,
+        "team": "OKC",
+        "stat": "PTS",
+        "actual": 1.0,
+        "hit": false
+      },
+      {
+        "ev": -0.5687,
+        "is_lock": true,
+        "line": 7.5,
+        "opponent": "SAN",
+        "game_matchup": "OKC @ SAN",
+        "avg": 8.2,
+        "direction": "Over",
+        "player": "Chet Holmgren",
+        "hit_rate": 0.8,
+        "team": "OKC",
+        "stat": "REB",
+        "actual": 11.0,
+        "hit": true
+      },
+      {
+        "ev": -0.9452,
+        "is_lock": true,
+        "line": 13.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 19.9,
+        "direction": "Over",
+        "player": "Stephon Castle",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": 14.0,
+        "hit": true
+      },
+      {
+        "ev": -0.9674,
+        "is_lock": "False",
+        "line": 4.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 5.7,
+        "direction": "Over",
+        "player": "Julian Champagnie",
+        "hit_rate": 0.7,
+        "team": "SAN",
+        "stat": "REB",
+        "actual": 6.0,
+        "hit": true
+      },
+      {
+        "ev": -0.9989,
+        "is_lock": true,
+        "line": 5.0,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 5.6,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "AST",
+        "actual": 7.0,
+        "hit": true
+      },
+      {
+        "ev": 0.2113,
+        "is_lock": true,
+        "line": 10.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 15.3,
+        "direction": "Over",
+        "player": "De'Aaron Fox",
+        "hit_rate": 0.8,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": 2.0,
+        "hit": false
+      },
+      {
+        "ev": -0.6709,
+        "is_lock": "False",
+        "line": 10.5,
+        "opponent": "OKC",
+        "game_matchup": "OKC @ SAN",
+        "avg": 11.7,
+        "direction": "Over",
+        "player": "Dylan Harper",
+        "hit_rate": 0.5,
+        "team": "SAN",
+        "stat": "PTS",
+        "actual": 18.0,
+        "hit": true
+      }
+    ],
+    "summary": {
+      "hit": 40,
+      "miss": 38,
+      "total": 78,
+      "pct": 51.3,
+      "by_stat": {
+        "PTS+AST+REB": {
+          "hit": 5,
+          "total": 8,
+          "pct": 62.5
+        },
+        "PTS+REB": {
+          "hit": 8,
+          "total": 11,
+          "pct": 72.7
+        },
+        "PTS+AST": {
+          "hit": 5,
+          "total": 10,
+          "pct": 50.0
+        },
+        "AST+REB": {
+          "hit": 3,
+          "total": 8,
+          "pct": 37.5
+        },
+        "FG3M": {
+          "hit": 4,
+          "total": 7,
+          "pct": 57.1
+        },
+        "STL": {
+          "hit": 3,
+          "total": 7,
+          "pct": 42.9
+        },
+        "AST": {
+          "hit": 2,
+          "total": 5,
+          "pct": 40.0
+        },
+        "BLK": {
+          "hit": 2,
+          "total": 5,
+          "pct": 40.0
+        },
+        "REB": {
+          "hit": 4,
+          "total": 7,
+          "pct": 57.1
+        },
+        "PTS": {
+          "hit": 4,
+          "total": 10,
+          "pct": 40.0
+        }
+      }
+    }
   }
 }

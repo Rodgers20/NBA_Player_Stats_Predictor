@@ -67,7 +67,7 @@ class GamePredictor:
       - XGBoost model blend (when data/model_game_xgb.pkl is present)
     """
 
-    _XGB_PATH = Path(__file__).parent.parent / "data" / "model_game_xgb.pkl"
+    _XGB_PATH = Path(__file__).parent.parent / "data" / "nba" / "model_game_xgb.pkl"
 
     def __init__(self, team_def_df: pd.DataFrame, player_logs_df: pd.DataFrame):
         self.team_def = team_def_df

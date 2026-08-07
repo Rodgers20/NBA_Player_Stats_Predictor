@@ -2,4 +2,4 @@
 """
 NBA Player Stats Prediction Models
 """
-from .predictor import NBAPredictor
+from .predictor import StatPredictor

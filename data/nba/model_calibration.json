@@ -1,0 +1,13 @@
+{
+  "updated_at": "2026-05-25T21:39:35.964686+00:00",
+  "sample_days": 17,
+  "sample_games": 112,
+  "total_bias": -3.77,
+  "home_score_bias": -1.67,
+  "away_score_bias": -2.1,
+  "home_winner_pick_rate": 0.607,
+  "home_winner_accuracy": 77.9,
+  "notes": [
+    "Model consistently under-projecting game totals by 3.8 pts. Correction applied to future total predictions."
+  ]
+}

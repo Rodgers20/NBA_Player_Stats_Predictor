@@ -60,7 +60,7 @@ except (ImportError, Exception):
     print("Note: XGBoost not available, using Random Forest instead")
 
 
-class NBAPredictor:
+class StatPredictor:
     """
     Main class for NBA player stats prediction.
 
@@ -72,7 +72,7 @@ class NBAPredictor:
 
     Example Usage:
     --------------
-    >>> from models.predictor import NBAPredictor
+    >>> from models.predictor import StatPredictor
     >>> from utils.feature_engineering import engineer_features
     >>>
     >>> # Load and prepare data
@@ -80,7 +80,7 @@ class NBAPredictor:
     >>> features_df = engineer_features(df)
     >>>
     >>> # Train the model
-    >>> predictor = NBAPredictor()
+    >>> predictor = StatPredictor()
     >>> predictor.train(features_df, target="PTS")
     >>>
     >>> # Make a prediction
@@ -656,9 +656,10 @@ class NBAPredictor:
             raise ValueError("Cannot save untrained model!")
 
         if filepath is None:
-            # Default path in models directory
-            models_dir = os.path.dirname(__file__)
-            filepath = os.path.join(models_dir, f"{self.target.lower()}_predictor.pkl")
+            from utils.league_config import get_config
+            models_dir = get_config("nba").models_dir
+            models_dir.mkdir(parents=True, exist_ok=True)
+            filepath = str(models_dir / f"{self.target.lower()}_predictor.pkl")
 
         # Save everything needed to make predictions
         model_data = {
@@ -676,12 +677,12 @@ class NBAPredictor:
         print(f"Model saved to: {filepath}")
 
     @classmethod
-    def load(cls, filepath: str) -> "NBAPredictor":
+    def load(cls, filepath: str) -> "StatPredictor":
         """
         Load a trained model from disk.
 
         Example:
-            >>> predictor = NBAPredictor.load("models/pts_predictor.pkl")
+            >>> predictor = StatPredictor.load("models/pts_predictor.pkl")
             >>> prediction = predictor.predict(features)
         """
         with open(filepath, "rb") as f:
@@ -730,7 +731,7 @@ class MultiStatPredictor:
 
         for target in self.targets:
             print(f"\n{'='*60}")
-            predictor = NBAPredictor(model_type=self.model_type)
+            predictor = StatPredictor(model_type=self.model_type)
             metrics = predictor.train(df, target=target)
             self.predictors[target] = predictor
             results[target] = metrics
@@ -749,7 +750,9 @@ class MultiStatPredictor:
     def save_all(self, directory: str = None):
         """Save all models."""
         if directory is None:
-            directory = os.path.dirname(__file__)
+            from utils.league_config import get_config
+            directory = str(get_config("nba").models_dir)
+            os.makedirs(directory, exist_ok=True)
 
         for target, predictor in self.predictors.items():
             filepath = os.path.join(directory, f"{target.lower()}_predictor.pkl")
@@ -758,9 +761,10 @@ class MultiStatPredictor:
     def load_all(self, directory: str = None):
         """Load all models."""
         if directory is None:
-            directory = os.path.dirname(__file__)
+            from utils.league_config import get_config
+            directory = str(get_config("nba").models_dir)
 
         for target in self.targets:
             filepath = os.path.join(directory, f"{target.lower()}_predictor.pkl")
             if os.path.exists(filepath):
-                self.predictors[target] = NBAPredictor.load(filepath)
+                self.predictors[target] = StatPredictor.load(filepath)

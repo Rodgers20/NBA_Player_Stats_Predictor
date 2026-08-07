@@ -438,7 +438,7 @@ def generate_all_stats_props(
     Generate best props across all stat types.
 
     Args:
-        predictors: Dict of {stat: NBAPredictor} objects
+        predictors: Dict of {stat: StatPredictor} objects
         features_df: DataFrame with player features
         game_logs_df: Historical game logs
         players: List of players to analyze
