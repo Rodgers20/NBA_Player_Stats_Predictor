@@ -853,6 +853,7 @@ app.layout = html.Div([
             dcc.Link("Player Analysis", href="/nba/", className="nav-link", id="nav-player"),
             dcc.Link("Today's Games", href="/nba/games", className="nav-link", id="nav-games"),
             dcc.Link("Best Props", href="/nba/props", className="nav-link", id="nav-props"),
+            dcc.Link("Hit Rates", href="/wnba/hitrates", className="nav-link nav-hidden", id="nav-hitrates"),
         ], className="nav-links"),
 
         # League toggle
@@ -2713,9 +2714,11 @@ def create_best_props_page():
      Output("nav-player", "className"),
      Output("nav-games", "className"),
      Output("nav-props", "className"),
+     Output("nav-hitrates", "className"),
      Output("nav-player", "href"),
      Output("nav-games", "href"),
      Output("nav-props", "href"),
+     Output("nav-hitrates", "href"),
      Output("nav-brand", "children"),
      Output("league-toggle-nba", "className"),
      Output("league-toggle-wnba", "className")],
@@ -2725,6 +2728,7 @@ def display_page(pathname):
     """Route to the correct page based on URL. Supports /nba/* and /wnba/*."""
     active = "nav-link active"
     inactive = "nav-link"
+    hidden = "nav-link nav-hidden"
     league_active = "league-pill active"
     league_inactive = "league-pill"
 
@@ -2732,38 +2736,44 @@ def display_page(pathname):
 
     # WNBA routes
     if path.startswith("/wnba"):
-        wnba_hrefs = ("/wnba/", "/wnba/games", "/wnba/props")
+        wnba_hrefs = ("/wnba/", "/wnba/games", "/wnba/props", "/wnba/hitrates")
         brand = get_config("wnba").brand
         if path == "/wnba/games":
             return (create_wnba_games_page(),
-                    inactive, active, inactive,
+                    inactive, active, inactive, inactive,
                     *wnba_hrefs, brand,
                     league_inactive, league_active)
         if path == "/wnba/props":
             return (create_wnba_props_page(),
-                    inactive, inactive, active,
+                    inactive, inactive, active, inactive,
+                    *wnba_hrefs, brand,
+                    league_inactive, league_active)
+        if path == "/wnba/hitrates":
+            return (create_wnba_hit_rates_page(),
+                    inactive, inactive, inactive, active,
                     *wnba_hrefs, brand,
                     league_inactive, league_active)
         return (create_wnba_player_analysis_page(),
-                active, inactive, inactive,
+                active, inactive, inactive, inactive,
                 *wnba_hrefs, brand,
                 league_inactive, league_active)
 
     # NBA routes (default). Accept legacy /games and /props too.
-    nba_hrefs = ("/nba/", "/nba/games", "/nba/props")
+    # Hit Rates is WNBA-only for now — link stays hidden on NBA pages.
+    nba_hrefs = ("/nba/", "/nba/games", "/nba/props", "/wnba/hitrates")
     brand = get_config("nba").brand
     if path in ("/games", "/nba/games"):
         return (create_todays_games_page(),
-                inactive, active, inactive,
+                inactive, active, inactive, hidden,
                 *nba_hrefs, brand,
                 league_active, league_inactive)
     if path in ("/props", "/nba/props"):
         return (create_best_props_page(),
-                inactive, inactive, active,
+                inactive, inactive, active, hidden,
                 *nba_hrefs, brand,
                 league_active, league_inactive)
     return (create_player_analysis_page(),
-            active, inactive, inactive,
+            active, inactive, inactive, hidden,
             *nba_hrefs, brand,
             league_active, league_inactive)
 
@@ -6051,6 +6061,115 @@ def create_wnba_games_page() -> html.Div:
     )
 
 
+def create_wnba_hit_rates_page() -> html.Div:
+    """WNBA hit-rate board — 'X+ Stat' thresholds each starter has hit in
+    N of their last 10 games. Grouped by tonight's matchups.
+    """
+    from utils.wnba_hit_rates import compute_hit_rates, STAT_LABELS
+    from utils.wnba_data_fetch import get_todays_wnba_games
+
+    try:
+        games = get_todays_wnba_games()
+    except Exception as e:
+        games = []
+        print(f"[WNBA-HitRates] schedule fetch failed: {e}")
+
+    if not games:
+        return html.Div(
+            [
+                html.H2("WNBA Hit Rates", style={"color": "#e5e7eb", "marginBottom": "8px"}),
+                html.P("No WNBA games scheduled tonight.", style={"color": "#9ca3af"}),
+            ],
+            style={"padding": "60px 40px", "maxWidth": "900px", "margin": "0 auto"},
+        )
+
+    results = compute_hit_rates(WNBA_DF, games, n_games=10, min_hits=7, min_avg_min=15.0)
+
+    def _ratio_color(hits: int, games: int) -> str:
+        r = hits / games if games else 0
+        if r >= 0.9: return "#22c55e"
+        if r >= 0.75: return "#facc15"
+        return "#fb923c"
+
+    def _stat_pill_color(stat: str) -> str:
+        return {"PTS": "#14b8a6", "REB": "#f59e0b", "AST": "#a78bfa", "FG3M": "#60a5fa"}.get(stat, "#9ca3af")
+
+    def _row(entry) -> html.Div:
+        return html.Div(
+            [
+                html.Span(entry.team, className="wnba-team-badge",
+                          style={"fontSize": "10px", "minWidth": "44px", "textAlign": "center"}),
+                html.Div(
+                    [
+                        html.Div(entry.player_name, style={"color": "#e5e7eb", "fontWeight": "600", "fontSize": "14px"}),
+                        html.Div(
+                            [
+                                html.Span(f"{entry.threshold}+ ", style={"color": _stat_pill_color(entry.stat), "fontWeight": "700"}),
+                                html.Span(STAT_LABELS.get(entry.stat, entry.stat),
+                                          style={"color": "#9ca3af", "fontSize": "12px"}),
+                            ],
+                            style={"marginTop": "2px"},
+                        ),
+                    ],
+                    style={"flex": "1", "marginLeft": "10px"},
+                ),
+                html.Div(
+                    f"{entry.hits}/{entry.games}",
+                    style={
+                        "fontSize": "20px", "fontWeight": "800",
+                        "color": _ratio_color(entry.hits, entry.games),
+                        "minWidth": "70px", "textAlign": "right",
+                    },
+                ),
+            ],
+            className="wnba-hit-row",
+        )
+
+    game_blocks = []
+    for gr in results:
+        entries = gr["entries"][:12]   # top 12 hits per matchup
+        if not entries:
+            continue
+        game_blocks.append(html.Div(
+            [
+                html.Div(
+                    [
+                        html.H3(gr["matchup"], style={"color": "#e5e7eb", "margin": "0", "fontSize": "18px"}),
+                        html.Span(f"{len(gr['entries'])} qualifying picks",
+                                  style={"color": "#6b7280", "fontSize": "12px", "marginLeft": "10px"}),
+                    ],
+                    style={"display": "flex", "alignItems": "baseline", "marginBottom": "12px"},
+                ),
+                html.Div([_row(e) for e in entries]),
+            ],
+            className="wnba-hit-block",
+            style={"marginBottom": "24px"},
+        ))
+
+    if not game_blocks:
+        game_blocks = [html.P(
+            "No starters had ≥7/10 hits on a meaningful threshold. Check back after tonight's games.",
+            style={"color": "#9ca3af"},
+        )]
+
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.H2("WNBA Hit Rates", style={"color": "#e5e7eb", "marginBottom": "4px"}),
+                    html.P(
+                        "For every starter (≥15 MPG) playing tonight, the highest '+X Stat' threshold they've cleared in their last 10 games.",
+                        style={"color": "#9ca3af", "fontSize": "13px", "marginBottom": "24px"},
+                    ),
+                    *game_blocks,
+                ],
+                style={"padding": "24px 40px", "maxWidth": "900px", "margin": "0 auto"},
+            ),
+        ],
+        className="page-container",
+    )
+
+
 def _wnba_game_card(game: dict, pred: "dict | None", home_inj: list, away_inj: list) -> html.Div:
     home, away = game["home"], game["away"]
     status = game["status_text"] or game["status"]
@@ -6203,7 +6322,8 @@ def create_wnba_props_page() -> html.Div:
         )
 
     # Stat filter pills
-    stat_options = ["ALL", "PTS", "AST", "REB", "FG3M", "PTS+REB", "PTS+AST", "PTS+REB+AST"]
+    stat_options = ["ALL", "PTS", "AST", "REB", "FG3M",
+                    "PTS+REB", "PTS+AST", "REB+AST", "PTS+REB+AST"]
     stat_pills = html.Div(
         [
             html.Button(
@@ -6403,7 +6523,11 @@ def _format_last_updated() -> str:
 
 def _wnba_props_row(prop) -> html.Div:
     """Card for a single prop pick."""
-    color_by_stat = {"PTS": "#14b8a6", "AST": "#a78bfa", "REB": "#f59e0b", "FG3M": "#60a5fa"}
+    color_by_stat = {
+        "PTS": "#14b8a6", "AST": "#a78bfa", "REB": "#f59e0b", "FG3M": "#60a5fa",
+        "PTS+REB": "#fb923c", "PTS+AST": "#c084fc",
+        "REB+AST": "#38bdf8", "PTS+REB+AST": "#facc15",
+    }
     stat_color = color_by_stat.get(prop.stat, "#9ca3af")
     conf_color = {"HIGH": "#22c55e", "MED": "#f59e0b", "LOW": "#6b7280"}.get(prop.confidence, "#6b7280")
     pick_color = "#22c55e" if prop.pick == "OVER" else "#ef4444"
@@ -6511,11 +6635,12 @@ def _wnba_props_row(prop) -> html.Div:
 # WNBA PLAYER ANALYSIS PAGE — NBA-style layout with bar graphs
 # =============================================================================
 
-_WNBA_STATS = ["PTS", "AST", "REB", "FG3M", "BLK", "STL", "P+R", "P+A", "PRA"]
-# Display label -> component columns for combos (added Phase 7)
+_WNBA_STATS = ["PTS", "AST", "REB", "FG3M", "BLK", "STL", "P+R", "P+A", "R+A", "PRA"]
+# Display label -> component columns for combos
 _WNBA_STAT_COMPONENTS = {
     "P+R": ["PTS", "REB"],
     "P+A": ["PTS", "AST"],
+    "R+A": ["REB", "AST"],
     "PRA": ["PTS", "REB", "AST"],
 }
 _WNBA_PERIODS = [
@@ -6526,7 +6651,7 @@ _WNBA_PERIODS = [
 _WNBA_STAT_COLORS = {
     "PTS": "#14b8a6", "AST": "#a78bfa", "REB": "#f59e0b",
     "FG3M": "#60a5fa", "BLK": "#ef4444", "STL": "#22c55e",
-    "P+R": "#fb923c", "P+A": "#c084fc", "PRA": "#facc15",
+    "P+R": "#fb923c", "P+A": "#c084fc", "R+A": "#38bdf8", "PRA": "#facc15",
 }
 
 

@@ -9,6 +9,7 @@ from utils.wnba_props import (
     generate_wnba_props,
     props_by_stat,
     _synthetic_line_from_recent,
+    _blend_projection,
     SYNTHETIC_BOOKMAKER,
 )
 
@@ -155,11 +156,12 @@ def test_props_by_stat_grouping():
 # --- Synthetic line tests --------------------------------------------------
 
 
-def _starter_history(pts=18, ast=4, reb=7, n=12):
+def _starter_history(pts=18, ast=4, reb=7, n=12, avg_min=28):
     return pd.DataFrame({
         "PLAYER_NAME": ["Star"] * n,
         "TEAM_ABBREVIATION": ["LVA"] * n,
         "_date": pd.date_range("2026-07-01", periods=n),
+        "MIN": [avg_min] * n,
         "PTS": [pts] * n, "AST": [ast] * n, "REB": [reb] * n, "FG3M": [1] * n,
     })
 
@@ -216,3 +218,100 @@ def test_generate_props_prefers_real_odds_over_synthetic():
     assert by_stat["PTS"].bookmaker == "FanDuel"
     assert by_stat["AST"].bookmaker == SYNTHETIC_BOOKMAKER
     assert by_stat["REB"].bookmaker == SYNTHETIC_BOOKMAKER
+
+
+# --- Phase 9 overhaul tests -----------------------------------------------
+
+
+def test_synthetic_line_uses_median_not_mean():
+    """Player with occasional big games should get a line based on median, not the inflated mean."""
+    # 12 games: 10 modest games + 2 huge outliers → mean ~17, median 12
+    df = pd.DataFrame({
+        "PLAYER_NAME": ["P"] * 12,
+        "TEAM_ABBREVIATION": ["LVA"] * 12,
+        "_date": pd.date_range("2026-07-01", periods=12),
+        "PTS": [12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 40, 40],
+        "AST": [3] * 12, "REB": [4] * 12, "FG3M": [1] * 12,
+    })
+    # Median = 12 → line lands around 11.5 or 12.5, NOT the mean-driven ~17
+    line = _synthetic_line_from_recent(df, "PTS")
+    assert line is not None
+    assert 11.0 <= line <= 13.0, f"expected median-anchored line ~12, got {line}"
+
+
+def test_blend_projection_clamps_extreme_low():
+    # Model produces absurdly low prediction (1.0 for a 4.5 avg player)
+    blended = _blend_projection(model_pred=1.0, l20_avg=4.5, stat="REB")
+    # Should clamp to >= 0.4 * 4.5 = 1.8
+    assert blended >= 1.8
+
+
+def test_blend_projection_clamps_extreme_high():
+    blended = _blend_projection(model_pred=50.0, l20_avg=10.0, stat="REB")
+    # Should clamp to <= 1.6 * 10 = 16.0
+    assert blended <= 16.0
+
+
+def test_blend_projection_returns_reasonable_middle():
+    blended = _blend_projection(model_pred=18.0, l20_avg=20.0, stat="PTS")
+    # 0.65 * 18 + 0.35 * 20 = 18.7
+    assert 18.0 < blended < 19.5
+
+
+def test_min_avg_min_filter_excludes_bench_players():
+    df = pd.DataFrame({
+        "PLAYER_NAME": ["Bench"] * 12,
+        "TEAM_ABBREVIATION": ["LVA"] * 12,
+        "_date": pd.date_range("2026-07-01", periods=12),
+        "MIN": [4.5] * 12,  # bench player, way under 15
+        "PTS": [10] * 12, "AST": [3] * 12, "REB": [6] * 12, "FG3M": [1] * 12,
+    })
+    tonight = [{"home": {"abbrev": "LVA"}, "away": {"abbrev": "ATL"}}]
+    preds = {"PTS": _FakeModel(11.0), "AST": _FakeModel(3.0),
+             "REB": _FakeModel(6.0), "FG3M": _FakeModel(1.0)}
+    props = generate_wnba_props(
+        df, _fake_getter(preds), odds={},
+        todays_games=tonight, synthesize_missing=True, min_avg_min=15.0,
+    )
+    assert props == [], "bench player should be filtered out entirely"
+
+
+def test_min_avg_min_filter_keeps_starter():
+    df = pd.DataFrame({
+        "PLAYER_NAME": ["Starter"] * 12,
+        "TEAM_ABBREVIATION": ["LVA"] * 12,
+        "_date": pd.date_range("2026-07-01", periods=12),
+        "MIN": [28] * 12,
+        "PTS": [18] * 12, "AST": [4] * 12, "REB": [8] * 12, "FG3M": [1] * 12,
+    })
+    tonight = [{"home": {"abbrev": "LVA"}, "away": {"abbrev": "ATL"}}]
+    preds = {"PTS": _FakeModel(19.0), "AST": _FakeModel(4.0),
+             "REB": _FakeModel(8.5), "FG3M": _FakeModel(1.0)}
+    props = generate_wnba_props(
+        df, _fake_getter(preds), odds={},
+        todays_games=tonight, synthesize_missing=True, min_avg_min=15.0,
+    )
+    stats = {p.stat for p in props}
+    assert "PTS" in stats
+    assert "REB" in stats
+
+
+def test_reb_ast_combo_stat_supported():
+    df = pd.DataFrame({
+        "PLAYER_NAME": ["Star"] * 12,
+        "TEAM_ABBREVIATION": ["LVA"] * 12,
+        "_date": pd.date_range("2026-07-01", periods=12),
+        "MIN": [30] * 12,
+        "PTS": [15] * 12, "AST": [4] * 12, "REB": [7] * 12, "FG3M": [1] * 12,
+    })
+    tonight = [{"home": {"abbrev": "LVA"}, "away": {"abbrev": "ATL"}}]
+    preds = {"PTS": _FakeModel(16.0), "AST": _FakeModel(4.0), "REB": _FakeModel(7.5), "FG3M": _FakeModel(1.0)}
+    props = generate_wnba_props(
+        df, _fake_getter(preds), odds={},
+        todays_games=tonight, synthesize_missing=True,
+    )
+    combo_stats = {p.stat for p in props if p.stat == "REB+AST"}
+    assert "REB+AST" in combo_stats
+    reb_ast_props = [p for p in props if p.stat == "REB+AST"]
+    # REB+AST projection = 7.5 + 4 = 11.5 (blended with L20 avg 11 → similar)
+    assert 9.0 <= reb_ast_props[0].projected <= 13.0

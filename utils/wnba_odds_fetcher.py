@@ -30,6 +30,7 @@ MARKET_TO_STAT = {
     "player_threes": "FG3M",
     "player_points_rebounds": "PTS+REB",
     "player_points_assists": "PTS+AST",
+    "player_rebounds_assists": "REB+AST",
     "player_points_rebounds_assists": "PTS+REB+AST",
 }
 

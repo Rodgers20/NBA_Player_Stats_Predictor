@@ -160,7 +160,8 @@ class StatPredictor:
         df: pd.DataFrame,
         target: str = "PTS",
         feature_columns: list[str] = None,
-        test_size: float = 0.2
+        test_size: float = 0.2,
+        weight_column: str = None,
     ) -> dict:
         """
         Train the model on historical data.
@@ -210,28 +211,41 @@ class StatPredictor:
         X = df_clean[feature_columns].values
         y = df_clean[target].values
 
+        # Optional sample weights (e.g. weight by MIN so starter performances
+        # count more than bench rows). Weights get split alongside X/y.
+        weights = None
+        if weight_column and weight_column in df_clean.columns:
+            weights = df_clean[weight_column].values
+
         print(f"Total samples: {len(X)}")
 
-        # Split into train/test
-        # IMPORTANT: We use random_state for reproducibility
-        # This means you'll get the same split every time
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, random_state=42
-        )
+        if weights is not None:
+            X_train, X_test, y_train, y_test, w_train, _ = train_test_split(
+                X, y, weights, test_size=test_size, random_state=42
+            )
+        else:
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=test_size, random_state=42
+            )
+            w_train = None
 
         print(f"Training samples: {len(X_train)}")
         print(f"Test samples: {len(X_test)}")
 
-        # Scale features (important for some models)
-        # Scaling makes all features have similar ranges (mean=0, std=1)
-        # This helps models that are sensitive to feature scales
         X_train_scaled = self.scaler.fit_transform(X_train)
         X_test_scaled = self.scaler.transform(X_test)
 
-        # Create and train the model
         print(f"\nTraining {self.model_type} model...")
         self.model = self._create_model()
-        self.model.fit(X_train_scaled, y_train)
+        if w_train is not None:
+            try:
+                self.model.fit(X_train_scaled, y_train, sample_weight=w_train)
+                print(f"  (using sample_weight from column '{weight_column}')")
+            except TypeError:
+                # Model doesn't accept sample_weight — fall back to unweighted
+                self.model.fit(X_train_scaled, y_train)
+        else:
+            self.model.fit(X_train_scaled, y_train)
 
         # Evaluate on test set
         y_pred = self.model.predict(X_test_scaled)

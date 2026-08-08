@@ -120,7 +120,12 @@ def train_model(
         best_params = predictor.tune_hyperparameters(df, target=target)
         print(f"Best params: {best_params}")
     else:
-        metrics = predictor.train(df, target=target)
+        # For WNBA (and any league where MIN is present), weight rows by
+        # minutes played so starter performances have more training influence
+        # than garbage-time bench rows. This directly reduces the model's
+        # regression-to-low-usage-mean bias for top-usage players.
+        weight_col = "MIN" if "MIN" in df.columns else None
+        metrics = predictor.train(df, target=target, weight_column=weight_col)
 
     # Get feature importance
     importance_df = predictor.get_feature_importance_df()
@@ -213,6 +218,14 @@ def main():
         player_positions=data["positions"],
         defense_vs_position=data["def_vs_pos"]
     )
+
+    # Filter out garbage-time / DNP-like rows so the model isn't dragged
+    # toward the low-minute mean. Sample weighting further amplifies this
+    # in the fit call.
+    if "MIN" in df.columns:
+        before = len(df)
+        df = df[df["MIN"] >= 8].copy()
+        print(f"Filtered to MIN >= 8: {before} -> {len(df)} rows")
 
     print(f"Total samples: {len(df)}")
     print(f"Total features: {len(df.columns)}")

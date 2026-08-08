@@ -31,7 +31,8 @@ def _player_df(rows: int, pts: float, ast: float, reb: float):
 
 
 def test_pts_plus_reb_projection_is_sum_of_components():
-    df = _player_df(10, pts=20, ast=5, reb=8)
+    # Model outputs match L20 avg so blending is a no-op — we can assert exact sum
+    df = _player_df(10, pts=22, ast=5, reb=9.5)
     odds = {"Star": {"PTS+REB": {
         "line": 25.5, "over_price": -110, "under_price": -110, "bookmaker": "FD",
     }}}
@@ -45,7 +46,7 @@ def test_pts_plus_reb_projection_is_sum_of_components():
 
 
 def test_pts_ast_reb_projection_uses_all_three_models():
-    df = _player_df(10, pts=15, ast=6, reb=7)
+    df = _player_df(10, pts=16, ast=6.5, reb=7.5)
     odds = {"Star": {"PTS+REB+AST": {
         "line": 30.5, "over_price": +120, "under_price": -140, "bookmaker": "DK",
     }}}

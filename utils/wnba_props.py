@@ -70,6 +70,7 @@ def _confidence(edge_abs: float, hit_prob: float) -> str:
 _COMBO_COMPONENTS = {
     "PTS+REB": ["PTS", "REB"],
     "PTS+AST": ["PTS", "AST"],
+    "REB+AST": ["REB", "AST"],
     "PTS+REB+AST": ["PTS", "REB", "AST"],
 }
 
@@ -119,7 +120,7 @@ def _actual_stat_sum(recent: pd.DataFrame, stat: str) -> pd.Series:
 # (below this, the prop is on a bench player and not worth surfacing).
 _SYNTHETIC_MIN_LINE = {
     "PTS": 6.5, "REB": 2.5, "AST": 2.5, "FG3M": 1.5,
-    "PTS+REB": 10.5, "PTS+AST": 9.5, "PTS+REB+AST": 12.5,
+    "PTS+REB": 10.5, "PTS+AST": 9.5, "REB+AST": 5.5, "PTS+REB+AST": 12.5,
 }
 
 
@@ -128,29 +129,58 @@ def _synthetic_line_from_recent(recent: pd.DataFrame, stat: str,
                                 min_meaningful: bool = True) -> Optional[float]:
     """Build a half-point-rounded line from the player's last `lookback` games.
 
-    Sportsbook lines are almost always X.5 — we match that convention so the
-    OVER/UNDER cutoff is clean.
+    Uses the MEDIAN (not the mean) as the center, so the historical OVER/UNDER
+    split is naturally ~50/50 rather than the upward-biased mean-rounding that
+    caused every synthetic pick to be an UNDER.
 
-    When `min_meaningful=True`, returns None for stats where the L20 average is
-    below the "worth-a-bet" floor (e.g. players averaging < 6.5 PTS are bench
-    players and clogging the props board isn't useful).
+    For integer-rounded medians we jitter by 0.5 based on recent trend (L5 vs
+    L20) — rising trend nudges the line DOWN (a real starter on a hot streak
+    should have to clear a lower bar to say OVER), falling trend nudges UP.
+
+    When `min_meaningful=True`, returns None for stats where the L20 median is
+    below the "worth-a-bet" floor (bench-player noise gets filtered).
     """
     if len(recent) < 10:
-        # Need at least 10 games in the window for a stable average
+        # Need at least 10 games in the window for a stable estimate
         return None
     actuals = _actual_stat_sum(recent.head(lookback), stat)
     if actuals.empty:
         return None
-    avg = float(actuals.mean())
 
-    if min_meaningful and avg < _SYNTHETIC_MIN_LINE.get(stat, 0):
+    center = float(actuals.median())
+    if min_meaningful and center < _SYNTHETIC_MIN_LINE.get(stat, 0):
         return None
 
-    # Round to nearest 0.5, then nudge to X.5 to avoid pushes
-    line = round(avg * 2) / 2
+    line = round(center * 2) / 2
     if line == int(line):
-        line = line - 0.5 if avg < line else line + 0.5
+        l5 = _actual_stat_sum(recent.head(5), stat)
+        recent_avg = float(l5.mean()) if not l5.empty else center
+        # Rising form (L5 > median) → nudge DOWN to give OVER a fair shot;
+        # falling form → nudge UP.
+        line = line - 0.5 if recent_avg >= center else line + 0.5
     return max(0.5, line)
+
+
+def _blend_projection(
+    model_pred: float,
+    l20_avg: float,
+    stat: str,
+    alpha: float = 0.65,
+) -> float:
+    """Blend the model's context-adjusted projection with the player's recent form.
+
+    Prevents catastrophic under-projections (e.g. "1.0 REB for a 4.5 avg
+    player") even if the model temporarily produces an out-of-distribution
+    output. The clip bounds guarantee the projection stays within a reasonable
+    band around what the player has actually been doing lately.
+    """
+    if l20_avg <= 0:
+        return _clip_prediction(stat, model_pred)
+    blended = alpha * model_pred + (1 - alpha) * l20_avg
+    # Never project below 40% or above 160% of the player's recent form
+    lower = 0.4 * l20_avg
+    upper = 1.6 * l20_avg
+    return _clip_prediction(stat, max(lower, min(upper, blended)))
 
 
 SYNTHETIC_BOOKMAKER = "L20 avg"
@@ -202,21 +232,33 @@ def generate_wnba_props(
     team_stats: pd.DataFrame | None = None,
     only_active_tonight: bool = True,
     synthesize_missing: bool = True,
+    min_avg_min: float = 15.0,
 ) -> list[WnbaProp]:
     """Build list of WnbaProp objects.
 
     Real sportsbook odds win when available. When `synthesize_missing=True`
     (default), any (player, stat) combo that has no live odds gets a
-    self-generated line from the player's last-20-game average — so the props
+    self-generated line from the player's last-20-game median — so the props
     board still populates when the Odds API is unreachable or over quota.
 
-    Handles both single stats (PTS/AST/REB/FG3M) and combos (PTS+REB, PTS+AST, PTS+REB+AST).
+    `min_avg_min` filters synthetic props to players whose L20 avg minutes
+    meets the threshold (default 15). Bench players are excluded — starters
+    and rotational players only. Does NOT filter players with real sportsbook
+    odds (if a book took a line on them, they're worth analyzing).
+
+    Model projections are blended with each player's L20 avg (65% model + 35%
+    recent form) and clipped to [0.4×, 1.6×] of that average — anchors the
+    projection so extreme model outputs don't produce absurd picks.
+
+    Handles single stats (PTS/AST/REB/FG3M) and combos (PTS+REB, PTS+AST,
+    REB+AST, PTS+REB+AST).
     """
     if wnba_df.empty:
         return []
     odds = odds or {}
 
-    stats_available = ["PTS", "AST", "REB", "FG3M", "PTS+REB", "PTS+AST", "PTS+REB+AST"]
+    stats_available = ["PTS", "AST", "REB", "FG3M",
+                       "PTS+REB", "PTS+AST", "REB+AST", "PTS+REB+AST"]
 
     df_sorted = wnba_df.sort_values(["PLAYER_NAME", "_date"], ascending=[True, False])
     recent_by_player = {
@@ -241,8 +283,6 @@ def generate_wnba_props(
             if team in tonight_teams:
                 candidate_players.add(name)
 
-    # Track which (player, stat) came from real odds so we don't double-add
-    seen: set[tuple[str, str]] = set()
     props: list[WnbaProp] = []
 
     for player_name in candidate_players:
@@ -252,6 +292,13 @@ def generate_wnba_props(
         team = recent.iloc[0].get("TEAM_ABBREVIATION", "—")
 
         if only_active_tonight and tonight_teams and team not in tonight_teams:
+            continue
+
+        # Only exclude bench players from the SYNTHETIC pool. If a sportsbook
+        # took a line on the player, they're at least rotationally relevant.
+        has_real_odds = player_name in odds
+        avg_min = float(recent["MIN"].mean()) if "MIN" in recent.columns else 0.0
+        if not has_real_odds and avg_min < min_avg_min:
             continue
 
         # Build feature row for tonight when possible
@@ -271,12 +318,16 @@ def generate_wnba_props(
 
         for stat in stats_available:
             entry = player_odds.get(stat)
-            projected = _project_stat(stat, feat_row, predictor_getter)
-            if projected is None:
+            raw_projected = _project_stat(stat, feat_row, predictor_getter)
+            if raw_projected is None:
                 continue
             actual_series = _actual_stat_sum(recent, stat)
             if actual_series.empty:
                 continue
+
+            # Blend model output with recent form (safety net vs extreme outputs)
+            l20_avg = float(actual_series.mean())
+            projected = _blend_projection(raw_projected, l20_avg, stat)
 
             if entry is not None:
                 # Real sportsbook line
@@ -289,9 +340,8 @@ def generate_wnba_props(
                     bookmaker=entry.get("bookmaker", "—"),
                     recent_n=len(recent),
                 ))
-                seen.add((player_name, stat))
             elif synthesize_missing:
-                # Synthetic line from L20 average
+                # Synthetic line from L20 median (unbiased)
                 line = _synthetic_line_from_recent(recent, stat)
                 if line is None:
                     continue
