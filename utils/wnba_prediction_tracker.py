@@ -168,7 +168,7 @@ def grade_pending(wnba_df, max_lookback_days: int = 7) -> int:
 _CALIBRATION_FILE = get_config("wnba").data_dir / "model_calibration.json"
 
 
-def compute_calibration_offsets(min_samples: int = 25) -> dict:
+def compute_calibration_offsets(min_samples: int = 40) -> dict:
     """Compute per-stat bias offsets: how much the model over/under-predicts on average.
 
     Positive offset means the model over-predicts (subtract from future predictions).

@@ -233,6 +233,7 @@ def generate_wnba_props(
     only_active_tonight: bool = True,
     synthesize_missing: bool = True,
     min_avg_min: float = 15.0,
+    exclude_injured: bool = True,
 ) -> list[WnbaProp]:
     """Build list of WnbaProp objects.
 
@@ -282,6 +283,15 @@ def generate_wnba_props(
             team = group.iloc[0].get("TEAM_ABBREVIATION", "")
             if team in tonight_teams:
                 candidate_players.add(name)
+
+    # Filter out injured players (OUT / OUT_SEASON / DOUBTFUL) — they aren't
+    # playing tonight, so any prop on them is dead money.
+    if exclude_injured:
+        try:
+            from utils.wnba_injuries import is_player_unavailable
+            candidate_players = {n for n in candidate_players if not is_player_unavailable(n)}
+        except Exception as e:
+            logger.debug(f"[WNBA-Props] injury filter skipped: {e}")
 
     props: list[WnbaProp] = []
 

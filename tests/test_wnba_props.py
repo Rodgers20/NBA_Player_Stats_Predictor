@@ -296,6 +296,36 @@ def test_min_avg_min_filter_keeps_starter():
     assert "REB" in stats
 
 
+def test_exclude_injured_filters_out_players(monkeypatch):
+    """Players marked OUT/DOUBTFUL should be dropped from the props list."""
+    from utils import wnba_injuries
+
+    df = pd.concat([
+        _starter_history(pts=18, ast=4, reb=7, n=12).assign(PLAYER_NAME="Healthy Star"),
+        _starter_history(pts=18, ast=4, reb=7, n=12).assign(PLAYER_NAME="Injured Star"),
+    ])
+    tonight = [{"home": {"abbrev": "LVA"}, "away": {"abbrev": "ATL"}}]
+    preds = {"PTS": _FakeModel(19.0), "AST": _FakeModel(4.0), "REB": _FakeModel(7.5), "FG3M": _FakeModel(1.0)}
+
+    # Stub the injury system: only "Injured Star" is marked OUT
+    def _fake_unavailable(name):
+        return name == "Injured Star"
+    monkeypatch.setattr(wnba_injuries, "is_player_unavailable", _fake_unavailable)
+    # Also re-export from wnba_props so its local import picks up the stub
+    import sys
+    if "utils.wnba_props" in sys.modules:
+        pass  # monkeypatch on the module works because wnba_props imports at call time
+
+    props = generate_wnba_props(
+        df, _fake_getter(preds), odds={},
+        todays_games=tonight, synthesize_missing=True,
+        exclude_injured=True,
+    )
+    names = {p.player_name for p in props}
+    assert "Healthy Star" in names
+    assert "Injured Star" not in names
+
+
 def test_reb_ast_combo_stat_supported():
     df = pd.DataFrame({
         "PLAYER_NAME": ["Star"] * 12,

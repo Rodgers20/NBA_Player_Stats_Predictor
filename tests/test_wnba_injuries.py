@@ -75,10 +75,86 @@ def test_parses_team_and_player_injuries(monkeypatch):
     assert diggins["position"] == "G"
 
 
-def test_returns_empty_on_network_failure(monkeypatch):
+def test_returns_empty_on_network_failure(monkeypatch, tmp_path):
     def _boom(*a, **kw):
         raise RuntimeError("network down")
     monkeypatch.setattr(wnba_injuries.requests, "get", _boom)
+    # Also point disk cache at empty tmp so no fallback data exists
+    monkeypatch.setattr(wnba_injuries, "_CACHE_FILE", tmp_path / "empty.json")
 
     assert wnba_injuries.get_wnba_team_injuries("LVA") == []
     assert wnba_injuries.get_wnba_player_injury("A'ja Wilson") is None
+
+
+def test_fuzzy_name_match_handles_hyphenated_lastname(monkeypatch):
+    """Skylar Diggins ↔ Skylar Diggins-Smith should resolve to the same player."""
+    fake = {
+        "injuries": [
+            {
+                "displayName": "Chicago Sky", "abbreviation": None,
+                "injuries": [
+                    {"athlete": {"displayName": "Skylar Diggins", "position": {"abbreviation": "G"}},
+                     "status": "Out", "shortComment": "knee"},
+                ],
+            }
+        ]
+    }
+    monkeypatch.setattr(wnba_injuries.requests, "get", lambda *a, **kw: _fake_response(fake))
+
+    assert wnba_injuries.get_wnba_player_injury("Skylar Diggins") is not None
+    assert wnba_injuries.get_wnba_player_injury("Skylar Diggins-Smith") is not None  # fuzzy hit
+    assert wnba_injuries.get_wnba_player_injury("Diggins") is not None                # last-only
+
+
+def test_fuzzy_lookup_returns_none_for_unknown(monkeypatch):
+    fake = {
+        "injuries": [
+            {"displayName": "Chicago Sky", "abbreviation": None,
+             "injuries": [{"athlete": {"displayName": "Skylar Diggins"},
+                          "status": "Out", "shortComment": "knee"}]},
+        ]
+    }
+    monkeypatch.setattr(wnba_injuries.requests, "get", lambda *a, **kw: _fake_response(fake))
+    assert wnba_injuries.get_wnba_player_injury("Random Player") is None
+
+
+def test_is_player_unavailable(monkeypatch):
+    fake = {
+        "injuries": [
+            {"displayName": "Chicago Sky", "abbreviation": None,
+             "injuries": [
+                 {"athlete": {"displayName": "Out Player"}, "status": "Out", "shortComment": "x"},
+                 {"athlete": {"displayName": "Doubt Player"}, "status": "Doubtful", "shortComment": "x"},
+                 {"athlete": {"displayName": "Day Player"}, "status": "Day-To-Day", "shortComment": "x"},
+             ]},
+        ]
+    }
+    monkeypatch.setattr(wnba_injuries.requests, "get", lambda *a, **kw: _fake_response(fake))
+    assert wnba_injuries.is_player_unavailable("Out Player") is True
+    assert wnba_injuries.is_player_unavailable("Doubt Player") is True
+    # Day-to-Day → QUESTIONABLE → still available
+    assert wnba_injuries.is_player_unavailable("Day Player") is False
+    assert wnba_injuries.is_player_unavailable("Unknown") is False
+
+
+def test_disk_cache_fallback(monkeypatch, tmp_path):
+    """When live fetch fails but disk cache exists, use it."""
+    import json
+    from datetime import datetime
+    cache_file = tmp_path / "injuries.json"
+    payload = {"injuries": [{"displayName": "Chicago Sky", "abbreviation": None,
+                             "injuries": [{"athlete": {"displayName": "Cached Player"},
+                                           "status": "Out", "shortComment": "old news"}]}]}
+    cache_file.write_text(json.dumps({
+        "cached_at": datetime.now().isoformat(),
+        "payload": payload,
+    }))
+    monkeypatch.setattr(wnba_injuries, "_CACHE_FILE", cache_file)
+
+    def _fail(*a, **kw):
+        raise RuntimeError("live source down")
+    monkeypatch.setattr(wnba_injuries.requests, "get", _fail)
+
+    inj = wnba_injuries.get_wnba_player_injury("Cached Player")
+    assert inj is not None
+    assert inj["status"] == "OUT"

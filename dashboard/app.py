@@ -3106,16 +3106,34 @@ def _wnba_perf_bar_chart(pdf: pd.DataFrame, stat: str, period: str, threshold: f
 def _wnba_prediction_card(pdf: pd.DataFrame) -> html.Div:
     """Next-game prediction card.
 
-    Builds a proper tonight-context feature row (correct opponent, home/away,
-    days rest, position-vs-opponent-defense) so predictions reflect the actual
-    upcoming matchup rather than the player's most recent game.
+    Uses `build_tonight_feature_row` for correct opponent context, then
+    `_blend_projection` (55% model + 45% L20 avg, clipped to [0.4×, 1.6×] avg)
+    so a bad model output can never dominate. Subtitle shows the reference
+    points the user needs to sanity-check the number.
     """
     from utils.wnba_predict import build_tonight_feature_row, get_tonight_matchup_for_player
     from utils.wnba_data_fetch import get_todays_wnba_games
     from utils.wnba_prediction_tracker import get_calibration_offsets
+    from utils.wnba_props import _blend_projection, _clip_prediction as _clip
+    from utils.wnba_injuries import get_wnba_player_injury
 
     children = [html.H4("Next Game Prediction", style={"color": "#e5e7eb", "marginBottom": "12px", "fontSize": "14px"})]
     try:
+        # If player is OUT/DOUBTFUL, don't even try to project — they aren't playing.
+        player_name = pdf.iloc[0].get("PLAYER_NAME", "")
+        injury = get_wnba_player_injury(player_name)
+        if injury and injury.get("status") in ("OUT", "OUT_SEASON", "DOUBTFUL"):
+            children.append(html.Div(
+                [
+                    html.Div(injury["status"].replace("_", " "),
+                             style={"color": "#ef4444", "fontWeight": "700", "fontSize": "18px"}),
+                    html.Div("No projection — player not expected to play.",
+                             style={"color": "#9ca3af", "fontSize": "12px", "marginTop": "4px"}),
+                ],
+                style={"padding": "10px 0"},
+            ))
+            return html.Div(children, className="wnba-card")
+
         # Resolve tonight's matchup
         player_team = pdf.iloc[0].get("TEAM_ABBREVIATION", "")
         matchup_info = None
@@ -3126,15 +3144,14 @@ def _wnba_prediction_card(pdf: pd.DataFrame) -> html.Div:
             pass
 
         # Fallback: use last game's opponent if not playing tonight
-        if matchup_info is None:
+        playing_tonight = matchup_info is not None
+        if not playing_tonight:
             last = pdf.iloc[0]
             m = str(last.get("MATCHUP", ""))
             opp = m.split()[-1] if m else ""
             is_home = " vs." in m
-            subtitle = f"Last matchup: {opp}"
         else:
             opp, is_home = matchup_info
-            subtitle = f"Tonight: {'vs' if is_home else '@'} {opp}"
 
         # Reference tables (lazy load)
         global _WNBA_TEAM_DEF, _WNBA_DEF_VS_POS
@@ -3150,10 +3167,11 @@ def _wnba_prediction_card(pdf: pd.DataFrame) -> html.Div:
             team_def=_WNBA_TEAM_DEF, def_vs_pos=_WNBA_DEF_VS_POS, team_stats=team_stats_df,
         )
 
-        # Calibration: subtract observed model bias per stat
         offsets = get_calibration_offsets()
 
-        from utils.wnba_props import _clip_prediction as _clip
+        # Compute L20 + L5 form for the subtitle
+        l20 = pdf.head(20)
+        l5 = pdf.head(5)
 
         cards = []
         for stat, color in [("PTS", "#14b8a6"), ("AST", "#a78bfa"), ("REB", "#f59e0b")]:
@@ -3163,7 +3181,10 @@ def _wnba_prediction_card(pdf: pd.DataFrame) -> html.Div:
             try:
                 pred = model.predict(feat_row)
                 raw = float(pred.get("predicted_value", pred) if isinstance(pred, dict) else pred)
-                val = _clip(stat, raw - offsets.get(stat, 0.0))
+                offset_adjusted = raw - offsets.get(stat, 0.0)
+                l20_avg = float(l20[stat].mean()) if stat in l20.columns and not l20.empty else 0.0
+                # Blend with L20 form (α=0.55 model, 0.45 form). _blend_projection also clips.
+                val = _blend_projection(offset_adjusted, l20_avg, stat, alpha=0.55)
                 cards.append(html.Div(
                     [
                         html.Div(stat, style={"fontSize": "11px", "color": "#9ca3af", "letterSpacing": "0.05em"}),
@@ -3178,7 +3199,28 @@ def _wnba_prediction_card(pdf: pd.DataFrame) -> html.Div:
             except Exception:
                 pass
         children.append(html.Div(cards, style={"display": "flex", "gap": "8px"}))
-        children.append(html.Div(subtitle, style={"color": "#6b7280", "fontSize": "11px", "marginTop": "8px"}))
+
+        # Rich subtitle: matchup + reference averages + form arrow
+        pts_avg = l20["PTS"].mean() if "PTS" in l20.columns else 0
+        pts_l5 = l5["PTS"].mean() if "PTS" in l5.columns and not l5.empty else pts_avg
+        trend = "↑" if pts_l5 > pts_avg + 1 else ("↓" if pts_l5 < pts_avg - 1 else "→")
+        trend_color = {"↑": "#22c55e", "↓": "#ef4444"}.get(trend, "#9ca3af")
+
+        if playing_tonight:
+            matchup_label = f"Tonight: {'vs' if is_home else '@'} {opp}"
+        else:
+            matchup_label = f"Last matchup: {opp} (no game tonight)"
+
+        children.append(html.Div(
+            [
+                html.Span(matchup_label, style={"color": "#e5e7eb"}),
+                html.Span(" · ", style={"color": "#374151"}),
+                html.Span(f"L20 {pts_avg:.1f} PTS", style={"color": "#9ca3af"}),
+                html.Span(" · ", style={"color": "#374151"}),
+                html.Span(f"form {trend} L5 {pts_l5:.1f}", style={"color": trend_color, "fontWeight": "600"}),
+            ],
+            style={"fontSize": "11px", "marginTop": "10px"},
+        ))
     except Exception as e:
         children.append(html.Div(f"Unavailable: {e}", style={"color": "#ef4444", "fontSize": "12px"}))
     return html.Div(children, className="wnba-card")
@@ -3289,20 +3331,50 @@ def _wnba_injury_card(player_name: str) -> html.Div:
         pass
 
     if inj is None:
-        body = html.Div("Active — no injury news.", style={"color": "#22c55e", "fontSize": "13px"})
-    else:
-        body = html.Div(
+        return html.Div(
             [
-                html.Div(inj.get("status", "OUT"), style={"color": "#ef4444", "fontWeight": "700", "fontSize": "14px"}),
-                html.Div(inj.get("reason", ""), style={"color": "#9ca3af", "fontSize": "12px", "marginTop": "4px"}),
-            ]
+                html.H4("Injury Context", style={"color": "#e5e7eb", "marginBottom": "10px", "fontSize": "14px"}),
+                html.Div("Active — no injury news.", style={"color": "#22c55e", "fontSize": "13px"}),
+            ],
+            className="wnba-card",
         )
+
+    status = inj.get("status", "OUT")
+    reason = inj.get("reason", "")
+    is_severe = status in ("OUT", "OUT_SEASON", "DOUBTFUL")
+
+    status_label_map = {"OUT": "OUT", "OUT_SEASON": "OUT · SEASON",
+                        "DOUBTFUL": "DOUBTFUL", "QUESTIONABLE": "QUESTIONABLE",
+                        "PROBABLE": "PROBABLE"}
+    status_color = "#ef4444" if is_severe else "#f59e0b"
+
     return html.Div(
         [
-            html.H4("Injury Context", style={"color": "#e5e7eb", "marginBottom": "10px", "fontSize": "14px"}),
-            body,
+            html.Div(
+                [
+                    html.Span("⚠ ", style={"color": status_color, "fontSize": "16px", "fontWeight": "700"}),
+                    html.Span("Injury Context", style={"color": "#e5e7eb", "fontSize": "14px", "fontWeight": "700"}),
+                ],
+                style={"marginBottom": "10px"},
+            ),
+            html.Div(
+                status_label_map.get(status, status),
+                style={
+                    "display": "inline-block",
+                    "background": f"rgba({'239,68,68' if is_severe else '245,158,11'},0.15)",
+                    "color": status_color,
+                    "border": f"1px solid {status_color}",
+                    "padding": "3px 10px", "borderRadius": "6px",
+                    "fontSize": "12px", "fontWeight": "700",
+                    "letterSpacing": "0.05em",
+                },
+            ),
+            html.Div(reason, style={"color": "#cbd5e1", "fontSize": "12px", "marginTop": "8px", "lineHeight": "1.4"}),
         ],
         className="wnba-card",
+        style={
+            "borderLeft": f"3px solid {status_color}",
+        } if is_severe else {},
     )
 
 
