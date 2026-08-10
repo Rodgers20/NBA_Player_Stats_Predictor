@@ -6155,7 +6155,7 @@ def create_wnba_hit_rates_page() -> html.Div:
             style={"padding": "60px 40px", "maxWidth": "900px", "margin": "0 auto"},
         )
 
-    results = compute_hit_rates(WNBA_DF, games, n_games=10, min_hits=7, min_avg_min=15.0)
+    results = compute_hit_rates(WNBA_DF, games, n_games=10, min_hits=8, min_avg_min=15.0)
 
     def _ratio_color(hits: int, games: int) -> str:
         r = hits / games if games else 0
@@ -6357,37 +6357,79 @@ def create_wnba_props_page() -> html.Div:
     props = get_wnba_props()
 
     if not props:
-        # Diagnose why we have nothing to show
+        # Full diagnostic — figure out exactly why we have nothing to show.
+        # This runs on both local dev and Hugging Face Space so we can debug
+        # deployment issues without shipping a new build.
+        diagnostic = []
         try:
             from utils.wnba_data_fetch import get_todays_wnba_games
-            from utils.wnba_odds_fetcher import get_wnba_requests_remaining
+            from utils.wnba_odds_fetcher import get_wnba_requests_remaining, get_live_wnba_odds
             games = get_todays_wnba_games()
+        except Exception as e:
+            games = []
+            diagnostic.append(f"schedule fetch error: {e}")
+
+        try:
+            odds = get_live_wnba_odds()
+            n_odds = len(odds)
+        except Exception as e:
+            odds = {}
+            n_odds = 0
+            diagnostic.append(f"odds fetch error: {e}")
+
+        try:
             quota = get_wnba_requests_remaining()
         except Exception:
-            games = []
             quota = None
 
-        if not games:
+        n_players_in_df = len(WNBA_DF["PLAYER_NAME"].unique()) if not WNBA_DF.empty else 0
+
+        if WNBA_DF.empty:
+            reason = "WNBA player database is empty on this environment. Run `scripts/setup_wnba_data.py` to populate it."
+        elif not games:
             reason = "No WNBA games scheduled tonight — check back on a game day."
-        elif quota is not None and quota < len(games):
+        elif not odds:
             reason = (
-                f"Odds API quota low ({quota} requests remaining). "
-                "Props will refresh once quota resets or when the cache expires."
+                "No sportsbook odds available AND synthetic-line fallback produced no picks. "
+                "Check that tonight's teams have starters (≥15 MPG) with 10+ games of history."
             )
         else:
             reason = (
-                "Odds not available for tonight's games yet. "
-                "Sportsbooks typically post WNBA lines a few hours before tip-off."
+                "Props generation returned empty. See diagnostic details below."
             )
+
+        diag_lines = [
+            f"Player DB: {n_players_in_df} players, {len(WNBA_DF):,} game rows",
+            f"Tonight games: {len(games)}" + (
+                f" ({', '.join(g['away']['abbrev'] + '@' + g['home']['abbrev'] for g in games)})"
+                if games else ""
+            ),
+            f"Live odds: {n_odds} players",
+            f"API quota remaining: {quota if quota is not None else 'unknown'}",
+        ] + diagnostic
 
         return html.Div(
             [
                 html.H2("WNBA Best Props", style={"color": "#e5e7eb", "marginBottom": "8px"}),
-                html.P(reason, style={"color": "#9ca3af", "marginBottom": "6px"}),
-                html.P(
-                    f"Tonight's games: {', '.join(g['away']['abbrev'] + '@' + g['home']['abbrev'] for g in games)}"
-                    if games else "",
-                    style={"color": "#6b7280", "fontSize": "12px"},
+                html.P(reason, style={"color": "#9ca3af", "marginBottom": "16px"}),
+                html.Div(
+                    [
+                        html.Div("Diagnostic", style={
+                            "color": "#6b7280", "fontSize": "11px",
+                            "textTransform": "uppercase", "letterSpacing": "0.08em",
+                            "marginBottom": "8px",
+                        }),
+                        html.Ul(
+                            [html.Li(line, style={"marginBottom": "4px", "color": "#9ca3af", "fontSize": "12px"}) for line in diag_lines],
+                            style={"paddingLeft": "16px", "listStyle": "none"},
+                        ),
+                    ],
+                    style={
+                        "background": "rgba(255,255,255,0.03)",
+                        "border": "1px solid rgba(255,255,255,0.06)",
+                        "borderRadius": "10px",
+                        "padding": "16px 20px",
+                    },
                 ),
             ],
             style={"padding": "60px 40px", "maxWidth": "900px", "margin": "0 auto"},

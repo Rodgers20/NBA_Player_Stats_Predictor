@@ -53,27 +53,30 @@ def _best_thresholds_for_stat(values: pd.Series, stat: str, min_hits: int) -> li
     (n, n-1, ..., min_hits), the HIGHEST threshold the player cleared that
     many times.
 
-    This surfaces the "20+ Points 10/10" style picks rather than trivial
-    "5+ Points 10/10" — we want the aggressive bar the player still cleared.
+    Filters out trivially-low thresholds: a player who averages 12 REB
+    doesn't need a "5+ REB 10/10" line — that's dead money. Any surfaced
+    threshold must be at least 60% of the player's average for the window.
     """
     if values.empty:
         return []
     n = len(values)
     hi = int(values.max())
+    avg = float(values.mean())
     floors = {"PTS": 8, "REB": 3, "AST": 2, "FG3M": 1}
     floor = floors.get(stat, 1)
+    # Enforce minimum meaningful threshold relative to player's own avg
+    value_floor = max(floor, int(0.6 * avg))
 
     # For every hit-count h in [n .. min_hits], find the max threshold with hits>=h.
-    # Then dedupe by (threshold, hits) so we don't repeat the same row.
     tiers: list[tuple[int, int, int]] = []
     seen_hits: set[int] = set()
     for h in range(n, min_hits - 1, -1):
         max_t = 0
-        for t in range(hi, floor - 1, -1):
+        for t in range(hi, value_floor - 1, -1):
             if int((values >= t).sum()) >= h:
                 max_t = t
                 break
-        if max_t >= floor and h not in seen_hits:
+        if max_t >= value_floor and h not in seen_hits:
             tiers.append((max_t, h, n))
             seen_hits.add(h)
 
@@ -91,7 +94,7 @@ def compute_hit_rates(
     wnba_df: pd.DataFrame,
     todays_games: list[dict],
     n_games: int = 10,
-    min_hits: int = 7,
+    min_hits: int = 8,
     min_avg_min: float = 15.0,
 ) -> list[dict]:
     """Compute per-game hit-rate blocks for tonight's WNBA games.
