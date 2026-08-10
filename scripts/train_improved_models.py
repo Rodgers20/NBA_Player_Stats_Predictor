@@ -29,14 +29,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
 from utils.feature_engineering import engineer_features
-from models.predictor import NBAPredictor
+from utils.league_config import get_config
+from models.predictor import StatPredictor
 
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
+# DATA_DIR / MODELS_DIR are set in main() based on --league flag.
+DATA_DIR: str = ""
+MODELS_DIR: str = ""
 
 TARGETS = ["PTS", "AST", "REB"]
 
@@ -111,14 +113,19 @@ def train_model(
     print(f"TRAINING {target} MODEL")
     print(f"{'='*60}")
 
-    predictor = NBAPredictor(model_type=model_type)
+    predictor = StatPredictor(model_type=model_type)
 
     if tune:
         print("Running hyperparameter tuning...")
         best_params = predictor.tune_hyperparameters(df, target=target)
         print(f"Best params: {best_params}")
     else:
-        metrics = predictor.train(df, target=target)
+        # For WNBA (and any league where MIN is present), weight rows by
+        # minutes played so starter performances have more training influence
+        # than garbage-time bench rows. This directly reduces the model's
+        # regression-to-low-usage-mean bias for top-usage players.
+        weight_col = "MIN" if "MIN" in df.columns else None
+        metrics = predictor.train(df, target=target, weight_column=weight_col)
 
     # Get feature importance
     importance_df = predictor.get_feature_importance_df()
@@ -175,16 +182,25 @@ def print_summary(results: list):
 # =============================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="Train NBA prediction models")
+    parser = argparse.ArgumentParser(description="Train per-league prediction models")
     parser.add_argument("--tune", action="store_true", help="Run hyperparameter tuning")
     parser.add_argument("--stat", type=str, help="Train specific stat only (PTS, AST, REB)")
     parser.add_argument("--model", type=str, default="xgboost",
                        choices=["xgboost", "random_forest"],
                        help="Model type to use")
+    parser.add_argument("--league", type=str, default="nba", choices=["nba", "wnba"],
+                       help="League to train models for (default: nba)")
     args = parser.parse_args()
 
+    # Point DATA_DIR / MODELS_DIR at the requested league
+    global DATA_DIR, MODELS_DIR
+    cfg = get_config(args.league)
+    DATA_DIR = str(cfg.data_dir)
+    MODELS_DIR = str(cfg.models_dir)
+    os.makedirs(MODELS_DIR, exist_ok=True)
+
     print("=" * 60)
-    print("NBA IMPROVED MODEL TRAINING")
+    print(f"{cfg.display_name} IMPROVED MODEL TRAINING")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
@@ -202,6 +218,14 @@ def main():
         player_positions=data["positions"],
         defense_vs_position=data["def_vs_pos"]
     )
+
+    # Filter out garbage-time / DNP-like rows so the model isn't dragged
+    # toward the low-minute mean. Sample weighting further amplifies this
+    # in the fit call.
+    if "MIN" in df.columns:
+        before = len(df)
+        df = df[df["MIN"] >= 8].copy()
+        print(f"Filtered to MIN >= 8: {before} -> {len(df)} rows")
 
     print(f"Total samples: {len(df)}")
     print(f"Total features: {len(df.columns)}")

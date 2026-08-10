@@ -171,6 +171,21 @@ python3 dashboard/app.py
 
 Open **http://127.0.0.1:8050** in your browser.
 
+### 6. (Optional) Set up WNBA data
+
+WNBA is available at `/wnba/` — toggle it in the navbar. Data is fetched via
+`nba_api` (no Kaggle credentials needed) and cached to `data/wnba/`.
+
+```bash
+python3 scripts/setup_wnba_data.py                    # last 3 seasons
+python3 scripts/setup_wnba_data.py --seasons 2023,2024,2025
+
+# Retrain WNBA models
+python3 scripts/train_improved_models.py --league wnba
+```
+
+See `docs/wnba-data-source.md` for the data source decision record.
+
 ---
 
 ## Environment Variables

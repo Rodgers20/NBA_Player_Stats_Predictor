@@ -39,7 +39,7 @@ FEATURES = [
     "opp_roll_ppg_10", "opp_roll_ppg_5",
 ]
 TARGET  = "team_pts"
-OUT_PKL = PROJECT_ROOT / "data" / "model_game_xgb.pkl"
+OUT_PKL = PROJECT_ROOT / "data" / "nba" / "model_game_xgb.pkl"
 
 
 def build_team_game_features(player_logs_df: pd.DataFrame) -> pd.DataFrame:

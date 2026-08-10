@@ -60,7 +60,7 @@ except (ImportError, Exception):
     print("Note: XGBoost not available, using Random Forest instead")
 
 
-class NBAPredictor:
+class StatPredictor:
     """
     Main class for NBA player stats prediction.
 
@@ -72,7 +72,7 @@ class NBAPredictor:
 
     Example Usage:
     --------------
-    >>> from models.predictor import NBAPredictor
+    >>> from models.predictor import StatPredictor
     >>> from utils.feature_engineering import engineer_features
     >>>
     >>> # Load and prepare data
@@ -80,7 +80,7 @@ class NBAPredictor:
     >>> features_df = engineer_features(df)
     >>>
     >>> # Train the model
-    >>> predictor = NBAPredictor()
+    >>> predictor = StatPredictor()
     >>> predictor.train(features_df, target="PTS")
     >>>
     >>> # Make a prediction
@@ -160,7 +160,8 @@ class NBAPredictor:
         df: pd.DataFrame,
         target: str = "PTS",
         feature_columns: list[str] = None,
-        test_size: float = 0.2
+        test_size: float = 0.2,
+        weight_column: str = None,
     ) -> dict:
         """
         Train the model on historical data.
@@ -210,28 +211,41 @@ class NBAPredictor:
         X = df_clean[feature_columns].values
         y = df_clean[target].values
 
+        # Optional sample weights (e.g. weight by MIN so starter performances
+        # count more than bench rows). Weights get split alongside X/y.
+        weights = None
+        if weight_column and weight_column in df_clean.columns:
+            weights = df_clean[weight_column].values
+
         print(f"Total samples: {len(X)}")
 
-        # Split into train/test
-        # IMPORTANT: We use random_state for reproducibility
-        # This means you'll get the same split every time
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, random_state=42
-        )
+        if weights is not None:
+            X_train, X_test, y_train, y_test, w_train, _ = train_test_split(
+                X, y, weights, test_size=test_size, random_state=42
+            )
+        else:
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=test_size, random_state=42
+            )
+            w_train = None
 
         print(f"Training samples: {len(X_train)}")
         print(f"Test samples: {len(X_test)}")
 
-        # Scale features (important for some models)
-        # Scaling makes all features have similar ranges (mean=0, std=1)
-        # This helps models that are sensitive to feature scales
         X_train_scaled = self.scaler.fit_transform(X_train)
         X_test_scaled = self.scaler.transform(X_test)
 
-        # Create and train the model
         print(f"\nTraining {self.model_type} model...")
         self.model = self._create_model()
-        self.model.fit(X_train_scaled, y_train)
+        if w_train is not None:
+            try:
+                self.model.fit(X_train_scaled, y_train, sample_weight=w_train)
+                print(f"  (using sample_weight from column '{weight_column}')")
+            except TypeError:
+                # Model doesn't accept sample_weight — fall back to unweighted
+                self.model.fit(X_train_scaled, y_train)
+        else:
+            self.model.fit(X_train_scaled, y_train)
 
         # Evaluate on test set
         y_pred = self.model.predict(X_test_scaled)
@@ -656,9 +670,10 @@ class NBAPredictor:
             raise ValueError("Cannot save untrained model!")
 
         if filepath is None:
-            # Default path in models directory
-            models_dir = os.path.dirname(__file__)
-            filepath = os.path.join(models_dir, f"{self.target.lower()}_predictor.pkl")
+            from utils.league_config import get_config
+            models_dir = get_config("nba").models_dir
+            models_dir.mkdir(parents=True, exist_ok=True)
+            filepath = str(models_dir / f"{self.target.lower()}_predictor.pkl")
 
         # Save everything needed to make predictions
         model_data = {
@@ -676,12 +691,12 @@ class NBAPredictor:
         print(f"Model saved to: {filepath}")
 
     @classmethod
-    def load(cls, filepath: str) -> "NBAPredictor":
+    def load(cls, filepath: str) -> "StatPredictor":
         """
         Load a trained model from disk.
 
         Example:
-            >>> predictor = NBAPredictor.load("models/pts_predictor.pkl")
+            >>> predictor = StatPredictor.load("models/pts_predictor.pkl")
             >>> prediction = predictor.predict(features)
         """
         with open(filepath, "rb") as f:
@@ -730,7 +745,7 @@ class MultiStatPredictor:
 
         for target in self.targets:
             print(f"\n{'='*60}")
-            predictor = NBAPredictor(model_type=self.model_type)
+            predictor = StatPredictor(model_type=self.model_type)
             metrics = predictor.train(df, target=target)
             self.predictors[target] = predictor
             results[target] = metrics
@@ -749,7 +764,9 @@ class MultiStatPredictor:
     def save_all(self, directory: str = None):
         """Save all models."""
         if directory is None:
-            directory = os.path.dirname(__file__)
+            from utils.league_config import get_config
+            directory = str(get_config("nba").models_dir)
+            os.makedirs(directory, exist_ok=True)
 
         for target, predictor in self.predictors.items():
             filepath = os.path.join(directory, f"{target.lower()}_predictor.pkl")
@@ -758,9 +775,10 @@ class MultiStatPredictor:
     def load_all(self, directory: str = None):
         """Load all models."""
         if directory is None:
-            directory = os.path.dirname(__file__)
+            from utils.league_config import get_config
+            directory = str(get_config("nba").models_dir)
 
         for target in self.targets:
             filepath = os.path.join(directory, f"{target.lower()}_predictor.pkl")
             if os.path.exists(filepath):
-                self.predictors[target] = NBAPredictor.load(filepath)
+                self.predictors[target] = StatPredictor.load(filepath)

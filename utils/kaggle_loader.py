@@ -20,8 +20,15 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-KAGGLE_DATASET = "eoinamoore/historical-nba-data-and-player-box-scores"
-PROJECT_DATA_DIR = Path(__file__).parent.parent / "data"
+from utils.league_config import get_config
+
+# Kept as module-level for backward compat with existing NBA callers.
+# Step 2 refactor introduces a `league` parameter to every public function.
+KAGGLE_DATASET = get_config("nba").kaggle_dataset
+PROJECT_DATA_DIR = get_config("nba").data_dir
+
+# Honor KAGGLEHUB_CACHE env var (kagglehub defaults to ~/.cache/kagglehub when unset)
+KAGGLEHUB_CACHE_DIR = Path(os.environ.get("KAGGLEHUB_CACHE", Path.home() / ".cache" / "kagglehub"))
 
 # NBA team IDs start with this prefix
 _NBA_TEAM_ID_MIN = 1610612737
@@ -57,7 +64,7 @@ def download_dataset(force: bool = False) -> Path:
         raise FileNotFoundError(
             f"Kaggle download appears corrupted or empty: {result_path}\n"
             f"PlayerStatistics.csv missing or <1MB. "
-            f"Delete ~/.cache/kagglehub/datasets/eoinamoore/ and retry."
+            f"Delete {KAGGLEHUB_CACHE_DIR}/datasets/eoinamoore/ and retry."
         )
 
     size_mb = csv_file.stat().st_size / 1e6
@@ -80,7 +87,7 @@ def _get_dataset_path() -> Path:
         logger.warning(f"Kaggle download failed: {e}")
 
     # Fallback: scan local kagglehub cache for latest version
-    cache_base = Path.home() / ".cache" / "kagglehub" / "datasets" / "eoinamoore" / "historical-nba-data-and-player-box-scores" / "versions"
+    cache_base = KAGGLEHUB_CACHE_DIR / "datasets" / "eoinamoore" / "historical-nba-data-and-player-box-scores" / "versions"
     if cache_base.exists():
         versions = sorted(cache_base.iterdir(), key=lambda p: p.name, reverse=True)
         for v in versions:

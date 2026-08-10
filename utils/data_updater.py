@@ -15,7 +15,8 @@ import pandas as pd
 
 
 # Persist last download date to disk so it survives app restarts
-_STAMP_FILE = Path(__file__).parent.parent / "data" / ".last_kaggle_download"
+from utils.league_config import get_config
+_STAMP_FILE = get_config("nba").data_dir / ".last_kaggle_download"
 
 def _read_stamp() -> str | None:
     try:
@@ -78,8 +79,8 @@ def update_rosters():
         positions_df = load_player_positions(num_seasons=1)
 
         if not positions_df.empty:
-            data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-            positions_path = os.path.join(data_dir, "player_positions.csv")
+            from utils.league_config import get_config
+            positions_path = get_config("nba").data_dir / "player_positions.csv"
             positions_df.to_csv(positions_path, index=False)
             print(f"[DataUpdater] Roster updated: {len(positions_df)} players.")
             return positions_df
