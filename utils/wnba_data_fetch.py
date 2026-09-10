@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date
 from typing import Optional
 
@@ -10,8 +11,50 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+# ── Schedule cache ───────────────────────────────────────────────────────────
+# The scoreboard endpoint costs ~0.6s per call and dashboard/app.py invokes it
+# from six separate places per WNBA render (plus once inside
+# get_matchup_for_date), which is why the WNBA page lagged the NBA one. A short
+# TTL keeps live scores fresh while collapsing a render into a single request.
+_SCHEDULE_TTL = 120  # seconds
+_schedule_cache: dict[str, tuple[float, list[dict]]] = {}
 
-def get_todays_wnba_games(target_date: Optional[str] = None) -> list[dict]:
+
+def clear_schedule_cache() -> None:
+    """Drop all cached schedule entries (used by tests and manual refresh)."""
+    _schedule_cache.clear()
+
+
+def get_todays_wnba_games(
+    target_date: Optional[str] = None,
+    force_refresh: bool = False,
+) -> list[dict]:
+    """Cached wrapper around _fetch_todays_wnba_games.
+
+    A successful fetch is cached for _SCHEDULE_TTL seconds, including one that
+    legitimately returns zero games (offseason / no slate) — that is a real
+    answer and re-querying it every render is what made the page slow. A failed
+    fetch is NOT cached, so transient network errors are retried rather than
+    pinned as an empty schedule for the whole TTL.
+    """
+    if target_date is None:
+        target_date = date.today().strftime("%Y-%m-%d")
+
+    now = time.monotonic()
+    if not force_refresh:
+        hit = _schedule_cache.get(target_date)
+        if hit is not None and (now - hit[0]) < _SCHEDULE_TTL:
+            return hit[1]
+
+    games = _fetch_todays_wnba_games(target_date)
+    if games is None:          # fetch failed — do not poison the cache
+        return []
+
+    _schedule_cache[target_date] = (now, games)
+    return games
+
+
+def _fetch_todays_wnba_games(target_date: Optional[str] = None) -> Optional[list[dict]]:
     """Return today's WNBA games (or games for target_date="YYYY-MM-DD").
 
     Each game dict shape:
@@ -34,7 +77,7 @@ def get_todays_wnba_games(target_date: Optional[str] = None) -> list[dict]:
         frames = sb.get_data_frames()
     except Exception as e:
         logger.warning(f"WNBA scoreboard fetch failed: {e}")
-        return []
+        return None   # signals failure to the caching wrapper — not cached
 
     if len(frames) < 3:
         return []
