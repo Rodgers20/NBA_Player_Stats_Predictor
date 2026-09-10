@@ -9803,5 +9803,496 @@
       "profit_10": -80.0,
       "roi_pct": -100.0
     }
+  },
+  "2026-05-29": {
+    "generated_at": "2026-05-29T04:09:48.572574+00:00",
+    "graded_at": null,
+    "parlays": [
+      {
+        "label": "Combo Parlay #1",
+        "type": "combo",
+        "legs": [
+          {
+            "player": "Victor Wembanyama",
+            "stat": "PTS+AST+REB",
+            "direction": "Over",
+            "line": 27.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Stephon Castle",
+            "stat": "PTS+AST+REB",
+            "direction": "Over",
+            "line": 22.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Devin Vassell",
+            "stat": "PTS+REB",
+            "direction": "Over",
+            "line": 10.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": -3266,
+        "odds_decimal": 1.03,
+        "win_prob": 97.0,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Combo Parlay #2",
+        "type": "combo",
+        "legs": [
+          {
+            "player": "Dylan Harper",
+            "stat": "PTS+AST",
+            "direction": "Over",
+            "line": 8.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Shai Gilgeous-Alexander",
+            "stat": "PTS+AST",
+            "direction": "Over",
+            "line": 24.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "De'Aaron Fox",
+            "stat": "PTS+REB",
+            "direction": "Over",
+            "line": 11.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": -1952,
+        "odds_decimal": 1.05,
+        "win_prob": 95.1,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Combo Parlay #3",
+        "type": "combo",
+        "legs": [
+          {
+            "player": "Cason Wallace",
+            "stat": "PTS+AST+REB",
+            "direction": "Over",
+            "line": 10.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Ajay Mitchell",
+            "stat": "AST+REB",
+            "direction": "Over",
+            "line": 5.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Luguentz Dort",
+            "stat": "PTS+REB",
+            "direction": "Over",
+            "line": 6.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": -132,
+        "odds_decimal": 1.76,
+        "win_prob": 56.9,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Combo Parlay #4",
+        "type": "combo",
+        "legs": [
+          {
+            "player": "Jalen Williams",
+            "stat": "PTS+AST+REB",
+            "direction": "Over",
+            "line": 14.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Julian Champagnie",
+            "stat": "PTS+REB",
+            "direction": "Over",
+            "line": 12.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Isaiah Hartenstein",
+            "stat": "AST+REB",
+            "direction": "Over",
+            "line": 9.5,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": -296,
+        "odds_decimal": 1.34,
+        "win_prob": 74.8,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Combo Parlay #5",
+        "type": "combo",
+        "legs": [
+          {
+            "player": "Chet Holmgren",
+            "stat": "PTS+REB",
+            "direction": "Over",
+            "line": 19.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Alex Caruso",
+            "stat": "PTS+AST",
+            "direction": "Over",
+            "line": 9.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Victor Wembanyama",
+            "stat": "PTS+AST+REB",
+            "direction": "Over",
+            "line": 27.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": -276,
+        "odds_decimal": 1.36,
+        "win_prob": 73.4,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "1-Leg Game Totals Parlay #1",
+        "type": "totals",
+        "legs": [
+          {
+            "player": "SAN @ OKC",
+            "stat": "TOTAL",
+            "direction": "Over",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": -235,
+        "odds_decimal": 1.43,
+        "win_prob": 70.1,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "1-Leg Game Totals Parlay #2",
+        "type": "totals",
+        "legs": [
+          {
+            "player": "SAN @ OKC",
+            "stat": "TOTAL",
+            "direction": "Over",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": -235,
+        "odds_decimal": 1.43,
+        "win_prob": 70.1,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "1-Leg Game Totals Parlay #3",
+        "type": "totals",
+        "legs": [
+          {
+            "player": "SAN @ OKC",
+            "stat": "TOTAL",
+            "direction": "Over",
+            "line": 0.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": -235,
+        "odds_decimal": 1.43,
+        "win_prob": 70.1,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "10-Leg Alt Lines Parlay #1",
+        "type": "alt",
+        "legs": [
+          {
+            "player": "Stephon Castle",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 10.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Julian Champagnie",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Victor Wembanyama",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 19.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Shai Gilgeous-Alexander",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Devin Vassell",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Victor Wembanyama",
+            "stat": "BLK",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "De'Aaron Fox",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Stephon Castle",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Victor Wembanyama",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Isaiah Hartenstein",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 626,
+        "odds_decimal": 7.26,
+        "win_prob": 13.8,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #1  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Jalen Williams",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 16.5,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Alex Caruso",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 12.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Ajay Mitchell",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 10.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "Safe Over Parlay #2  (Reduced Lines)",
+        "type": "reduced",
+        "legs": [
+          {
+            "player": "Chet Holmgren",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 8.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Chet Holmgren",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 8.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Dylan Harper",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 5.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 154,
+        "odds_decimal": 2.54,
+        "win_prob": 39.3,
+        "result": null,
+        "profit_10": null
+      },
+      {
+        "label": "10-Leg Alt Lines Parlay #1",
+        "type": "alt",
+        "legs": [
+          {
+            "player": "Stephon Castle",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 10.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Julian Champagnie",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Victor Wembanyama",
+            "stat": "PTS",
+            "direction": "Over",
+            "line": 19.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Shai Gilgeous-Alexander",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Devin Vassell",
+            "stat": "FG3M",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Victor Wembanyama",
+            "stat": "BLK",
+            "direction": "Over",
+            "line": 2.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "De'Aaron Fox",
+            "stat": "REB",
+            "direction": "Over",
+            "line": 4.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Stephon Castle",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Victor Wembanyama",
+            "stat": "STL",
+            "direction": "Over",
+            "line": 1.0,
+            "actual": null,
+            "hit": null
+          },
+          {
+            "player": "Isaiah Hartenstein",
+            "stat": "AST",
+            "direction": "Over",
+            "line": 3.0,
+            "actual": null,
+            "hit": null
+          }
+        ],
+        "odds_american": 626,
+        "odds_decimal": 7.26,
+        "win_prob": 13.8,
+        "result": null,
+        "profit_10": null
+      }
+    ],
+    "summary": {}
   }
 }
