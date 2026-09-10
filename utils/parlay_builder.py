@@ -26,6 +26,12 @@ import math
 from collections import defaultdict
 from typing import Optional
 
+from utils.parlay_probability import (
+    calibrate_leg_prob,
+    devig_american,
+    joint_probability,
+)
+
 
 # ── Odds helpers ──────────────────────────────────────────────────────────────
 
@@ -58,28 +64,50 @@ def decimal_to_american(decimal: float) -> int:
 def parlay_odds(legs: list[dict]) -> dict:
     """Calculate combined parlay odds from a list of bet legs.
 
-    Each leg must have a 'model_odds' key (American integer).
+    Each leg must have a 'model_odds' key (American integer). Legs may also
+    carry 'player', 'stat', 'projection', 'line' and 'direction', which are
+    used to calibrate the per-leg probability and to detect same-player
+    correlation.
+
+    Per-leg probabilities are de-vigged and recalibrated against empirically
+    measured predictive spread (see utils.parlay_probability), then combined
+    with a one-factor Gaussian copula that accounts for same-player
+    correlation. The previous implementation read each leg's probability
+    straight off its vig-inflated American odds and multiplied assuming full
+    independence, which overstated joint probability by 1.0476**n_legs and
+    saturated at the 0.99 clamp — parlays claiming 90-100% won 44%.
 
     Returns:
         decimal:    Combined decimal odds
         american:   Combined American odds
-        win_prob:   Joint win probability in % (product of per-leg true probs)
+        win_prob:   Joint win probability in %
         payout_100: Profit on a $100 wager
     """
     if not legs:
         return {"decimal": 1.0, "american": 0, "win_prob": 0.0, "payout_100": 0.0}
 
+    priced: list[dict] = []
     decimal_combined = 1.0
-    win_prob         = 1.0
 
     for leg in legs:
         odds = leg.get("model_odds", -110)
-        decimal_combined *= american_to_decimal(odds)
-        # True (de-vigged) probability from American odds
-        if odds < 0:
-            win_prob *= abs(odds) / (abs(odds) + 100.0)
-        else:
-            win_prob *= 100.0 / (odds + 100.0)
+        raw  = leg.get("true_prob")
+        if raw is None:
+            raw = devig_american(odds)
+
+        prob = calibrate_leg_prob(
+            raw,
+            stat=leg.get("stat", ""),
+            projection=leg.get("projection"),
+            line=leg.get("line"),
+            direction=leg.get("direction", "Over"),
+        )
+        # Price the leg off its calibrated probability so payout and win_prob
+        # describe the same bet.
+        decimal_combined *= american_to_decimal(_prob_to_american(prob))
+        priced.append({"player": leg.get("player"), "true_prob": prob})
+
+    win_prob = joint_probability(priced)
 
     return {
         "decimal":    round(decimal_combined, 2),
@@ -467,6 +495,8 @@ def _build_prop_parlays(
                 "role":       prop.get("role", "bench"),
                 "direction":  direction.capitalize(),
                 "line":       prop.get("line"),
+                "projection": (prop.get("model_pred") or prop.get("l5_avg")
+                               or prop.get("avg")),
                 "win_prob":   round(prob * 100, 1),
                 "model_odds": odds_val,
                 "hit_rate":   prop.get("hit_rate"),
@@ -1193,6 +1223,8 @@ def build_stat_parlays(
                 "stat":       stat_type,
                 "direction":  "Over",
                 "line":       prop.get("line"),
+                "projection": (prop.get("model_pred") or prop.get("l5_avg")
+                               or prop.get("avg")),
                 "win_prob":   round(prob * 100, 1),
                 "model_odds": model_odd,
                 "hit_rate":   prop.get("hit_rate"),
@@ -1280,6 +1312,8 @@ def build_combo_parlays(
                 "stat_label": stat_disp,
                 "direction":  "Over",
                 "line":       prop.get("line"),
+                "projection": (prop.get("model_pred") or prop.get("l5_avg")
+                               or prop.get("avg")),
                 "win_prob":   round(prob * 100, 1),
                 "model_odds": model_odd,
                 "hit_rate":   prop.get("hit_rate"),
