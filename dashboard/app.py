@@ -1049,6 +1049,9 @@ def create_player_analysis_page():
                         "overflow": "hidden",
                     }),
 
+                    # Row 2b: Next Game Prediction (mirrors the WNBA card)
+                    html.Div(id="nba-player-prediction", style={"marginBottom": "20px"}),
+
                     # Row 3: Stat mini-cards (5 across, compact)
                     html.Div(id="supporting-stats-cards", style={
                         "display": "grid",
@@ -1554,12 +1557,9 @@ def create_todays_games_page():
         if pick.get("spread_team") and pick["spread_team"] in _ABBR_REVERSE:
             pick["spread_team"] = _ABBR_REVERSE[pick["spread_team"]]
 
-        # Win probability: HIGH→85%, MEDIUM→65%, LOW→50%
-        conf_raw  = pick.get("winner_confidence", "LOW")
-        home_wp   = {"HIGH": 78, "MEDIUM": 62, "LOW": 52}.get(conf_raw, 52)
-        winner_p  = pick.get("winner_pick")
-        if winner_p and winner_p not in (home_team, home_team_i):
-            home_wp = 100 - home_wp  # away team is model pick — flip
+        # A heuristic confidence category is not a measured win probability.
+        conf_raw = pick.get("winner_confidence", "LOW")
+        home_wp = None
 
         _predictions_for_tracker.append({
             "game_id":   f"{away_team}@{home_team}",
@@ -3511,10 +3511,10 @@ def update_game_panel(selected_idx, games_data):
     def _build_card(g):
         home = g["home"]
         away = g["away"]
-        home_wp   = g.get("home_win_pct", 52)
-        away_wp   = 100 - home_wp
+        home_wp = g.get("home_win_pct")
+        away_wp = 100 - home_wp if home_wp is not None else None
         conf_raw  = g.get("winner_conf", "LOW")
-        conf_pct  = {"HIGH": 85, "MEDIUM": 65, "LOW": 45}.get(conf_raw, 50)
+        conf_pct = None
 
         winner_pick = g.get("winner_pick")
         spread_team = g.get("spread_team")
@@ -3536,7 +3536,7 @@ def update_game_panel(selected_idx, games_data):
         donut_team = winner_pick or home
         donut_pct  = home_wp if donut_team == home else away_wp
         donut_color = "#F59E0B"
-        donut_bg    = f"conic-gradient({donut_color} {donut_pct}%, rgba(30,41,59,0.5) 0%)"
+        donut_bg    = f"conic-gradient({donut_color} {donut_pct or 0}%, rgba(30,41,59,0.5) 0%)"
         conf_label_color = {"HIGH": "#22c55e", "MEDIUM": "#F59E0B", "LOW": "#EF4444"}.get(conf_raw, "#94a3b8")
 
         # ── HEADER: Logos + VS + donut ────────────────────────────────────
@@ -3580,7 +3580,7 @@ def update_game_panel(selected_idx, games_data):
                         html.Div(donut_team, style={
                             "fontSize": "0.58rem", "fontWeight": "700", "color": "#94a3b8", "lineHeight": "1",
                         }),
-                        html.Div(f"{donut_pct:.0f}%", style={
+                        html.Div(f"{donut_pct:.0f}%" if donut_pct is not None else "N/A", title="Win probability has not been calibrated", style={
                             "fontSize": "1rem", "fontWeight": "900", "color": "#f0f4ff", "lineHeight": "1.1",
                         }),
                     ], style={
@@ -3679,24 +3679,7 @@ def update_game_panel(selected_idx, games_data):
             "marginBottom": "12px",
         })
 
-        # ── CONFIDENCE BAR (unchanged) ─────────────────────────────────────
-        conf_bar = html.Div([
-            html.Div(style={
-                "height": "6px", "borderRadius": "3px",
-                "background": "linear-gradient(to right, #EF4444 0%, #F59E0B 40%, #22c55e 100%)",
-                "position": "relative",
-            }, children=[
-                html.Div(style={
-                    "position": "absolute",
-                    "left": f"calc({conf_pct}% - 5px)",
-                    "top": "-3px",
-                    "width": "12px", "height": "12px",
-                    "borderRadius": "50%",
-                    "background": "#ffffff",
-                    "boxShadow": "0 0 6px rgba(255,255,255,0.5)",
-                }),
-            ]),
-        ])
+        conf_bar = html.Div("Probability not calibrated", style={"color": "#94a3b8", "textAlign": "center"})
 
         # Projected score line (if model has predictions)
         score_line = ""
@@ -3716,7 +3699,7 @@ def update_game_panel(selected_idx, games_data):
             html.Div([
                 html.Span("Confidence: ", style={"color": "#64748b", "fontSize": "0.72rem"}),
                 html.Span(conf_raw, style={"color": conf_label_color, "fontSize": "0.72rem", "fontWeight": "700"}),
-                html.Span(f" ({conf_pct}%)", style={"color": "#64748b", "fontSize": "0.7rem"}),
+                html.Span(" (heuristic)", style={"color": "#64748b", "fontSize": "0.7rem"}),
             ], style={"textAlign": "center", "marginTop": "6px"}),
         ], style={
             "background": "rgba(5,12,28,0.7)",
@@ -4254,7 +4237,7 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
         filtered_props.sort(key=_sort_key, reverse=True)
     else:
         # EV sort = model probability edge over implied odds (true value ranking)
-        filtered_props.sort(key=lambda x: x.get("model_prob") or x.get("ev", 0), reverse=True)
+        filtered_props.sort(key=lambda x: x.get("ev") or 0, reverse=True)
 
     if not filtered_props:
         loc_label = "home" if location_filter == "home" else "away" if location_filter == "away" else ""
@@ -4341,7 +4324,7 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
 
         # ── Confidence %: always matches the sort order (hit_rate_l5 primary) ───
         _l5hr = prop.get("hit_rate_l5")
-        conf_raw = _l5hr if _l5hr is not None else (prop.get("hit_rate_vs_book") or hit_rate)
+        conf_raw = model_prob
         conf_pct = int(round(conf_raw * 100))
         if conf_pct >= 80:
             conf_color = "#22c55e"
@@ -4419,7 +4402,8 @@ def update_props_list(location_filter, game_filter, sort_by, props_data,
 
                 # Confidence badge
                 html.Div(
-                    f"{conf_pct}%",
+                    f"Est. {conf_pct}%" if conf_pct < 100 else "Est. >99%",
+                    title=prop.get("probability_source", "Uncalibrated estimate"),
                     className="pli-conf",
                     style={"color": conf_color, "borderColor": conf_color},
                 ),
@@ -6699,15 +6683,15 @@ def _wnba_props_row(prop) -> html.Div:
             html.Div(
                 [
                     html.Div("EV", style={"color": "#6b7280", "fontSize": "10px", "letterSpacing": "0.08em"}),
-                    html.Div(f"{prop.ev:+.2f}",
-                             style={"color": "#22c55e" if prop.ev > 0 else "#ef4444", "fontSize": "15px", "fontWeight": "700"}),
+                    html.Div(f"{prop.ev:+.2f}" if prop.ev is not None else "N/A",
+                             style={"color": "#22c55e" if prop.ev is not None and prop.ev > 0 else "#ef4444", "fontSize": "15px", "fontWeight": "700"}),
                 ],
                 style={"textAlign": "center", "minWidth": "60px"},
             ),
             html.Div(
                 [
-                    html.Div("HIT %", style={"color": "#6b7280", "fontSize": "10px", "letterSpacing": "0.08em"}),
-                    html.Div(f"{prop.hit_prob*100:.0f}%",
+                    html.Div("EST. PROB.", title=prop.probability_source, style={"color": "#6b7280", "fontSize": "10px", "letterSpacing": "0.08em"}),
+                    html.Div(f"{prop.hit_prob*100:.0f}%" if prop.hit_prob < 0.995 else ">99%",
                              style={"color": "#e5e7eb", "fontSize": "15px", "fontWeight": "700"}),
                 ],
                 style={"textAlign": "center", "minWidth": "60px"},
@@ -8196,6 +8180,100 @@ def create_hit_rates_table(player_name):
         ]),
         html.Tbody(rows)
     ], style={"width": "100%", "borderCollapse": "collapse"})
+
+
+# =============================================================================
+# NEXT GAME PREDICTION (NBA)
+# =============================================================================
+
+@callback(
+    Output("nba-player-prediction", "children"),
+    Input("player-dropdown", "value"),
+)
+def _nba_prediction_card(player_name):
+    """Next-game prediction card for the NBA player page.
+
+    Mirrors _wnba_prediction_card: resolve tonight's opponent, project via
+    utils.nba_predict.project_next_game (55% model + 45% L20, clipped to
+    [0.4x, 1.6x] of form) and show the reference points needed to sanity-check
+    the number. Rendering only — the projection logic lives in utils/.
+    """
+    if not player_name:
+        return ""
+
+    pdf = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
+    if pdf.empty:
+        return ""
+
+    children = [html.H4("Next Game Prediction", style={
+        "color": "#e5e7eb", "marginBottom": "12px", "fontSize": "14px"})]
+
+    # Don't project for a player who isn't expected to play.
+    try:
+        from utils.injury_news import get_player_injury_status
+        injury = get_player_injury_status(player_name) or {}
+        if injury.get("status") in ("OUT", "DOUBTFUL"):
+            children.append(html.Div([
+                html.Div(str(injury["status"]).replace("_", " "), style={
+                    "color": "#ef4444", "fontWeight": "700", "fontSize": "18px"}),
+                html.Div("No projection — player not expected to play.", style={
+                    "color": "#9ca3af", "fontSize": "12px", "marginTop": "4px"}),
+            ], style={"padding": "10px 0"}))
+            return html.Div(children, className="analysis-card")
+    except Exception:
+        pass  # injury feed is best-effort; never block the projection on it
+
+    from utils.nba_predict import get_tonight_matchup_for_player, project_next_game
+
+    team = str(pdf.iloc[0].get("TEAM_ABBREVIATION", "") or "")
+    matchup = None
+    try:
+        from utils.data_fetch import get_todays_games
+        games = get_todays_games()
+        if isinstance(games, pd.DataFrame):
+            games = games.to_dict("records")
+        matchup = get_tonight_matchup_for_player(team, games)
+    except Exception:
+        pass
+
+    playing_tonight = matchup is not None
+    if playing_tonight:
+        opp, is_home = matchup
+    else:
+        # Fall back to the most recent opponent so the card still renders.
+        m = str(pdf.iloc[0].get("MATCHUP", "") or "")
+        opp = m.split()[-1] if m else ""
+        is_home = " vs." in m
+
+    result = project_next_game(pdf, get_predictor, opponent=opp, is_home=is_home)
+    if not result or not result["stats"]:
+        return ""
+
+    cards = []
+    for stat, color in (("PTS", "#14b8a6"), ("AST", "#a78bfa"), ("REB", "#f59e0b")):
+        if stat not in result["stats"]:
+            continue
+        cards.append(html.Div([
+            html.Div(stat, style={"fontSize": "11px", "color": "#9ca3af",
+                                  "letterSpacing": "0.05em"}),
+            html.Div(f"{result['stats'][stat]:.1f}", style={
+                "fontSize": "26px", "color": color, "fontWeight": "700"}),
+        ], style={
+            "textAlign": "center", "padding": "12px 20px",
+            "background": "rgba(255,255,255,0.03)", "borderRadius": "10px",
+            "border": "1px solid rgba(255,255,255,0.06)", "flex": "1",
+        }))
+    children.append(html.Div(cards, style={"display": "flex", "gap": "8px"}))
+
+    l20_pts, l5_pts = result["l20"].get("PTS", 0.0), result["l5"].get("PTS", 0.0)
+    where = "vs." if is_home else "@"
+    context = (f"{where} {opp}" if playing_tonight
+               else f"Last matchup: {opp} (no game tonight)")
+    children.append(html.Div(
+        f"{context} · L20 {l20_pts:.1f} PTS · form → L5 {l5_pts:.1f}",
+        style={"color": "#6b7280", "fontSize": "12px", "marginTop": "10px"},
+    ))
+    return html.Div(children, className="analysis-card")
 
 
 # =============================================================================

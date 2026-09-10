@@ -57,6 +57,10 @@ def parse_game_date(date_str: str) -> Optional[datetime]:
     Returns:
         datetime object or None if parsing fails
     """
+    if isinstance(date_str, (datetime, pd.Timestamp)):
+        return date_str
+    if not isinstance(date_str, str):
+        return None
     formats = [
         "%b %d, %Y",   # "Jan 15, 2025"
         "%Y-%m-%d",    # "2025-01-15"
@@ -619,6 +623,14 @@ def engineer_features(
          'is_home', 'days_rest', 'opp_def_pts_allowed', ...]
     """
     print("Engineering features...")
+
+    # Remove exact duplicate observations before they can enter rolling windows.
+    game_logs = game_logs.drop_duplicates().copy()
+    keys = ["PLAYER_NAME", "GAME_DATE"]
+    if game_logs.duplicated(keys).any():
+        raise ValueError("Conflicting duplicate player games in training data")
+    if game_logs["GAME_DATE"].apply(parse_game_date).isna().any():
+        raise ValueError("Invalid or missing GAME_DATE")
 
     # Step 1: Rolling averages
     print("  - Adding rolling averages...")

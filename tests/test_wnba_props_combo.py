@@ -78,4 +78,6 @@ def test_hit_prob_uses_summed_actuals_for_combos():
     models = {"PTS": _FakeModel(21.0), "AST": _FakeModel(5.5)}
     props = generate_wnba_props(df, _getter(models), odds, synthesize_missing=False)
     p = props[0]
-    assert p.hit_prob == 1.0  # 25 > 22.5 in every game
+    assert p.historical_hit_rate == 1.0  # 25 > 22.5 in every game
+    assert p.hit_prob < 1.0
+    assert p.ev is None  # No joint residual calibration for the combo

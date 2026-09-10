@@ -22,6 +22,9 @@ USAGE:
 import os
 import sys
 import argparse
+import json
+import shutil
+from pathlib import Path
 from datetime import datetime
 
 # Add parent directory to path
@@ -61,6 +64,28 @@ def load_all_data():
         return None
 
     game_logs = pd.read_csv(game_logs_path)
+    # The dashboard cache may contain newer raw box scores than the collection
+    # CSV. Rebuild every feature from its raw columns; never reuse cached features.
+    data_source = game_logs_path
+    parquet_path = os.path.join(DATA_DIR, "engineered_data.parquet")
+    if os.path.exists(parquet_path):
+        cached = pd.read_parquet(parquet_path)
+        required = {"PLAYER_NAME", "GAME_DATE", "SEASON", "MATCHUP", "PTS", "AST", "REB", "MIN"}
+        if required.issubset(cached.columns):
+            cached_end = pd.to_datetime(cached["GAME_DATE"], format="mixed").max()
+            csv_end = pd.to_datetime(game_logs["GAME_DATE"], format="mixed").max()
+            if cached_end > csv_end:
+                raw_columns = [column for column in game_logs.columns if column in cached.columns]
+                game_logs = cached[raw_columns].copy()
+                # The cache combines full identified box scores with partial live
+                # feed rows. Prefer the identified observation for the same game;
+                # conflicting identified observations still fail engineering.
+                from utils.pregame_features import prefer_identified_games
+                before = len(game_logs)
+                game_logs = prefer_identified_games(game_logs)
+                print(f"  - Removed {before - len(game_logs)} superseded partial duplicate observations")
+                data_source = parquet_path
+                print(f"  - Using newer raw observations from {parquet_path}")
     team_def = pd.read_csv(team_def_path) if os.path.exists(team_def_path) else pd.DataFrame()
 
     # Optional enhanced files
@@ -80,6 +105,7 @@ def load_all_data():
 
     return {
         "game_logs": game_logs,
+        "data_source": data_source,
         "team_def": team_def,
         "team_stats": team_stats,
         "positions": positions,
@@ -120,12 +146,7 @@ def train_model(
         best_params = predictor.tune_hyperparameters(df, target=target)
         print(f"Best params: {best_params}")
     else:
-        # For WNBA (and any league where MIN is present), weight rows by
-        # minutes played so starter performances have more training influence
-        # than garbage-time bench rows. This directly reduces the model's
-        # regression-to-low-usage-mean bias for top-usage players.
-        weight_col = "MIN" if "MIN" in df.columns else None
-        metrics = predictor.train(df, target=target, weight_column=weight_col)
+        metrics = predictor.train(df, target=target)
 
     # Get feature importance
     importance_df = predictor.get_feature_importance_df()
@@ -136,7 +157,13 @@ def train_model(
 
     # Save model
     model_path = os.path.join(MODELS_DIR, f"{target.lower()}_predictor.pkl")
+    if os.path.exists(model_path):
+        backup = Path(MODELS_DIR) / "backups" / datetime.now().strftime("%Y%m%dT%H%M%S")
+        backup.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(model_path, backup / Path(model_path).name)
     predictor.save(model_path)
+    with open(Path(MODELS_DIR) / f"{target.lower()}_validation.json", "w") as f:
+        json.dump(predictor.metrics, f, indent=2, allow_nan=False)
 
     return {
         "target": target,
@@ -145,12 +172,12 @@ def train_model(
     }
 
 
-def train_all_models(df: pd.DataFrame, tune: bool = False) -> list:
+def train_all_models(df: pd.DataFrame, tune: bool = False, model_type: str = "xgboost") -> list:
     """Train models for all target stats."""
     results = []
 
     for target in TARGETS:
-        result = train_model(df, target, tune=tune)
+        result = train_model(df, target, model_type=model_type, tune=tune)
         results.append(result)
 
     return results
@@ -211,21 +238,9 @@ def main():
 
     # Engineer features
     print("\nEngineering features...")
-    df = engineer_features(
-        data["game_logs"],
-        data["team_def"],
-        team_stats=data["team_stats"],
-        player_positions=data["positions"],
-        defense_vs_position=data["def_vs_pos"]
-    )
-
-    # Filter out garbage-time / DNP-like rows so the model isn't dragged
-    # toward the low-minute mean. Sample weighting further amplifies this
-    # in the fit call.
-    if "MIN" in df.columns:
-        before = len(df)
-        df = df[df["MIN"] >= 8].copy()
-        print(f"Filtered to MIN >= 8: {before} -> {len(df)} rows")
+    # Snapshot reference tables cannot establish what was known before each game.
+    # Use lagged player statistics and schedule context only.
+    df = engineer_features(data["game_logs"])
 
     print(f"Total samples: {len(df)}")
     print(f"Total features: {len(df.columns)}")
@@ -237,7 +252,15 @@ def main():
             return
         results = [train_model(df, args.stat.upper(), args.model, args.tune)]
     else:
-        results = train_all_models(df, tune=args.tune)
+        results = train_all_models(df, tune=args.tune, model_type=args.model)
+
+    import hashlib
+    source_hash = hashlib.sha256(Path(data["data_source"]).read_bytes()).hexdigest()
+    for result in results:
+        result["metrics"]["data_source"] = data["data_source"]
+        result["metrics"]["data_sha256"] = source_hash
+        report_path = Path(MODELS_DIR) / f"{result['target'].lower()}_validation.json"
+        report_path.write_text(json.dumps(result["metrics"], indent=2, allow_nan=False))
 
     # Summary
     print_summary(results)

@@ -1,0 +1,187 @@
+{
+  "mae": 1.2482105152734086,
+  "r2": 0.48440133272460906,
+  "bias": 0.00806042770010665,
+  "samples": 2818,
+  "selected_candidate": "ridge_100",
+  "selection_scores": [
+    {
+      "candidate": "rolling_5",
+      "cv_mae": 1.296196850393701
+    },
+    {
+      "candidate": "rolling_10",
+      "cv_mae": 1.2673837020372456
+    },
+    {
+      "candidate": "rolling_20",
+      "cv_mae": 1.264288181113746
+    },
+    {
+      "candidate": "ridge_1",
+      "cv_mae": 1.272611645879806
+    },
+    {
+      "candidate": "ridge_100",
+      "cv_mae": 1.2570057351758819
+    },
+    {
+      "candidate": "ridge_1000",
+      "cv_mae": 1.2673737976374644
+    },
+    {
+      "candidate": "xgboost_d2_n150",
+      "cv_mae": 1.2784434070080284
+    },
+    {
+      "candidate": "xgboost_d2_n350",
+      "cv_mae": 1.2780402362182384
+    },
+    {
+      "candidate": "xgboost_d4_n150",
+      "cv_mae": 1.2797462393918375
+    },
+    {
+      "candidate": "xgboost_d4_n350",
+      "cv_mae": 1.2887106176366017
+    }
+  ],
+  "train_samples": 7407,
+  "test_samples": 2818,
+  "calibration_samples": 2571,
+  "features": [
+    "rolling_avg_pts_5",
+    "rolling_avg_pts_10",
+    "rolling_avg_pts_20",
+    "rolling_avg_ast_5",
+    "rolling_avg_ast_10",
+    "rolling_avg_ast_20",
+    "rolling_avg_reb_5",
+    "rolling_avg_reb_10",
+    "rolling_avg_reb_20",
+    "rolling_avg_min_5",
+    "rolling_avg_min_10",
+    "rolling_avg_min_20",
+    "rolling_avg_fga_5",
+    "rolling_avg_fga_10",
+    "rolling_avg_fga_20",
+    "rolling_avg_fg_pct_5",
+    "rolling_avg_fg_pct_10",
+    "rolling_avg_fg_pct_20",
+    "rolling_avg_fg3a_5",
+    "rolling_avg_fg3a_10",
+    "rolling_avg_fg3a_20",
+    "rolling_avg_fg3_pct_5",
+    "rolling_avg_fg3_pct_10",
+    "rolling_avg_fg3_pct_20",
+    "is_home",
+    "days_rest",
+    "is_back_to_back",
+    "minutes_trend",
+    "season_avg_pts",
+    "season_avg_ast",
+    "season_avg_reb",
+    "season_avg_min"
+  ],
+  "excluded_incomplete_rows": 1913,
+  "evaluation_method": "expanding-date CV / separate calibration / untouched final dates",
+  "date_ranges": {
+    "development": [
+      "2024-05-16",
+      "2025-08-15"
+    ],
+    "calibration": [
+      "2025-08-16",
+      "2026-06-08"
+    ],
+    "test": [
+      "2026-06-09",
+      "2026-08-09"
+    ]
+  },
+  "baseline_test": {
+    "rolling_5": {
+      "mae": 1.2995741660752307,
+      "r2": 0.4223837919781559,
+      "bias": -0.0037615330021291663,
+      "samples": 2818
+    },
+    "rolling_10": {
+      "mae": 1.2642055887886265,
+      "r2": 0.4624214030728063,
+      "bias": -0.017958109432559394,
+      "samples": 2818
+    },
+    "rolling_20": {
+      "mae": 1.2571059382362961,
+      "r2": 0.47091508207045263,
+      "bias": -0.022925748188502324,
+      "samples": 2818
+    }
+  },
+  "interval_80_coverage": 0.8151171043293116,
+  "interval_80_mean_width": 3.495213467103435,
+  "probability_diagnostic": {
+    "threshold_source": "pregame rolling-10 average rounded to half-point; NOT sportsbook odds",
+    "brier_score": 0.23333887103617487,
+    "bins": [
+      {
+        "count": 3,
+        "mean_probability": 0.09016712009327632,
+        "observed_rate": 0.0
+      },
+      {
+        "count": 46,
+        "mean_probability": 0.1666131566940976,
+        "observed_rate": 0.21739130434782608
+      },
+      {
+        "count": 346,
+        "mean_probability": 0.2631675312100537,
+        "observed_rate": 0.315028901734104
+      },
+      {
+        "count": 783,
+        "mean_probability": 0.35142373969986984,
+        "observed_rate": 0.34738186462324394
+      },
+      {
+        "count": 827,
+        "mean_probability": 0.4520922555925618,
+        "observed_rate": 0.42321644498186217
+      },
+      {
+        "count": 599,
+        "mean_probability": 0.5462044202443896,
+        "observed_rate": 0.5225375626043406
+      },
+      {
+        "count": 179,
+        "mean_probability": 0.641407221967705,
+        "observed_rate": 0.6815642458100558
+      },
+      {
+        "count": 33,
+        "mean_probability": 0.723174221813942,
+        "observed_rate": 0.6666666666666666
+      },
+      {
+        "count": 2,
+        "mean_probability": 0.828993392926545,
+        "observed_rate": 0.5
+      }
+    ],
+    "market_calibrated": false,
+    "roi": null
+  },
+  "mae_difference_vs_rolling10_95_ci": [
+    -0.02846123006477766,
+    -0.003847115303030024
+  ],
+  "production_refit": {
+    "samples": 12796,
+    "through": "2026-08-09",
+    "note": "Refit on all rows after evaluation; holdout metrics measure the earlier evaluation fit. Residual calibration is approximate after refit."
+  },
+  "requested_model_type": "xgboost"
+}

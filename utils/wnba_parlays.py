@@ -48,7 +48,7 @@ def build_wnba_parlays(
     - `max_per_size`: cap on how many parlays to keep per leg count.
     - `min_leg_ev` / `min_leg_hit_prob`: filter weak individual legs before combining.
     """
-    filtered = [p for p in props if p.ev >= min_leg_ev and p.hit_prob >= min_leg_hit_prob]
+    filtered = [p for p in props if p.ev is not None and p.ev >= min_leg_ev and p.hit_prob >= min_leg_hit_prob]
     # Bias toward HIGH/MED confidence for the pool
     conf_order = {"HIGH": 0, "MED": 1, "LOW": 2}
     filtered.sort(key=lambda p: (conf_order.get(p.confidence, 3), -p.ev))

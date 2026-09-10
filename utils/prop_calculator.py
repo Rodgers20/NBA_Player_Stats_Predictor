@@ -88,7 +88,7 @@ def calculate_hit_probability(
             return round(float(1 - poisson.cdf(line_int, mu=lam)), 4)
         else:
             # P(X <= line) = P(X <= line_int)
-            return round(float(poisson.cdf(line_int, mu=lam)), 4)
+            return round(float(poisson.cdf(int(np.ceil(line)) - 1, mu=lam)), 4)
     else:
         # Normal distribution for PTS, REB, combo stats
         if std_dev == 0 or std_dev is None:
@@ -214,7 +214,7 @@ def calculate_historical_hit_rate(
         return 0.0
 
     if direction == "over":
-        hits = (games >= line).sum()
+        hits = (games > line).sum()
     else:
         hits = (games < line).sum()
 
@@ -236,7 +236,7 @@ def get_streak_info(
         return {"current_streak": 0, "max_streak": 0}
 
     if direction == "over":
-        hits = (games >= line).values
+        hits = (games > line).values
     else:
         hits = (games < line).values
 

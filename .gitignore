@@ -46,6 +46,7 @@ data/**/model_calibration.json
 # models/*.h5
 # models/*.keras
 # models/*.joblib
+models/*/backups/
 
 # Logs
 *.log

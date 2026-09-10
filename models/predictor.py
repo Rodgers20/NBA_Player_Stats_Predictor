@@ -43,7 +43,6 @@ import pickle
 import numpy as np
 import pandas as pd
 from typing import Optional, Tuple
-from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, r2_score
@@ -57,7 +56,7 @@ try:
 except (ImportError, Exception):
     # XGBoost may fail to load even if installed (missing libomp)
     XGBOOST_AVAILABLE = False
-    print("Note: XGBoost not available, using Random Forest instead")
+    print("Note: XGBoost not available, using Ridge instead")
 
 
 class StatPredictor:
@@ -167,10 +166,10 @@ class StatPredictor:
         Train the model on historical data.
 
         HOW TRAINING WORKS:
-        1. Split data into training (80%) and testing (20%) sets
-        2. Fit (train) the model on training data
-        3. Evaluate on test data to see real-world performance
-        4. Store the model for later predictions
+        1. Select a model on the earliest dates with expanding validation folds.
+        2. Estimate residual uncertainty on a separate calibration period.
+        3. Evaluate once on the final untouched dates.
+        4. Refit the selected configuration on all data for production.
 
         Args:
             df: DataFrame with engineered features
@@ -188,93 +187,10 @@ class StatPredictor:
                 "test_samples": 735
             }
         """
-        print(f"\n{'='*50}")
-        print(f"TRAINING MODEL: Predicting {target}")
-        print(f"Model type: {self.model_type}")
-        print(f"{'='*50}")
-
-        # Store target
-        self.target = target
-
-        # Auto-detect features if not provided
-        if feature_columns is None:
-            feature_columns = self._get_default_features(df)
-
-        self.feature_columns = feature_columns
-        print(f"\nUsing {len(feature_columns)} features")
-
-        # Prepare data
-        # Remove rows with missing values in features or target
-        required_cols = feature_columns + [target]
-        df_clean = df.dropna(subset=required_cols)
-
-        X = df_clean[feature_columns].values
-        y = df_clean[target].values
-
-        # Optional sample weights (e.g. weight by MIN so starter performances
-        # count more than bench rows). Weights get split alongside X/y.
-        weights = None
-        if weight_column and weight_column in df_clean.columns:
-            weights = df_clean[weight_column].values
-
-        print(f"Total samples: {len(X)}")
-
-        if weights is not None:
-            X_train, X_test, y_train, y_test, w_train, _ = train_test_split(
-                X, y, weights, test_size=test_size, random_state=42
-            )
-        else:
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=test_size, random_state=42
-            )
-            w_train = None
-
-        print(f"Training samples: {len(X_train)}")
-        print(f"Test samples: {len(X_test)}")
-
-        X_train_scaled = self.scaler.fit_transform(X_train)
-        X_test_scaled = self.scaler.transform(X_test)
-
-        print(f"\nTraining {self.model_type} model...")
-        self.model = self._create_model()
-        if w_train is not None:
-            try:
-                self.model.fit(X_train_scaled, y_train, sample_weight=w_train)
-                print(f"  (using sample_weight from column '{weight_column}')")
-            except TypeError:
-                # Model doesn't accept sample_weight — fall back to unweighted
-                self.model.fit(X_train_scaled, y_train)
-        else:
-            self.model.fit(X_train_scaled, y_train)
-
-        # Evaluate on test set
-        y_pred = self.model.predict(X_test_scaled)
-
-        mae = mean_absolute_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
-
-        self.metrics = {
-            "mae": round(mae, 2),
-            "r2": round(r2, 3),
-            "train_samples": len(X_train),
-            "test_samples": len(X_test)
-        }
-
-        self.is_trained = True
-
-        # Print results
-        print(f"\n{'='*50}")
-        print("TRAINING COMPLETE!")
-        print(f"{'='*50}")
-        print(f"Mean Absolute Error: {mae:.2f} {target.lower()}")
-        print(f"  → Predictions are off by ~{mae:.1f} {target.lower()} on average")
-        print(f"R² Score: {r2:.3f}")
-        print(f"  → Model explains {r2*100:.1f}% of variance in {target.lower()}")
-
-        # Show feature importance (if available)
-        self._print_feature_importance()
-
-        return self.metrics
+        if weight_column is not None:
+            raise ValueError("Outcome-based sample weights are not permitted; use pregame eligibility")
+        from models.validation import fit_validated
+        return fit_validated(self, df, target, feature_columns, test_size=test_size)
 
     def predict(
         self,
@@ -310,7 +226,10 @@ class StatPredictor:
         # Convert input to array
         if isinstance(features, dict):
             # Single prediction from dict
-            X = np.array([[features.get(col, 0) for col in self.feature_columns]])
+            missing = [col for col in self.feature_columns if col not in features]
+            if missing:
+                raise ValueError(f"Missing pregame features: {missing}")
+            X = np.array([[features[col] for col in self.feature_columns]])
         elif isinstance(features, pd.DataFrame):
             X = features[self.feature_columns].values
         else:
@@ -320,7 +239,7 @@ class StatPredictor:
         X_scaled = self.scaler.transform(X)
 
         # Predict
-        predictions = self.model.predict(X_scaled)
+        predictions = np.maximum(0, self.model.predict(X_scaled))
 
         # Return single value if single prediction, else array
         if len(predictions) == 1:
@@ -331,7 +250,9 @@ class StatPredictor:
         self,
         player_name: str,
         features_df: pd.DataFrame,
-        n_recent_games: int = 10
+        n_recent_games: int = 10,
+        is_home: bool = None,
+        game_date=None,
     ) -> dict:
         """
         Predict a player's stats based on their recent performance.
@@ -368,8 +289,10 @@ class StatPredictor:
             return {"error": f"Player '{player_name}' not found"}
 
         # Get most recent game's features
-        player_df = player_df.sort_values("GAME_DATE", ascending=False)
-        recent_features = player_df.iloc[0]
+        from utils.pregame_features import next_game_features
+        player_df = player_df.assign(_sort_date=pd.to_datetime(player_df["GAME_DATE"], format="mixed"))
+        player_df = player_df.sort_values("_sort_date", ascending=False)
+        recent_features = next_game_features(player_df, game_date, is_home)
 
         # Make prediction
         prediction = self.predict({
@@ -382,14 +305,13 @@ class StatPredictor:
         recent_avg = player_df.head(n_recent_games)[self.target].mean()
         season_avg = player_df[self.target].mean()
 
-        # Determine confidence based on consistency
-        recent_std = player_df.head(n_recent_games)[self.target].std()
-        if recent_std < 5:
-            confidence = "high"
-        elif recent_std < 8:
-            confidence = "medium"
-        else:
-            confidence = "low"
+        # Low variance alone cannot establish confidence in a forecast.
+        confidence = "low"
+        residuals = getattr(self, "calibration_residuals", None)
+        interval = None
+        if residuals is not None and len(residuals):
+            interval = [round(max(0, prediction + float(q)), 1)
+                        for q in np.quantile(residuals, [0.1, 0.9])]
 
         return {
             "player": player_name,
@@ -397,6 +319,7 @@ class StatPredictor:
             "recent_avg": round(recent_avg, 1),
             "season_avg": round(season_avg, 1),
             "confidence": confidence,
+            "prediction_interval_80": interval,
             "games_analyzed": len(player_df)
         }
 
@@ -417,34 +340,8 @@ class StatPredictor:
         - Home/away, rest days (known before game)
         - Opponent defensive ratings (known before game)
         """
-        exclude = [
-            # Identifiers
-            "PLAYER_NAME", "GAME_DATE", "MATCHUP", "SEASON",
-            "Player_ID", "Game_ID", "SEASON_ID", "VIDEO_AVAILABLE",
-
-            # Targets (what we predict - don't use these!)
-            "PTS", "AST", "REB", "STL", "BLK", "TOV",
-
-            # SAME-GAME STATS (data leakage - these happen DURING the game!)
-            # We can't know these before the game, so we can't use them
-            "MIN",      # Minutes played in THIS game
-            "FGM", "FGA", "FG_PCT",    # Field goals in THIS game
-            "FG3M", "FG3A", "FG3_PCT", # 3-pointers in THIS game
-            "FTM", "FTA", "FT_PCT",    # Free throws in THIS game
-            "OREB", "DREB",            # Rebounds in THIS game
-            "PLUS_MINUS",              # Plus/minus in THIS game
-
-            # Other
-            "WL", "opponent"
-        ]
-
-        # Get numeric columns
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-
-        # Filter out excluded columns
-        features = [col for col in numeric_cols if col not in exclude]
-
-        return features
+        from models.validation import safe_features
+        return safe_features(df)
 
     def _print_feature_importance(self, top_n: int = 10):
         """
@@ -523,11 +420,11 @@ class StatPredictor:
         cv: int = 5
     ) -> dict:
         """
-        Use GridSearchCV to find optimal hyperparameters.
+        Select a configuration without looking at calibration or final test outcomes.
 
         WHY TUNE:
-        Default hyperparameters work okay, but tuning can improve accuracy
-        by 5-15%. Takes longer but worth it for production models.
+        Compare regularized models and rolling baselines on chronological folds.
+        Improvement is measured, never assumed.
 
         Args:
             df: DataFrame with engineered features
@@ -538,86 +435,9 @@ class StatPredictor:
         Returns:
             Dictionary with best parameters found
         """
-        if target is None:
-            target = self.target or "PTS"
-
-        if feature_columns is None:
-            feature_columns = self._get_default_features(df)
-
-        print(f"\n{'='*50}")
-        print(f"HYPERPARAMETER TUNING FOR {target}")
-        print(f"{'='*50}")
-
-        # Prepare data
-        df_clean = df.dropna(subset=feature_columns + [target])
-        X = df_clean[feature_columns].values
-        y = df_clean[target].values
-
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-        X_train_scaled = self.scaler.fit_transform(X_train)
-
-        # Define parameter grids based on model type
-        if self.model_type == "xgboost" and XGBOOST_AVAILABLE:
-            param_grid = {
-                "n_estimators": [100, 200],
-                "max_depth": [4, 6, 8],
-                "learning_rate": [0.05, 0.1, 0.15],
-                "subsample": [0.8, 1.0],
-            }
-            base_model = xgb.XGBRegressor(random_state=42, n_jobs=-1)
-        else:
-            param_grid = {
-                "n_estimators": [100, 200, 300],
-                "max_depth": [6, 10, 15],
-                "min_samples_split": [2, 5, 10],
-            }
-            base_model = RandomForestRegressor(random_state=42, n_jobs=-1)
-
-        print(f"Testing {sum(len(v) for v in param_grid.values())} parameter combinations...")
-        print("This may take several minutes...")
-
-        # Grid search with cross-validation
-        grid_search = GridSearchCV(
-            base_model,
-            param_grid,
-            cv=cv,
-            scoring="neg_mean_absolute_error",
-            n_jobs=-1,
-            verbose=1
-        )
-
-        grid_search.fit(X_train_scaled, y_train)
-
-        print(f"\n{'='*50}")
-        print("TUNING COMPLETE!")
-        print(f"{'='*50}")
-        print(f"Best parameters: {grid_search.best_params_}")
-        print(f"Best CV MAE: {-grid_search.best_score_:.2f}")
-
-        # Update model with best estimator
-        self.model = grid_search.best_estimator_
-        self.feature_columns = feature_columns
-        self.target = target
-
-        # Evaluate on test set
-        X_test_scaled = self.scaler.transform(X_test)
-        y_pred = self.model.predict(X_test_scaled)
-        test_mae = mean_absolute_error(y_test, y_pred)
-        test_r2 = r2_score(y_test, y_pred)
-
-        print(f"Test MAE: {test_mae:.2f}")
-        print(f"Test R²: {test_r2:.3f}")
-
-        self.is_trained = True
-        self.metrics = {
-            "mae": round(test_mae, 2),
-            "r2": round(test_r2, 3),
-            "best_params": grid_search.best_params_
-        }
-
-        return grid_search.best_params_
+        from models.validation import fit_validated
+        fit_validated(self, df, target or self.target or "PTS", feature_columns, tune=True, cv=cv)
+        return {"selected_candidate": self.metrics["selected_candidate"]}
 
     def predict_batch(
         self,
@@ -682,7 +502,8 @@ class StatPredictor:
             "feature_columns": self.feature_columns,
             "target": self.target,
             "model_type": self.model_type,
-            "metrics": self.metrics
+            "metrics": self.metrics,
+            "calibration_residuals": getattr(self, "calibration_residuals", None)
         }
 
         with open(filepath, "wb") as f:
@@ -708,6 +529,7 @@ class StatPredictor:
         predictor.feature_columns = model_data["feature_columns"]
         predictor.target = model_data["target"]
         predictor.metrics = model_data["metrics"]
+        predictor.calibration_residuals = model_data.get("calibration_residuals")
         predictor.is_trained = True
 
         print(f"Loaded {predictor.target} predictor (MAE: {predictor.metrics['mae']})")

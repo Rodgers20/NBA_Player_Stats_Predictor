@@ -16,6 +16,15 @@ A full-stack NBA analytics dashboard that gives you **game predictions, player p
 ![License](https://img.shields.io/badge/License-MIT-green)
 [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/kingzman20/nba-player-predictor)
 
+## Model validation
+
+The September 2026 tuning run uses chronological selection, separate calibration,
+and a final temporal holdout. See [the measured results and limitations](docs/model-tuning-report.md).
+Gains are modest; neither historical hit rates nor estimated EV establish profitability.
+Models use lagged player statistics, and prop rankings require actual quoted prices.
+Unpriced WNBA analysis displays EV as unavailable; unvalidated NBA alternate-line and
+parlay recommendations are withheld.
+
 ## Live Demo
 
 **[View Live Dashboard →](https://huggingface.co/spaces/kingzman20/nba-player-predictor)**
@@ -59,11 +68,11 @@ Deep dive on any NBA player (300+ players supported):
 ### Best Props
 The crown feature — surfaces the best player prop bets across all of today's games:
 
-- **364+ props analyzed** every day across all stat types
-- Ranked by **Expected Value (EV)** — not just hit rate
+- Actual quoted PTS/AST/REB markets evaluated when model and historical data are available
+- Ranked by **estimated Expected Value (EV)** at actual quoted lines and prices
 - Filter by: All Stats / Points / Assists / Rebounds / 3-Pointers / Pts+Ast / Pts+Reb / Ast+Reb / PTS+AST+REB (PRA) / **LOCKS**
-- **LOCK props** = 80%+ hit rate over last 10 games (these are your strongest bets)
-- **Combo props** — e.g. if a player averages 25 pts + 8 ast, you get a PTS+AST combo line with its own hit rate
+- Historical hit rates describe prior games; they are not guarantees or forecast confidence
+- Uncalibrated combo analysis does not receive a price-based EV recommendation
 - Home/Away filter, Game filter (see only props for a specific matchup), Sort by EV or Hit Rate
 - Each prop card shows: line, hit rate, average, home vs away splits, EV, and AI-generated insight explaining why this prop has edge
 
@@ -95,7 +104,7 @@ The model grades itself every night at 1 AM after games finish:
 | Backend | Python 3.12, Flask (served via Dash) |
 | Data | Kaggle NBA dataset (historical), ESPN API (live games), The Odds API (sportsbook odds) |
 | Injuries | ESPN injury feed + RSS parsing (CBS Sports, RotoWire) |
-| Predictions | Custom rolling-form engine (no ML black box — explainable math) |
+| Predictions | Rolling-form game engine; chronologically selected player models with separate uncertainty calibration |
 | Scheduling | APScheduler (background jobs for grading + cache refresh) |
 | Deployment | Docker → HuggingFace Spaces |
 | Export | openpyxl (Excel reports) |

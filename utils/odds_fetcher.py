@@ -374,14 +374,17 @@ def _parse_event_odds(event_data: dict, out: dict) -> None:
                 line  = over.get("point") or under.get("point")
                 if line is None:
                     continue
+                # Do not pair prices quoted at different thresholds.
+                if over.get("point") is not None and under.get("point") is not None and over["point"] != under["point"]:
+                    continue
 
                 # Only write if we don't already have a preferred-book entry
                 player_dict = out.setdefault(player, {})
                 if stat not in player_dict:
                     player_dict[stat] = {
                         "line":        float(line),
-                        "over_price":  over.get("price", -110),
-                        "under_price": under.get("price", -110),
+                        "over_price":  over.get("price"),
+                        "under_price": under.get("price"),
                         "bookmaker":   book_name,
                     }
 

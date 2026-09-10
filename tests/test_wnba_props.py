@@ -59,9 +59,10 @@ def test_generate_props_over_pick_with_positive_edge():
     p = props[0]
     assert p.pick == "OVER"
     assert p.edge == pytest.approx(6.5)     # 27.0 - 20.5
-    assert p.hit_prob == 1.0                # all 10 games above 20.5
-    assert p.ev > 0
-    assert p.confidence == "HIGH"
+    assert p.historical_hit_rate == 1.0  # Past 10/10 is not a 100% future probability.
+    assert 0.5 < p.hit_prob < 1.0
+    assert p.ev is None  # Fake model has no out-of-sample residual calibration.
+    assert p.confidence == "LOW"
 
 
 def test_generate_props_under_pick_with_negative_edge():
@@ -82,7 +83,8 @@ def test_generate_props_under_pick_with_negative_edge():
     assert len(props) == 1
     p = props[0]
     assert p.pick == "UNDER"
-    assert p.hit_prob == 1.0
+    assert p.historical_hit_rate == 1.0
+    assert p.hit_prob < 1.0
 
 
 def test_skips_players_with_insufficient_history():

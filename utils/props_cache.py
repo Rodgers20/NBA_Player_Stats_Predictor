@@ -293,818 +293,91 @@ def _get_player_role(avg_min: float) -> str:
 
 
 def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, availability_map, players_to_analyze, game_spreads=None, get_predictor_fn=None, team_injury_context=None):
-    """Compute props data for the main Best Props page.
+    """Rank actual quoted PTS/AST/REB markets using held-out model residuals.
 
-    Process ALL players from every team playing today — no arbitrary cap.
-    After computing, build a final list that guarantees representation from
-    every team (both sides of every game), then sort by EV overall.
+    A historical streak is descriptive. It cannot create a market, price, or
+    calibrated probability. Unavailable models/quotes yield no recommendation.
     """
-    # Group players by team so we can guarantee per-team coverage
-    team_to_players = {}
-    for player_name in players_to_analyze:
-        team = _get_player_team(player_name, PLAYER_POSITIONS)
-        if team:
-            team_to_players.setdefault(team, []).append(player_name)
-
-    teams_today = set(game_info["team_to_opponent"].keys())
-
-    # Log which teams we found players for (helps debug abbrev mismatches)
-    found_teams = set(team_to_players.keys()) & teams_today
-    missing_teams = teams_today - found_teams
-    if missing_teams:
-        print(f"[PropsCache] WARNING: No players found for teams: {missing_teams}")
-        print(f"[PropsCache] teams_today={sorted(teams_today)}, found={sorted(found_teams)}")
-
-    props_data = []
-
-    # Process all players
-    processed_players = set()
-    for player_name in players_to_analyze:
-        if player_name in processed_players:
+    from utils.market_evaluation import evaluate_market
+    if not get_predictor_fn or not game_info.get("has_todays_games"):
+        return []
+    live_odds = get_live_odds()
+    props = []
+    prediction_date = pd.Timestamp(game_info.get("target_date") or datetime.now().date()).normalize()
+    for player in dict.fromkeys(players_to_analyze):
+        if not availability_map.get(player, (True, ""))[0]:
             continue
-        processed_players.add(player_name)
-
-        is_avail, reason = availability_map.get(player_name, (True, ""))
-        if not is_avail:
+        from utils.pregame_features import prefer_identified_games
+        history = prefer_identified_games(DF[DF["PLAYER_NAME"] == player]).copy()
+        history["_date"] = pd.to_datetime(history["_date"], format="mixed")
+        history = history[history["_date"] < prediction_date].sort_values("_date", ascending=False).drop_duplicates("_date")
+        qualified, avg_min = _is_qualified_player(player, history)
+        if not qualified or len(history) < 10:
             continue
-
-        player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
-
-        # ── Qualification gate: activity, minutes, current-season data ────────
-        qualified, avg_min = _is_qualified_player(player_name, player_df)
-        if not qualified:
-            continue
-
-        player_team = _get_player_team(player_name, PLAYER_POSITIONS)
-        if game_info["has_todays_games"] and player_team not in teams_today:
-            continue
-
-        opponent = _resolve_opponent(player_name, player_team, player_df, game_info)
+        team = _get_player_team(player, PLAYER_POSITIONS)
+        opponent = game_info.get("team_to_opponent", {}).get(team)
         if not opponent:
             continue
-
-        is_home_today = game_info["teams_home_away"].get(player_team, "home") == "home"
-        if not game_info["has_todays_games"] and not player_df.empty:
-            last_matchup = player_df.iloc[0].get("MATCHUP", "")
-            is_home_today = "vs." in str(last_matchup)
-
-        position = _get_player_position(player_name, PLAYER_POSITIONS)
-        role     = _get_player_role(avg_min)
-
-        # ── Use current-season data preferentially ────────────────────────────
-        # Lower threshold to 3 so injury-return players (e.g. LaMelo Ball with
-        # only 4-6 logged games back) use their current-season data rather than
-        # being silently mixed with last season's numbers.
-        if "SEASON" in player_df.columns:
-            cs_df = player_df[player_df["SEASON"].str.startswith("2025", na=False)]
-            recent_10 = cs_df.head(10) if len(cs_df) >= 3 else player_df.head(10)
-        else:
-            recent_10 = player_df.head(10)
-
-        # Home/away splits — also prefer current season (threshold matches recent_10)
-        split_base = cs_df if ("SEASON" in player_df.columns and len(cs_df) >= 3) else player_df
-        home_games = split_base[split_base["MATCHUP"].str.contains("vs.", na=False)].head(10) if "MATCHUP" in split_base.columns else split_base.head(10)
-        away_games = split_base[split_base["MATCHUP"].str.contains("@",   na=False)].head(10) if "MATCHUP" in split_base.columns else split_base.head(10)
-
-        # ── Blowout risk (role-aware) ─────────────────────────────────────────
-        _spreads    = game_spreads or {}
-        team_spread = _spreads.get(player_team)
-        blowout_spread = abs(team_spread) if team_spread is not None else None
-        blowout_risk   = blowout_spread is not None and blowout_spread >= 10
-
-        # Per-stat minimum average to qualify for a prop line
-        _STAT_MIN_AVG = {
-            "PTS": 1.0, "AST": 1.0, "REB": 1.0,
-            "FG3M": 0.5, "STL": 0.5, "BLK": 0.3,
-        }
-
-        for stat_type in ["PTS", "AST", "REB", "FG3M", "STL", "BLK"]:
-            if stat_type not in recent_10.columns:
+        home = game_info.get("teams_home_away", {}).get(team) == "home"
+        player_odds = live_odds.get(player) or live_odds.get(player.replace(".", "").replace("  ", " ").strip()) or {}
+        for stat in ("PTS", "AST", "REB"):
+            quote = player_odds.get(stat)
+            model = get_predictor_fn(stat)
+            if not quote or model is None or stat not in history:
                 continue
-
-            recent_stats = pd.to_numeric(recent_10[stat_type], errors="coerce").dropna()
-            if len(recent_stats) < 5:
+            residuals = getattr(model, "calibration_residuals", None)
+            if residuals is None:
                 continue
-
-            avg_stat    = recent_stats.mean()
-
-            if avg_stat < _STAT_MIN_AVG.get(stat_type, 1.0):
+            try:
+                result = model.predict_player_game(player, history, is_home=home, game_date=prediction_date)
+                projection = result[f"predicted_{stat.lower()}"]
+                line = float(quote["line"])
+            except (ValueError, TypeError, KeyError):
                 continue
-
-            # ── Recency-weighted L5 average ───────────────────────────────────
-            # Filter out injury/rest games (< 20 min) before computing L5 so that
-            # a player who sat out or played 8 minutes doesn't drag down the projection.
-            # Fall back to unfiltered if fewer than 5 active games available.
-            if "MIN" in recent_10.columns:
-                _min_series = pd.to_numeric(recent_10["MIN"], errors="coerce").fillna(0)
-                _active_mask = _min_series >= 20
-                _active_df = recent_10.loc[_active_mask]
-                _active_stats = pd.to_numeric(
-                    _active_df[stat_type], errors="coerce"
-                ).dropna()
-            else:
-                _active_df = recent_10
-                _active_stats = recent_stats
-
-            _l5_source = _active_stats.head(5) if len(_active_stats) >= 5 else recent_stats.head(5)
-            # The L5 bar chart should show the same games used for l5_avg (active ≥20 MIN)
-            _l5_df = _active_df.head(5) if len(_active_df) >= 5 else recent_10.head(5)
-
-            # Store raw L5 game values (most-recent first) for bar chart rendering
-            _l5_raw_values: list[float] = [round(float(v), 1) for v in _l5_source.values[:5]]
-
-            # ── Multi-window chart data ───────────────────────────────────────
-            # Build per-window (values, labels) for the expandable bar chart.
-            # L5 uses recent_10 rows that had active minutes; L10/L20 use full history.
-            _split_base = (
-                player_df[player_df["SEASON"].str.startswith("2025", na=False)]
-                if "SEASON" in player_df.columns and
-                   len(player_df[player_df["SEASON"].str.startswith("2025", na=False)]) >= 3
-                else player_df
-            )
-            _l20_df = _split_base.head(20)
-            _cw_l5_v,  _cw_l5_l  = _extract_chart_window(_l5_df,             stat_type)
-            _cw_l10_v, _cw_l10_l = _extract_chart_window(recent_10,           stat_type)
-            _cw_l20_v, _cw_l20_l = _extract_chart_window(_l20_df,             stat_type)
-            _cw_home_v, _cw_home_l = _extract_chart_window(home_games.head(10), stat_type)
-            _cw_away_v, _cw_away_l = _extract_chart_window(away_games.head(10), stat_type)
-            _chart_windows: dict = {
-                "l5":   {"values": _cw_l5_v,   "labels": _cw_l5_l},
-                "l10":  {"values": _cw_l10_v,  "labels": _cw_l10_l},
-                "l20":  {"values": _cw_l20_v,  "labels": _cw_l20_l},
-                "home": {"values": _cw_home_v, "labels": _cw_home_l},
-                "away": {"values": _cw_away_v, "labels": _cw_away_l},
-            }
-
-            # Weight recent games more heavily so hot/cold streaks dominate:
-            #   Game 1 (most recent): weight 3 | Game 2: weight 3 | Game 3: weight 2
-            #   Game 4: weight 1 | Game 5: weight 1
-            # Example: Ball last 5 active = [35.5, 35.5, 15.7, 15.7, 15.7]
-            #   Simple mean = 23.6; Weighted = 28.2 (recency-dominated)
-            if len(_l5_source) >= 5:
-                _r5 = _l5_source.values[:5]  # [game0=most_recent, ...]
-                _weights = [3, 3, 2, 1, 1]   # sum = 10
-                l5_avg = float(
-                    sum(_r5[i] * _weights[i] for i in range(5)) / sum(_weights)
-                )
-            else:
-                l5_avg = float(avg_stat)
-
-            # ── Season-average sanity floor ───────────────────────────────────
-            # If injury games dragged L5 below 65% of season avg, floor it.
-            # Prevents Ball showing 13 pts when he averages 22 on the season.
-            _season_stats = pd.to_numeric(player_df[stat_type], errors="coerce").dropna()
-            if len(_season_stats) >= 10:
-                _season_avg = float(_season_stats.mean())
-                _floor = _season_avg * 0.65
-                if l5_avg < _floor:
-                    l5_avg = _floor
-
-            n = len(recent_stats)
-
-            # ── Opponent defense rank (computed early — needed for projection) ─
-            opp_def  = DEFENSE_VS_POS[
-                (DEFENSE_VS_POS["TEAM_ABBREVIATION"] == opponent) &
-                (DEFENSE_VS_POS["POSITION"] == position)
-            ] if not DEFENSE_VS_POS.empty else pd.DataFrame()
-            rank_col = f"{stat_type}_RANK" if stat_type != "FG3M" else "3PM_RANK"
-            def_rank = int(opp_def.iloc[0].get(rank_col, 15)) if not opp_def.empty else None
-
-            game_matchup_str = (
-                f"{opponent} @ {_normalize_abbr(player_team)}" if is_home_today
-                else f"{_normalize_abbr(player_team)} @ {opponent}"
-            )
-
-            # ── Injury usage boost ────────────────────────────────────────────
-            _injury_boost_note: str = ""
-            if team_injury_context and player_team in team_injury_context and stat_type in ("PTS", "AST"):
-                _ctx = team_injury_context[player_team]
-                _missing = _ctx["missing_pts"]
-                _out_names = ", ".join(_ctx["out_players"][:2])
-                if role == "star":
-                    _bfactor = 1.0 + min(_missing * 0.10 / max(l5_avg, 8), 0.25)
-                elif role == "starter":
-                    _bfactor = 1.0 + min(_missing * 0.08 / max(l5_avg, 8), 0.20)
-                elif role == "rotation":
-                    _bfactor = 1.0 + min(_missing * 0.05 / max(l5_avg, 6), 0.12)
-                else:
-                    _bfactor = 1.0
-                if _bfactor > 1.02:
-                    l5_avg = l5_avg * _bfactor
-                    _injury_boost_note = f"⬆ {_out_names} OUT"
-
-            # ── Contextual projection ─────────────────────────────────────────
-            # Build a realistic projection using L5 avg as base, then adjust
-            # for opponent defense, home/away splits, and ML model when available.
-            # Books typically set lines ~1-2pts above L5 avg; our value line sits
-            # at 92% of our contextual projection for genuine hit-rate value.
-            proj = l5_avg
-
-            # 1. Opponent defense adjustment (rank 1=best defense, 30=worst)
-            #    Weak defense (rank 20-30) → boost proj; strong defense → reduce
-            if def_rank is not None:
-                def_factor = max(0.92, min(1.08, 1.0 + (def_rank - 15) * 0.006))
-                proj = proj * def_factor
-
-            # 2. Home/Away split (40% weight toward actual split avg)
-            _ha_stat = pd.to_numeric(
-                (home_games[stat_type] if is_home_today else away_games[stat_type]),
-                errors="coerce"
-            ) if stat_type in (home_games.columns if is_home_today else away_games.columns) else pd.Series(dtype=float)
-            if len(_ha_stat.dropna()) >= 3:
-                _ha_avg = float(_ha_stat.mean())
-                proj = 0.60 * proj + 0.40 * _ha_avg
-
-            # 3. ML model blend (when available): 55% ML, 45% contextual
-            ml_pred_stored: float | None = None
-            if get_predictor_fn:
-                try:
-                    predictor = get_predictor_fn(stat_type)
-                    if predictor:
-                        ml_result = predictor.predict_player_game(player_name, DF)
-                        ml_pred = ml_result.get(f"predicted_{stat_type.lower()}")
-                        if ml_pred and float(ml_pred) > 0:
-                            ml_pred_stored = float(ml_pred)
-                            raw_blend = 0.55 * ml_pred_stored + 0.45 * proj
-                            # Clamp: ML model can't drag projection more than 25% below
-                            # or 30% above the L5 average. Prevents stale/biased ML
-                            # models from producing absurd lines (e.g. 17.5 for a 26.5 avg).
-                            _ml_clamp_lo = l5_avg * 0.75
-                            _ml_clamp_hi = l5_avg * 1.30
-                            proj = max(_ml_clamp_lo, min(_ml_clamp_hi, raw_blend))
-                except Exception:
-                    pass
-
-            # 4. Our displayed value line — 20th-percentile of actual L5 game values.
-            #    By definition ≥80% of the last 5 games will beat this line, so the
-            #    displayed hit-rate is always meaningful rather than random noise.
-            #    Floor at 75% of l5_avg so high-variance players still get a real line.
-            if len(_l5_source) >= 3:
-                _l5_series = pd.to_numeric(pd.Series(list(_l5_source.values[:5])), errors="coerce").dropna()
-                _p20 = float(_l5_series.quantile(0.20)) if len(_l5_series) >= 2 else l5_avg * 0.82
-                raw_line = math.floor(max(_p20, l5_avg * 0.70) / 0.5) * 0.5
-            else:
-                raw_line = math.floor(l5_avg * 0.82 / 0.5) * 0.5
-            line = max(_VALUE_LINE_MIN.get(stat_type, 0.5), raw_line)
-
-            # 5. Simulated book line — set at l5_avg (books typically use recent average
-            #    as their baseline; no artificial buffer that inflates our target line)
-            sim_book_line = math.floor(l5_avg / 0.5) * 0.5
-
-            over_line  = line
-            under_line = over_line + 1.0
-
-            hits_over  = (recent_stats >= over_line).sum()
-            hits_under = (recent_stats <  under_line).sum()
-            hit_rate_over  = hits_over  / n
-            hit_rate_under = hits_under / n
-
-            # ── Consistency multiplier (penalise high-variance players) ───────
-            std_stat = recent_stats.std()
-            cv = std_stat / avg_stat if avg_stat > 0 else 1.0
-            consistency_mult = max(0.75, 1.0 - max(0.0, cv - 0.20) * 0.60)
-
-            def _make_prop(direction, bet_line, hit_rate, hits,
-                           _role=role, _blowout_risk=blowout_risk,
-                           _blowout_spread=blowout_spread, _cons=consistency_mult,
-                           _l5_avg=l5_avg, _model_pred=ml_pred_stored, _std=std_stat,
-                           _proj=proj, _sim_book=sim_book_line,
-                           _l5_vals=_l5_raw_values,
-                           _chart_wins=_chart_windows):
-                # EV initially from hit_rate; will be overwritten in live-odds
-                # enrichment step with true model_prob vs implied_prob.
-                ev_value = calculate_ev(hit_rate)
-
-                # L5 hit rate — most recent 5 games against this specific line
-                if _l5_vals:
-                    _l5_h = sum(1 for v in _l5_vals if (v >= bet_line if direction == "Over" else v < bet_line))
-                    _hit_rate_l5 = round(_l5_h / len(_l5_vals), 4)
-                else:
-                    _hit_rate_l5 = hit_rate
-
-                # ── Role-aware blowout adjustment ─────────────────────────────
-                if _blowout_risk:
-                    spread_factor = 0.25 if _blowout_spread >= 15 else 0.12
-                    if _role in ("star", "starter"):
-                        # Starters get rested → fewer minutes → OVERs suffer
-                        ev_value *= (1 - spread_factor)
-                    else:  # rotation / bench
-                        # Bench/rotation get garbage time → OVERs improve
-                        ev_value *= (1 + spread_factor * 0.4)
-
-                # Consistency penalty
-                ev_value *= _cons
-
-                is_lock = (
-                    hit_rate >= 0.80 and n >= 5
-                    and not (_blowout_risk and _role in ("star", "starter") and direction == "Over")
-                )
-                insight = generate_player_insight(
-                    player_name=player_name, stat=stat_type, line=bet_line,
-                    opponent=opponent, player_df=player_df,
-                    defense_vs_pos=DEFENSE_VS_POS, is_home=is_home_today, position=position,
-                    l5_avg_override=round(l5_avg, 1),
-                )
-                if _blowout_risk:
-                    role_note = "starter benched" if _role in ("star", "starter") else "bench gets garbage time"
-                    insight["narrative"] = (
-                        f"⚠ Blowout risk ({_blowout_spread:.0f}-pt spread, {role_note}). "
-                        + insight.get("narrative", "")
-                    )
-                hr_home = (home_games[stat_type] >= bet_line).sum() / len(home_games) if not home_games.empty else 0
-                hr_away = (away_games[stat_type] >= bet_line).sum() / len(away_games) if not away_games.empty else 0
-                h_home  = (home_games[stat_type] >= bet_line).sum() if not home_games.empty else 0
-                h_away  = (away_games[stat_type] >= bet_line).sum() if not away_games.empty else 0
-                # model_pred: contextual projection (opponent/home-away/ML adjusted).
-                # Used in live-odds enrichment to compute true EV, and shown on card.
-                _model_pred_val = round(_model_pred, 1) if _model_pred else round(_proj, 1)
-                return {
-                    "player": player_name, "team": player_team, "opponent": opponent, "position": position,
-                    "role": _role,
-                    "stat": stat_type, "line": bet_line, "avg": round(avg_stat, 1),
-                    "l5_avg": round(_l5_avg, 1),
-                    "projection": round(_proj, 1),   # contextual projection (shown on card)
-                    "sim_book_line": round(_sim_book, 1),  # simulated book line
-                    "model_pred": _model_pred_val,
-                    "stat_std": round(_std, 2),
-                    "direction": direction,
-                    "hit_rate": hit_rate, "hits": hits, "total": n,
-                    "def_rank": def_rank, "is_home_today": is_home_today,
-                    "ev": ev_value,
-                    "model_prob": None,   # filled in live-odds enrichment
-                    "implied_prob": None, # filled in live-odds enrichment
-                    "edge": None,         # filled in live-odds enrichment
-                    "is_lock": is_lock,
-                    "is_combo": False,
-                    "blowout_risk": _blowout_risk,
-                    "blowout_spread": _blowout_spread,
-                    "game_matchup": game_matchup_str,
-                    "hit_rate_home": hr_home, "hit_rate_away": hr_away,
-                    "hits_home": h_home, "hits_away": h_away,
-                    "total_home": len(home_games), "total_away": len(away_games),
-                    "avg_home": round(home_games[stat_type].mean(), 1) if not home_games.empty else 0,
-                    "avg_away": round(away_games[stat_type].mean(), 1) if not away_games.empty else 0,
-                    "insight": insight,
-                    "value_score": round(bet_line / max(_l5_avg, 0.1), 3),
-                    "injury_boost": _injury_boost_note,
-                    "l5_values": list(_l5_vals),      # raw per-game values for bar chart
-                    "chart_windows": dict(_chart_wins), # multi-window chart data
-                    "hit_rate_vs_book": None,           # filled in live-odds enrichment
-                    "hits_vs_book": None,
-                    "hit_rate_l5": _hit_rate_l5,        # L5-specific hit rate vs this line
-                }
-
-            # Over — require genuine edge (>52%)
-            if hit_rate_over > _OVER_MIN_HIT_RATE:
-                props_data.append(_make_prop("Over", over_line, hit_rate_over, hits_over))
-
-        # ── Combo props (PTS+REB, PTS+AST, AST+REB, PTS+AST+REB) ───────────────
-        # Generate ALL combos for every eligible player — quality gate handles
-        # filtering.  Pre-generation threshold removed so players with strong
-        # recent form (3+ of last 5) are not silently discarded.
-        # Minimum average each component stat must meet for a combo to be relevant.
-        # This prevents nonsensical props like PTS+AST for a center averaging 0.8 AST.
-        _COMBO_STAT_MIN: dict[str, float] = {"PTS": 5.0, "REB": 3.0, "AST": 2.0}
-
-        for combo_stats, combo_label in _COMBO_DEFS:
-            if not all(s in recent_10.columns for s in combo_stats):
+            recent = pd.to_numeric(history[stat], errors="coerce").dropna().head(10)
+            if len(recent) < 10:
                 continue
-
-            avgs      = {s: pd.to_numeric(recent_10[s], errors="coerce").mean() for s in combo_stats}
-            total_avg = sum(avgs.values())
-            if total_avg < 2:
-                continue
-
-            # Skip combo if the player doesn't meaningfully contribute to every component
-            if any(avgs[s] < _COMBO_STAT_MIN.get(s, 0.0) for s in combo_stats):
-                continue
-
-            raw_combo = recent_10[combo_stats].apply(pd.to_numeric, errors="coerce").sum(axis=1)
-            l5_combo  = raw_combo.head(5)
-
-            # Line = 20th-percentile of L5 values (same logic as individual stats)
-            # → ≥80% of last 5 games beat this line; floor at 70% of L5 avg
-            if len(l5_combo) >= 2:
-                _l5_combo_series = pd.to_numeric(l5_combo, errors="coerce").dropna()
-                _cp20   = float(_l5_combo_series.quantile(0.20)) if len(_l5_combo_series) >= 2 else total_avg * 0.82
-                _l5_combo_avg = float(l5_combo.mean()) if len(l5_combo) > 0 else total_avg
-                line_combo = math.floor(max(_cp20, _l5_combo_avg * 0.70) / 0.5) * 0.5
-            else:
-                line_combo = math.floor(total_avg * 0.82 / 0.5) * 0.5
-            line_combo = max(2.5, line_combo)   # absolute floor — no trivial combo lines
-
-            hits_combo     = (raw_combo >= line_combo).sum()
-            hit_rate_combo = hits_combo / len(raw_combo) if len(raw_combo) > 0 else 0
-
-            # L5-specific hit rate — primary quality gate signal
-            l5_hits_combo   = int((l5_combo >= line_combo).sum()) if len(l5_combo) > 0 else 0
-            hit_rate_l5_combo = round(l5_hits_combo / len(l5_combo), 4) if len(l5_combo) > 0 else 0.0
-
-            # Only skip if player literally never hits the combo line (< 1/5 in L5)
-            if hit_rate_l5_combo < 0.20:
-                continue
-
-            ev_combo = calculate_ev(hit_rate_combo)
-
-            # Role-aware blowout for combos
-            if blowout_risk:
-                spread_factor = 0.25 if blowout_spread >= 15 else 0.12
-                if role in ("star", "starter"):
-                    ev_combo *= (1 - spread_factor)
-                else:
-                    ev_combo *= (1 + spread_factor * 0.3)
-
-            ev_combo *= consistency_mult   # consistency penalty applies to combos too
-
-            is_lock_combo = (
-                hit_rate_combo >= 0.80 and len(raw_combo) >= 5
-                and not (blowout_risk and role in ("star", "starter"))
-            )
-
-            insight_combo = (
-                ("⚠ Blowout risk. " if blowout_risk else "")
-                + f"{player_name} averages "
-                + " + ".join(f"{avgs[s]:.1f} {s}" for s in combo_stats)
-                + f" = {total_avg:.1f} combined (line {line_combo}). "
-                + f"Hit {hits_combo}/{len(raw_combo)} L{len(raw_combo)}."
-            )
-            # Build combo chart windows using the combo-aware helper
-            _split_base_combo = (
-                player_df[player_df["SEASON"].str.startswith("2025", na=False)]
-                if "SEASON" in player_df.columns and
-                   len(player_df[player_df["SEASON"].str.startswith("2025", na=False)]) >= 3
-                else player_df
-            )
-            _l20_combo = _split_base_combo.head(20)
-            _ccw_l5_v,  _ccw_l5_l  = _extract_combo_chart_window(recent_10.head(5),     combo_stats)
-            _ccw_l10_v, _ccw_l10_l = _extract_combo_chart_window(recent_10,              combo_stats)
-            _ccw_l20_v, _ccw_l20_l = _extract_combo_chart_window(_l20_combo,             combo_stats)
-            _ccw_home_v, _ccw_home_l = _extract_combo_chart_window(home_games.head(10),  combo_stats)
-            _ccw_away_v, _ccw_away_l = _extract_combo_chart_window(away_games.head(10),  combo_stats)
-            _combo_chart_windows: dict = {
-                "l5":   {"values": _ccw_l5_v,   "labels": _ccw_l5_l},
-                "l10":  {"values": _ccw_l10_v,  "labels": _ccw_l10_l},
-                "l20":  {"values": _ccw_l20_v,  "labels": _ccw_l20_l},
-                "home": {"values": _ccw_home_v, "labels": _ccw_home_l},
-                "away": {"values": _ccw_away_v, "labels": _ccw_away_l},
-            }
-
-            props_data.append({
-                "player":       player_name,
-                "team":         player_team,
-                "opponent":     opponent,
-                "position":     position,
-                "role":         role,
-                "stat":         "+".join(combo_stats),
-                "stat_label":   combo_label,
-                "line":         line_combo,
-                "avg":          round(total_avg, 1),
-                "direction":    "Over",
-                "hit_rate":     hit_rate_combo,
-                "hits":         hits_combo,
-                "total":        len(raw_combo),
-                "def_rank":     None,
-                "is_home_today": is_home_today,
-                "ev":           ev_combo,
-                "is_lock":      is_lock_combo,
-                "is_combo":     True,
-                "blowout_risk":   blowout_risk,
-                "blowout_spread": blowout_spread,
-                "game_matchup": f"{opponent} @ {player_team}" if is_home_today else f"{player_team} @ {opponent}",
-                "hit_rate_home": 0, "hit_rate_away": 0,
-                "hits_home": 0, "hits_away": 0,
-                "total_home": 0, "total_away": 0,
-                "avg_home": 0, "avg_away": 0,
-                "insight": insight_combo,
-                "l5_avg": round(float(l5_combo.mean()), 1) if len(l5_combo) > 0 else round(total_avg, 1),
-                "model_pred": round(total_avg, 1),
-                "stat_std": round(float(raw_combo.std()), 2) if len(raw_combo) > 1 else 3.0,
-                "model_prob": None, "implied_prob": None, "edge": None,
-                "has_live_odds": False,
-                "live_line": None, "live_over_price": None,
-                "live_under_price": None, "live_bookmaker": None,
-                "hit_rate_l5": hit_rate_l5_combo,
-                "hit_rate_vs_book": None,
-                "hits_vs_book": None,
-                "l5_values": [round(float(v), 1) for v in l5_combo.tolist()],
-                "chart_windows": _combo_chart_windows,
-            })
-
-        # ── Double-Double and Triple-Double detection ─────────────────────────
-        # DD: player scored 10+ in 2 of (PTS, REB, AST) in the same game
-        # TD: player scored 10+ in all 3 of (PTS, REB, AST) in the same game
-        for dd_label, dd_req in [("DD", 2), ("TD", 3)]:
-            dd_stats = ["PTS", "REB", "AST"]
-            if not all(s in recent_10.columns for s in dd_stats):
-                continue
-            _dd_data = recent_10[dd_stats].apply(pd.to_numeric, errors="coerce")
-            # Count how many of (PTS, REB, AST) were >= 10 in each game
-            _dd_hits_raw = (_dd_data >= 10).sum(axis=1)
-            # Game "hits" = games where player had dd_req or more stats >= 10
-            _dd_game_hits = (_dd_hits_raw >= dd_req).sum()
-            _dd_total = len(_dd_hits_raw.dropna())
-            if _dd_total < 5:
-                continue
-            _dd_hit_rate = _dd_game_hits / _dd_total
-            if _dd_hit_rate < 0.40:  # only show if they hit DD/TD 40%+ of the time
-                continue
-
-            _dd_avg_pts = float(_dd_data["PTS"].mean() or 0)
-            _dd_avg_reb = float(_dd_data["REB"].mean() or 0)
-            _dd_avg_ast = float(_dd_data["AST"].mean() or 0)
-            _dd_ev = calculate_ev(_dd_hit_rate)
-            if blowout_risk and role in ("star", "starter"):
-                _dd_ev *= 0.85
-            _dd_ev *= consistency_mult
-
-            props_data.append({
-                "player":       player_name,
-                "team":         player_team,
-                "opponent":     opponent,
-                "position":     position,
-                "role":         role,
-                "stat":         dd_label,
-                "stat_label":   "DOUBLE-DOUBLE" if dd_label == "DD" else "TRIPLE-DOUBLE",
-                "line":         1.5,   # conceptually "1+ DD" — must occur
-                "avg":          round(_dd_hit_rate * 100, 1),
-                "l5_avg":       round(float((_dd_hits_raw >= dd_req).head(5).mean()) * 100, 1),
-                "model_pred":   round(_dd_hit_rate * 100, 1),
-                "stat_std":     0.0,
-                "direction":    "Over",
-                "hit_rate":     _dd_hit_rate,
-                "hits":         int(_dd_game_hits),
-                "total":        _dd_total,
-                "def_rank":     None,
-                "is_home_today": is_home_today,
-                "ev":           _dd_ev,
-                "is_lock":      _dd_hit_rate >= 0.75 and _dd_total >= 5,
-                "is_combo":     True,
-                "blowout_risk":   blowout_risk,
-                "blowout_spread": blowout_spread,
-                "game_matchup": game_matchup_str,
-                "hit_rate_home": 0.0, "hit_rate_away": 0.0,
-                "hits_home": 0, "hits_away": 0,
-                "total_home": 0, "total_away": 0,
-                "avg_home": 0.0, "avg_away": 0.0,
-                "insight": {
-                    "narrative": f"{player_name} has {dd_label} in {int(_dd_game_hits)}/{_dd_total} recent games ({_dd_hit_rate*100:.0f}%). Avg: {_dd_avg_pts:.1f}pts / {_dd_avg_reb:.1f}reb / {_dd_avg_ast:.1f}ast."
-                },
-                "value_score": _dd_hit_rate,
-                "injury_boost": _injury_boost_note,
-                "model_prob": None, "implied_prob": None, "edge": None,
-                "has_live_odds": False,
-                "live_line": None, "live_over_price": None,
-                "live_under_price": None, "live_bookmaker": None,
-                "book_line": None,
-                # L5 hit rate — used as primary quality gate signal
-                "hit_rate_l5": round(
-                    float((_dd_hits_raw >= dd_req).head(5).sum()) / min(5, len(_dd_hits_raw))
-                    if len(_dd_hits_raw) > 0 else 0.0, 4
-                ),
-                "hit_rate_vs_book": None,
-                "hits_vs_book": None,
-                "l5_values": [round(float(v), 1) for v in (_dd_hits_raw >= dd_req).head(5).tolist()],
-                "chart_windows": {},
-            })
-
-    # ── Precompute per-player recent stats for enrichment ─────────────────
-    # Avoids rescanning the full DF for every prop during the odds loop.
-    _player_stat_cache: dict = {}
-    for _prop in props_data:
-        _key = (_prop["player"], _prop["stat"])
-        if _key not in _player_stat_cache:
-            _p_df = DF[DF["PLAYER_NAME"] == _prop["player"]].sort_values("_date", ascending=False)
-            if "SEASON" in _p_df.columns:
-                _cs = _p_df[_p_df["SEASON"].str.startswith("2025", na=False)]
-                _r10 = _cs.head(10) if len(_cs) >= 5 else _p_df.head(10)
-            else:
-                _r10 = _p_df.head(10)
-            _stat = _prop["stat"]
-            if _stat in _r10.columns and not _r10.empty:
-                _vals = pd.to_numeric(_r10[_stat], errors="coerce").dropna()
-                _player_stat_cache[_key] = {
-                    "vals": _vals,
-                    "std":  float(_vals.std()) if len(_vals) > 1 else max(_prop.get("l5_avg", 4) * 0.25, 3.0),
-                }
-            else:
-                _player_stat_cache[_key] = {"vals": pd.Series(dtype=float), "std": 4.0}
-
-    # ── Enrich with live sportsbook odds ──────────────────────────────────
-    # For each prop:
-    #   - Store sportsbook line as book_line (do NOT overwrite our value line)
-    #   - Keep hit_rate against our value line (computed in _make_prop)
-    #   - EV = model_prob vs implied_prob (true edge, not just hit_rate × payout)
-    live_odds = get_live_odds()
-    for prop in props_data:
-        player  = prop["player"]
-        stat    = prop["stat"]
-        p_odds  = live_odds.get(player) or live_odds.get(player.replace(".", "").replace("  ", " ").strip())
-        s_odds  = p_odds.get(stat) if p_odds else None
-
-        # Determine std_dev for probability calculation
-        _pkey = (player, stat)
-        _cached = _player_stat_cache.get(_pkey, {})
-        _std = _cached.get("std") or prop.get("stat_std") or max(prop.get("l5_avg", 4) * 0.25, 3.0)
-        _vals = _cached.get("vals", pd.Series(dtype=float))
-
-        # model_pred: use ML prediction when available, else L5 avg
-        _mpred = prop.get("model_pred") or prop.get("l5_avg") or prop.get("avg") or 0.0
-
-        if s_odds:
-            sb_line        = float(s_odds["line"])
-            sb_over_price  = int(s_odds.get("over_price",  -110))
-            sb_under_price = int(s_odds.get("under_price", -110))
-            direction      = prop.get("direction", "Over")
-            sb_price       = sb_over_price if direction == "Over" else sb_under_price
-
-            prop["live_line"]        = sb_line
-            prop["live_over_price"]  = sb_over_price
-            prop["live_under_price"] = sb_under_price
-            prop["live_bookmaker"]   = s_odds["bookmaker"]
-            prop["has_live_odds"]    = True
-            prop["book_line"]        = sb_line      # store book line separately
-            # DO NOT overwrite prop["line"] — keep our value line
-
-            # Compute hit_rate against the actual book line (for confidence display)
-            _l5v = prop.get("l5_values", [])
-            if _l5v and sb_line:
-                _dir = prop.get("direction", "Over")
-                _hvb = sum(1 for v in _l5v if (v >= sb_line if _dir == "Over" else v < sb_line))
-                prop["hit_rate_vs_book"] = round(_hvb / len(_l5v), 4)
-                prop["hits_vs_book"]     = _hvb
-
-            # DO NOT recalculate hit_rate against sb_line — keep hit_rate at value line
-            # (hit_rate was computed against our value line during _make_prop and is correct)
-
-            # EV = model's probability estimate vs sportsbook's implied probability
-            # Use sb_line as the anchor for probability — we're asking: "what's the prob
-            # our projection exceeds the BOOK line?" (used for EV calculation only)
-            model_prob = calculate_hit_probability(
-                prediction=float(_mpred),
-                line=sb_line,
-                std_dev=_std,
-                direction=direction.lower(),
-                stat_type=stat,
-            )
-            # Implied probability from sportsbook price
-            if sb_price > 0:
-                implied = sb_price / (sb_price + 100)
-            else:
-                implied = abs(sb_price) / (abs(sb_price) + 100)
-
-            prop["model_prob"]      = round(model_prob, 4)
-            prop["implied_prob"]    = round(implied, 4)
-            prop["edge"]            = round(model_prob - implied, 4)
-            prop["ev"]              = calculate_ev(model_prob, over_american=sb_price)
-            prop["model_over_odds"] = _prob_to_american(model_prob)
-            prop["model_under_odds"] = _prob_to_american(1.0 - model_prob)
-
-        else:
-            # No live odds: use model_prob vs default -110 implied (52.4%)
-            model_prob = calculate_hit_probability(
-                prediction=float(_mpred),
-                line=float(prop["line"]),
-                std_dev=_std,
-                direction=prop.get("direction", "Over").lower(),
-                stat_type=stat,
-            )
-            prop["model_prob"]       = round(model_prob, 4)
-            prop["implied_prob"]     = 0.524
-            prop["edge"]             = round(model_prob - 0.524, 4)
-            prop["ev"]               = calculate_ev(model_prob)
-            prop["model_over_odds"]  = _prob_to_american(model_prob)
-            prop["model_under_odds"] = _prob_to_american(1.0 - model_prob)
-            prop["has_live_odds"]    = False
-            prop["live_line"]        = None
-            prop["live_over_price"]  = None
-            prop["live_under_price"] = None
-            prop["live_bookmaker"]   = None
-            # Use simulated book line as book_line reference when no live odds
-            _sim_bl = prop.get("sim_book_line") or None
-            prop["book_line"] = _sim_bl
-            # Compute hit_rate against sim book line for confidence display
-            _l5v = prop.get("l5_values", [])
-            if _l5v and _sim_bl:
-                _dir = prop.get("direction", "Over")
-                _hvb = sum(1 for v in _l5v if (v >= _sim_bl if _dir == "Over" else v < _sim_bl))
-                prop["hit_rate_vs_book"] = round(_hvb / len(_l5v), 4)
-                prop["hits_vs_book"]     = _hvb
-
-    # ── Post-enrichment: recompute hit_rate_l5 against the display line ──────
-    # After enrichment, book_line is set (live or sim). Recompute hit_rate_l5
-    # against whichever line will be shown in the chart so confidence % matches.
-    for _prop in props_data:
-        _disp = _prop.get("book_line") or _prop.get("sim_book_line") or _prop.get("line")
-        _l5v  = _prop.get("l5_values") or []
-        if _l5v and _disp is not None:
-            _dir = _prop.get("direction", "Over")
-            _h   = sum(1 for v in _l5v if (v >= float(_disp) if _dir == "Over" else v < float(_disp)))
-            _prop["hit_rate_l5"] = round(_h / len(_l5v), 4)
-
-    # ── Quality gate ─────────────────────────────────────────────────────────
-    # Primary signal: L5 hit rate (most recent 5 games vs the specific line).
-    # If a player hit 3+ of their last 5, we show it regardless of model_prob.
-    # Secondary signals: model_prob + EV catch props with fewer L5 data points.
-    _MIN_MODEL_PROB    = 0.53
-    _MIN_EV            = 0.04
-    _MIN_ODDS_AMERICAN = -180
-    # Higher caps so each stat category can surface 15+ unique props
-    _MAX_PER_PLAYER_TIER = {"star": 8, "starter": 6, "rotation": 5, "bench": 3}
-    _HARD_CAP          = 300   # raise hard cap to accommodate 15+ per stat type
-    _MEANINGFUL_LINE_FLOORS = {"PTS": 9.5, "AST": 3.5, "REB": 4.5}
-
-    todays_stars: set[str] = {p["player"] for p in props_data if p.get("role") in ("star", "starter", "rotation")}
-
-    quality_props = []
-    for p in props_data:
-        stat = p.get("stat", "")
-        _raw_l5hr = p.get("hit_rate_l5")
-        l5hr = _raw_l5hr if _raw_l5hr is not None else 0.0
-        mp   = p.get("model_prob") or 0.0
-        ev   = p.get("ev") or 0.0
-        odd  = p.get("model_over_odds") or -300
-
-        # Star/Starter/Rotation always-show — evaluated FIRST so the floor check
-        # never silently drops a key player with a low line (e.g. rotation guard
-        # with PTS line 8.5 or AST line 2.5).
-        if p.get("player") in todays_stars:
-            quality_props.append(p)
-            continue
-
-        # Floor check: bench/unknown players only.  Prevents trivial prop lines
-        # like "Over 1.5 AST" from a deep bench player with no real edge.
-        floor_val = _MEANINGFUL_LINE_FLOORS.get(stat)
-        if floor_val and p.get("line", 0) < floor_val:
-            continue
-
-        # Primary gate: L5 hit rate ≥ 60% (3/5 games) — no model_prob required
-        if l5hr >= 0.60:
-            quality_props.append(p)
-            continue
-        # Combo gate — combos have no model_over_odds so skip the odds check
-        if p.get("is_combo") and p.get("hit_rate", 0) >= 0.60:
-            quality_props.append(p)
-            continue
-        # Standard model gate (for props with sparse L5 data)
-        if mp >= _MIN_MODEL_PROB and ev >= _MIN_EV and odd >= _MIN_ODDS_AMERICAN:
-            quality_props.append(p)
-            continue
-        # High book hit rate override
-        hvb = p.get("hit_rate_vs_book") or 0.0
-        if hvb >= 0.80 and odd >= -200:
-            quality_props.append(p)
-
-    # Deduplicate: tiered cap per player, BUT combos are never blocked by the cap.
-    # Rule: individual-stat props compete for the per-role cap; combo/DD/TD props
-    # always pass through (max 1 per (player, stat) pair to avoid dups).
-    from collections import defaultdict as _dd
-    _per_player: dict = _dd(list)
-    for p in quality_props:
-        _per_player[p["player"]].append(p)
-
-    _COMBO_STATS = {"PTS+REB", "PTS+AST", "AST+REB", "PTS+AST+REB", "DD", "TD"}
-
-    deduped: list = []
-    for _pprops in _per_player.values():
-        _pprops.sort(key=lambda x: (
-            -(x.get("hit_rate_l5") or x.get("hit_rate_vs_book") or x.get("hit_rate") or 0),
-            -(x.get("ev") or 0),
-        ))
-        role_key = _pprops[0].get("role", "bench")
-        cap = _MAX_PER_PLAYER_TIER.get(role_key, 3)
-
-        individual = [p for p in _pprops if p.get("stat", "") not in _COMBO_STATS]
-        combos     = [p for p in _pprops if p.get("stat", "") in _COMBO_STATS]
-
-        # Deduplicate combos: 1 per stat type per player
-        seen_combo_stat: set = set()
-        unique_combos: list  = []
-        for p in combos:
-            if p["stat"] not in seen_combo_stat:
-                seen_combo_stat.add(p["stat"])
-                unique_combos.append(p)
-
-        deduped.extend(individual[:cap])
-        deduped.extend(unique_combos)  # all combos always included
-
-    # Final sort: L5 hit rate first (explicit None check), then book hit rate, then EV
-    def _final_sort_key(x):
-        l5 = x.get("hit_rate_l5")
-        primary = l5 if l5 is not None else (x.get("hit_rate_vs_book") or x.get("hit_rate") or 0)
-        return (-primary, -(x.get("ev") or 0), -(x.get("value_score") or 0))
-    deduped.sort(key=_final_sort_key)
-    props_data = deduped[:_HARD_CAP]
-
-    print(f"[PropsCache] Quality gate: {len(props_data)} props (L5 hit rate primary gate, per-player caps raised)")
-
-    # Warn if any teams playing today have zero props (may indicate data gap)
-    if game_info["has_todays_games"] and teams_today:
-        teams_with_props = {p["team"] for p in props_data}
-        teams_without = teams_today - teams_with_props
-        if teams_without:
-            print(f"[PropsCache] Teams with no qualifying props after quality gate: {teams_without}")
-
-    return props_data
+            home_history = history[history["MATCHUP"].str.contains("vs.", regex=False, na=False)].head(10)
+            away_history = history[history["MATCHUP"].str.contains("@", regex=False, na=False)].head(10)
+            windows = {key: dict(zip(("values", "labels"), _extract_chart_window(frame, stat)))
+                       for key, frame in (("l5", history.head(5)), ("l10", history.head(10)),
+                                          ("l20", history.head(20)), ("home", home_history), ("away", away_history))}
+            for direction in ("Over", "Under"):
+                price = quote.get("over_price" if direction == "Over" else "under_price")
+                evaluation = evaluate_market(projection, line, price, residuals, direction)
+                if evaluation is None or evaluation["ev"] <= 0:
+                    continue
+                def hits(values):
+                    return int((values > line).sum() if direction == "Over" else (values < line).sum())
+                l5 = recent.head(5)
+                prop = dict(evaluation, player=player, team=team, opponent=opponent,
+                    position=_get_player_position(player, PLAYER_POSITIONS), role=_get_player_role(avg_min),
+                    avg_minutes=avg_min, stat=stat, line=line, book_line=line, live_line=line,
+                    projection=projection, model_pred=projection, avg=float(recent.mean()),
+                    l5_avg=float(l5.mean()), stat_std=float(recent.std()), direction=direction,
+                    hit_rate=hits(recent)/len(recent), hits=hits(recent), total=len(recent),
+                    hit_rate_l5=hits(l5)/len(l5), hit_rate_vs_book=hits(l5)/len(l5), hits_vs_book=hits(l5),
+                    is_home_today=home, is_home=home, has_live_odds=True, is_lock=False, is_combo=False,
+                    live_over_price=quote.get("over_price"), live_under_price=quote.get("under_price"),
+                    live_bookmaker=quote.get("bookmaker", ""), sim_book_line=None,
+                    model_over_odds=None, model_under_odds=None, confidence="LOW", def_rank=None,
+                    l5_values=l5.tolist(), chart_windows=windows, value_score=0.0, injury_boost="",
+                    blowout_risk=abs((game_spreads or {}).get(team, 0)) >= 10,
+                    blowout_spread=abs((game_spreads or {}).get(team, 0)),
+                    game_matchup=f"{opponent} @ {team}" if home else f"{team} @ {opponent}",
+                    insight={"narrative": "Estimated EV at the quoted line and price. Historical hit rates are descriptive; market calibration is unverified."})
+                for side, frame in (("home", home_history), ("away", away_history)):
+                    values = pd.to_numeric(frame[stat], errors="coerce").dropna()
+                    prop["hits_" + side] = hits(values)
+                    prop["total_" + side] = len(values)
+                    prop["hit_rate_" + side] = hits(values)/len(values) if len(values) else 0.0
+                    prop["avg_" + side] = float(values.mean()) if len(values) else 0.0
+                props.append(prop)
+    props.sort(key=lambda prop: -prop["ev"])
+    best = {}
+    for prop in props:
+        best.setdefault((prop["player"], prop["stat"]), prop)
+    return list(best.values())[:300]
 
 
 def _compute_callback_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, availability_map):
@@ -1595,85 +868,22 @@ def refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predi
         get_predictor_fn=get_predictor_fn,
         team_injury_context=team_injury_context,
     )
-    callback_data = _compute_callback_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, availability_map)
-    sidebar_data  = _compute_sidebar_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, game_info, get_predictor_fn, availability_map=availability_map)
-    # Preserve today's alt_lines across intra-day refreshes — recompute only when:
-    # (a) it's a new calendar day, or (b) cache is still empty (first run / no results yet)
+    callback_data = [dict(p, prop=f"{p['direction']} {p['line']} {p['stat']}",
+                          projection=p['model_pred'], score=p['ev'],
+                          hit_rate=round(p['hit_rate'] * 100), conf_color="var(--text-muted)",
+                          reason="Estimated EV at a live sportsbook quote") for p in main_data]
+    sidebar_data = [dict(p, prop_type=p['stat'], prop_label=p['stat'],
+                         prediction=p['model_pred'], hit_prob=p['model_prob'],
+                         l10_rate=p['hit_rate'], l5_rate=p['hit_rate_l5'],
+                         positive_factors=[], negative_factors=[]) for p in main_data[:15]]
+    # Unquoted alternate lines and unvalidated joint probabilities cannot be
+    # presented as actionable bets. Keep the cache schema for existing views.
     today_str = datetime.now().strftime("%Y-%m-%d")
-    with _cache_lock:
-        existing_alt_date  = _props_cache.get("alt_lines_date")
-        existing_alt_lines = _props_cache.get("alt_lines_data", [])
-
-    if existing_alt_date == today_str and existing_alt_lines:
-        alt_lines = existing_alt_lines
-        print(f"[PropsCache] Preserving {len(alt_lines)} alt lines from earlier today ({today_str})")
-    else:
-        alt_lines = _compute_alt_lines(DF, PLAYER_POSITIONS, game_info, availability_map, players_to_analyze)
-
-    # ── Build game predictions from spreads for ML parlay ─────────────────
-    # win_prob ≈ 50% + |spread| / 28  (Massey-Peabody approximation)
-    # Confidence thresholds: HIGH ≥ 68%, MEDIUM ≥ 58%, LOW < 58%
-    game_predictions_for_parlay: list[dict] = []
-    # Re-fetch raw odds to extract total lines (game_spreads only has spread data)
-    _raw_odds_for_totals: dict = {}
-    try:
-        from utils.odds_fetcher import get_game_odds
-        _raw_odds_for_totals = get_game_odds()
-    except Exception:
-        pass
-
-    for home_team, opponent in game_info.get("team_to_opponent", {}).items():
-        is_home = game_info.get("teams_home_away", {}).get(home_team, "home") == "home"
-        if not is_home:
-            continue  # only process each game once (home team entry)
-        away_team = opponent
-        spread    = game_spreads.get(home_team)   # negative = home favored
-        if spread is None:
-            continue
-        home_win_prob = min(0.85, max(0.40, 0.50 - spread / 28.0))  # spread is home_line (neg = home favored)
-        if home_win_prob >= 0.68:
-            winner, conf, wp = home_team, "HIGH",   home_win_prob
-        elif home_win_prob >= 0.58:
-            winner, conf, wp = home_team, "MEDIUM", home_win_prob
-        elif (1 - home_win_prob) >= 0.68:
-            winner, conf, wp = away_team, "HIGH",   1 - home_win_prob
-        elif (1 - home_win_prob) >= 0.58:
-            winner, conf, wp = away_team, "MEDIUM", 1 - home_win_prob
-        else:
-            winner, conf, wp = home_team, "LOW",    home_win_prob
-
-        # Extract live O/U total line from odds fetcher
-        _game_key = f"{away_team}@{home_team}"
-        _total_data = _raw_odds_for_totals.get(_game_key, {}).get("total") or {}
-        _total_line = float(_total_data.get("line", 220.0))
-        # NBA totals go Over ~54% historically — apply slight Over lean as model estimate
-        _model_total = _total_line + 3.0
-
-        game_predictions_for_parlay.append({
-            "home": home_team, "away": away_team,
-            "winner_pick": winner, "winner_confidence": conf,
-            "spread": spread,            # home line (negative = home favored)
-            "total_line": _total_line,   # live O/U line (or 220.0 default)
-            "model_total": _model_total, # estimated model total (Over lean)
-        })
-
-    # ── Build all parlays ──────────────────────────────────────────────────
-    try:
-        from utils.parlay_builder import build_all_parlays
-        parlays_data = build_all_parlays(
-            props=main_data,
-            alt_lines=alt_lines,
-            game_predictions=game_predictions_for_parlay,
-        )
-        print(f"[PropsCache] Parlays built: {parlays_data.get('total_count', 0)} total parlays")
-        try:
-            from utils.parlay_tracker import save_daily_parlays
-            save_daily_parlays(today_str, parlays_data)
-        except Exception as _pte:
-            print(f"[PropsCache] Parlay save error (non-fatal): {_pte}")
-    except Exception as _pe:
-        print(f"[PropsCache] Parlay build error (non-fatal): {_pe}")
-        parlays_data = {"over": [], "pts": [], "reb": [], "ast": [], "combo": [], "ml": [], "spread": [], "totals": [], "alt_over": [], "reduced": [], "alt": [], "under": [], "defense": [], "total_count": 0}
+    alt_lines = []
+    parlays_data = {key: [] for key in ("over", "pts", "reb", "ast", "combo", "ml",
+                    "spread", "totals", "alt_over", "reduced", "alt", "under", "defense")}
+    parlays_data["total_count"] = 0
+    parlays_data["status"] = "Joint probabilities and alternate-line prices are not validated"
 
     elapsed = (datetime.now() - start).total_seconds()
 

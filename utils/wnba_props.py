@@ -31,12 +31,15 @@ class WnbaProp:
     edge: float
     pick: str                       # "OVER" | "UNDER"
     hit_prob: float                 # 0.0-1.0
-    ev: float                       # expected value on $1 bet
-    over_price: int
-    under_price: int
+    ev: Optional[float]                       # expected value on $1 bet
+    over_price: Optional[int]
+    under_price: Optional[int]
     bookmaker: str
     confidence: str = "LOW"         # HIGH | MED | LOW
     reasoning: list[str] = field(default_factory=list)
+    historical_hit_rate: float = 0.0
+    has_live_odds: bool = False
+    probability_source: str = "uncalibrated historical estimate"
 
 
 def american_to_implied_prob(price: Optional[int]) -> float:
@@ -189,34 +192,52 @@ SYNTHETIC_BOOKMAKER = "L20 avg"
 def _build_prop(
     *, player_name: str, team: str, stat: str, line: float, projected: float,
     actual_series: pd.Series, over_price: int, under_price: int,
-    bookmaker: str, recent_n: int,
+    bookmaker: str, recent_n: int, residuals=None,
 ) -> WnbaProp:
     """Compose a WnbaProp from a projection + a line."""
     edge = projected - line
     pick = "OVER" if edge > 0 else "UNDER"
+    from utils.market_evaluation import evaluate_market
+    priced = {}
+    if bookmaker != SYNTHETIC_BOOKMAKER:
+        for side, side_price in (("OVER", over_price), ("UNDER", under_price)):
+            quote = evaluate_market(projected, line, side_price, residuals, side)
+            if quote is not None:
+                priced[side] = quote
+    if priced:
+        pick = max(priced, key=lambda side: priced[side]["ev"])
     if pick == "OVER":
         hit_prob = float((actual_series > line).mean())
         price = over_price
     else:
         hit_prob = float((actual_series < line).mean())
         price = under_price
-    decimal = american_to_decimal(price)
-    ev = hit_prob * (decimal - 1) - (1 - hit_prob)
+    historical_hit_rate = hit_prob
+    from utils.market_evaluation import evaluate_market, valid_price
+    has_live = bookmaker != SYNTHETIC_BOOKMAKER and valid_price(price)
+    evaluation = evaluate_market(projected, line, price, residuals, pick) if has_live else None
+    # Retain historical rates as descriptive data, with shrinkage for an
+    # explicitly uncalibrated fallback. Never price that fallback as an edge.
+    hit_prob = evaluation["model_prob"] if evaluation else (historical_hit_rate * recent_n + 2) / (recent_n + 4)
+    ev = evaluation["ev"] if evaluation else None
 
     reasoning = []
     if abs(edge) >= 2:
         reasoning.append(f"Projection {projected:.1f} vs line {line:.1f} ({edge:+.1f})")
-    if hit_prob >= 0.7:
-        reasoning.append(f"Cleared {int(hit_prob*100)}% of last {recent_n} games")
-    elif hit_prob <= 0.3:
-        reasoning.append(f"Only cleared {int(hit_prob*100)}% of last {recent_n} games (fade signal)")
+    if historical_hit_rate >= 0.7:
+        reasoning.append(f"Cleared {int(historical_hit_rate*100)}% of last {recent_n} games")
+    elif historical_hit_rate <= 0.3:
+        reasoning.append(f"Only cleared {int(historical_hit_rate*100)}% of last {recent_n} games (fade signal)")
 
     return WnbaProp(
         player_name=player_name, team=team, stat=stat, line=line,
         projected=projected, edge=edge, pick=pick, hit_prob=hit_prob, ev=ev,
-        over_price=over_price or -110, under_price=under_price or -110,
+        over_price=over_price, under_price=under_price,
         bookmaker=bookmaker,
-        confidence=_confidence(abs(edge), hit_prob),
+        confidence="LOW",
+        historical_hit_rate=historical_hit_rate,
+        has_live_odds=has_live,
+        probability_source=evaluation["probability_source"] if evaluation else "uncalibrated historical estimate",
         reasoning=reasoning,
     )
 
@@ -261,9 +282,10 @@ def generate_wnba_props(
     stats_available = ["PTS", "AST", "REB", "FG3M",
                        "PTS+REB", "PTS+AST", "REB+AST", "PTS+REB+AST"]
 
-    df_sorted = wnba_df.sort_values(["PLAYER_NAME", "_date"], ascending=[True, False])
+    from utils.pregame_features import prefer_identified_games
+    df_sorted = prefer_identified_games(wnba_df).sort_values(["PLAYER_NAME", "_date"], ascending=[True, False])
     recent_by_player = {
-        name: group.head(20) for name, group in df_sorted.groupby("PLAYER_NAME")
+        name: group for name, group in df_sorted.groupby("PLAYER_NAME")
     }
 
     tonight_teams: set[str] = set()
@@ -296,9 +318,10 @@ def generate_wnba_props(
     props: list[WnbaProp] = []
 
     for player_name in candidate_players:
-        recent = recent_by_player.get(player_name)
-        if recent is None or len(recent) < min_recent_games:
+        history = recent_by_player.get(player_name)
+        if history is None or len(history) < min_recent_games:
             continue
+        recent = history.head(20)
         team = recent.iloc[0].get("TEAM_ABBREVIATION", "—")
 
         if only_active_tonight and tonight_teams and team not in tonight_teams:
@@ -318,11 +341,12 @@ def generate_wnba_props(
             if matchup is not None:
                 opp, is_home = matchup
                 feat_row = build_tonight_feature_row(
-                    recent, tonight_opponent=opp, is_home=is_home,
+                    history, tonight_opponent=opp, is_home=is_home,
                     team_def=team_def, def_vs_pos=def_vs_pos, team_stats=team_stats,
                 )
         if feat_row is None:
-            feat_row = recent.iloc[0].to_dict()
+            from utils.pregame_features import next_game_features
+            feat_row = next_game_features(history)
 
         player_odds = odds.get(player_name, {})
 
@@ -337,7 +361,9 @@ def generate_wnba_props(
 
             # Blend model output with recent form (safety net vs extreme outputs)
             l20_avg = float(actual_series.mean())
-            projected = _blend_projection(raw_projected, l20_avg, stat)
+            model = predictor_getter(stat) if stat not in _COMBO_COMPONENTS else None
+            residuals = getattr(model, "calibration_residuals", None)
+            projected = raw_projected if residuals is not None else _blend_projection(raw_projected, l20_avg, stat)
 
             if entry is not None:
                 # Real sportsbook line
@@ -345,10 +371,10 @@ def generate_wnba_props(
                     player_name=player_name, team=team, stat=stat,
                     line=float(entry["line"]), projected=projected,
                     actual_series=actual_series,
-                    over_price=entry.get("over_price") or -110,
-                    under_price=entry.get("under_price") or -110,
+                    over_price=entry.get("over_price"),
+                    under_price=entry.get("under_price"),
                     bookmaker=entry.get("bookmaker", "—"),
-                    recent_n=len(recent),
+                    recent_n=len(recent), residuals=residuals,
                 ))
             elif synthesize_missing:
                 # Synthetic line from L20 median (unbiased)
@@ -359,12 +385,12 @@ def generate_wnba_props(
                     player_name=player_name, team=team, stat=stat,
                     line=line, projected=projected,
                     actual_series=actual_series,
-                    over_price=-110, under_price=-110,
+                    over_price=None, under_price=None,
                     bookmaker=SYNTHETIC_BOOKMAKER,
                     recent_n=len(recent),
                 ))
 
-    props.sort(key=lambda p: p.ev, reverse=True)
+    props.sort(key=lambda p: p.ev if p.ev is not None else float("-inf"), reverse=True)
     return props
 
 

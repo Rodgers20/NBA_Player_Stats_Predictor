@@ -47,25 +47,15 @@ def build_tonight_feature_row(
     if player_history.empty:
         return {}
 
-    feat = player_history.iloc[0].to_dict()
-
     if tonight_date is None:
         tonight_date = date.today()
+    from utils.pregame_features import next_game_features
+    feat = next_game_features(player_history, tonight_date, is_home)
     if current_season is None:
         current_season = str(feat.get("SEASON", ""))
 
     # Home/away override
     feat["is_home"] = 1 if is_home else 0
-
-    # Days rest / back-to-back override
-    last_date = player_history.iloc[0].get("_date")
-    if pd.notna(last_date):
-        last_day = last_date.date() if hasattr(last_date, "date") else last_date
-        rest = max(0, (tonight_date - last_day).days)
-    else:
-        rest = int(feat.get("days_rest", 2) or 2)
-    feat["days_rest"] = rest
-    feat["is_back_to_back"] = 1 if rest <= 1 else 0
 
     # Opponent defense stats
     if team_def is not None and not team_def.empty:

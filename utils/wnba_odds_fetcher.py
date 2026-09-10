@@ -196,6 +196,8 @@ def _parse_event_odds(event_data: dict, out: dict) -> None:
                 line = over.get("point") or under.get("point")
                 if line is None:
                     continue
+                if over.get("point") is not None and under.get("point") is not None and over["point"] != under["point"]:
+                    continue
                 player_dict = out.setdefault(player, {})
                 if stat not in player_dict:
                     player_dict[stat] = {
