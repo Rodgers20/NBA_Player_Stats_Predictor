@@ -31,7 +31,10 @@ async def lifespan(app: FastAPI):
             from utils.props_cache import refresh_props_cache
             from utils.kaggle_loader import load_player_game_logs, load_player_positions
             from utils.data_fetch import calculate_defense_vs_position
+            import pandas as pd
             DF  = load_player_game_logs()
+            # props_cache sorts by _date; load_player_game_logs returns GAME_DATE as string
+            DF["_date"] = pd.to_datetime(DF["GAME_DATE"], format="mixed", errors="coerce")
             POS = load_player_positions()
             DEF = calculate_defense_vs_position(DF, POS)
             PLAYERS = DF["PLAYER_NAME"].unique().tolist() if not DF.empty else []

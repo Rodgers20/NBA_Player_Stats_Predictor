@@ -9,8 +9,11 @@ _DF_CACHE: dict = {}
 
 def _get_df():
     if not _DF_CACHE:
+        import pandas as pd
         from utils.kaggle_loader import load_player_game_logs
-        _DF_CACHE["df"] = load_player_game_logs()
+        df = load_player_game_logs()
+        df["_date"] = pd.to_datetime(df["GAME_DATE"], format="mixed", errors="coerce")
+        _DF_CACHE["df"] = df
     return _DF_CACHE["df"]
 
 
