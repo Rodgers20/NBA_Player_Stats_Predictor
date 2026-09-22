@@ -19,7 +19,6 @@
     "recharts": "^2.12.7",
     "@radix-ui/react-tabs": "^1.1.0",
     "@radix-ui/react-select": "^2.1.1",
-    "@radix-ui/react-badge": "^1.0.0",
     "class-variance-authority": "^0.7.0"
   },
   "devDependencies": {
