@@ -521,6 +521,35 @@ def get_stat_color(stat):
     return colors.get(stat, COLORS["accent"])
 
 
+# ── Shared Plotly chart theme ─────────────────────────────────────────────────
+# Mirrors the CSS design tokens so every chart blends into the glass panels.
+_CHART_THEME = dict(
+    template=None,
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(family="Inter, sans-serif", color="#f0f4ff"),
+    hoverlabel=dict(
+        bgcolor="#0f1a2e",
+        bordercolor="rgba(20,184,166,0.35)",
+        font_color="#f0f4ff",
+        font_family="Inter, sans-serif",
+        font_size=12,
+    ),
+)
+_XAXIS_THEME = dict(
+    showgrid=False,
+    zeroline=False,
+    showline=False,
+    tickfont=dict(family="Inter, sans-serif", color="#8ca0c0", size=10),
+)
+_YAXIS_THEME = dict(
+    showgrid=True,
+    gridcolor="rgba(255,255,255,0.05)",
+    gridwidth=1,
+    zeroline=False,
+    showline=False,
+    tickfont=dict(family="Inter, sans-serif", color="#8ca0c0", size=10),
+)
 
 def get_player_current_team(player_name):
     """Get player's current team from PLAYER_POSITIONS."""
@@ -3982,9 +4011,10 @@ def update_main_chart(player_name, stat, period, season, h2h_mode, location, thr
                     y=player_df[part],
                     name=part,
                     marker_color=bar_colors,
+                    marker_line_width=0,
                     text=[f"{int(row[part])}<br><span style='font-size:9px'>{part}</span>" for _, row in player_df.iterrows()],
                     textposition="inside",
-                    textfont=dict(size=11, color="white"),
+                    textfont=dict(size=11, color="white", family="Inter, sans-serif"),
                     hovertemplate=f"{part}: %{{y}}<extra></extra>"
                 ))
             else:
@@ -3993,9 +4023,10 @@ def update_main_chart(player_name, stat, period, season, h2h_mode, location, thr
                     y=player_df[part],
                     name=part,
                     marker_color=part_color,
+                    marker_line_width=0,
                     text=[f"{int(row[part])}<br><span style='font-size:9px'>{part}</span>" for _, row in player_df.iterrows()],
                     textposition="inside",
-                    textfont=dict(size=11, color="white"),
+                    textfont=dict(size=11, color="white", family="Inter, sans-serif"),
                     hovertemplate=f"{part}: %{{y}}<extra></extra>"
                 ))
 
@@ -4022,9 +4053,10 @@ def update_main_chart(player_name, stat, period, season, h2h_mode, location, thr
             x=list(range(len(player_df))),
             y=values,
             marker_color=bar_colors,
+            marker_line_width=0,
             text=[f"{int(v)}" for v in values],
             textposition="outside",
-            textfont=dict(size=11, color=COLORS["text"]),
+            textfont=dict(size=11, color=COLORS["text"], family="Inter, sans-serif"),
             hovertemplate=f"{stat}: %{{y}}<extra></extra>"
         ))
 
@@ -4056,24 +4088,19 @@ def update_main_chart(player_name, stat, period, season, h2h_mode, location, thr
         labels.append(f"{date_str}<br>{opp}")
 
     fig.update_layout(
+        **_CHART_THEME,
         barmode="stack" if is_stacked else "relative",
-        template="plotly_dark",
-        paper_bgcolor=COLORS["card"],
-        plot_bgcolor=COLORS["card"],
         margin=dict(l=50, r=20, t=20, b=60),
         showlegend=False,
         xaxis=dict(
+            **_XAXIS_THEME,
             tickmode="array",
             tickvals=list(range(len(player_df))),
             ticktext=labels,
-            tickfont=dict(size=10, color=COLORS["text_secondary"]),
         ),
-        yaxis=dict(
-            gridcolor=COLORS["border"],
-            tickfont=dict(color=COLORS["text_secondary"]),
-        ),
+        yaxis=_YAXIS_THEME,
         height=400,
-        bargap=0.3,
+        bargap=0.35,
     )
 
     return fig
@@ -4103,9 +4130,7 @@ def update_season_trends_chart(player_name, stat):
     """Rolling season trend: 5-game rolling average for PTS and REB (or selected stat)."""
     empty_fig = go.Figure()
     empty_fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        **_CHART_THEME,
         margin=dict(l=30, r=10, t=10, b=40), height=260,
     )
     if not player_name:
@@ -4139,20 +4164,15 @@ def update_season_trends_chart(player_name, stat):
         ))
 
     fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        **_CHART_THEME,
         margin=dict(l=30, r=10, t=10, b=40), height=260,
         showlegend=False,
-        xaxis=dict(showgrid=False, showticklabels=False),
+        xaxis=dict(**_XAXIS_THEME, showticklabels=False),
         yaxis=dict(
-            showgrid=True,
-            gridcolor="#1E293B",
+            **_YAXIS_THEME,
             tickvals=[0, 25, 50, 75, 100],
-            tickfont=dict(color="#64748b"),
         ),
         hovermode="x unified",
-        hoverlabel=dict(bgcolor="#0B101A", font_color="#f1f5f9"),
     )
     return fig
 
@@ -4312,12 +4332,7 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
     fig = go.Figure()
 
     if not player_name or not selected_stat:
-        fig.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            height=300
-        )
+        fig.update_layout(**_CHART_THEME, height=300)
         return fig
 
     player_df = DF[DF["PLAYER_NAME"] == player_name].sort_values("_date", ascending=False)
@@ -4333,12 +4348,7 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
     player_df = player_df.iloc[::-1]  # Reverse for chronological order
 
     if len(player_df) == 0:
-        fig.update_layout(
-            template="plotly_dark",
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            height=300
-        )
+        fig.update_layout(**_CHART_THEME, height=300)
         return fig
 
     n_games = len(player_df)
@@ -4396,18 +4406,18 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
 
         fig.add_trace(go.Bar(
             x=list(range(n_games)), y=made, name="Made",
-            marker_color=made_color,
+            marker_color=made_color, marker_line_width=0,
             text=[f"{m}" for m in made],
             textposition="inside",
-            textfont=dict(size=10, color="white"),
+            textfont=dict(size=10, color="white", family="Inter, sans-serif"),
             hovertemplate="Made: %{y}<extra></extra>"
         ))
         fig.add_trace(go.Bar(
             x=list(range(n_games)), y=missed, name="Missed",
-            marker_color=missed_color,
+            marker_color=missed_color, marker_line_width=0,
             text=[f"{int(p)}%" for p in pct],
             textposition="inside",
-            textfont=dict(size=10, color="white"),
+            textfont=dict(size=10, color="white", family="Inter, sans-serif"),
             hovertemplate="Missed: %{y}<extra></extra>"
         ))
         fig.add_trace(go.Scatter(
@@ -4436,10 +4446,10 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
 
         fig.add_trace(go.Bar(
             x=list(range(n_games)), y=values,
-            marker_color=bar_colors,
+            marker_color=bar_colors, marker_line_width=0,
             text=[f"{v:{fmt}}" for v in values],
             textposition="outside",
-            textfont=dict(size=11, color=COLORS["text"]),
+            textfont=dict(size=11, color=COLORS["text"], family="Inter, sans-serif"),
             hovertemplate=f"{title}: %{{y:{fmt}}}<extra></extra>"
         ))
         fig.add_hline(
@@ -4454,25 +4464,19 @@ def update_shooting_breakdown_chart(player_name, selected_stat, period, season):
         return update_shooting_breakdown_chart(player_name, "FG", period, season)
 
     fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        **_CHART_THEME,
         margin=dict(l=40, r=20, t=40, b=70 if n_games > 10 else 50),
         height=320,
         showlegend=False,
         xaxis=dict(
+            **_XAXIS_THEME,
             tickmode="array",
             tickvals=list(range(n_games)),
             ticktext=labels,
-            tickfont=dict(size=9 if n_games > 12 else 10, color=COLORS["text_muted"]),
+            tickfont=dict(family="Inter, sans-serif", color="#8ca0c0", size=9 if n_games > 12 else 10),
             tickangle=-40 if n_games > 10 else 0,
-            showgrid=False,
         ),
-        yaxis=dict(
-            gridcolor=COLORS["border"],
-            tickfont=dict(size=10, color=COLORS["text_muted"]),
-            showgrid=True,
-        ),
+        yaxis=_YAXIS_THEME,
         bargap=0.25,
     )
 
@@ -4493,13 +4497,7 @@ def _build_props_panel_chart(player_name: str, stat: str, n_games: int = 10):
     )
 
     fig = go.Figure()
-    empty_layout = dict(
-        template="plotly_dark",
-        paper_bgcolor=COLORS["card"],
-        plot_bgcolor=COLORS["card"],
-        height=260,
-        margin=dict(l=30, r=10, t=10, b=10),
-    )
+    empty_layout = dict(**_CHART_THEME, height=260, margin=dict(l=30, r=10, t=10, b=10))
     if player_df.empty or stat not in player_df.columns:
         fig.update_layout(**empty_layout)
         return fig
@@ -4526,30 +4524,30 @@ def _build_props_panel_chart(player_name: str, stat: str, n_games: int = 10):
         x=list(range(len(player_df))),
         y=values,
         marker_color=bar_colors,
+        marker_line_width=0,
         text=[f"{int(v)}" for v in values],
         textposition="outside",
-        textfont=dict(size=11, color=COLORS["text"]),
+        textfont=dict(size=11, color=COLORS["text"], family="Inter, sans-serif"),
         hovertemplate=f"{stat}: %{{y}}<extra></extra>",
     ))
     fig.add_hline(
-        y=avg_val, line_dash="dash", line_color=COLORS["text_secondary"], line_width=1.5,
+        y=avg_val, line_dash="dash", line_color="rgba(140,160,192,0.5)", line_width=1.5,
         annotation_text=f"Avg {avg_val:.1f}",
         annotation_position="top left",
-        annotation_font_color=COLORS["text_secondary"],
+        annotation_font_color="#8ca0c0",
     )
     fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor=COLORS["card"],
-        plot_bgcolor=COLORS["card"],
+        **_CHART_THEME,
         margin=dict(l=30, r=10, t=20, b=60),
         height=260,
         showlegend=False,
         xaxis=dict(
+            **_XAXIS_THEME,
             tickmode="array", tickvals=list(range(len(player_df))), ticktext=labels,
-            tickfont=dict(size=9, color=COLORS["text_muted"]),
-            tickangle=-40, showgrid=False,
+            tickfont=dict(family="Inter, sans-serif", color="#8ca0c0", size=9),
+            tickangle=-40,
         ),
-        yaxis=dict(gridcolor=COLORS["border"], tickfont=dict(size=10, color=COLORS["text_muted"]), showgrid=True),
+        yaxis=_YAXIS_THEME,
         bargap=0.25,
     )
     return fig
@@ -4910,25 +4908,24 @@ def _build_defense_radar(pts_rank, ast_rank, reb_rank, tpm_rank):
         showlegend=False,
     ))
     fig.update_layout(
+        **_CHART_THEME,
         polar=dict(
             bgcolor="rgba(0,0,0,0)",
             radialaxis=dict(
                 visible=True,
                 range=[0, 30],
                 showticklabels=False,
-                gridcolor="rgba(255,255,255,0.08)",
+                gridcolor="rgba(255,255,255,0.05)",
                 gridwidth=1,
                 nticks=6,
                 layer="below traces",
             ),
             angularaxis=dict(
-                tickfont=dict(color="#94a3b8", size=10),
-                gridcolor="rgba(255,255,255,0.08)",
-                linecolor="rgba(255,255,255,0.08)",
+                tickfont=dict(family="Inter, sans-serif", color="#8ca0c0", size=10),
+                gridcolor="rgba(255,255,255,0.05)",
+                linecolor="rgba(255,255,255,0.05)",
             ),
         ),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=40, r=40, t=20, b=20),
         height=220,
     )
