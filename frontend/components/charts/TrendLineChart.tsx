@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { scaleLinear, scaleBand } from "d3-scale";
 import { line as d3Line, curveMonotoneX } from "d3-shape";
 import { max, min } from "d3-array";
-import { motion } from "motion";
+import { motion } from "motion/react";
 import type { ChartRecord } from "@/lib/types";
 import { statColor } from "@/lib/utils";
 

@@ -3,7 +3,7 @@
 import { useMemo, useRef } from "react";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { max } from "d3-array";
-import { motion } from "motion";
+import { motion } from "motion/react";
 import type { ChartRecord } from "@/lib/types";
 import { statColor } from "@/lib/utils";
 

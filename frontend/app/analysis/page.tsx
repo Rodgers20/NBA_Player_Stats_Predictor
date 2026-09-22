@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "motion";
+import { motion } from "motion/react";
 import { Star } from "lucide-react";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";

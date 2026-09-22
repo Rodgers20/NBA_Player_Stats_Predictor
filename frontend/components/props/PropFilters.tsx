@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const STATS = ["All", "PTS", "AST", "REB", "FG3M", "STL", "BLK", "COMBO"];
 const DIRECTIONS = ["Over", "Under", "All"];
-const SORTS = [
+const SORTS: { value: "ev" | "hit_rate"; label: string }[] = [
   { value: "ev",       label: "Best EV" },
   { value: "hit_rate", label: "Hit Rate" },
 ];
@@ -12,7 +12,7 @@ const SORTS = [
 interface Filters {
   stat:       string;
   direction:  string;
-  sort:       string;
+  sort:       "ev" | "hit_rate";
   game:       string;
   locksOnly:  boolean;
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "motion";
+import { motion, AnimatePresence } from "motion/react";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
 import type { PropsResponse } from "@/lib/types";
