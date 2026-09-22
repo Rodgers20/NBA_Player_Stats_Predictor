@@ -29,12 +29,14 @@ async def lifespan(app: FastAPI):
     def _warm():
         try:
             from utils.props_cache import refresh_props_cache
-            from utils.kaggle_loader import load_engineered_data, load_player_positions, load_defense_vs_position
-            DF = load_engineered_data()
+            from utils.kaggle_loader import load_player_game_logs, load_player_positions
+            from utils.data_fetch import calculate_defense_vs_position
+            DF  = load_player_game_logs()
             POS = load_player_positions()
-            DEF = load_defense_vs_position()
+            DEF = calculate_defense_vs_position(DF, POS)
             PLAYERS = DF["PLAYER_NAME"].unique().tolist() if not DF.empty else []
             refresh_props_cache(DF, POS, DEF, PLAYERS)
+            print("[API] Cache warmup complete.")
         except Exception as e:
             print(f"[API] Cache warmup failed: {e}")
     threading.Thread(target=_warm, daemon=True).start()
@@ -50,7 +52,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://*.vercel.app"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "https://*.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

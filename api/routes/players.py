@@ -9,8 +9,8 @@ _DF_CACHE: dict = {}
 
 def _get_df():
     if not _DF_CACHE:
-        from utils.kaggle_loader import load_engineered_data
-        _DF_CACHE["df"] = load_engineered_data()
+        from utils.kaggle_loader import load_player_game_logs
+        _DF_CACHE["df"] = load_player_game_logs()
     return _DF_CACHE["df"]
 
 

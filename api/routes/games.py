@@ -43,12 +43,12 @@ def get_games():
 @router.get("/games/predictions")
 def get_predictions():
     try:
-        from utils.kaggle_loader import load_engineered_data
+        from utils.kaggle_loader import load_player_game_logs
         from utils.data_fetch import get_upcoming_games
         from utils.game_predictor import GamePredictor
         import pandas as pd
 
-        DF = load_engineered_data()
+        DF = load_player_game_logs()
         games_df, target_date = get_upcoming_games()
         if games_df is None or games_df.empty:
             return {"target_date": target_date, "predictions": []}
