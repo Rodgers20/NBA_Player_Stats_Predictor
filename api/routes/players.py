@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 from typing import Literal
 import logging
@@ -62,6 +62,12 @@ def list_players(q: str | None = None, league: League = 'nba'):
     if q:
         names = [name for name in names if q.casefold() in name.casefold()]
     return {'players': names}
+
+
+@router.get('/players/scheduled')
+def list_scheduled_players(game_date: date, league: League = 'nba'):
+    from utils.scheduled_players import scheduled_players
+    return scheduled_players(league, game_date.isoformat())
 
 
 @router.get('/player/{player_name}/series')

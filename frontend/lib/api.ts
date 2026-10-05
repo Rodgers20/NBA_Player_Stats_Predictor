@@ -1,5 +1,5 @@
 import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse } from "./types";
-import { playerKey, filterProps, seriesChart } from './snapshot.mjs';
+import { playerKey, filterProps, seriesChart, scheduledPlayersSnapshot } from './snapshot.mjs';
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, '');
 const STATIC = process.env.NEXT_PUBLIC_DATA_MODE === 'static';
@@ -14,6 +14,14 @@ async function get<T>(path: string, params?: Params): Promise<T> {
 const snapshot = <T,>(league: string, file: string) => get<T>(`/data/${league}/${file}.json`);
 
 export const api = {
+  scheduledPlayers: async (league: string, gameDate: string): Promise<ScheduledPlayersResponse> => {
+    if (!STATIC) return get<ScheduledPlayersResponse>('/api/players/scheduled', { league, game_date: gameDate });
+    try {
+      return scheduledPlayersSnapshot(await snapshot<ScheduledPlayersResponse>(league, 'scheduled-players'), league, gameDate);
+    } catch {
+      return { league, game_date: gameDate, players: [], message: 'Player suggestions are unavailable in this snapshot.' };
+    }
+  },
   props: async (params: Params = {}) => STATIC
     ? filterProps(await snapshot<PropsResponse>(String(params.league ?? 'nba'), 'props'), params)
     : get<PropsResponse>('/api/props', params),
@@ -47,6 +55,13 @@ export const api = {
     return { players: data.players.filter(name => name.toLowerCase().includes(q.toLowerCase())) };
   },
 };
+
+export interface ScheduledPlayersResponse {
+  league: string;
+  game_date: string;
+  players: { name: string; team: string; opponent?: string }[];
+  message?: string;
+}
 
 export interface HitRatesResponse {
   target_date: string;

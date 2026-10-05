@@ -3,6 +3,10 @@
 import { FormEvent, Suspense, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { ArrowUpRight, NotebookPen } from "lucide-react";
+import { GameDayPlayerPicker } from "@/components/bets/GameDayPlayerPicker";
+import { BetSlip } from "@/components/props/BetSlip";
 import { usePrefs } from "@/store/prefs";
 import { localJournalAdd, localJournalList, localJournalSettle } from "@/lib/local-journal.mjs";
 
@@ -59,6 +63,9 @@ function BetsContent() {
   const prefilledStat = stats.some(([value]) => value === params.get("stat")) ? params.get("stat") || "PTS" : "PTS";
   const prefilledLeague = params.get("league") === "nba" || params.get("league") === "wnba" ? params.get("league")! : currentLeague;
   const prefilledSide = params.get("side") === "Under" ? "Under" : "Over";
+  const [entryLeague, setEntryLeague] = useState(prefilledLeague);
+  const [gameDate, setGameDate] = useState(() => params.get("game_date") || new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }));
+  const [player, setPlayer] = useState(prefilledPlayer);
   const [book, setBook] = useState("Paper");
   const [mode, setMode] = useState<Mode>("paper");
   const [entryMode, setEntryMode] = useState<Mode>("paper");
@@ -122,11 +129,14 @@ function BetsContent() {
 
   return (
     <div className="ql-page max-w-[1360px] space-y-5">
-      <header className="border-b border-[#2b4248] pb-5">
-        <p className="ql-kicker">04 / Personal journal</p>
+      <header className="flex flex-wrap items-end justify-between gap-5 border-b border-[#2b4248] pb-6">
+        <div>
+        <p className="ql-kicker">Your personal betting desk</p>
         <h1 className="ql-heading mt-2">My Bets</h1>
-        <p className="ql-subtitle mt-2">Your selections and actual stakes. Paper tests and real wagers stay separate. This app never places bets.</p>
+        <p className="ql-subtitle mt-2">Build your slip. Record your picks. Know where you stand.</p>
         {STATIC && <p className="mt-2 text-xs text-amber-300">On the hosted free version, entries are saved in this browser only. They do not sync between devices or private browsing sessions.</p>}
+        </div>
+        <Link href="/props" className="inline-flex items-center gap-2 rounded-md border border-teal-400/40 px-4 py-3 text-sm font-semibold text-teal-400 hover:bg-teal-400/10">Find props for your slip <ArrowUpRight size={16} /></Link>
       </header>
       {isPending && <p role="status" className="glass p-5 text-sm">Connecting to your journal…</p>}
       {isError && <div role="status" className="glass p-5 space-y-3">
@@ -135,6 +145,55 @@ function BetsContent() {
         <button className="text-sm font-semibold text-teal-400" onClick={() => void refetch()}>Try connecting again</button>
       </div>}
 
+
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <section className="ql-panel p-5 md:p-6" aria-labelledby="entry-title">
+        <p className="ql-kicker flex items-center gap-2"><NotebookPen size={14} /> Selection journal</p>
+        <h2 id="entry-title" className="ql-section-title mt-2">Log a pick</h2>
+        <p className="mt-2 text-sm text-[var(--color-text-sec)]">{prefilledPlayer ? `Selection loaded for ${prefilledPlayer}. Confirm the line and price, then add your stake.` : "Start with your game date and league, then search the players on that schedule. Record the line and odds accepted by your book."}</p>
+        <form onSubmit={save} className="mt-5 space-y-4">
+          <fieldset disabled={unavailable || saving || saved || locked} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 disabled:opacity-60">
+            <div className="border-b border-border-card pb-2 text-[11px] font-mono uppercase tracking-widest text-teal-400 sm:col-span-2 lg:col-span-3">01 / Choose your matchup</div>
+            <label className="space-y-1 text-xs">Game date<input name="game_date" className={control} type="date" required value={gameDate} onChange={e => { setGameDate(e.target.value); setPlayer(""); }} /></label>
+            <label className="space-y-1 text-xs">League<select name="league" className={control} value={entryLeague} onChange={e => { setEntryLeague(e.target.value); setPlayer(""); }}><option value="wnba">WNBA</option><option value="nba">NBA</option></select></label>
+            <label className="space-y-1 text-xs">Record type<select className={control} name="mode" value={entryMode} onChange={e => { const next = e.target.value as Mode; setEntryMode(next); setBook(current => next === "paper" ? (current || "Paper") : current === "Paper" ? "" : current); }}><option value="paper">Paper test</option><option value="real">Real wager</option></select></label>
+            <GameDayPlayerPicker key={`${entryLeague}-${gameDate}`} league={entryLeague} date={gameDate} value={player} onChange={setPlayer} />
+            <div className="mt-2 border-b border-border-card pb-2 text-[11px] font-mono uppercase tracking-widest text-teal-400 sm:col-span-2 lg:col-span-3">02 / Your selection</div>
+            <label className="space-y-1 text-xs">Stat<select name="stat" className={control} defaultValue={prefilledStat}>{stats.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <label className="space-y-1 text-xs">Side<select name="side" className={control} defaultValue={prefilledSide}><option>Over</option><option>Under</option></select></label>
+            <label className="space-y-1 text-xs">Book line<input name="line" className={control} type="number" min="0" step="0.5" required placeholder="24.5" defaultValue={params.get("line") || ""} /></label>
+            <div className="mt-2 border-b border-border-card pb-2 text-[11px] font-mono uppercase tracking-widest text-teal-400 sm:col-span-2 lg:col-span-3">03 / Ticket details</div>
+            <label className="space-y-1 text-xs">Accepted American odds<input name="price" className={control} type="number" step="any" required placeholder="-110" defaultValue={params.get("price") || ""} /></label>
+            <label className="space-y-1 text-xs">Sportsbook / source<input name="book" className={control} required maxLength={200} placeholder="Your sportsbook" value={book} onChange={e => setBook(e.target.value)} /></label>
+            <label className="space-y-1 text-xs">Actual stake ($)<input name="stake" className={control} type="number" min="0.01" step="0.01" required placeholder="11.00" /></label>
+            <label className="space-y-1 text-xs sm:col-span-2">Notes / opponent / ticket reference<input name="notes" className={control} maxLength={4000} /></label>
+          </fieldset>
+          <div className="flex flex-wrap items-center gap-3">
+            <button className={button} type="submit" disabled={unavailable || saving || saved}>{saving ? "Saving…" : locked ? "Retry same entry" : entryMode === "real" ? "Save real wager" : "Save paper test"}</button>
+            <button type="button" className="px-3 py-2 text-sm text-teal-400 disabled:opacity-40" disabled={unavailable || saving || (locked && !saved)}
+              onClick={() => { token.current = ""; pendingEntry.current = null; setLocked(false); setSaved(false); setNotice("Ready for another entry. Update the fields, then save."); }}>Start another entry</button>
+          </div>
+          <p role="status" className="text-sm text-[var(--color-text-sec)]">{notice}</p>
+        </form>
+      </section>
+
+      <div className="space-y-5">
+      <BetSlip />
+      <section className="ql-panel p-5 md:p-6" aria-labelledby="settle-title">
+        <p className="ql-kicker">Settle your picks</p>
+        <h2 id="settle-title" className="ql-section-title mt-2">Settle or correct a result</h2>
+        <p className="mt-2 text-sm text-[var(--color-text-sec)]">Use your sportsbook receipt. Corrections replace the previous result. Void and pending stakes are excluded from settled ROI; pushes return the stake.</p>
+        <form onSubmit={settle} className="mt-5 space-y-4">
+          <fieldset disabled={unavailable || settling || !data?.bets.length} className="grid gap-4">
+            <label className="space-y-1 text-xs">Recorded {mode} entry<select required className={control} value={selected} onChange={e => setSelected(e.target.value)}><option value="">Select a recorded bet</option>{data?.bets.map(bet => <option key={bet.id} value={bet.id}>{bet.game_date} · {bet.player} {bet.side} {bet.line} {bet.stat} · {money(bet.stake_cents / 100)} · {bet.id.slice(0, 8)}</option>)}</select></label>
+            <label className="space-y-1 text-xs">Book settlement<select className={control} value={result} onChange={e => setResult(e.target.value as Result)}>{(["win", "loss", "push", "void", "pending"] as const).map(value => <option key={value}>{value}</option>)}</select></label>
+          </fieldset>
+          <button className={button} disabled={unavailable || settling || !selected}>{settling ? "Saving…" : "Save settlement"}</button>
+          <p role="status" className="text-sm text-[var(--color-text-sec)]">{settleNotice}</p>
+        </form>
+      </section>
+      </div>
+      </div>
       <section className="space-y-4" aria-labelledby="progress-title">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="progress-title" className="ql-section-title">Your progress</h2>
@@ -166,48 +225,6 @@ function BetsContent() {
         </>}
       </section>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,.7fr)]">
-      <section className="ql-panel p-5 md:p-6" aria-labelledby="entry-title">
-        <p className="ql-kicker">01 / Quick entry</p>
-        <h2 id="entry-title" className="ql-section-title mt-2">Record a selection</h2>
-        <p className="mt-2 text-sm text-[var(--color-text-sec)]">{prefilledPlayer ? `Selection loaded for ${prefilledPlayer}. Confirm the line and price, then add your stake.` : "Choose a prop and tap Track pick to fill this form, or enter a selection manually."}</p>
-        <form onSubmit={save} className="mt-5 space-y-4">
-          <fieldset disabled={unavailable || saving || saved || locked} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 disabled:opacity-60">
-            <label className="space-y-1 text-xs">Record type<select className={control} name="mode" value={entryMode} onChange={e => { const next = e.target.value as Mode; setEntryMode(next); setBook(current => next === "paper" ? (current || "Paper") : current === "Paper" ? "" : current); }}><option value="paper">Paper test</option><option value="real">Real wager</option></select></label>
-            <label className="space-y-1 text-xs">League<select name="league" className={control} defaultValue={prefilledLeague}><option value="wnba">WNBA</option><option value="nba">NBA</option></select></label>
-            <label className="space-y-1 text-xs">Player<input name="player" className={control} required maxLength={200} placeholder="Player name" defaultValue={prefilledPlayer} /></label>
-            <label className="space-y-1 text-xs">Game date<input name="game_date" className={control} type="date" required defaultValue={params.get("game_date") || ""} /></label>
-            <label className="space-y-1 text-xs">Stat<select name="stat" className={control} defaultValue={prefilledStat}>{stats.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-            <label className="space-y-1 text-xs">Side<select name="side" className={control} defaultValue={prefilledSide}><option>Over</option><option>Under</option></select></label>
-            <label className="space-y-1 text-xs">Book line<input name="line" className={control} type="number" min="0" step="0.5" required placeholder="24.5" defaultValue={params.get("line") || ""} /></label>
-            <label className="space-y-1 text-xs">Accepted American odds<input name="price" className={control} type="number" step="any" required placeholder="-110" defaultValue={params.get("price") || ""} /></label>
-            <label className="space-y-1 text-xs">Sportsbook / source<input name="book" className={control} required maxLength={200} placeholder="Your sportsbook" value={book} onChange={e => setBook(e.target.value)} /></label>
-            <label className="space-y-1 text-xs">Actual stake ($)<input name="stake" className={control} type="number" min="0.01" step="0.01" required placeholder="11.00" /></label>
-            <label className="space-y-1 text-xs sm:col-span-2">Notes / opponent / ticket reference<input name="notes" className={control} maxLength={4000} /></label>
-          </fieldset>
-          <div className="flex flex-wrap items-center gap-3">
-            <button className={button} type="submit" disabled={unavailable || saving || saved}>{saving ? "Saving…" : locked ? "Retry same entry" : entryMode === "real" ? "Save real wager" : "Save paper test"}</button>
-            <button type="button" className="px-3 py-2 text-sm text-teal-400 disabled:opacity-40" disabled={unavailable || saving || (locked && !saved)}
-              onClick={() => { token.current = ""; pendingEntry.current = null; setLocked(false); setSaved(false); setNotice("Ready for another entry. Update the fields, then save."); }}>Start another entry</button>
-          </div>
-          <p role="status" className="text-sm text-[var(--color-text-sec)]">{notice}</p>
-        </form>
-      </section>
-
-      <section className="ql-panel p-5 md:p-6" aria-labelledby="settle-title">
-        <p className="ql-kicker">02 / Settlement queue</p>
-        <h2 id="settle-title" className="ql-section-title mt-2">Settle or correct a result</h2>
-        <p className="mt-2 text-sm text-[var(--color-text-sec)]">Use your sportsbook receipt. Corrections replace the previous result. Void and pending stakes are excluded from settled ROI; pushes return the stake.</p>
-        <form onSubmit={settle} className="mt-5 space-y-4">
-          <fieldset disabled={unavailable || settling || !data?.bets.length} className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-1 text-xs">Recorded {mode} entry<select required className={control} value={selected} onChange={e => setSelected(e.target.value)}><option value="">Select a recorded bet</option>{data?.bets.map(bet => <option key={bet.id} value={bet.id}>{bet.game_date} · {bet.player} {bet.side} {bet.line} {bet.stat} · {money(bet.stake_cents / 100)} · {bet.id.slice(0, 8)}</option>)}</select></label>
-            <label className="space-y-1 text-xs">Book settlement<select className={control} value={result} onChange={e => setResult(e.target.value as Result)}>{(["win", "loss", "push", "void", "pending"] as const).map(value => <option key={value}>{value}</option>)}</select></label>
-          </fieldset>
-          <button className={button} disabled={unavailable || settling || !selected}>{settling ? "Saving…" : "Save settlement"}</button>
-          <p role="status" className="text-sm text-[var(--color-text-sec)]">{settleNotice}</p>
-        </form>
-      </section>
-      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ Personal journal data is deliberately never exported.
 """
 import argparse
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import json
 from pathlib import Path
 import tempfile
@@ -32,7 +33,10 @@ def export(base, out):
             root = stage / league
             save(root, 'props', fetch(base, f'/api/props?league={league}&direction=all&include_research=true&limit=500'))
             save(root, 'alt-lines', fetch(base, f'/api/props/alt-lines?league={league}'))
-            save(root, 'games', fetch(base, f'/api/games?league={league}'))
+            games = fetch(base, f'/api/games?league={league}')
+            save(root, 'games', games)
+            slate_date = games.get('target_date') or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
+            save(root, 'scheduled-players', fetch(base, f'/api/players/scheduled?league={league}&game_date={slate_date}'))
             save(root, 'predictions', fetch(base, f'/api/games/predictions?league={league}'))
             if league == 'wnba':
                 save(root, 'hitrates', fetch(base, '/api/wnba/hitrates'))

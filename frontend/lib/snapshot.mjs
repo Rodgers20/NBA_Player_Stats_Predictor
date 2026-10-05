@@ -2,6 +2,13 @@ export function playerKey(name) {
   return Array.from(new TextEncoder().encode(name), b => b.toString(16).padStart(2, '0')).join('');
 }
 
+export function scheduledPlayersSnapshot(data, league, gameDate) {
+  if (data.league !== league || data.game_date !== gameDate) {
+    return { league, game_date: gameDate, players: [], message: 'This snapshot has no player suggestions for the selected date.' };
+  }
+  return data;
+}
+
 export function filterProps(data, params = {}) {
   const eligible = data.props.filter(p =>
     (!params.direction || params.direction === 'all' || p.direction.toLowerCase() === String(params.direction).toLowerCase()) &&

@@ -1,5 +1,8 @@
 "use client";
 
+import { Plus, Check } from "lucide-react";
+import { useSlip } from "@/store/slip";
+import { decimalOdds } from "@/lib/bet-slip.mjs";
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
@@ -21,6 +24,14 @@ function odds(value: number | null | undefined) {
 export function PropCard({ prop, targetDate, onAnalyze, selected = false }: Props) {
   const [photoFailed, setPhotoFailed] = useState(false);
   const league = usePrefs((state) => state.league);
+  const { legs, toggle } = useSlip();
+  const canAdd = Boolean(targetDate && prop.recommendation_eligible && prop.has_live_odds && prop.line != null && prop.price != null && decimalOdds(prop.price) && /^(over|under)$/i.test(prop.direction));
+  const inSlip = legs.some(leg => leg.league === league && leg.date === targetDate && leg.player === prop.player && leg.stat === prop.stat && leg.line === prop.line && leg.direction.toLowerCase() === prop.direction.toLowerCase());
+  function toggleSlip() {
+    if (!canAdd || !targetDate || prop.line == null || prop.price == null) return;
+    toggle({ league, date: targetDate, player: prop.player, stat: prop.stat, direction: prop.direction, line: prop.line, price: prop.price,
+      probability: prop.model_prob ?? null, matchup: prop.game_matchup, addedAt: new Date().toISOString() });
+  }
   const initial = prop.player.trim().split(/\s+/).at(-1)?.[0]?.toUpperCase() || "?";
   const hitRate = prop.hit_rate != null && Number.isFinite(prop.hit_rate) ? Math.round(prop.hit_rate) : null;
   const projectionOnly = prop.line == null && prop.model_projection != null;
@@ -36,6 +47,9 @@ export function PropCard({ prop, targetDate, onAnalyze, selected = false }: Prop
     <article className={`border-b border-white/[0.07] px-4 py-3 transition-colors last:border-b-0 sm:px-5 ${selected ? "bg-[#59e0c8]/[0.07] shadow-[inset_3px_0_0_#59e0c8]" : "hover:bg-white/[0.025]"}`}>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 md:grid-cols-[minmax(0,1.5fr)_minmax(8rem,1fr)_5rem_4.5rem_auto]">
         <div className="flex min-w-0 items-center gap-3">
+          <button type="button" onClick={toggleSlip} disabled={!canAdd} aria-pressed={inSlip} aria-label={inSlip ? `Remove ${prop.player} ${prop.stat} from slip` : `Add ${prop.player} ${prop.stat} to slip`} title={canAdd ? (inSlip ? 'Remove from slip' : 'Add to slip') : 'A verified sportsbook line and price are needed'} className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${inSlip ? 'border-[#59e0c8] bg-[#59e0c8] text-[#0d151b]' : 'border-[#59e0c8]/40 text-[#59e0c8] hover:bg-[#59e0c8]/10'}`}>
+            {inSlip ? <Check size={18}/> : <Plus size={18}/>}
+          </button>
           <button type="button" onClick={() => onAnalyze(prop)} aria-label={`Preview ${prop.player} history`} className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-[#59e0c8]/10 text-sm font-bold text-[#59e0c8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]">
             {prop.headshot_url && !photoFailed
               ? <Image src={prop.headshot_url} alt="" width={40} height={40} unoptimized onError={() => setPhotoFailed(true)} className="h-10 w-10 object-cover object-top" />

@@ -35,3 +35,12 @@ test('compact player series reconstructs base and combined charts', () => {
   assert.equal(pra.avg, 18);
   assert.equal(pra.l5_avg, 18);
 });
+
+ test('scheduled player snapshots cannot leak another date or league', async () => {
+  const { scheduledPlayersSnapshot } = await import('./snapshot.mjs');
+  const data = { league: 'nba', game_date: '2026-10-04', players: [{ name: 'Test Player', team: 'NYK' }] };
+  assert.deepEqual(scheduledPlayersSnapshot(data, 'nba', '2026-10-04'), data);
+  assert.deepEqual(scheduledPlayersSnapshot(data, 'nba', '2026-10-05').players, []);
+  assert.deepEqual(scheduledPlayersSnapshot(data, 'wnba', '2026-10-04').players, []);
+  assert.deepEqual(scheduledPlayersSnapshot({ ...data, players: [] }, 'nba', '2026-10-04').players, []);
+});

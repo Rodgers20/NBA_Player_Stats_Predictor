@@ -1,13 +1,27 @@
+## Restore production domain — October 4
+
+- [x] Inspect the production domain and Vercel deployment aliases.
+- [x] Restore the verified working deployment to the production domain.
+- [x] Verify public page rendering and document results.
+
+Restored October 5 by promoting the known-working 6d32hp56f snapshot. Vercel created deployment 9SjsyKALdqwtYeC13qy8jZTvd4LS. Browser verification of the exact production domain loaded /analysis with player data and chart controls. This restores the earlier snapshot, not the newer local slip changes. WNBA Odds API access exists in the local adapter; the hosted export workflow does not refresh paid quotes.
+
 ## My Bets and slip builder — October 4
 
 Build on the existing Quant Lab visual system. My Bets gets a date-scoped, accessible player picker using scheduled teams, with honest unavailable/empty states. Best Props gets add/remove controls and a persistent, responsive slip supporting five legs and other sizes. Each leg retains league, date, matchup, selection, quoted American odds and model probability. Show combined decimal/American odds, stake/return, copyable selections, and an explicitly independent model hit estimate only when all inputs exist; flag same-game correlation and mixed-book pricing rather than invent sportsbook parlay quotes. Research without a line/price cannot become a priced leg. Preserve journal and analysis flows.
 
 - [x] Inspect existing screens, data contracts, project lessons and probability findings.
 - [x] Check implementation plan against requested workflow and existing data limits.
-- [ ] Improve My Bets presentation and game-day player suggestions.
-- [ ] Implement persistent slip state, tested odds/probability calculations and prop add controls.
-- [ ] Verify frontend checks and relevant backend checks; inspect desktop/mobile UI.
-- [ ] Record results and limitations.
+- [x] Improve My Bets presentation and game-day player suggestions.
+- [x] Implement persistent slip state, tested odds/probability calculations and prop add controls.
+- [x] Verify frontend checks and relevant backend checks; inspect desktop/mobile UI.
+- [x] Record results and limitations.
+
+### Slip builder review
+
+Implemented date/league-scoped ESPN schedule + roster suggestions and matching static exports, with no all-player fallback and reported-out exclusions. My Bets now has a grouped entry form and shared slip. Verified browser suggestions for 78 NBA and 48 WNBA scheduled-team players, including keyboard selection; these are roster candidates, not confirmed lineups. Best Props has add/remove controls, duplicate-market replacement, a persistent shared slip, a five-leg goal selector, quote odds per leg, multiplied American/decimal odds, stake/return, copyable text, independent model hit estimate, and same-game/past-date notices. Research-only rows cannot be added without verified lines/prices. Mobile includes a jump-to-slip link.
+
+Validation: 261 Python tests; 13 frontend tests; TypeScript; ESLint; isolated static production build; desktop and 390px mobile browser review. ESLint now excludes generated Vercel output. Current WNBA data is unpriced research, so a real priced five-leg UI interaction could not be exercised without new quotes; calculations and add/remove/replacement behavior were unit tested. No paid odds calls or deployment performed. Hosted suggestions require the next snapshot export/deployment, and only its dated slate is available. Saved slip odds are reference prices, not confirmed sportsbook parlay offers; joint model probability remains unvalidated.
 
 # App transformation — September 28
 

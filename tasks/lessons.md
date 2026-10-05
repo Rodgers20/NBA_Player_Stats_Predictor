@@ -16,3 +16,7 @@
 - This command runner also removed detached processes and user services across chat turns. Do not promise persistence based on a same-turn check; use a desktop-owned terminal or another lifecycle outside the runner and test after a new turn when possible.
 
 - My Bets player entry needs suggestions scoped to the selected game date and league. Best Props must support collecting selections into a reusable multi-leg slip; individual Track links alone do not satisfy the betting workflow. Verify the end-to-end selection experience, odds totals, and honest probability labeling.
+
+- A working preview does not establish that the production domain works. After hosting changes, verify the exact user-facing production domain and its deployment alias before handing it off.
+
+- Distinguish an existing Odds API subscription/key from missing quoted data in a hosted snapshot. Inspect the refresh/export pipeline before implying the user lacks provider access.

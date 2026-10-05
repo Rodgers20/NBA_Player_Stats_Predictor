@@ -5,6 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
 import type { Prop, PropsResponse } from "@/lib/types";
+import { useSlip } from "@/store/slip";
+import { BetSlip } from "@/components/props/BetSlip";
 import { PropCard } from "@/components/props/PropCard";
 import { PropAnalysisPanel } from "@/components/props/PropAnalysisPanel";
 import { PropFilters, type Filters } from "@/components/props/PropFilters";
@@ -20,6 +22,7 @@ function slateDate(value: string | null | undefined) {
 }
 
 export default function PropsPage() {
+  const slipCount = useSlip(state => state.legs.length);
   const { defaultStat, defaultSort, league } = usePrefs();
   const [filters, setFilters] = useState<Filters>({
     stat: defaultStat,
@@ -78,7 +81,7 @@ export default function PropsPage() {
         <div>
           <p className="ql-kicker">03 / PLAYER MARKETS</p>
           <h1 className="ql-heading mt-1">Best Props</h1>
-          <p className="ql-subtitle mt-2 max-w-[80ch]">A research board that separates quoted picks from historical screens.</p>
+          <p className="ql-subtitle mt-2 max-w-[80ch]">Find your edge, inspect a player, and add priced picks to your slip.</p>
         </div>
         <div className="text-left sm:text-right">
           <p className="ql-data-label text-[#a9bec0]">SLATE / {league.toUpperCase()}</p>
@@ -124,6 +127,8 @@ export default function PropsPage() {
         <p role="status" className="ql-panel mb-4 border-[#f5ba64]/30 px-4 py-3 text-xs text-[#f5ba64]">{data.message} These are model projections without a sportsbook line, price, or betting pick.</p>
       )}
 
+      <a href="#props-slip" className="ql-control mb-4 block px-4 py-3 text-center text-sm font-semibold text-[#59e0c8] xl:hidden">View your slip · {slipCount} {slipCount === 1 ? 'leg' : 'legs'} ↓</a>
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_350px]"><div className="min-w-0">
       {activeView === "props" && isPending && (
         <div className="ql-panel overflow-hidden" aria-busy="true" aria-label="Loading props">
           {Array.from({ length: 5 }).map((_, index) => (
@@ -147,7 +152,7 @@ export default function PropsPage() {
       )}
 
       {activeView === "props" && !isPending && data && data.props.length > 0 && (
-        <div className={selectedProp ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start" : ""}>
+        <div className={selectedProp ? "grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px] 2xl:items-start" : ""}>
         <div className="min-w-0 space-y-5">
           <p className="ql-data-label text-[#a9bec0]">{data.status === "research" ? "MODEL RESEARCH · NO PRICED PICKS" : `${verifiedCount} VERIFIED PRICED ${verifiedCount === 1 ? "MARKET" : "MARKETS"} SHOWN`} · SELECT A PLAYER FOR GAME HISTORY</p>
           {Object.entries(byGame).map(([matchup, props]) => (
@@ -202,6 +207,7 @@ export default function PropsPage() {
         </div>}
       </section>}
 
+      </div><div id="props-slip" className="scroll-mt-20 xl:sticky xl:top-24"><BetSlip /></div></div>
       <p className="mt-5 text-center text-xs text-[#a9bec0]">Historical hit rates are descriptive, not guaranteed outcomes.</p>
     </main>
   );
