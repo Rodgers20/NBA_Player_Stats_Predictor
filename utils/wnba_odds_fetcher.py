@@ -13,11 +13,14 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 import requests
+from utils import odds_budget
+from utils.odds_fetcher import upcoming_events, _parse_event_odds as parse_quotes
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
 # ── Config ──────────────────────────────────────────────────────────────────
-API_KEY: str = os.getenv("THE_ODDS_API_KEY", "")
+API_KEY: str = os.getenv("THE_ODDS_API_KEY") or os.getenv("ODDS_API_KEY", "")
 BASE_URL = "https://api.the-odds-api.com/v4"
 SPORT = "basketball_wnba"
 
@@ -40,62 +43,38 @@ _CACHE_TTL = 30 * 60   # 30 min — conserves Odds API quota
 
 # ── In-memory cache ─────────────────────────────────────────────────────────
 _cache: dict = {}         # {player_name: {stat: odds_dict}}
+_cache_date: str | None = None
 _cache_ts: float = 0.0
 _requests_remaining: Optional[int] = None
 
 
-def get_live_wnba_odds(force_refresh: bool = False) -> dict:
-    """Return live WNBA player prop odds — only for events happening tonight (US ET).
-
-    Returns nested dict:
-        {player_name: {stat: {"line", "over_price", "under_price", "bookmaker"}}}
-
-    On failure, returns the last-good cache rather than an empty dict.
-    """
-    global _cache, _cache_ts
-
+def get_live_wnba_odds(force_refresh: bool = False, target_date=None) -> dict:
+    """Cache-only reads; explicit refresh buys at most six market credits."""
+    global _cache, _cache_ts, _cache_date
+    target = target_date or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
+    fallback = _cache if _cache_date == target and 0 <= time.time() - _cache_ts < _CACHE_TTL else {}
+    if not force_refresh:
+        return fallback
     if not API_KEY:
-        logger.debug("[WNBA-Odds] THE_ODDS_API_KEY not set")
-        return _cache
-
-    if not force_refresh and _cache and (time.time() - _cache_ts) < _CACHE_TTL:
-        return _cache
-
+        odds_budget.report('Odds API key is not configured. Add THE_ODDS_API_KEY to refresh.')
+        return fallback
     try:
-        events = _fetch_events()
+        events = upcoming_events(_fetch_events(), target)[:2]
         if not events:
-            logger.info("[WNBA-Odds] No WNBA events returned")
-            return _cache
-
-        # Filter to events happening in today's ET window (12:00 ET today → 06:00 ET tomorrow)
-        tonight_events = _filter_tonight_events(events)
-        if not tonight_events:
-            logger.info("[WNBA-Odds] No WNBA events tonight (all future or past)")
-            return _cache
-
-        out: dict = {}
-        successes = 0
-        failures = 0
-        for e in tonight_events:
-            data = _fetch_event_odds(e["id"], _ALL_MARKETS)
-            if data is None:
-                failures += 1
-                continue
-            successes += 1
-            _parse_event_odds(data, out)
-
-        # Guard: if every event 401'd (quota exhausted), keep the previous cache
-        if successes == 0 and _cache:
-            logger.warning(f"[WNBA-Odds] All {failures} event fetches failed — keeping last cache ({len(_cache)} players)")
-            return _cache
-
-        _cache = out
-        _cache_ts = time.time()
-        logger.info(f"[WNBA-Odds] Loaded {len(out)} players from {successes}/{len(tonight_events)} tonight events")
-        return out
-    except Exception as e:
-        logger.warning(f"[WNBA-Odds] fetch failed: {e}")
-        return _cache
+            odds_budget.report('No upcoming games on the selected Eastern date.')
+            return fallback
+        out, successes = {}, 0
+        for event in events:
+            data = _fetch_event_odds(event['id'], 'player_points,player_rebounds,player_assists')
+            if data is not None:
+                successes += 1
+                _parse_event_odds(dict(event, **data), out, target_date=target)
+        if successes:
+            _cache, _cache_ts, _cache_date = out, time.time(), target
+            return out
+    except Exception:
+        logger.warning('WNBA odds refresh failed; only fresh same-slate cache may be used')
+    return fallback
 
 
 def get_wnba_player_odds(player_name: str, stat: str) -> Optional[dict]:
@@ -124,33 +103,8 @@ def _fetch_event_ids() -> list[str]:
     return [e["id"] for e in _fetch_events()]
 
 
-def _filter_tonight_events(events: list[dict]) -> list[dict]:
-    """Return events whose tip-off falls in the current WNBA game night window.
-
-    WNBA "game night" in US ET is approximately noon to 6am next-day (covers
-    late-tip West Coast games). All commence_time values are UTC ISO 8601;
-    ET is UTC-4 in summer (DST). We use a fixed 4-hour offset (WNBA season
-    is entirely within DST, May-Oct).
-    """
-    et_offset = timedelta(hours=-4)
-    now_et = datetime.now(timezone.utc) + et_offset
-    # Window: noon today ET → 6am tomorrow ET
-    window_start = now_et.replace(hour=12, minute=0, second=0, microsecond=0)
-    if now_et.hour < 6:
-        # Early morning — we're still on "last night's" game slate
-        window_start -= timedelta(days=1)
-    window_end = window_start + timedelta(hours=18)   # noon → 6am next day
-
-    tonight = []
-    for e in events:
-        try:
-            tip_utc = datetime.fromisoformat(e["commence_time"].replace("Z", "+00:00"))
-            tip_et = tip_utc + et_offset
-            if window_start <= tip_et <= window_end:
-                tonight.append(e)
-        except Exception:
-            continue
-    return tonight
+def _filter_tonight_events(events):
+    return upcoming_events(events)
 
 
 def _fetch_event_odds(event_id: str, markets: str) -> Optional[dict]:
@@ -168,54 +122,21 @@ def _fetch_event_odds(event_id: str, markets: str) -> Optional[dict]:
     return resp.json()
 
 
-def _parse_event_odds(event_data: dict, out: dict) -> None:
-    bookmakers = event_data.get("bookmakers", [])
+_TEAM_NAMES = {
+    'Atlanta Dream': 'ATL', 'Chicago Sky': 'CHI', 'Connecticut Sun': 'CON',
+    'Dallas Wings': 'DAL', 'Golden State Valkyries': 'GSV', 'Indiana Fever': 'IND',
+    'Las Vegas Aces': 'LVA', 'Los Angeles Sparks': 'LAS', 'Minnesota Lynx': 'MIN',
+    'New York Liberty': 'NYL', 'Phoenix Mercury': 'PHX', 'Seattle Storm': 'SEA',
+    'Washington Mystics': 'WAS', 'Portland Fire': 'PDX', 'Toronto Tempo': 'TOR',
+}
 
-    def _rank(b):
-        k = b.get("key", "")
-        return PREFERRED_BOOKS.index(k) if k in PREFERRED_BOOKS else 99
 
-    for book in sorted(bookmakers, key=_rank):
-        book_name = book.get("title", book.get("key", "Unknown"))
-        for market in book.get("markets", []):
-            stat = MARKET_TO_STAT.get(market.get("key", ""))
-            if not stat:
-                continue
-            by_player: dict = {}
-            for outcome in market.get("outcomes", []):
-                player = outcome.get("description", "")
-                if not player:
-                    continue
-                by_player.setdefault(player, {})[outcome.get("name", "")] = {
-                    "price": outcome.get("price"),
-                    "point": outcome.get("point"),
-                }
-            for player, sides in by_player.items():
-                over = sides.get("Over", {})
-                under = sides.get("Under", {})
-                line = over.get("point") or under.get("point")
-                if line is None:
-                    continue
-                if over.get("point") is not None and under.get("point") is not None and over["point"] != under["point"]:
-                    continue
-                player_dict = out.setdefault(player, {})
-                if stat not in player_dict:
-                    player_dict[stat] = {
-                        "line": float(line),
-                        "over_price": over.get("price"),
-                        "under_price": under.get("price"),
-                        "bookmaker": book_name,
-                    }
+def _parse_event_odds(event_data, out, target_date=None):
+    return parse_quotes(event_data, out, target_date, _TEAM_NAMES)
 
 
 def _get(url: str, params: dict) -> Optional[requests.Response]:
-    try:
-        resp = requests.get(url, params=params, timeout=10)
-        resp.raise_for_status()
-        return resp
-    except Exception as e:
-        logger.warning(f"[WNBA-Odds] GET {url} failed: {e}")
-        return None
+    return odds_budget.request(requests.get, url, params)
 
 
 def _track_quota(resp: requests.Response) -> None:

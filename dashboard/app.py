@@ -1,6 +1,6 @@
 # dashboard/app.py
 """
-NBA Player Props Dashboard 
+NBA Player Props Dashboard
 =============================================
 """
 
@@ -314,7 +314,8 @@ def get_wnba_props(force: bool = False):
     global _wnba_props_cache, _wnba_props_cache_ts, _WNBA_TEAM_DEF, _WNBA_DEF_VS_POS
     import time
     if not force and _wnba_props_cache is not None and (time.time() - _wnba_props_cache_ts) < _WNBA_PROPS_TTL:
-        return _wnba_props_cache
+        from utils.prop_quality import quote_problem
+        return [prop for prop in _wnba_props_cache if quote_problem(prop.quote_source) is None]
     if WNBA_DF.empty:
         return []
     try:
@@ -338,6 +339,7 @@ def get_wnba_props(force: bool = False):
 
         props = generate_wnba_props(
             WNBA_DF, get_wnba_predictor, odds,
+            strict_quality=True, synthesize_missing=False,
             todays_games=games,
             team_def=_WNBA_TEAM_DEF,
             def_vs_pos=_WNBA_DEF_VS_POS,
@@ -348,7 +350,8 @@ def get_wnba_props(force: bool = False):
         return props
     except Exception as e:
         print(f"[WNBA-Props] generation failed: {e}")
-        return _wnba_props_cache or []
+        from utils.prop_quality import quote_problem
+        return [prop for prop in (_wnba_props_cache or []) if quote_problem(prop.quote_source) is None]
 
 
 def get_wnba_parlays():
@@ -464,169 +467,170 @@ def scheduled_props_refresh():
 
 
 # Initialize and start background scheduler
-try:
-    scheduler = BackgroundScheduler(daemon=True)
-    scheduler.add_job(
-        scheduled_update,
-        'interval',
-        minutes=30,
-        id='game_data_updater',
-        replace_existing=True,
-        max_instances=1
-    )
-    scheduler.add_job(
-        scheduled_props_refresh,
-        'interval',
-        minutes=30,
-        id='props_cache_refresher',
-        replace_existing=True,
-        max_instances=1
-    )
-    def _scheduled_grade():
-        from datetime import date as _date
-        from utils.prediction_tracker import grade_predictions, grade_props
-        from utils.parlay_tracker import grade_parlays
-        yesterday = (_date.today() - __import__("datetime").timedelta(days=1)).strftime("%Y-%m-%d")
-        today     = _date.today().strftime("%Y-%m-%d")
-        for d in (yesterday, today):
-            try:
-                grade_predictions(d)
-            except Exception as exc:
-                print(f"[App] Grade predictions failed for {d}: {exc}")
-            try:
-                grade_props(d)
-            except Exception as exc:
-                print(f"[App] Grade props failed for {d}: {exc}")
-            try:
-                grade_parlays(d)
-            except Exception as exc:
-                print(f"[App] Grade parlays failed for {d}: {exc}")
-
-    scheduler.add_job(
-        _scheduled_grade,
-        'cron',
-        hour=1,
-        minute=0,
-        id='grade_predictions',
-        replace_existing=True,
-        max_instances=1,
-    )
-    scheduler.start()
-    print("[App] Background schedulers started (data + props cache every 30 min, grade at 1 AM)")
-
-    # Trigger an immediate update at startup so data is fresh on first load
-    # (don't wait 30 minutes for the first scheduled run)
-    import threading as _threading
-    _startup_thread = _threading.Thread(target=scheduled_update, daemon=True, name="startup-update")
-    _startup_thread.start()
-    print("[App] Startup data refresh triggered in background")
-
-    # Catch-up grading: grade any past dates that were never graded because the
-    # app wasn't running at 1 AM (e.g. Mac was sleeping, app was closed).
-    def _catchup_grade():
-        from utils.prediction_tracker import grade_predictions, grade_props, _load_history, _load_props_history
-        from datetime import date as _date, timedelta as _td
-
-        # Catch-up prediction grading
-        history = _load_history()
-        today = _date.today().isoformat()
-        missed = [
-            d for d, v in history.items()
-            if d < today and not v.get("graded_at")
-        ]
-        if missed:
-            print(f"[App] Catch-up grading {len(missed)} ungraded date(s): {missed}")
-            for d in sorted(missed):
+if os.getenv("NBA_DISABLE_BACKGROUND") != "1":
+    try:
+        scheduler = BackgroundScheduler(daemon=True)
+        scheduler.add_job(
+            scheduled_update,
+            'interval',
+            minutes=30,
+            id='game_data_updater',
+            replace_existing=True,
+            max_instances=1
+        )
+        scheduler.add_job(
+            scheduled_props_refresh,
+            'interval',
+            minutes=30,
+            id='props_cache_refresher',
+            replace_existing=True,
+            max_instances=1
+        )
+        def _scheduled_grade():
+            from datetime import date as _date
+            from utils.prediction_tracker import grade_predictions, grade_props
+            from utils.parlay_tracker import grade_parlays
+            yesterday = (_date.today() - __import__("datetime").timedelta(days=1)).strftime("%Y-%m-%d")
+            today     = _date.today().strftime("%Y-%m-%d")
+            for d in (yesterday, today):
                 try:
                     grade_predictions(d)
                 except Exception as exc:
-                    print(f"[App] Catch-up grade failed for {d}: {exc}")
-        else:
-            print("[App] Catch-up grading: all past dates already graded")
-
-        # Catch-up props grading
-        props_history = _load_props_history()
-        missed_props = [
-            d for d, v in props_history.items()
-            if d < today and not v.get("graded_at")
-        ]
-        if missed_props:
-            print(f"[App] Catch-up props grading {len(missed_props)} ungraded date(s): {missed_props}")
-            for d in sorted(missed_props):
+                    print(f"[App] Grade predictions failed for {d}: {exc}")
                 try:
                     grade_props(d)
                 except Exception as exc:
-                    print(f"[App] Catch-up props grade failed for {d}: {exc}")
-        else:
-            print("[App] Catch-up props grading: all past dates already graded")
+                    print(f"[App] Grade props failed for {d}: {exc}")
+                try:
+                    grade_parlays(d)
+                except Exception as exc:
+                    print(f"[App] Grade parlays failed for {d}: {exc}")
 
-        # Catch-up parlay grading
-        try:
-            from utils.parlay_tracker import _load as _load_parlays_history, grade_parlays
-            parlays_history = _load_parlays_history()
-            missed_parlays = [
-                d for d, v in parlays_history.items()
+        scheduler.add_job(
+            _scheduled_grade,
+            'cron',
+            hour=1,
+            minute=0,
+            id='grade_predictions',
+            replace_existing=True,
+            max_instances=1,
+        )
+        scheduler.start()
+        print("[App] Background schedulers started (data + props cache every 30 min, grade at 1 AM)")
+
+        # Trigger an immediate update at startup so data is fresh on first load
+        # (don't wait 30 minutes for the first scheduled run)
+        import threading as _threading
+        _startup_thread = _threading.Thread(target=scheduled_update, daemon=True, name="startup-update")
+        _startup_thread.start()
+        print("[App] Startup data refresh triggered in background")
+
+        # Catch-up grading: grade any past dates that were never graded because the
+        # app wasn't running at 1 AM (e.g. Mac was sleeping, app was closed).
+        def _catchup_grade():
+            from utils.prediction_tracker import grade_predictions, grade_props, _load_history, _load_props_history
+            from datetime import date as _date, timedelta as _td
+
+            # Catch-up prediction grading
+            history = _load_history()
+            today = _date.today().isoformat()
+            missed = [
+                d for d, v in history.items()
                 if d < today and not v.get("graded_at")
             ]
-            if missed_parlays:
-                print(f"[App] Catch-up parlay grading {len(missed_parlays)} ungraded date(s): {missed_parlays}")
-                for d in sorted(missed_parlays):
+            if missed:
+                print(f"[App] Catch-up grading {len(missed)} ungraded date(s): {missed}")
+                for d in sorted(missed):
                     try:
-                        grade_parlays(d)
+                        grade_predictions(d)
                     except Exception as exc:
-                        print(f"[App] Catch-up parlay grade failed for {d}: {exc}")
+                        print(f"[App] Catch-up grade failed for {d}: {exc}")
             else:
-                print("[App] Catch-up parlay grading: all past dates already graded")
-        except Exception as exc:
-            print(f"[App] Catch-up parlay grading setup failed: {exc}")
+                print("[App] Catch-up grading: all past dates already graded")
 
-    _catchup_thread = _threading.Thread(target=_catchup_grade, daemon=True, name="catchup-grade")
-    _catchup_thread.start()
+            # Catch-up props grading
+            props_history = _load_props_history()
+            missed_props = [
+                d for d, v in props_history.items()
+                if d < today and not v.get("graded_at")
+            ]
+            if missed_props:
+                print(f"[App] Catch-up props grading {len(missed_props)} ungraded date(s): {missed_props}")
+                for d in sorted(missed_props):
+                    try:
+                        grade_props(d)
+                    except Exception as exc:
+                        print(f"[App] Catch-up props grade failed for {d}: {exc}")
+            else:
+                print("[App] Catch-up props grading: all past dates already graded")
 
-    # Pre-warm props cache and Today's Games API caches immediately at startup.
-    # This runs at module-import time so it works under gunicorn (HuggingFace)
-    # as well as direct `python app.py` invocation.
-    def _warmup_caches():
-        # 1. Pre-fetch games + odds so first page visit hits in-memory cache
-        try:
-            from utils.data_fetch import get_todays_games
-            from utils.odds_fetcher import get_game_odds
-            get_todays_games()
-            get_game_odds()
-            print("[App] Today's Games + Game Odds caches warmed")
-        except Exception as e:
-            print(f"[App] Games/Odds warm failed: {e}")
+            # Catch-up parlay grading
+            try:
+                from utils.parlay_tracker import _load as _load_parlays_history, grade_parlays
+                parlays_history = _load_parlays_history()
+                missed_parlays = [
+                    d for d, v in parlays_history.items()
+                    if d < today and not v.get("graded_at")
+                ]
+                if missed_parlays:
+                    print(f"[App] Catch-up parlay grading {len(missed_parlays)} ungraded date(s): {missed_parlays}")
+                    for d in sorted(missed_parlays):
+                        try:
+                            grade_parlays(d)
+                        except Exception as exc:
+                            print(f"[App] Catch-up parlay grade failed for {d}: {exc}")
+                else:
+                    print("[App] Catch-up parlay grading: all past dates already graded")
+            except Exception as exc:
+                print(f"[App] Catch-up parlay grading setup failed: {exc}")
 
-        # 2. Pre-compute Best Props (most expensive — do after games are warmed)
-        try:
-            from utils.props_cache import refresh_props_cache
-            refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predictor_fn=get_predictor)
-        except Exception as e:
-            print(f"[App] Props cache warm failed (will retry in 30 min): {e}")
+        _catchup_thread = _threading.Thread(target=_catchup_grade, daemon=True, name="catchup-grade")
+        _catchup_thread.start()
 
-        # 3. WNBA daily prediction snapshot + grade past dates + refresh calibration
-        try:
-            from utils.wnba_prediction_tracker import (
-                record_predictions, grade_pending, compute_calibration_offsets,
-            )
-            wnba_props = get_wnba_props()
-            recorded = record_predictions(wnba_props)
-            if recorded:
-                print(f"[App] WNBA predictions recorded: {recorded}")
-            graded = grade_pending(WNBA_DF)
-            if graded:
-                print(f"[App] WNBA past predictions graded: {graded}")
-            offsets = compute_calibration_offsets()
-            if offsets:
-                print(f"[App] WNBA calibration offsets: {offsets}")
-        except Exception as e:
-            print(f"[App] WNBA tracker warm failed: {e}")
+        # Pre-warm props cache and Today's Games API caches immediately at startup.
+        # This runs at module-import time so it works under gunicorn (HuggingFace)
+        # as well as direct `python app.py` invocation.
+        def _warmup_caches():
+            # 1. Pre-fetch games + odds so first page visit hits in-memory cache
+            try:
+                from utils.data_fetch import get_todays_games
+                from utils.odds_fetcher import get_game_odds
+                get_todays_games()
+                get_game_odds()
+                print("[App] Today's Games + Game Odds caches warmed")
+            except Exception as e:
+                print(f"[App] Games/Odds warm failed: {e}")
 
-    _warmup_thread = _threading.Thread(target=_warmup_caches, daemon=True, name="startup-warmup")
-    _warmup_thread.start()
-    print("[App] Startup cache warmup triggered in background")
-except Exception as e:
-    print(f"[App] Warning: Could not start scheduler: {e}")
+            # 2. Pre-compute Best Props (most expensive — do after games are warmed)
+            try:
+                from utils.props_cache import refresh_props_cache
+                refresh_props_cache(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, PLAYERS, get_predictor_fn=get_predictor)
+            except Exception as e:
+                print(f"[App] Props cache warm failed (will retry in 30 min): {e}")
+
+            # 3. WNBA daily prediction snapshot + grade past dates + refresh calibration
+            try:
+                from utils.wnba_prediction_tracker import (
+                    record_predictions, grade_pending, compute_calibration_offsets,
+                )
+                wnba_props = get_wnba_props()
+                recorded = record_predictions(wnba_props)
+                if recorded:
+                    print(f"[App] WNBA predictions recorded: {recorded}")
+                graded = grade_pending(WNBA_DF)
+                if graded:
+                    print(f"[App] WNBA past predictions graded: {graded}")
+                offsets = compute_calibration_offsets()
+                if offsets:
+                    print(f"[App] WNBA calibration offsets: {offsets}")
+            except Exception as e:
+                print(f"[App] WNBA tracker warm failed: {e}")
+
+        _warmup_thread = _threading.Thread(target=_warmup_caches, daemon=True, name="startup-warmup")
+        _warmup_thread.start()
+        print("[App] Startup cache warmup triggered in background")
+    except Exception as e:
+        print(f"[App] Warning: Could not start scheduler: {e}")
 
 # =============================================================================
 # COLOR SCHEME (Outlier Style)
@@ -854,6 +858,7 @@ app.layout = html.Div([
             dcc.Link("Today's Games", href="/nba/games", className="nav-link", id="nav-games"),
             dcc.Link("Best Props", href="/nba/props", className="nav-link", id="nav-props"),
             dcc.Link("Hit Rates", href="/wnba/hitrates", className="nav-link nav-hidden", id="nav-hitrates"),
+            dcc.Link("My Bets", href="/my-bets", className="nav-link"),
         ], className="nav-links"),
 
         # League toggle
@@ -2734,6 +2739,12 @@ def display_page(pathname):
 
     path = (pathname or "/").rstrip("/") or "/"
 
+    if path in ("/my-bets", "/bets"):
+        from dashboard.personal import create_page
+        return (create_page(), inactive, inactive, inactive, hidden,
+                "/nba/", "/nba/games", "/nba/props", "/wnba/hitrates",
+                get_config("nba").brand, league_active, league_inactive)
+
     # WNBA routes
     if path.startswith("/wnba"):
         wnba_hrefs = ("/wnba/", "/wnba/games", "/wnba/props", "/wnba/hitrates")
@@ -3117,7 +3128,9 @@ def _wnba_prediction_card(pdf: pd.DataFrame) -> html.Div:
     from utils.wnba_props import _blend_projection, _clip_prediction as _clip
     from utils.wnba_injuries import get_wnba_player_injury
 
-    children = [html.H4("Next Game Prediction", style={"color": "#e5e7eb", "marginBottom": "12px", "fontSize": "14px"})]
+    children = [html.H4("Projected stat line", style={"color": "#e5e7eb", "marginBottom": "12px", "fontSize": "14px"})]
+    from utils.prop_quality import history_label
+    children.append(html.Div(history_label(pdf), style={"color": "#9ca3af", "fontSize": "12px", "marginBottom": "10px"}))
     try:
         # If player is OUT/DOUBTFUL, don't even try to project — they aren't playing.
         player_name = pdf.iloc[0].get("PLAYER_NAME", "")
@@ -3814,14 +3827,14 @@ def update_period_tabs(l5, l10, l20, h2h, hw, current, previous, current_locatio
             location, hw_label = "away", "Away"
         else:
             location, hw_label = None, "H/W"
-        
+
         period = 100 if location else 10
         styles[4] = "tab active" if location else "tab"
-        
+
         # If toggling off, go back to L10
         if not location:
             styles[1] = "tab active"
-            
+
     elif triggered == "period-current":
         period, season, styles[5] = 100, CURRENT_SEASON, "tab active"
     elif triggered == "period-previous":
@@ -8274,6 +8287,59 @@ def _nba_prediction_card(player_name):
         style={"color": "#6b7280", "fontSize": "12px", "marginTop": "10px"},
     ))
     return html.Div(children, className="analysis-card")
+
+
+def _evaluate_personal_quote(payload):
+    """Price an explicit manual quote only for a scheduled, available player."""
+    from utils.manual_quote import evaluate
+    league = payload.get("league")
+    if league not in ("nba", "wnba") or payload.get("stat") not in ("PTS", "REB", "AST"):
+        raise ValueError("Choose a league and points, rebounds, or assists")
+    source = WNBA_DF if league == "wnba" else DF
+    player = str(payload.get("player") or "").strip()
+    history = source[source["PLAYER_NAME"] == player].sort_values("_date", ascending=False)
+    if history.empty:
+        return "No player history available for that name."
+    team = history.iloc[0].get("TEAM_ABBREVIATION", "")
+    available, home = False, False
+    if league == "wnba":
+        from utils.wnba_data_fetch import get_todays_wnba_games
+        from utils.wnba_injuries import is_player_unavailable
+        for game in get_todays_wnba_games():
+            if game.get("status") != "Scheduled":
+                continue
+            teams = [game.get(side, {}).get("abbrev") for side in ("home", "away")]
+            if team in teams:
+                home = team == teams[0]
+                available = not is_player_unavailable(player)
+                break
+        model = get_wnba_predictor(payload["stat"])
+    else:
+        from utils.injury_news import is_player_available
+        for _, game in get_todays_games().iterrows():
+            if game.get("GAME_STATUS_TEXT") != "Scheduled":
+                continue
+            if team in (game.get("HOME_TEAM"), game.get("AWAY_TEAM")):
+                home = team == game.get("HOME_TEAM")
+                available = is_player_available(player)[0]
+                break
+        model = get_predictor(payload["stat"])
+    return evaluate(payload, history, model, is_home=home, available=available)
+
+
+def _refresh_personal_odds(league):
+    """Only the journal's explicit refresh button spends odds credits."""
+    if league == "wnba":
+        from utils.wnba_odds_fetcher import get_live_wnba_odds
+        return get_live_wnba_odds(force_refresh=True)
+    if league == "nba":
+        from utils.odds_fetcher import get_live_odds
+        return get_live_odds(force_refresh=True)
+    raise ValueError("Choose NBA or WNBA")
+
+
+from dashboard.personal import register_callbacks as _register_personal_callbacks
+_register_personal_callbacks(_evaluate_personal_quote, _refresh_personal_odds)
 
 
 # =============================================================================

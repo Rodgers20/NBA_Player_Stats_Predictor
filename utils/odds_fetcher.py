@@ -9,9 +9,8 @@ Setup:
   2. Add to your .env file:
        THE_ODDS_API_KEY=your_key_here
 
-The free tier is plenty for development — each full nightly refresh
-costs ~10-15 API calls (one per game, all markets in one shot).
-We cache results for 30 minutes so quota isn't burned on every page load.
+Player-prop refresh is explicit and limited to two events / three markets.
+All requests use the persistent shared credit budget; ordinary reads are cache-only.
 
 Return shape:
   {
@@ -28,11 +27,14 @@ import os
 import time
 import logging
 import requests
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+from utils import odds_budget
 
 logger = logging.getLogger(__name__)
 
 # ── Config ─────────────────────────────────────────────────────────────────
-API_KEY: str = os.getenv("THE_ODDS_API_KEY", "")
+API_KEY: str = os.getenv("THE_ODDS_API_KEY") or os.getenv("ODDS_API_KEY", "")
 BASE_URL = "https://api.the-odds-api.com/v4"
 SPORT   = "basketball_nba"
 
@@ -55,12 +57,12 @@ _CACHE_TTL = 30 * 60
 
 # ── In-memory cache ─────────────────────────────────────────────────────────
 _cache: dict = {}          # player_name → {stat → odds_dict}
+_cache_date: str | None = None
 _cache_ts: float = 0.0     # unix timestamp of last fetch
 _requests_remaining: int | None = None  # track quota from response headers
 
-# Player props (per-event odds) require a paid plan and burn many API calls.
-# Set to True to disable entirely — game odds (spread/totals/h2h) still work.
-PLAYER_PROPS_ENABLED: bool = False
+# Explicit refresh may use player props if the configured account permits them.
+PLAYER_PROPS_ENABLED: bool = True
 
 # Circuit breaker: if the player-props endpoint returns 401 (paid plan required)
 # stop making per-event calls for the rest of the session.
@@ -92,62 +94,35 @@ _TEAM_NAME_TO_ABBR: dict = {
 
 # ── Public API ──────────────────────────────────────────────────────────────
 
-def get_live_odds(force_refresh: bool = False) -> dict:
-    """
-    Return live player prop odds for all today's NBA games.
-
-    Uses a 30-minute in-memory cache.  Returns an empty dict when the API
-    key is missing or the request fails — the rest of the pipeline degrades
-    gracefully (falls back to estimated lines).
-
-    Args:
-        force_refresh: Bypass cache and re-fetch from API.
-
-    Returns:
-        Nested dict: {player_name: {stat: {"line", "over_price", "under_price", "bookmaker"}}}
-    """
-    global _cache, _cache_ts
-
+def get_live_odds(force_refresh: bool = False, target_date: str | None = None) -> dict:
+    """Read cache by default. Explicit refresh buys at most six market credits."""
+    global _cache, _cache_ts, _cache_date
+    target = target_date or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
+    fallback = _cache if _cache_date == target and 0 <= time.time() - _cache_ts < _CACHE_TTL else {}
+    if not force_refresh:
+        return fallback
     if not API_KEY:
-        logger.debug("[OddsFetcher] THE_ODDS_API_KEY not set — skipping live odds")
-        return {}
-
-    if not force_refresh and _cache and (time.time() - _cache_ts) < _CACHE_TTL:
-        return _cache
-
-    global _player_props_unavailable
-
+        odds_budget.report('Odds API key is not configured. Add THE_ODDS_API_KEY to refresh.')
+        return fallback
     if _player_props_unavailable:
-        logger.debug("[OddsFetcher] Player props not available on current plan — skipping")
-        return _cache
-
-    logger.info("[OddsFetcher] Fetching fresh odds from The Odds API …")
+        return fallback
     try:
-        event_ids = _fetch_event_ids()
+        event_ids = _fetch_event_ids(target)[:2]
         if not event_ids:
-            logger.info("[OddsFetcher] No upcoming NBA events found")
-            return {}
-
-        fresh: dict = {}
-        markets = ",".join(MARKET_TO_STAT.keys())
-
+            odds_budget.report('No upcoming games on the selected Eastern date.')
+            return fallback
+        fresh, successes = {}, 0
         for event_id in event_ids:
-            if _player_props_unavailable:
-                break   # circuit breaker tripped mid-loop
-            odds_data = _fetch_event_odds(event_id, markets)
-            if odds_data:
-                _parse_event_odds(odds_data, fresh)
-            time.sleep(0.3)  # avoid 429 burst
-
-        _cache = fresh
-        _cache_ts = time.time()
-        logger.info(f"[OddsFetcher] Cached odds for {len(fresh)} players "
-                    f"({_requests_remaining} API requests remaining)")
-        return _cache
-
-    except Exception as exc:
-        logger.warning(f"[OddsFetcher] Failed to fetch odds: {exc}")
-        return _cache  # return stale cache rather than crashing
+            payload = _fetch_event_odds(event_id, 'player_points,player_rebounds,player_assists')
+            if payload:
+                successes += 1
+                _parse_event_odds(payload, fresh, target_date=target)
+        if successes:
+            _cache, _cache_ts, _cache_date = fresh, time.time(), target
+            return _cache
+    except Exception:
+        logger.warning('Odds refresh failed; only fresh same-slate cache may be used')
+    return fallback
 
 
 def get_player_odds(player_name: str, stat: str) -> dict | None:
@@ -204,6 +179,8 @@ def get_game_odds(force_refresh: bool = False) -> dict:
         }
     """
     global _game_odds_cache, _game_odds_ts
+    if not force_refresh:
+        return _game_odds_cache if 0 <= time.time() - _game_odds_ts < _CACHE_TTL else {}
 
     if not API_KEY:
         logger.debug("[OddsFetcher] THE_ODDS_API_KEY not set — skipping game odds")
@@ -309,13 +286,13 @@ def format_american_odds(price: int) -> str:
 
 # ── Internal helpers ─────────────────────────────────────────────────────────
 
-def _fetch_event_ids() -> list[str]:
+def _fetch_event_ids(target_date=None) -> list[str]:
     """Fetch today's NBA event IDs."""
     url = f"{BASE_URL}/sports/{SPORT}/events"
     resp = _get(url, {"apiKey": API_KEY, "dateFormat": "iso"})
     if resp is None:
         return []
-    return [e["id"] for e in resp.json()]
+    return [e["id"] for e in upcoming_events(resp.json(), target_date)][:2]
 
 
 def _fetch_event_odds(event_id: str, markets: str) -> dict | None:
@@ -335,13 +312,16 @@ def _fetch_event_odds(event_id: str, markets: str) -> dict | None:
     return resp.json()
 
 
-def _parse_event_odds(event_data: dict, out: dict) -> None:
+def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=None) -> None:
     """
     Parse one event's odds payload into the flat {player: {stat: odds}} dict.
 
     We iterate bookmakers in PREFERRED_BOOKS order so FanDuel lines win over
     less-popular books when both carry the same player prop.
     """
+    metadata = event_metadata(event_data, target_date, team_map or _TEAM_NAME_TO_ABBR)
+    if metadata is None:
+        return
     bookmakers: list[dict] = event_data.get("bookmakers", [])
 
     # Sort by preferred order (books not in the list go last)
@@ -382,6 +362,9 @@ def _parse_event_odds(event_data: dict, out: dict) -> None:
                 player_dict = out.setdefault(player, {})
                 if stat not in player_dict:
                     player_dict[stat] = {
+                        **metadata,
+                        "updated_at": market.get("last_update") or book.get("last_update"),
+                        "fetched_at": time.time(),
                         "line":        float(line),
                         "over_price":  over.get("price"),
                         "under_price": under.get("price"),
@@ -390,35 +373,7 @@ def _parse_event_odds(event_data: dict, out: dict) -> None:
 
 
 def _get(url: str, params: dict) -> requests.Response | None:
-    """GET with error handling — returns None on failure."""
-    global _player_props_unavailable
-    try:
-        resp = requests.get(url, params=params, timeout=10)
-        resp.raise_for_status()
-        return resp
-    except requests.HTTPError as e:
-        status = e.response.status_code if e.response is not None else None
-        if status == 401:
-            # Check whether this is a per-event player props call (paid plan required)
-            if "/events/" in url and "/odds" in url:
-                if not _player_props_unavailable:
-                    logger.warning(
-                        "[OddsFetcher] Player props (per-event) require a paid plan — "
-                        "disabling for this session. Game odds (spreads/totals) still work."
-                    )
-                    _player_props_unavailable = True
-            else:
-                logger.error("[OddsFetcher] Invalid API key — check THE_ODDS_API_KEY in .env")
-        elif status == 422:
-            logger.debug("[OddsFetcher] No props available for event (422)")
-        elif status == 429:
-            logger.warning("[OddsFetcher] Rate limited (429) — too many requests in a short window")
-        else:
-            logger.warning(f"[OddsFetcher] HTTP error {e}")
-        return None
-    except requests.RequestException as e:
-        logger.warning(f"[OddsFetcher] Request failed: {e}")
-        return None
+    return odds_budget.request(requests.get, url, params)
 
 
 def _track_quota(resp: requests.Response) -> None:
@@ -463,3 +418,33 @@ def american_to_implied_prob(american_odds: int) -> float:
     """
     decimal = american_to_decimal(american_odds)
     return round(1 / decimal, 4)
+
+
+def upcoming_events(events, target_date=None):
+    """Only unstarted events on an exact Eastern calendar date; DST aware."""
+    now = datetime.now(timezone.utc)
+    target = target_date or now.astimezone(ZoneInfo('America/New_York')).date().isoformat()
+    selected = []
+    for event in events:
+        try:
+            start = datetime.fromisoformat(event['commence_time'].replace('Z', '+00:00'))
+            if event.get('id') and start.tzinfo and start > now and start.astimezone(ZoneInfo('America/New_York')).date().isoformat() == target:
+                selected.append(event)
+        except (KeyError, ValueError, TypeError):
+            continue
+    return sorted(selected, key=lambda event: event['commence_time'])
+
+
+def event_metadata(event, target_date, team_map):
+    try:
+        start = datetime.fromisoformat(event['commence_time'].replace('Z', '+00:00'))
+        if start.tzinfo is None or not event.get('id'):
+            return None
+        event_date = start.astimezone(ZoneInfo('America/New_York')).date().isoformat()
+        if target_date and event_date != target_date:
+            return None
+        home, away = team_map[event['home_team']], team_map[event['away_team']]
+        return dict(event_id=event['id'], event_date=event_date, commence_time=event['commence_time'],
+                    home_team=home, away_team=away, game_matchup=f'{away} @ {home}')
+    except (KeyError, ValueError, TypeError):
+        return None

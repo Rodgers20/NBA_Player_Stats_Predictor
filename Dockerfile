@@ -1,16 +1,17 @@
-FROM python:3.10-slim
+FROM node:22-bookworm-slim AS frontend
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN NEXT_EXPORT=1 NEXT_PUBLIC_DATA_MODE=api npm run build
 
+FROM python:3.12-slim
 WORKDIR /app
-
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy app files
+COPY requirements.txt ./
+COPY api/requirements.txt ./api/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -r api/requirements.txt
 COPY . .
-
-# Expose port (Hugging Face uses 7860)
+COPY --from=frontend /frontend/out /app/frontend/out
+ENV SERVE_FRONTEND=1
 EXPOSE 7860
-
-# Run the app
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers=1", "--timeout=120", "dashboard.app:server"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "7860"]

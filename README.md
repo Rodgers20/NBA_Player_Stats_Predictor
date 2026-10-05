@@ -16,6 +16,50 @@ A full-stack NBA analytics dashboard that gives you **game predictions, player p
 ![License](https://img.shields.io/badge/License-MIT-green)
 [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/kingzman20/nba-player-predictor)
 
+## Current app: React + REST
+
+The primary app is now Next.js 16, React 19, TypeScript, Tailwind, TanStack Query,
+Zustand, D3 and Motion, with a Python FastAPI backend. The Python prediction
+and validation engines remain the source of calculations. `dashboard/` is the
+legacy Dash interface, retained for reference.
+
+```bash
+make install
+make app
+```
+
+Open http://localhost:3001. The REST API runs on port 8000 and its interactive
+schema is at http://localhost:8000/docs. Override the backend port with
+`make app API_PORT=8008` or the frontend port with `make app FRONTEND_PORT=3002`.
+The servers stay up while this terminal command runs. Use Python 3.12+ and Node 22+.
+
+The React app includes Best Props, Games, Player Analysis, and My Bets. NBA and
+WNBA data remain separate. Missing or stale data is shown explicitly; ordinary
+page reads do not purchase odds refreshes. My Bets writes to the existing local
+SQLite journal and keeps paper and real entries separate.
+
+### Hosting
+
+- **Full app:** Docker builds the React pages and serves them with FastAPI on
+  port 7860. `render.yaml` uses this container. The personal journal is disabled
+  on public hosting by default. Enable it only behind your own access control
+  with `JOURNAL_PRIVATE=1` and persistent storage. The private journal and
+  `.env` are excluded from the image; supply secrets at runtime.
+- **Static read-only site:** start `make api`, then run `make export`. This
+  exports public NBA/WNBA responses and builds `frontend/out`. Player search,
+  filters, and chart windows work from snapshots. My Bets requires the full
+  app and is unavailable in static mode. Re-export to refresh the snapshot;
+  export failures preserve the previous data and fail the build command.
+
+`make build` checks the normal Next server build. `make test` runs the Python
+suite, frontend behavior tests, lint and TypeScript checks. See
+[tasks/todo.md](tasks/todo.md) for transformation verification and limitations.
+
+## Legacy dashboard reference
+
+The remaining feature descriptions and Dash startup steps describe the older
+interface and are retained as migration reference, not the primary launch path.
+
 ## Model validation
 
 The September 2026 tuning run uses chronological selection, separate calibration,
@@ -169,7 +213,7 @@ cp .env.example .env
 
 Required keys in `.env`:
 ```
-ODDS_API_KEY=your_odds_api_key_here   # Get free at the-odds-api.com
+THE_ODDS_API_KEY=your_odds_api_key_here   # Get free at the-odds-api.com
 ```
 
 ### 5. Run the dashboard
@@ -201,7 +245,7 @@ See `docs/wnba-data-source.md` for the data source decision record.
 
 | Variable | Required | Where to get it |
 |----------|----------|-----------------|
-| `ODDS_API_KEY` | Yes | [the-odds-api.com](https://the-odds-api.com) — free tier available |
+| `THE_ODDS_API_KEY` (or `ODDS_API_KEY`) | For live odds | [the-odds-api.com](https://the-odds-api.com) — free tier available |
 
 ---
 

@@ -1,0 +1,24 @@
+.journal { max-width:1100px; margin:36px auto; padding:0 24px 60px; color:var(--text-primary,#e5e7eb); }
+.journal h1 {font-size:40px;letter-spacing:-1.5px;margin:4px 0 12px;}
+.journal h2 {font-size:21px;margin:0 0 10px;}
+.journal p {color:var(--text-secondary,#9ca3af);line-height:1.6;max-width:850px;}
+.journal-eyebrow {font-size:11px;letter-spacing:2px;color:#2dd4bf;}
+.journal-card {border-top:1px solid var(--border,#334155);padding:28px 0;margin-top:24px;}
+.journal-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:20px 0;}
+.journal-field {display:flex;flex-direction:column;gap:8px;min-width:0;}
+.journal-field label {font-size:12px;color:var(--text-secondary,#9ca3af);}
+.journal-field input {width:100%;box-sizing:border-box;background:#151b25;border:1px solid #3b4658;color:#e5e7eb;border-radius:6px;padding:11px;min-height:40px;}
+.journal button {background:#163a35;color:#a5f3df;border:1px solid #287469;border-radius:6px;padding:11px 16px;cursor:pointer;margin:12px 12px 12px 0;}
+.journal button:hover {background:#23564c;}
+.journal button:focus-visible,.journal input:focus-visible {outline:2px solid #5eead4;outline-offset:3px;}
+.journal-actions {display:flex;flex-wrap:wrap;}
+.journal-summary {display:grid;grid-template-columns:repeat(4,1fr);margin:24px 0;gap:24px;}
+.journal-summary span {display:block;font-size:12px;color:#9ca3af;margin-bottom:8px;}
+.journal-summary strong {font-size:25px;font-variant-numeric:tabular-nums;}
+.journal-table-scroll {overflow-x:auto;margin:16px 0;}
+.journal table {width:100%;border-collapse:collapse;text-align:left;font-size:13px;}
+.journal th {color:#9ca3af;font-weight:500;white-space:nowrap;}
+.journal td,.journal th {padding:13px 12px;border-bottom:1px solid #263143;}
+.journal [role=status] {font-size:13px;color:#a5f3df;line-height:1.7;white-space:pre-line;}
+@media(max-width:700px){.journal-grid {grid-template-columns:1fr 1fr;}.journal-summary {grid-template-columns:1fr 1fr;}.journal {padding:0 16px 40px;}}
+@media(max-width:420px){.journal-grid {grid-template-columns:1fr;}}

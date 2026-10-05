@@ -3,6 +3,8 @@ import os
 
 import pytest
 
+os.environ["NBA_DISABLE_BACKGROUND"] = "1"
+
 # Ensure project root is in sys.path
 project_root = os.path.dirname(os.path.abspath(__file__))
 if project_root not in sys.path:
@@ -27,3 +29,11 @@ def _reset_module_caches():
     clear_schedule_cache()
     yield
     clear_schedule_cache()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_personal_storage(tmp_path, monkeypatch):
+    from utils import odds_budget
+    monkeypatch.setattr(odds_budget, "DB_PATH", tmp_path / "personal.sqlite3")
+    from utils import wnba_injuries
+    monkeypatch.setattr(wnba_injuries, "_CACHE_FILE", tmp_path / "wnba_injuries.json")

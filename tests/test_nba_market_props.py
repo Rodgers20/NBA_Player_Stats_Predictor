@@ -1,4 +1,7 @@
 import numpy as np
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+import time
 import pandas as pd
 
 from utils import props_cache
@@ -21,7 +24,12 @@ def test_nba_props_use_one_actual_line_and_keep_low_minute_games(monkeypatch):
     positions = pd.DataFrame({'PLAYER_NAME': ['A'], 'TEAM_ABBREVIATION': ['BOS'], 'POSITION': ['G']})
     info = {'has_todays_games': True, 'team_to_opponent': {'BOS': 'MIA'},
             'teams_home_away': {'BOS': 'home'}}
-    quote = {'A': {'PTS': {'line': 17.5, 'over_price': 150, 'bookmaker': 'Test'}}}
+    now = datetime.now(ZoneInfo('America/New_York'))
+    tip = now.replace(hour=23, minute=59, second=59)
+    quote = {'A': {'PTS': {'line': 17.5, 'over_price': 150, 'bookmaker': 'Test',
+                          'event_id': 'test-event', 'commence_time': tip.isoformat(),
+                          'updated_at': datetime.now(timezone.utc).isoformat(),
+                          'fetched_at': time.time()}}}
     monkeypatch.setattr(props_cache, 'get_live_odds', lambda: quote)
     results = props_cache._compute_main_page_props(history, positions, pd.DataFrame(), info,
         {}, ['A'], get_predictor_fn=lambda stat: Model() if stat == 'PTS' else None)

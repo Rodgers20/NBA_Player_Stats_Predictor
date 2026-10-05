@@ -13,6 +13,7 @@ For each (player, stat) where we have both live odds and a model, produce:
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -40,6 +41,7 @@ class WnbaProp:
     historical_hit_rate: float = 0.0
     has_live_odds: bool = False
     probability_source: str = "uncalibrated historical estimate"
+    quote_source: dict = field(default_factory=dict)
 
 
 def american_to_implied_prob(price: Optional[int]) -> float:
@@ -255,6 +257,7 @@ def generate_wnba_props(
     synthesize_missing: bool = True,
     min_avg_min: float = 15.0,
     exclude_injured: bool = True,
+    strict_quality: bool = False,
 ) -> list[WnbaProp]:
     """Build list of WnbaProp objects.
 
@@ -262,6 +265,9 @@ def generate_wnba_props(
     (default), any (player, stat) combo that has no live odds gets a
     self-generated line from the player's last-20-game median — so the props
     board still populates when the Odds API is unreachable or over quota.
+
+    `strict_quality=True` suppresses synthetic, stale, or unpriced markets,
+    retaining at most five positive-EV selections with one per player.
 
     `min_avg_min` filters synthetic props to players whose L20 avg minutes
     meets the threshold (default 15). Bench players are excluded — starters
@@ -278,9 +284,15 @@ def generate_wnba_props(
     if wnba_df.empty:
         return []
     odds = odds or {}
+    from utils.prop_quality import history_problem, quote_problem
+    if strict_quality:
+        synthesize_missing = False
 
     stats_available = ["PTS", "AST", "REB", "FG3M",
                        "PTS+REB", "PTS+AST", "REB+AST", "PTS+REB+AST"]
+
+    if strict_quality:
+        stats_available = ["PTS", "REB", "AST"]
 
     from utils.pregame_features import prefer_identified_games
     df_sorted = prefer_identified_games(wnba_df).sort_values(["PLAYER_NAME", "_date"], ascending=[True, False])
@@ -314,12 +326,16 @@ def generate_wnba_props(
             candidate_players = {n for n in candidate_players if not is_player_unavailable(n)}
         except Exception as e:
             logger.debug(f"[WNBA-Props] injury filter skipped: {e}")
+            if strict_quality:
+                return []
 
     props: list[WnbaProp] = []
 
     for player_name in candidate_players:
         history = recent_by_player.get(player_name)
         if history is None or len(history) < min_recent_games:
+            continue
+        if strict_quality and history_problem(history):
             continue
         recent = history.head(20)
         team = recent.iloc[0].get("TEAM_ABBREVIATION", "—")
@@ -352,6 +368,8 @@ def generate_wnba_props(
 
         for stat in stats_available:
             entry = player_odds.get(stat)
+            if strict_quality and quote_problem(entry):
+                continue
             raw_projected = _project_stat(stat, feat_row, predictor_getter)
             if raw_projected is None:
                 continue
@@ -367,7 +385,7 @@ def generate_wnba_props(
 
             if entry is not None:
                 # Real sportsbook line
-                props.append(_build_prop(
+                prop = _build_prop(
                     player_name=player_name, team=team, stat=stat,
                     line=float(entry["line"]), projected=projected,
                     actual_series=actual_series,
@@ -375,7 +393,10 @@ def generate_wnba_props(
                     under_price=entry.get("under_price"),
                     bookmaker=entry.get("bookmaker", "—"),
                     recent_n=len(recent), residuals=residuals,
-                ))
+                )
+                prop.quote_source = dict(entry)
+                if not strict_quality or (prop.has_live_odds and prop.ev is not None and math.isfinite(prop.ev) and prop.ev > 0):
+                    props.append(prop)
             elif synthesize_missing:
                 # Synthetic line from L20 median (unbiased)
                 line = _synthetic_line_from_recent(recent, stat)
@@ -391,6 +412,11 @@ def generate_wnba_props(
                 ))
 
     props.sort(key=lambda p: p.ev if p.ev is not None else float("-inf"), reverse=True)
+    if strict_quality:
+        unique = {}
+        for prop in props:
+            unique.setdefault(prop.player_name, prop)
+        return list(unique.values())[:5]
     return props
 
 

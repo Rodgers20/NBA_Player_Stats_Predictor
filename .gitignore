@@ -56,3 +56,7 @@ logs/
 htmlcov/
 .coverage
 .pytest_cache/
+
+# Local personal journal and generated public snapshots
+data/personal.sqlite3*
+frontend/public/data/

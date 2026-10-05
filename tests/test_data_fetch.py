@@ -66,7 +66,9 @@ def test_load_team_stats_structure(mock_path, tmp_path):
     })
     team_hist.to_csv(tmp_path / "TeamHistories.csv", index=False)
 
-    df = load_team_stats(num_seasons=1)
+    # Keep the fixed 2025-26 fixture independent of the current NBA season.
+    with patch("utils.kaggle_loader.get_recent_seasons", return_value=["2025-26"]):
+        df = load_team_stats(num_seasons=1)
 
     assert isinstance(df, pd.DataFrame)
     assert not df.empty

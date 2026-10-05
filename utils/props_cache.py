@@ -43,9 +43,14 @@ _props_cache = {
 
 
 def get_cached_props() -> dict:
-    """Return cached props data (instant read)."""
+    """Return cached props while rejecting quotes that expired since refresh."""
+    from utils.prop_quality import quote_problem
     with _cache_lock:
-        return _props_cache.copy()
+        result = _props_cache.copy()
+    for key in ("main_page_data", "callback_data", "sidebar_data"):
+        result[key] = [prop for prop in result.get(key, [])
+                       if quote_problem(prop.get("quote_source"), result.get("target_date")) is None]
+    return result
 
 
 def get_parlays_cache() -> dict:
@@ -299,6 +304,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
     calibrated probability. Unavailable models/quotes yield no recommendation.
     """
     from utils.market_evaluation import evaluate_market
+    from utils.prop_quality import history_problem, quote_problem
     if not get_predictor_fn or not game_info.get("has_todays_games"):
         return []
     live_odds = get_live_odds()
@@ -312,7 +318,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
         history["_date"] = pd.to_datetime(history["_date"], format="mixed")
         history = history[history["_date"] < prediction_date].sort_values("_date", ascending=False).drop_duplicates("_date")
         qualified, avg_min = _is_qualified_player(player, history)
-        if not qualified or len(history) < 10:
+        if not qualified or history_problem(history, prediction_date):
             continue
         team = _get_player_team(player, PLAYER_POSITIONS)
         opponent = game_info.get("team_to_opponent", {}).get(team)
@@ -323,7 +329,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
         for stat in ("PTS", "AST", "REB"):
             quote = player_odds.get(stat)
             model = get_predictor_fn(stat)
-            if not quote or model is None or stat not in history:
+            if quote_problem(quote, prediction_date) or model is None or stat not in history:
                 continue
             residuals = getattr(model, "calibration_residuals", None)
             if residuals is None:
@@ -351,6 +357,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     return int((values > line).sum() if direction == "Over" else (values < line).sum())
                 l5 = recent.head(5)
                 prop = dict(evaluation, player=player, team=team, opponent=opponent,
+                    quote_source=dict(quote),
                     position=_get_player_position(player, PLAYER_POSITIONS), role=_get_player_role(avg_min),
                     avg_minutes=avg_min, stat=stat, line=line, book_line=line, live_line=line,
                     projection=projection, model_pred=projection, avg=float(recent.mean()),

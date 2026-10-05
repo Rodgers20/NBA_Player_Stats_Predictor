@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+**/node_modules
+**/.next
+**/__pycache__
+**/.pytest_cache
+.venv
+venv
+frontend/out
+frontend/public/data
+data/personal.sqlite3*
+data/**/backups
+models/**/backups
