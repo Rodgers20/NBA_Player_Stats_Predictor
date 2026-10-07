@@ -15,6 +15,7 @@ export interface Prop {
   total:        number | null;
   ev:           number | null;
   recommendation_eligible?: boolean;
+  pick_type?: 'pick' | 'lean' | 'research';
   quality_reason?: string;
   probability_source?: string;
   model_prob?: number | null;

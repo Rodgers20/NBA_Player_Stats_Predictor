@@ -7,6 +7,8 @@ from fastapi import APIRouter, Query
 from api.data import League, history, number
 
 router = APIRouter(tags=['props'])
+WNBA_BOARD_SIZE = 15  # best market per player; picks rank first, leans fill the rest
+RESEARCH_STATS = ('PTS', 'REB', 'AST')
 
 
 def _get_props_data():
@@ -19,7 +21,11 @@ def _cached_quotes(league):
         from utils import wnba_odds_fetcher as fetcher
     else:
         from utils import odds_fetcher as fetcher
-    return {player: dict(markets) for player, markets in fetcher._cache.items()}
+    from utils import odds_store
+    quotes = odds_store.load(league)
+    for player, markets in fetcher._cache.items():
+        quotes.setdefault(player, {}).update(markets)
+    return quotes
 
 
 def _quality_reason(prop, target_date, league):
@@ -40,7 +46,7 @@ def _quality_reason(prop, target_date, league):
     probability = number(prop.get('model_prob'))
     if probability is None or not 0 <= probability <= 1 or not prop.get('probability_source'):
         return 'Model probability is unavailable'
-    if number(prop.get('ev')) is None or number(prop.get('ev')) <= 0:
+    if number(prop.get('ev')) is None:
         return 'Expected value is unavailable'
     df = history(league)
     return history_problem(df[df['PLAYER_NAME'] == prop.get('player')], target_date)
@@ -57,8 +63,8 @@ def _wnba_research_shortlist(stat, game, location, direction, locks_only, combos
                  props=[], status='empty')
     if locks_only or combos_only or direction != 'all':
         return dict(empty, message='No verified WNBA sportsbook picks are available for this filter.')
-    research_stat = (stat or 'PTS').upper()
-    if research_stat not in ('PTS', 'REB', 'AST'):
+    research_stats = (stat.upper(),) if stat else RESEARCH_STATS
+    if any(item not in RESEARCH_STATS for item in research_stats):
         return dict(empty, message='Unpriced WNBA research is available for points, rebounds, and assists.')
     try:
         games = get_todays_wnba_games(target)
@@ -68,9 +74,10 @@ def _wnba_research_shortlist(stat, game, location, direction, locks_only, combos
         return dict(empty, status='unavailable', message='No WNBA slate is available for this Eastern date.')
     matchups = [f"{item['away']['abbrev']} @ {item['home']['abbrev']}" for item in games]
     empty['game_matchups'] = matchups
-    model = predictor('wnba', research_stat)
-    if model is None:
-        return dict(empty, message=f'WNBA {research_stat} model is unavailable.')
+    models = {item: predictor('wnba', item) for item in research_stats}
+    models = {item: model for item, model in models.items() if model is not None}
+    if not models:
+        return dict(empty, message='WNBA research models are unavailable.')
     rows = history('wnba')
     if rows.empty:
         return dict(empty, message='WNBA player history is empty; refresh game logs before evaluating picks.')
@@ -102,41 +109,53 @@ def _wnba_research_shortlist(stat, game, location, direction, locks_only, combos
 
     headshots = _headshot_urls('wnba')
     shortlist = []
-    for _, player, player_rows, matchup, is_home in candidates:
-        matchup_name = f"{matchup['away']['abbrev']} @ {matchup['home']['abbrev']}"
-        if game and game.casefold() not in matchup_name.casefold():
-            continue
-        try:
-            result = model.predict_player_game(player, player_rows, game_date=target, is_home=is_home)
-            projection = number(result.get(f'predicted_{research_stat.lower()}'))
-        except (ValueError, KeyError, TypeError, AttributeError):
-            continue
-        if projection is None:
-            continue
-        values = [number(value) for value in player_rows[research_stat].head(10)]
-        values = [value for value in values if value is not None]
-        if not values:
-            continue
-        avg = sum(values) / len(values)
-        opponent = matchup['away']['abbrev'] if is_home else matchup['home']['abbrev']
-        shortlist.append(dict(player=player, team=player_rows.iloc[0]['TEAM_ABBREVIATION'],
-            opponent=opponent, stat=research_stat, stat_label=research_stat,
-            game_matchup=matchup_name, is_home_today=is_home, headshot_url=headshots.get(player),
-            direction='Research', line=None, live_line=None, price=None, ev=None,
-            has_live_odds=False, recommendation_eligible=False, quality_reason='No verified sportsbook line or price; research only.',
-            probability_source='Model projection only; no market probability', model_prob=None,
-            model_projection=round(projection, 1), avg=round(avg, 1),
-            l5_avg=round(sum(values[:5]) / len(values[:5]), 1),
-            hits=None, total=None, hit_rate=None, def_rank=None, is_lock=False, is_combo=False,
-            blowout_risk=False, l5_values=values[:5], chart_windows={},
-            insight=f'Model projects {projection:.1f} {research_stat} against {avg:.1f} over the last {len(values)} games. No betting edge or pick is claimed.'))
-        if len(shortlist) == 5:
-            break
+    for research_stat, model in models.items():
+        found = 0
+        for _, player, player_rows, matchup, is_home in candidates:
+            if found == limit:
+                break
+            matchup_name = f"{matchup['away']['abbrev']} @ {matchup['home']['abbrev']}"
+            if game and game.casefold() not in matchup_name.casefold():
+                continue
+            try:
+                result = model.predict_player_game(player, player_rows, game_date=target, is_home=is_home)
+                projection = number(result.get(f'predicted_{research_stat.lower()}'))
+            except (ValueError, KeyError, TypeError, AttributeError):
+                continue
+            if projection is None:
+                continue
+            values = [number(value) for value in player_rows[research_stat].head(10)]
+            values = [value for value in values if value is not None]
+            if not values:
+                continue
+            avg = sum(values) / len(values)
+            opponent = matchup['away']['abbrev'] if is_home else matchup['home']['abbrev']
+            found += 1
+            shortlist.append(dict(player=player, team=player_rows.iloc[0]['TEAM_ABBREVIATION'],
+                opponent=opponent, stat=research_stat, stat_label=research_stat,
+                game_matchup=matchup_name, is_home_today=is_home, headshot_url=headshots.get(player),
+                direction='Research', line=None, live_line=None, price=None, ev=None,
+                has_live_odds=False, recommendation_eligible=False, pick_type='research', quality_reason='No verified sportsbook line or price; research only.',
+                probability_source='Model projection only; no market probability', model_prob=None,
+                model_projection=round(projection, 1), avg=round(avg, 1),
+                l5_avg=round(sum(values[:5]) / len(values[:5]), 1),
+                hits=None, total=None, hit_rate=None, def_rank=None, is_lock=False, is_combo=False,
+                blowout_risk=False, l5_values=values[:5], chart_windows={},
+                insight=f'Model projects {projection:.1f} {research_stat} against {avg:.1f} over the last {len(values)} games. No betting edge or pick is claimed.'))
     if not shortlist:
         return dict(empty, message='No current-history WNBA players with a usable model projection qualify for research.')
     return dict(empty, count=len(shortlist), props=shortlist[:limit],
-                stat_counts={research_stat: len(shortlist)}, status='research',
+                stat_counts=dict(Counter(item['stat'] for item in shortlist)), status='research',
                 message='Unpriced model research only. Refresh sportsbook quotes to evaluate betting picks.')
+
+
+def _ensure_evaluated(league):
+    """After a restart, price the quotes saved on disk instead of showing research rows."""
+    if league in _evaluated_cache:
+        return
+    from utils import odds_store
+    if odds_store.load(league):
+        refresh_props(league=league, fetch_odds=False)
 
 
 @router.get('/props')
@@ -146,6 +165,7 @@ def get_props(game: str | None = None, stat: str | None = None,
               locks_only: bool = False, combos_only: bool = False,
               location: Literal['all', 'home', 'away'] = 'all',
               include_research: bool = False, league: League = 'nba'):
+    _ensure_evaluated(league)
     if league == 'wnba' and not _evaluated_cache.get(league, {}).get('main_page_data'):
         research = _wnba_research_shortlist(stat, game, location, direction, locks_only, combos_only, limit)
         if league in _evaluated_cache:
@@ -262,16 +282,18 @@ def get_record():
 def _serialise_prop(p, quality_reason=None):
     insight = p.get('insight') or {}
     narrative = insight.get('narrative', '') if isinstance(insight, dict) else str(insight)
-    eligible = quality_reason is None
+    eligible = quality_reason is None   # a real, fresh sportsbook price backs this row
+    ev = number(p.get('ev')) if eligible else None
+    pick_type = 'research' if not eligible else 'pick' if ev is not None and ev > 0 else 'lean'
     result = {key: p.get(key, '') for key in ('player', 'team', 'opponent', 'stat', 'game_matchup')}
-    result.update({key: number(p.get(key)) for key in ('line', 'avg', 'l5_avg', 'hits', 'total', 'def_rank', 'live_line')})
+    result.update({key: number(p.get(key)) for key in ('line', 'avg', 'l5_avg', 'hits', 'total', 'def_rank', 'live_line', 'model_projection')})
     result.update(stat_label=p.get('stat_label', p.get('stat', '')), direction=p.get('direction', 'Over'),
                   hit_rate=round((number(p.get('hit_rate')) or 0) * 100, 1),
-                  ev=number(p.get('ev')) if eligible else None, is_lock=False,
+                  ev=ev, pick_type=pick_type, is_lock=False,
                   is_combo=bool(p.get('is_combo') or '+' in p.get('stat', '')),
                   blowout_risk=bool(p.get('blowout_risk')), insight=narrative,
                   has_live_odds=bool(p.get('has_live_odds')) and eligible,
-                  recommendation_eligible=eligible, quality_reason=quality_reason,
+                  recommendation_eligible=pick_type == 'pick', quality_reason=quality_reason,
                   probability_source=p.get('probability_source', 'Historical frequency; not a model probability'),
                   model_prob=number(p.get('model_prob')) if eligible else None,
                   price=number(p.get('live_under_price' if p.get('direction', '').lower() == 'under' else 'live_over_price')) if eligible else None)
@@ -299,12 +321,8 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
     from utils.prop_quality import quote_problem, history_problem
     from utils.market_evaluation import evaluate_market
     if fetch_odds:
-        if league == 'wnba':
-            from utils.wnba_odds_fetcher import get_live_wnba_odds
-            get_live_wnba_odds(force_refresh=True)
-        else:
-            from utils.odds_fetcher import get_live_odds
-            get_live_odds(force_refresh=True)
+        from utils import odds_planner
+        odds_planner.refresh(league, odds_planner.plan('manual').get(league, 0))
     quotes = _cached_quotes(league)
     target = datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     output, skipped = [], []
@@ -339,7 +357,7 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                     price = quote.get('over_price' if direction == 'Over' else 'under_price')
                     evaluation = evaluate_market(projection, quote['line'], price,
                                                  getattr(model, 'calibration_residuals', None), direction)
-                    if not evaluation or evaluation['ev'] <= 0:
+                    if not evaluation:
                         continue
                     hits = int((values > quote['line']).sum() if direction == 'Over' else (values < quote['line']).sum())
                     candidates.append(dict(evaluation, player=player, stat=stat, direction=direction,
@@ -350,11 +368,13 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                         is_home_today=is_home,
                         l5_values=[float(value) for value in values.head(5)],
                         live_over_price=quote.get('over_price'), live_under_price=quote.get('under_price'),
-                        insight={'narrative': 'Estimated EV from held-out residuals; market calibration is unverified.'}))
+                        insight={'narrative': f'Model projects {projection:.1f} {stat} against the {quote["line"]} line. '
+                                              'Estimated EV from held-out residuals; market calibration is unverified.'},
+                        model_projection=round(projection, 1)))
                 if candidates:
                     output.append(max(candidates, key=lambda p: p['ev']))
                 else:
-                    skipped.append(dict(player=player, stat=stat, reason='No positive estimated EV with valid price and model residuals'))
+                    skipped.append(dict(player=player, stat=stat, reason='No valid price or model residuals for either side'))
             except (ValueError, KeyError, TypeError) as exc:
                 skipped.append(dict(player=player, stat=stat, reason=str(exc)))
     output.sort(key=lambda item: item['ev'], reverse=True)
@@ -365,17 +385,18 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
             if prop['player'] not in players:
                 distinct.append(prop)
                 players.add(prop['player'])
-            if len(distinct) == 5:
+            if len(distinct) == WNBA_BOARD_SIZE:
                 break
         output = distinct
     _evaluated_cache[league] = dict(main_page_data=output, target_date=target,
                                   game_matchups=sorted({p['game_matchup'] for p in output if p['game_matchup']}))
     return dict(count=len(output), target_date=target, skipped=skipped, budget=get_budget(league),
+                picks=sum(1 for p in output if p['ev'] > 0),
                 status='ready' if output else 'empty',
                 message=('Explicit odds refresh completed. ' if fetch_odds else 'No odds were fetched. ') +
                         ('Verified markets evaluated.' if output else
                          ('No current WNBA quotes were available for this slate.' if league == 'wnba' and not quotes else
-                          'No qualifying priced recommendations passed the quote, history, model, and positive-EV checks.')))
+                          'No priced markets passed the quote, history, and model checks.')))
 
 
 @router.get('/props/budget')
@@ -385,4 +406,4 @@ def get_budget(league: League = 'nba'):
         from utils.wnba_odds_fetcher import API_KEY
     else:
         from utils.odds_fetcher import API_KEY
-    return dict(odds_budget.status(), configured=bool(API_KEY), max_refresh_cost=6)
+    return dict(odds_budget.status(), configured=bool(API_KEY), max_refresh_cost=odds_budget.DAILY_LIMIT)

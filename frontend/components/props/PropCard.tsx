@@ -25,7 +25,8 @@ export function PropCard({ prop, targetDate, onAnalyze, selected = false }: Prop
   const [photoFailed, setPhotoFailed] = useState(false);
   const league = usePrefs((state) => state.league);
   const { legs, toggle } = useSlip();
-  const canAdd = Boolean(targetDate && prop.recommendation_eligible && prop.has_live_odds && prop.line != null && prop.price != null && decimalOdds(prop.price) && /^(over|under)$/i.test(prop.direction));
+  const priced = prop.pick_type ? prop.pick_type !== "research" : (prop.recommendation_eligible ?? prop.has_live_odds);
+  const canAdd = Boolean(targetDate && priced && prop.has_live_odds && prop.line != null && prop.price != null && decimalOdds(prop.price) && /^(over|under)$/i.test(prop.direction));
   const inSlip = legs.some(leg => leg.league === league && leg.date === targetDate && leg.player === prop.player && leg.stat === prop.stat && leg.line === prop.line && leg.direction.toLowerCase() === prop.direction.toLowerCase());
   function toggleSlip() {
     if (!canAdd || !targetDate || prop.line == null || prop.price == null) return;
@@ -36,7 +37,7 @@ export function PropCard({ prop, targetDate, onAnalyze, selected = false }: Prop
   const hitRate = prop.hit_rate != null && Number.isFinite(prop.hit_rate) ? Math.round(prop.hit_rate) : null;
   const projectionOnly = prop.line == null && prop.model_projection != null;
   const quotedSide = prop.direction.toLowerCase() === "under" ? "Under" : "Over";
-  const verified = prop.recommendation_eligible ?? prop.has_live_odds;
+  const verified = priced;
   const ev = !verified || prop.ev == null ? "—" : `${prop.ev >= 0 ? "+" : ""}${(prop.ev * 100).toFixed(1)}%`;
   const trackParams = new URLSearchParams({ league, player: prop.player, stat: prop.stat, side: quotedSide });
   if (targetDate) trackParams.set("game_date", targetDate);
@@ -82,6 +83,10 @@ export function PropCard({ prop, targetDate, onAnalyze, selected = false }: Prop
         {prop.avg != null && <span>AVG <strong className="tabular-nums text-[#eaf8f6]">{prop.avg}</strong></span>}
         {prop.is_combo && <span className="ql-chip px-1.5 py-0.5 text-[10px]">COMBO</span>}
         {prop.blowout_risk && <span className="rounded border border-orange-400/40 px-1.5 py-0.5 text-[10px] font-bold text-orange-300">BLOWOUT RISK</span>}
+        {verified && prop.model_prob != null && <span title="Model probability that this side hits">MODEL <strong className="tabular-nums text-[#eaf8f6]">{Math.round(prop.model_prob * 100)}%</strong></span>}
+        {verified && prop.model_projection != null && <span>PROJ <strong className="tabular-nums text-[#eaf8f6]">{prop.model_projection.toFixed(1)}</strong></span>}
+        {prop.pick_type === "pick" && <span className="rounded border border-[#59e0c8]/50 bg-[#59e0c8]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#59e0c8]">PICK · +EV</span>}
+        {prop.pick_type === "lean" && <span className="rounded border border-sky-400/40 bg-sky-400/[0.07] px-1.5 py-0.5 text-[10px] font-bold text-sky-300" title="Priced, but the model sees no positive edge at this price">LEAN · NO EDGE</span>}
         {!verified && <span className="rounded border border-amber-400/40 bg-amber-400/[0.07] px-1.5 py-0.5 text-[10px] font-bold text-amber-300">RESEARCH ONLY</span>}
       </div>
       {prop.insight && <p className="mt-2 pl-[52px] text-xs leading-relaxed text-[#a9bec0]">{prop.insight}</p>}

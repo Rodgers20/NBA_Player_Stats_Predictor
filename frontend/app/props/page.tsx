@@ -72,7 +72,7 @@ export default function PropsPage() {
   }
   const activeView = (view === "alt" && !altLines.data?.count) || (view === "record" && !record.data?.total) ? "props" : view;
   const byGame = Object.groupBy(data?.props ?? [], (prop) => prop.game_matchup || "Other matchups");
-  const verifiedCount = data?.props.filter((prop) => prop.recommendation_eligible).length ?? 0;
+  const verifiedCount = data?.props.filter((prop) => (prop.pick_type ?? (prop.recommendation_eligible ? "pick" : "research")) !== "research").length ?? 0;
   const selectedProp = selected?.league === league ? selected.prop : null;
 
   return (
@@ -112,7 +112,7 @@ export default function PropsPage() {
       </div>
 
       {league === "wnba" && !isStatic && budget.data?.configured && (
-        <p className="mb-4 text-xs text-[#a9bec0]">WNBA quote refresh checks up to two upcoming games across points, rebounds, and assists (at most six Odds API credits), then shows up to five eligible players. In-progress games do not produce pregame picks.</p>
+        <p className="mb-4 text-xs text-[#a9bec0]">NBA and WNBA share one free Odds API pool. Quotes refresh each morning and about two hours before tip-off, and credits go to whichever league has games, so off-season credits fund the other league. In-progress games do not produce pregame picks.</p>
       )}
 
       {activeView === "props" && <PropFilters filters={filters} matchups={data?.game_matchups ?? []} statCounts={data?.stat_counts} onChange={handleChange} />}

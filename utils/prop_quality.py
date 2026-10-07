@@ -5,6 +5,8 @@ import math
 import pandas as pd
 
 ET = ZoneInfo('America/New_York')
+# Refreshes run morning and ~2h before tip, so a quote may be hours old; the age is shown to the user.
+QUOTE_MAX_AGE_SECONDS = 6 * 3600
 
 
 def quote_problem(quote, target_date=None):
@@ -23,7 +25,7 @@ def quote_problem(quote, target_date=None):
         if updated.tzinfo is None:
             return 'Quote update time has no timezone'
         for age in (now.timestamp() - fetched, (now-updated).total_seconds()):
-            if not math.isfinite(age) or age < -60 or age >= 1800:
+            if not math.isfinite(age) or age < -60 or age >= QUOTE_MAX_AGE_SECONDS:
                 return 'Quote expired; refresh or enter the current book price'
     except (KeyError, ValueError, TypeError, AttributeError):
         return 'Quote timestamp unavailable'

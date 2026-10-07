@@ -1,5 +1,7 @@
-"""REST entry point. Startup and local data reads never refresh paid odds."""
+"""REST entry point. Local data reads never refresh odds; only the scheduler and explicit refreshes do."""
+import asyncio
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -8,7 +10,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes import props, games, players, hitrates
 
-app = FastAPI(title='Basketball Props API', version='1.1.0')
+@asynccontextmanager
+async def lifespan(_app):
+    # Scheduled refreshes spend free-tier credits; ODDS_AUTO_REFRESH=0 turns them off.
+    task = None
+    if os.getenv('ODDS_AUTO_REFRESH', '1') != '0':
+        from utils import odds_planner
+        task = asyncio.create_task(odds_planner.run_forever())
+    yield
+    if task:
+        task.cancel()
+
+
+app = FastAPI(title='Basketball Props API', version='1.1.0', lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.getenv('API_CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001').split(','),

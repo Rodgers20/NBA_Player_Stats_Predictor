@@ -29,7 +29,7 @@ import logging
 import requests
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from utils import odds_budget
+from utils import odds_budget, odds_store
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +94,8 @@ _TEAM_NAME_TO_ABBR: dict = {
 
 # ── Public API ──────────────────────────────────────────────────────────────
 
-def get_live_odds(force_refresh: bool = False, target_date: str | None = None) -> dict:
-    """Read cache by default. Explicit refresh buys at most six market credits."""
+def get_live_odds(force_refresh: bool = False, target_date: str | None = None, max_events: int = 2) -> dict:
+    """Read cache by default. Explicit refresh buys 3 market credits per event, up to max_events."""
     global _cache, _cache_ts, _cache_date
     target = target_date or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     fallback = _cache if _cache_date == target and 0 <= time.time() - _cache_ts < _CACHE_TTL else {}
@@ -107,7 +107,7 @@ def get_live_odds(force_refresh: bool = False, target_date: str | None = None) -
     if _player_props_unavailable:
         return fallback
     try:
-        event_ids = _fetch_event_ids(target)[:2]
+        event_ids = _fetch_event_ids(target)[:max_events]
         if not event_ids:
             odds_budget.report('No upcoming games on the selected Eastern date.')
             return fallback
@@ -119,6 +119,7 @@ def get_live_odds(force_refresh: bool = False, target_date: str | None = None) -
                 _parse_event_odds(payload, fresh, target_date=target)
         if successes:
             _cache, _cache_ts, _cache_date = fresh, time.time(), target
+            odds_store.save('nba', fresh)
             return _cache
     except Exception:
         logger.warning('Odds refresh failed; only fresh same-slate cache may be used')
@@ -292,7 +293,7 @@ def _fetch_event_ids(target_date=None) -> list[str]:
     resp = _get(url, {"apiKey": API_KEY, "dateFormat": "iso"})
     if resp is None:
         return []
-    return [e["id"] for e in upcoming_events(resp.json(), target_date)][:2]
+    return [e["id"] for e in upcoming_events(resp.json(), target_date)]
 
 
 def _fetch_event_odds(event_id: str, markets: str) -> dict | None:

@@ -47,6 +47,7 @@ def test_invalid_wager_rejected(key,value):
 
 
 def test_daily_and_monthly_budget_survive_connections(monkeypatch):
+    monkeypatch.setattr(odds_budget,'DAILY_LIMIT',12)
     for _ in range(4):
         assert odds_budget.reserve(3)
     assert not odds_budget.reserve(3)

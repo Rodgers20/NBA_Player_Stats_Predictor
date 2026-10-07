@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 import requests
-from utils import odds_budget
+from utils import odds_budget, odds_store
 from utils.odds_fetcher import upcoming_events, _parse_event_odds as parse_quotes
 from zoneinfo import ZoneInfo
 
@@ -48,8 +48,8 @@ _cache_ts: float = 0.0
 _requests_remaining: Optional[int] = None
 
 
-def get_live_wnba_odds(force_refresh: bool = False, target_date=None) -> dict:
-    """Cache-only reads; explicit refresh buys at most six market credits."""
+def get_live_wnba_odds(force_refresh: bool = False, target_date=None, max_events: int = 2) -> dict:
+    """Cache-only reads; explicit refresh buys 3 market credits per event, up to max_events."""
     global _cache, _cache_ts, _cache_date
     target = target_date or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     fallback = _cache if _cache_date == target and 0 <= time.time() - _cache_ts < _CACHE_TTL else {}
@@ -59,7 +59,7 @@ def get_live_wnba_odds(force_refresh: bool = False, target_date=None) -> dict:
         odds_budget.report('Odds API key is not configured. Add THE_ODDS_API_KEY to refresh.')
         return fallback
     try:
-        events = upcoming_events(_fetch_events(), target)[:2]
+        events = upcoming_events(_fetch_events(), target)[:max_events]
         if not events:
             odds_budget.report('No upcoming games on the selected Eastern date.')
             return fallback
@@ -71,6 +71,7 @@ def get_live_wnba_odds(force_refresh: bool = False, target_date=None) -> dict:
                 _parse_event_odds(dict(event, **data), out, target_date=target)
         if successes:
             _cache, _cache_ts, _cache_date = out, time.time(), target
+            odds_store.save('wnba', out)
             return out
     except Exception:
         logger.warning('WNBA odds refresh failed; only fresh same-slate cache may be used')

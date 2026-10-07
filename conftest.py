@@ -4,6 +4,7 @@ import os
 import pytest
 
 os.environ["NBA_DISABLE_BACKGROUND"] = "1"
+os.environ["ODDS_AUTO_REFRESH"] = "0"
 
 # Ensure project root is in sys.path
 project_root = os.path.dirname(os.path.abspath(__file__))

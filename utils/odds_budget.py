@@ -5,8 +5,8 @@ from pathlib import Path
 import sqlite3
 
 DB_PATH = Path(__file__).resolve().parents[1] / 'data' / 'personal.sqlite3'
-DAILY_LIMIT = 12
-MONTHLY_LIMIT = 400
+DAILY_LIMIT = 40
+MONTHLY_LIMIT = 450  # free tier is 500; the rest is a safety reserve
 
 
 @contextmanager

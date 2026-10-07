@@ -290,7 +290,7 @@ def test_refresh_evaluates_cached_quotes_without_fetching_and_rechecks_expiry(mo
     prop = client.get('/api/props').json()['props'][0]
     assert prop['recommendation_eligible'] and prop['ev'] > 0
     assert prop['price'] == -110
-    quote['fetched_at'] = now.timestamp() - 3600
+    quote['fetched_at'] = now.timestamp() - 7 * 3600
     assert client.get('/api/props').json()['props'] == []
 
 

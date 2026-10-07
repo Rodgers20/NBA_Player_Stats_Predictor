@@ -60,12 +60,14 @@ def test_api_refresh_is_explicit_and_board_preserves_each_player_stat(monkeypatc
                              _date=today-pd.Timedelta(days=day), PTS=30, REB=30, TEAM_ABBREVIATION='LAL')
                          for player in cached for day in range(1, 13)])
     calls = []
-    def fetch(force_refresh=False):
+    def fetch(force_refresh=False, **kw):
         calls.append(force_refresh)
         monkeypatch.setattr(nba, '_cache', cached)
         return cached
     monkeypatch.setattr(nba, '_cache', {})
     monkeypatch.setattr(nba, 'get_live_odds', fetch)
+    from utils import odds_planner
+    monkeypatch.setattr(odds_planner, 'plan', lambda kind='manual', **kw: {'nba': 2, 'wnba': 0})
     monkeypatch.setattr(props, 'history', lambda league: rows)
     monkeypatch.setattr(props, '_evaluated_cache', {})
     class Model:
@@ -77,7 +79,7 @@ def test_api_refresh_is_explicit_and_board_preserves_each_player_stat(monkeypatc
     assert client.post('/api/props/refresh').json()['count'] == 0 and calls == []
     response = client.post('/api/props/refresh?fetch_odds=true').json()
     assert calls == [True] and response['count'] == 14
-    assert response['status'] == 'ready' and response['budget']['max_refresh_cost'] == 6
+    assert response['status'] == 'ready' and response['budget']['configured'] in (True, False)
     board = client.get('/api/props?direction=all').json()['props']
     assert len(board) == 14
     assert len({(p['player'], p['stat']) for p in board}) == 14

@@ -17,7 +17,7 @@ def quote():
 def test_recommendations_reject_bad_quotes(problem):
     q=quote()
     if problem=='started': q['commence_time']=(datetime.now(timezone.utc)-timedelta(minutes=1)).isoformat()
-    if problem=='old': q['updated_at']=(datetime.now(timezone.utc)-timedelta(hours=1)).isoformat()
+    if problem=='old': q['updated_at']=(datetime.now(timezone.utc)-timedelta(hours=7)).isoformat()
     if problem=='no_time': del q['updated_at']
     if problem=='off_date': q['commence_time']=(datetime.now(timezone.utc)+timedelta(days=3)).isoformat()
     assert quote_problem(q)
@@ -73,7 +73,7 @@ def test_cached_nba_board_rechecks_quote_expiry(monkeypatch):
     prop={'quote_source':q}
     monkeypatch.setattr(props_cache,'_props_cache',{'main_page_data':[prop],'callback_data':[prop],'sidebar_data':[prop]})
     assert len(props_cache.get_cached_props()['main_page_data'])==1
-    q['updated_at']=(datetime.now(timezone.utc)-timedelta(hours=1)).isoformat()
+    q['updated_at']=(datetime.now(timezone.utc)-timedelta(hours=7)).isoformat()
     cache=props_cache.get_cached_props()
     assert not cache['main_page_data'] and not cache['callback_data'] and not cache['sidebar_data']
 
@@ -107,6 +107,6 @@ def test_strict_wnba_board_caps_five_distinct_players_and_rejects_unpriced(monke
     assert all(prop.player_name != 'Player 7' for prop in props)
     for player in markets.values():
         for market in player.values():
-            market['updated_at'] = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+            market['updated_at'] = (datetime.now(timezone.utc) - timedelta(hours=7)).isoformat()
     assert generate_wnba_props(pd.DataFrame(rows), lambda stat: Model(), markets,
                                strict_quality=True, only_active_tonight=False) == []
