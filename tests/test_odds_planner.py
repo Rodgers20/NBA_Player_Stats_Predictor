@@ -70,3 +70,30 @@ def test_priced_rows_are_picks_or_leans_and_unpriced_rows_are_research(ev, reaso
     assert row['pick_type'] == kind and row['recommendation_eligible'] is eligible
     assert (row['price'] == -110) is price_shown and (row['ev'] == ev) is price_shown
     assert row['model_projection'] == 23.1
+
+
+def test_next_slate_falls_forward_to_the_first_day_with_games():
+    from utils.slate import next_slate
+    games = {'2026-10-07': ['NYL@ATL', 'LVA@GSV']}
+    assert next_slate(lambda day: games.get(day, []), '2026-10-06') == ('2026-10-07', games['2026-10-07'])
+    assert next_slate(lambda day: games.get(day, []), '2026-10-07')[0] == '2026-10-07'   # today wins when it has games
+    assert next_slate(lambda day: [], '2026-10-06') == ('2026-10-06', [])                 # nothing nearby: stay on today
+    assert next_slate(lambda day: games.get(day, []), '2026-10-01') == ('2026-10-01', [])  # beyond the lookahead window
+
+
+def test_wnba_tip_time_is_eastern_wall_clock_not_utc():
+    from utils.wnba_data_fetch import _et_iso
+    assert _et_iso('2026-10-07T19:30:00Z') == '2026-10-07T19:30:00-04:00'   # 7:30 pm ET == 23:30Z
+    assert _et_iso('2026-12-07T19:30:00Z') == '2026-12-07T19:30:00-05:00'   # standard time
+    assert _et_iso('') == '' and _et_iso('not a time') == 'not a time'
+
+
+def test_manual_refresh_buys_the_next_slate_the_day_before(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    odds_budget.report('ok', 497)
+    tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=23, minute=30).isoformat()
+    monkeypatch.setattr(planner, 'upcoming', lambda league, target=None: [{'commence_time': tomorrow}] * 2 if league == 'wnba' else [])
+    calls = []
+    monkeypatch.setattr(planner, 'refresh', lambda league, count, target=None: calls.append((league, count, target)))
+    planner.manual_refresh('wnba')
+    assert calls == [('wnba', 2, planner.event_date({'commence_time': tomorrow}))]

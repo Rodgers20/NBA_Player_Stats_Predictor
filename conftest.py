@@ -33,6 +33,13 @@ def _reset_module_caches():
 
 
 @pytest.fixture(autouse=True)
+def _slate_is_today(monkeypatch):
+    """Keep route tests off the schedule network; fallback logic is tested through next_slate."""
+    from utils import slate
+    monkeypatch.setattr(slate, "slate_date", lambda league: slate.today_et())
+
+
+@pytest.fixture(autouse=True)
 def _isolate_personal_storage(tmp_path, monkeypatch):
     from utils import odds_budget
     monkeypatch.setattr(odds_budget, "DB_PATH", tmp_path / "personal.sqlite3")

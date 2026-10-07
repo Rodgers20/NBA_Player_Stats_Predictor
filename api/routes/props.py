@@ -58,7 +58,8 @@ def _wnba_research_shortlist(stat, game, location, direction, locks_only, combos
     from utils.wnba_data_fetch import get_todays_wnba_games
     from api.data import predictor
 
-    target = datetime.now(ZoneInfo('America/New_York')).date().isoformat()
+    from utils.slate import slate_date
+    target = slate_date('wnba')
     empty = dict(count=0, target_date=target, game_matchups=[], stat_counts={},
                  props=[], status='empty')
     if locks_only or combos_only or direction != 'all':
@@ -320,11 +321,12 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
     from api.data import predictor
     from utils.prop_quality import quote_problem, history_problem
     from utils.market_evaluation import evaluate_market
+    from utils.slate import slate_date
     if fetch_odds:
         from utils import odds_planner
-        odds_planner.refresh(league, odds_planner.plan('manual').get(league, 0))
+        odds_planner.manual_refresh(league)
     quotes = _cached_quotes(league)
-    target = datetime.now(ZoneInfo('America/New_York')).date().isoformat()
+    target = slate_date(league)
     output, skipped = [], []
     df = history(league) if quotes else None
     for player, markets in quotes.items():

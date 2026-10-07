@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from typing import Optional
 
 import pandas as pd
@@ -52,6 +53,15 @@ def get_todays_wnba_games(
 
     _schedule_cache[target_date] = (now, games)
     return games
+
+
+def _et_iso(value) -> str:
+    """The scoreboard's gameEt is Eastern wall-clock time with a bogus trailing Z; return a real offset."""
+    try:
+        naive = datetime.fromisoformat(str(value).replace("Z", ""))
+    except ValueError:
+        return str(value or "")
+    return naive.replace(tzinfo=ZoneInfo("America/New_York")).isoformat()
 
 
 def _fetch_todays_wnba_games(target_date: Optional[str] = None) -> Optional[list[dict]]:
@@ -141,7 +151,7 @@ def _fetch_todays_wnba_games(target_date: Optional[str] = None) -> Optional[list
             "game_id": gid,
             "status": status,
             "status_text": str(row.get("gameStatusText", "")).strip(),
-            "tip_time_et": str(row.get("gameEt", "")),
+            "tip_time_et": _et_iso(row.get("gameEt", "")),
             "home": side_pair["home"],
             "away": side_pair["away"],
         })

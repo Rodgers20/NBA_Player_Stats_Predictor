@@ -15,10 +15,8 @@ def _schedule(league):
     try:
         if league == 'wnba':
             from utils.wnba_data_fetch import get_todays_wnba_games
-            target = datetime.now(ZoneInfo('America/New_York')).date().isoformat()
-            result = get_todays_wnba_games(target)
-            if result is None:
-                raise ValueError('Schedule provider unavailable')
+            from utils.slate import next_slate
+            target, result = next_slate(get_todays_wnba_games)
             return [dict(HOME_TEAM=g['home']['abbrev'], AWAY_TEAM=g['away']['abbrev'],
                          GAME_TIME=g.get('tip_time_et', ''), GAME_ID=g.get('game_id'),
                          GAME_STATUS_TEXT=g.get('status_text') or g.get('status'),
@@ -64,7 +62,8 @@ def _team_injuries(league: League, team: str) -> list[dict]:
 def refresh_game_lines(league: League = 'nba'):
     """Refresh free ESPN basketball lines without touching paid odds credits."""
     from utils.espn_game_odds import get_game_odds
-    target = datetime.now(ZoneInfo('America/New_York')).date().isoformat()
+    from utils.slate import slate_date
+    target = slate_date(league)
     quotes = get_game_odds(league, target, force_refresh=True)
     count = len(quotes)
     return dict(count=count, status='ready' if count else 'unavailable', source='ESPN',

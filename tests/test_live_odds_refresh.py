@@ -67,7 +67,9 @@ def test_api_refresh_is_explicit_and_board_preserves_each_player_stat(monkeypatc
     monkeypatch.setattr(nba, '_cache', {})
     monkeypatch.setattr(nba, 'get_live_odds', fetch)
     from utils import odds_planner
-    monkeypatch.setattr(odds_planner, 'plan', lambda kind='manual', **kw: {'nba': 2, 'wnba': 0})
+    soon = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    monkeypatch.setattr(odds_planner, 'upcoming', lambda league, target=None: [{'commence_time': soon}] * 2 if league == 'nba' else [])
+    odds_budget.report('ok', 497)
     monkeypatch.setattr(props, 'history', lambda league: rows)
     monkeypatch.setattr(props, '_evaluated_cache', {})
     class Model:

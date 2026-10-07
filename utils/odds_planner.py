@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 import requests
 from utils import odds_budget
 from utils.odds_fetcher import upcoming_events
+from utils.slate import next_slate
 
 logger = logging.getLogger(__name__)
 ET = ZoneInfo('America/New_York')
@@ -34,14 +35,24 @@ def today(now=None):
     return (now or datetime.now(timezone.utc)).astimezone(ET).date().isoformat()
 
 
-def upcoming(league, target):
-    """Unstarted events on the Eastern date. The /events endpoint costs no credits."""
+def upcoming(league, target=None):
+    """Unstarted events on one Eastern date; with no `target`, the next date (within
+    LOOKAHEAD_DAYS) that has any. The /events endpoint costs no credits."""
     module = _module(league)
     if not module.API_KEY:
         return []
     response = odds_budget.request(requests.get, f'{module.BASE_URL}/sports/{module.SPORT}/events',
                                    {'apiKey': module.API_KEY, 'dateFormat': 'iso'})
-    return upcoming_events(response.json(), target) if response is not None else []
+    if response is None:
+        return []
+    events = response.json()
+    if target is not None:
+        return upcoming_events(events, target)
+    return next_slate(lambda day: upcoming_events(events, day))[1]
+
+
+def event_date(event):
+    return datetime.fromisoformat(event['commence_time'].replace('Z', '+00:00')).astimezone(ET).date().isoformat()
 
 
 def split_events(counts, credits):
@@ -82,13 +93,21 @@ def plan(kind='manual', events=None, now=None):
     return split_events({league: len(found) for league, found in events.items()}, headroom(kind, now))
 
 
-def refresh(league, events):
+def refresh(league, events, target_date=None):
     """Buy quotes for `events` games; returns the quote dict (empty if nothing was bought)."""
     if not events:
         return {}
     module = _module(league)
     fetch = module.get_live_wnba_odds if league == 'wnba' else module.get_live_odds
-    return fetch(force_refresh=True, max_events=events)
+    return fetch(force_refresh=True, target_date=target_date, max_events=events)
+
+
+def manual_refresh(league):
+    """Button press: spend today's allowance on this league's next slate, even the day before."""
+    found = {name: upcoming(name) for name in LEAGUES}
+    count = plan('manual', found).get(league, 0)
+    target = event_date(found[league][0]) if found[league] else None
+    return refresh(league, count, target)
 
 
 # ── Scheduler ───────────────────────────────────────────────────────────────
