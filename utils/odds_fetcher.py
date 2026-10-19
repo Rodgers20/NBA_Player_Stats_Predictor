@@ -359,9 +359,13 @@ def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=No
                 if over.get("point") is not None and under.get("point") is not None and over["point"] != under["point"]:
                     continue
 
-                # Only write if we don't already have a preferred-book entry
+                # The first (preferred) book fills the legacy single-book fields; every
+                # book quoting the same event is also kept in `books` for line shopping.
+                book_quote = {"book": book_name, "line": float(line),
+                              "over_price": over.get("price"), "under_price": under.get("price")}
                 player_dict = out.setdefault(player, {})
-                if stat not in player_dict:
+                existing = player_dict.get(stat)
+                if existing is None:
                     player_dict[stat] = {
                         **metadata,
                         "updated_at": market.get("last_update") or book.get("last_update"),
@@ -370,7 +374,11 @@ def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=No
                         "over_price":  over.get("price"),
                         "under_price": under.get("price"),
                         "bookmaker":   book_name,
+                        "books":       [book_quote],
                     }
+                elif (existing.get("event_id") == metadata.get("event_id")
+                      and all(b["book"] != book_name for b in existing.get("books", []))):
+                    player_dict[stat] = {**existing, "books": [*existing.get("books", []), book_quote]}
 
 
 def _get(url: str, params: dict) -> requests.Response | None:

@@ -50,3 +50,17 @@ export function seriesChart(player, series, stat, count = 20) {
   return { player, stat: stat.toUpperCase(), line: null, direction: 'over',
     avg: mean(rows), l5_avg: mean(rows.slice(-5)), games: rows };
 }
+
+/** Defense snapshots hold every stat; the live API filters server-side. */
+export function filterDefense(data, stat = '') {
+  const wanted = String(stat).toUpperCase();
+  return { ...data, stat: wanted || null, rankings: wanted ? data.rankings.filter(r => r.stat === wanted) : data.rankings };
+}
+
+/** Trend snapshots mirror GET /api/trends with client-side side/stat filters. */
+export function filterTrends(data, params = {}) {
+  const trends = data.trends
+    .filter(t => (!params.side || params.side === 'all' || t.side === params.side) && (!params.stat || params.stat === 'all' || t.stat === params.stat))
+    .slice(0, Number(params.limit ?? 60));
+  return { ...data, count: trends.length, trends };
+}

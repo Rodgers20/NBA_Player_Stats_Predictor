@@ -35,7 +35,43 @@ export interface Prop {
   is_home_today?: boolean | null;
   l5_values?: (number | null)[];
   chart_windows?: Record<string, { values: (number | null)[]; labels: string[] }>;
+  // Research fields (null/absent on research-shortlist and cached rows).
+  books?: BookQuote[];
+  best_over?: BestPrice | null;
+  best_under?: BestPrice | null;
+  consensus?: Consensus | null;
+  open_line?: number | null;
+  edge_pct?: number | null;       // percent, e.g. 3.4
+  implied_prob?: number | null;   // 0-1
+  stars?: number | null;          // 1-5; null when no positive edge
+  high_edge?: boolean;
+  hit_windows?: HitWindows | null;
+  teammate_splits?: TeammateSplit[];
+  def_rank_of?: number | null;    // def_rank is 1 = softest matchup
+  matchup_grade?: 'A' | 'B' | 'C' | 'D' | 'F' | null;
 }
+
+export interface BookQuote { book: string; line: number; over_price: number | null; under_price: number | null }
+export interface BestPrice { book: string; price: number; line: number }
+export interface Consensus { line: number; over_price: number | null; under_price: number | null }
+export interface HitRate { hits: number; total: number; pct: number | null }  // pushes excluded from total
+export interface HitWindows { L5: HitRate; L10: HitRate; L20: HitRate; season: HitRate; h2h: HitRate }
+export interface TeammateSplit {
+  teammate: string;
+  status: 'OUT' | 'DOUBTFUL' | 'QUESTIONABLE';
+  avg_with: number;
+  avg_without: number;
+  games_without: number;
+  hit_rate_without: number | null;  // percent vs the posted line and direction
+}
+
+export interface LineSnapshot { book: string; line: number; over_price: number | null; under_price: number | null; ts: number }
+export interface LineHistory { league: string; player: string; stat: string; snapshots: LineSnapshot[] }
+
+export interface DefenseRank { team: string; position: string; stat: 'PTS' | 'REB' | 'AST'; allowed: number; rank: number; of: number }
+export interface DefenseRankings { league: string; stat: string | null; season: string | null; rankings: DefenseRank[] }
+
+export interface Clv { close_line: number | null; close_price: number | null; clv_pct: number | null }
 
 export interface PropsResponse {
   status?: string;
@@ -234,3 +270,21 @@ export interface PerformanceResponse {
   prospective?: {model_version: string | null; saved: number; pending: number; record?: ModelRecord; message: string};
   market_record: {available: boolean; message: string};
 }
+
+export interface TrendCard {
+  player: string;
+  team: string;
+  opponent: string | null;
+  stat: 'PTS' | 'REB' | 'AST' | 'FG3M';
+  side: 'over' | 'under';
+  line: number;
+  hits: number;
+  games: number;
+  results: boolean[];              // oldest to newest; true = the side hit
+  avg: number;
+  text: string;
+  stars: number;                   // 3-5
+  line_source: 'live' | 'derived';
+  live: { line: number; price: number | null; book: string | null } | null;
+}
+export interface TrendsResponse { league: string; count: number; trends: TrendCard[] }

@@ -1,6 +1,7 @@
 """User-entered journal backed by the existing local personal-bets store."""
 from typing import Literal
 import os
+import sqlite3
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
@@ -31,15 +32,25 @@ class Entry(BaseModel):
     book: str = Field(max_length=200)
     stake: float = Field(allow_inf_nan=False)
     notes: str = Field(default='', max_length=4000)
+    close_line: float | None = Field(default=None, allow_inf_nan=False)
+    close_price: float | None = Field(default=None, allow_inf_nan=False)
 
 
 class Settlement(BaseModel):
     result: Literal['win', 'loss', 'push', 'void', 'pending']
 
 
+def _clv(bet):
+    """CLV never blocks the journal list; an unreadable snapshot table just yields no CLV."""
+    try:
+        return personal_bets.bet_clv(bet)
+    except (ValueError, KeyError, TypeError, sqlite3.Error):
+        return {'close_line': None, 'close_price': None, 'clv_pct': None}
+
+
 @router.get('/journal')
 def journal(mode: Mode = 'paper'):
-    return {'mode': mode, 'bets': personal_bets.list_bets(mode),
+    return {'mode': mode, 'bets': [dict(bet, clv=_clv(bet)) for bet in personal_bets.list_bets(mode)],
             'summary': personal_bets.summary(mode)}
 
 

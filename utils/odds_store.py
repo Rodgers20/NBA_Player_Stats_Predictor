@@ -1,7 +1,7 @@
 """Disk-backed quote store so a restart or cache expiry never discards paid-for prices."""
 import json
 import time
-from utils import odds_budget
+from utils import line_snapshots, odds_budget
 
 KEEP_SECONDS = 2 * 24 * 3600
 
@@ -16,6 +16,7 @@ def save(league, quotes):
                    'PRIMARY KEY (league, player, stat))')
         db.executemany('INSERT OR REPLACE INTO odds_quotes VALUES (?,?,?,?,?)', rows)
         db.execute('DELETE FROM odds_quotes WHERE saved < ?', (now - KEEP_SECONDS,))
+        line_snapshots.record(db, league, quotes, now)
 
 
 def load(league):

@@ -1,10 +1,13 @@
 """Cached markets only; unverified data never becomes a priced recommendation."""
 from collections import Counter
 from datetime import datetime
+import sqlite3
 from typing import Literal
 from zoneinfo import ZoneInfo
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 from api.data import League, history, number
+from api.routes import prop_extras
+from utils.edge_rating import edge_fields
 
 router = APIRouter(tags=['props'])
 RESEARCH_STATS = ('PTS', 'REB', 'AST')
@@ -142,7 +145,8 @@ def _wnba_research_shortlist(stat, game, location, direction, locks_only, combos
                 model_projection=round(projection, 1), avg=round(avg, 1),
                 l5_avg=round(sum(values[:5]) / len(values[:5]), 1),
                 hits=None, total=None, hit_rate=None, def_rank=None, is_lock=False, is_combo=False,
-                blowout_risk=False, l5_values=values[:5], chart_windows={},
+                blowout_risk=False, l5_values=values[:5], chart_windows={}, **prop_extras.EXTRA_DEFAULTS,
+                edge_pct=None, implied_prob=None, stars=None, high_edge=False,
                 insight=f'Model projects {projection:.1f} {research_stat} against {avg:.1f} over the last {len(values)} games. No betting edge or pick is claimed.'))
     if not shortlist:
         return dict(empty, message='No current-history WNBA players with a usable model projection qualify for research.')
@@ -303,6 +307,10 @@ def _serialise_prop(p, quality_reason=None):
                   book=p.get('bookmaker') if eligible else None,
                   quote_updated_at=p.get('quote_updated_at') if eligible else None,
                   price=number(p.get('live_under_price' if p.get('direction', '').lower() == 'under' else 'live_over_price')) if eligible else None)
+    result.update(edge_fields(number(p.get('edge')), number(p.get('implied_prob'))) if eligible
+                  else edge_fields(None, None))
+    result.update({key: p.get(key, default) for key, default in prop_extras.EXTRA_DEFAULTS.items()})
+    result['def_rank_of'] = number(result['def_rank_of'])
     result['is_home_today'] = _home_status(p)
     result['l5_values'] = [number(value) for value in (p.get('l5_values') or [])[:5]]
     result['chart_windows'] = {
@@ -312,6 +320,40 @@ def _serialise_prop(p, quality_reason=None):
         if isinstance(window, dict)
     }
     return result
+
+
+def _injuries_for(league, team):
+    if league == 'wnba':
+        from utils.wnba_injuries import get_wnba_team_injuries as lookup
+    else:
+        from utils.injury_news import get_team_injuries as lookup
+    return lookup(team)
+
+
+def _open_lines(league):
+    from utils import line_snapshots
+    try:
+        return line_snapshots.open_lines(league)
+    except sqlite3.Error as exc:
+        print(f'[props] line snapshots unavailable: {exc}')
+        return {}
+
+
+@router.get('/props/line-history')
+def get_line_history(player: str = Query(min_length=1, max_length=200), stat: str = Query(min_length=1, max_length=20),
+                     league: League = 'nba'):
+    from utils import line_snapshots
+    try:
+        snapshots = line_snapshots.history(league, player, stat.upper())
+    except sqlite3.Error as exc:
+        raise HTTPException(503, 'Line history is unavailable') from exc
+    return dict(league=league, player=player, stat=stat.upper(), snapshots=snapshots)
+
+
+@router.get('/defense')
+def get_defense(league: League = 'nba', stat: Literal['PTS', 'REB', 'AST'] | None = None):
+    from utils import defense_rank
+    return dict(league=league, stat=stat, **defense_rank.rankings(league, stat))
 
 
 # Evaluations are owned by this process; updates replace whole snapshots.
@@ -334,6 +376,8 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
     target = slate_date(league)
     output, skipped = [], []
     df = history(league) if quotes else None
+    opens = _open_lines(league) if quotes else {}
+    injured_by_team = {}
     for player, markets in quotes.items():
         player_history = df[df['PLAYER_NAME'] == player].sort_values('_date', ascending=False)
         for stat, quote in markets.items():
@@ -359,6 +403,10 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                 projection = result[f'predicted_{stat.lower()}']
                 recent = player_history[player_history['_date'] < target].head(10)
                 values = recent[stat]
+                shared = prop_extras.shared_fields(league, player, stat, quote, opponent, opens)
+                if team not in injured_by_team:
+                    injured_by_team[team] = prop_extras.unavailable_teammates(league, team, _injuries_for)
+                impacts = prop_extras.teammate_impacts(player, stat, player_history, df, injured_by_team[team])
                 candidates = []
                 for direction in ('Over', 'Under'):
                     price = quote.get('over_price' if direction == 'Over' else 'under_price')
@@ -380,7 +428,9 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                         bookmaker=quote.get('bookmaker'), quote_updated_at=quote.get('updated_at'),
                         insight={'narrative': f'Model projects {projection:.1f} {stat} against the {quote["line"]} line. '
                                               'Estimated EV from held-out residuals; market calibration is unverified.'},
-                        model_projection=round(projection, 1)))
+                        model_projection=round(projection, 1), **shared,
+                        hit_windows=prop_extras.hit_window_fields(player_history, stat, quote['line'], direction, opponent, target),
+                        teammate_splits=prop_extras.teammate_split_rows(impacts, quote['line'], direction)))
                 if candidates:
                     output.append(max(candidates, key=lambda p: p['ev']))
                 else:
