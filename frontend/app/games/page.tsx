@@ -8,7 +8,6 @@ import { usePrefs } from '@/store/prefs';
 import { gameState, shiftDate } from '@/lib/game-board.mjs';
 import { MatchupBanner, MarketGauge, SlateCard, type TeamMap } from '@/components/games/MatchupCards';
 import { MatchupDetails } from '@/components/games/MatchupDetails';
-import { GameHighlights } from '@/components/games/GameHighlights';
 import { BoxScore } from '@/components/games/BoxScore';
 import styles from '@/components/games/games.module.css';
 
@@ -54,9 +53,7 @@ export default function GamesPage() {
         {predictions.isError && <p className={styles.notice} role="alert">Model estimates could not be loaded. <button onClick={()=>void predictions.refetch()}>Try again</button></p>}
         {selected.game_id && gameState(selected)!=='pre' && <BoxScore key={`${league}-${selected.game_id}`} league={league} gameId={selected.game_id}/>}
         <MatchupDetails game={selected} prediction={predictionFor(selected.matchup)} predictionStatus={status} league={league}/>
-        <GameHighlights key={`${league}-${selected.game_id}`} league={league} gameId={selected.game_id}/>
       </>}
     </>}
-    <GameHighlights league={league} recent/>
   </div>;
 }
