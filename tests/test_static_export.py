@@ -54,3 +54,42 @@ def test_compact_series_matches_chart_values_and_nulls(monkeypatch):
     assert [row['date'] for row in series] == [row['date'] for row in chart]
     assert [row['is_home'] for row in series] == [True, False]
     assert [sum((row['pts'], row['reb'])) if row['pts'] is not None else None for row in series] == [row['value'] for row in chart]
+
+
+def test_opt_in_export_refreshes_quotes_before_reading_each_board(tmp_path, monkeypatch):
+    calls = []
+    def fetch(base, path, method='GET'):
+        calls.append((path, method))
+        if path.startswith('/api/players?'):
+            return {'players': []}
+        return {}
+    monkeypatch.setattr(export_api, 'fetch', fetch)
+    export_api.export('http://test', tmp_path / 'data', refresh_odds=True)
+    for league in ('nba', 'wnba'):
+        refresh = (f'/api/props/refresh?league={league}&fetch_odds=true', 'POST')
+        board = (f'/api/props?league={league}&direction=all&include_research=true&limit=500', 'GET')
+        assert calls.index(refresh) < calls.index(board)
+    assert sum(method == 'POST' for _, method in calls) == 2
+
+
+def test_export_includes_teams_seasons_highlights_and_dated_schedules(tmp_path, monkeypatch):
+    def fetch(base, path):
+        if path.startswith('/api/players?'):
+            return {'players': []}
+        if path.startswith('/api/teams?'):
+            season = 2026 if '&season=2026' in path else 2027
+            return {'league': 'nba', 'season': season, 'seasons': [2027, 2026], 'teams': [{'abbrev': 'NYK'}]}
+        if path.startswith('/api/highlights?'):
+            return {'games': [{'game_id': '123', 'clips': [{'url': 'https://a.espncdn.com/clip.mp4'}]}]}
+        if path.startswith('/api/games?'):
+            return {'target_date': path.split('game_date=')[-1] if 'game_date=' in path else '2026-10-08', 'games': []}
+        return {}
+    monkeypatch.setattr(export_api, 'fetch', fetch)
+    out = export_api.export('http://test', tmp_path / 'data')
+    assert json.loads((out / 'nba/teams-2026.json').read_text())['season'] == 2026
+    assert json.loads((out / 'nba/teams.json').read_text())['available_seasons'] == [2027, 2026]
+    assert json.loads((out / 'nba/highlights.json').read_text())['games'][0]['clips']
+    index = json.loads((out / 'nba/schedule-index.json').read_text())
+    for day in index['dates']:
+        assert json.loads((out / f'nba/schedule/{day}.json').read_text())['target_date'] == day
+        assert (out / f'nba/schedule/{day}-predictions.json').exists()

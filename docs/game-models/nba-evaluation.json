@@ -1,0 +1,492 @@
+{
+  "version": "game-forecast-v1",
+  "league": "nba",
+  "created_at": "2026-10-10T04:12:06.257814+00:00",
+  "source": "data/nba/game_team_history.csv",
+  "source_sha256": "a23e7ce45d1350693235bc7a3145c79adeb1189ba93fa0592f02847480cdd434",
+  "games": 3941,
+  "development_games": 3228,
+  "holdout_games": 713,
+  "development_through": "2026-01-14 00:00:00",
+  "holdout_from": "2026-01-15 00:00:00",
+  "holdout_through": "2026-06-13 00:00:00",
+  "features": [
+    "neutral",
+    "home_advantage",
+    "home_history_games",
+    "home_history_missing",
+    "home_elo",
+    "home_opponent_elo_last10",
+    "home_offense_5",
+    "home_offense_5_missing",
+    "home_defense_5",
+    "home_defense_5_missing",
+    "home_pace_5",
+    "home_pace_5_missing",
+    "home_efg_5",
+    "home_efg_5_missing",
+    "home_tov_rate_5",
+    "home_tov_rate_5_missing",
+    "home_oreb_share_5",
+    "home_oreb_share_5_missing",
+    "home_ft_rate_5",
+    "home_ft_rate_5_missing",
+    "home_margin_5",
+    "home_margin_5_missing",
+    "home_offense_10",
+    "home_offense_10_missing",
+    "home_defense_10",
+    "home_defense_10_missing",
+    "home_pace_10",
+    "home_pace_10_missing",
+    "home_efg_10",
+    "home_efg_10_missing",
+    "home_tov_rate_10",
+    "home_tov_rate_10_missing",
+    "home_oreb_share_10",
+    "home_oreb_share_10_missing",
+    "home_ft_rate_10",
+    "home_ft_rate_10_missing",
+    "home_margin_10",
+    "home_margin_10_missing",
+    "home_offense_20",
+    "home_offense_20_missing",
+    "home_defense_20",
+    "home_defense_20_missing",
+    "home_pace_20",
+    "home_pace_20_missing",
+    "home_efg_20",
+    "home_efg_20_missing",
+    "home_tov_rate_20",
+    "home_tov_rate_20_missing",
+    "home_oreb_share_20",
+    "home_oreb_share_20_missing",
+    "home_ft_rate_20",
+    "home_ft_rate_20_missing",
+    "home_margin_20",
+    "home_margin_20_missing",
+    "home_home_margin_10",
+    "home_home_form_missing",
+    "home_away_margin_10",
+    "home_away_form_missing",
+    "home_offense_season_regressed",
+    "home_offense_season_missing",
+    "home_defense_season_regressed",
+    "home_defense_season_missing",
+    "home_pace_season_regressed",
+    "home_pace_season_missing",
+    "home_margin_season_regressed",
+    "home_margin_season_missing",
+    "home_rest_days",
+    "home_rest_missing",
+    "home_b2b",
+    "home_games_last4",
+    "home_games_last7",
+    "home_travel_missing",
+    "home_travel_km",
+    "home_timezone_change",
+    "home_altitude_change_m",
+    "away_history_games",
+    "away_history_missing",
+    "away_elo",
+    "away_opponent_elo_last10",
+    "away_offense_5",
+    "away_offense_5_missing",
+    "away_defense_5",
+    "away_defense_5_missing",
+    "away_pace_5",
+    "away_pace_5_missing",
+    "away_efg_5",
+    "away_efg_5_missing",
+    "away_tov_rate_5",
+    "away_tov_rate_5_missing",
+    "away_oreb_share_5",
+    "away_oreb_share_5_missing",
+    "away_ft_rate_5",
+    "away_ft_rate_5_missing",
+    "away_margin_5",
+    "away_margin_5_missing",
+    "away_offense_10",
+    "away_offense_10_missing",
+    "away_defense_10",
+    "away_defense_10_missing",
+    "away_pace_10",
+    "away_pace_10_missing",
+    "away_efg_10",
+    "away_efg_10_missing",
+    "away_tov_rate_10",
+    "away_tov_rate_10_missing",
+    "away_oreb_share_10",
+    "away_oreb_share_10_missing",
+    "away_ft_rate_10",
+    "away_ft_rate_10_missing",
+    "away_margin_10",
+    "away_margin_10_missing",
+    "away_offense_20",
+    "away_offense_20_missing",
+    "away_defense_20",
+    "away_defense_20_missing",
+    "away_pace_20",
+    "away_pace_20_missing",
+    "away_efg_20",
+    "away_efg_20_missing",
+    "away_tov_rate_20",
+    "away_tov_rate_20_missing",
+    "away_oreb_share_20",
+    "away_oreb_share_20_missing",
+    "away_ft_rate_20",
+    "away_ft_rate_20_missing",
+    "away_margin_20",
+    "away_margin_20_missing",
+    "away_home_margin_10",
+    "away_home_form_missing",
+    "away_away_margin_10",
+    "away_away_form_missing",
+    "away_offense_season_regressed",
+    "away_offense_season_missing",
+    "away_defense_season_regressed",
+    "away_defense_season_missing",
+    "away_pace_season_regressed",
+    "away_pace_season_missing",
+    "away_margin_season_regressed",
+    "away_margin_season_missing",
+    "away_rest_days",
+    "away_rest_missing",
+    "away_b2b",
+    "away_games_last4",
+    "away_games_last7",
+    "away_travel_missing",
+    "away_travel_km",
+    "away_timezone_change",
+    "away_altitude_change_m",
+    "home_offense",
+    "home_defense",
+    "home_recent_margin",
+    "home_pace",
+    "away_offense",
+    "away_defense",
+    "away_recent_margin",
+    "away_pace",
+    "elo_diff"
+  ],
+  "core_features": [
+    "home_offense",
+    "away_offense",
+    "home_defense",
+    "away_defense",
+    "elo_diff",
+    "home_recent_margin",
+    "away_recent_margin",
+    "home_pace_10",
+    "away_pace_10"
+  ],
+  "candidates": {
+    "league_mean": {
+      "margin": {
+        "mae": 12.640149816083385,
+        "rmse": 15.951952143436396
+      },
+      "total": {
+        "mae": 15.807276655830623,
+        "rmse": 20.000674909159347
+      }
+    },
+    "core_ridge_10": {
+      "margin": {
+        "mae": 11.251880352553554,
+        "rmse": 14.44178528921962
+      },
+      "total": {
+        "mae": 15.033420904028256,
+        "rmse": 18.822811790790304
+      }
+    },
+    "full_ridge_10": {
+      "margin": {
+        "mae": 11.30617104328084,
+        "rmse": 14.487474924519514
+      },
+      "total": {
+        "mae": 15.107834999656099,
+        "rmse": 18.93567214314889
+      }
+    },
+    "core_ridge_100": {
+      "margin": {
+        "mae": 11.249819737167536,
+        "rmse": 14.434393048739318
+      },
+      "total": {
+        "mae": 15.02283154004951,
+        "rmse": 18.818662885178394
+      }
+    },
+    "full_ridge_100": {
+      "margin": {
+        "mae": 11.260103725456515,
+        "rmse": 14.431640161943404
+      },
+      "total": {
+        "mae": 15.036597555282043,
+        "rmse": 18.832630709742315
+      }
+    },
+    "core_ridge_1000": {
+      "margin": {
+        "mae": 11.288858784046624,
+        "rmse": 14.471952951790668
+      },
+      "total": {
+        "mae": 15.017193616989939,
+        "rmse": 18.86794550171092
+      }
+    },
+    "full_ridge_1000": {
+      "margin": {
+        "mae": 11.204096341384105,
+        "rmse": 14.348868309662507
+      },
+      "total": {
+        "mae": 14.88802153185627,
+        "rmse": 18.65798792463629
+      }
+    },
+    "hist_7": {
+      "margin": {
+        "mae": 11.448592591170032,
+        "rmse": 14.612268333946112
+      },
+      "total": {
+        "mae": 15.272781700523462,
+        "rmse": 19.101844109028843
+      }
+    },
+    "hist_15": {
+      "margin": {
+        "mae": 11.573367532578422,
+        "rmse": 14.717490319092343
+      },
+      "total": {
+        "mae": 15.395850425553254,
+        "rmse": 19.257778482835278
+      }
+    },
+    "xgb_2": {
+      "margin": {
+        "mae": 11.355529403928182,
+        "rmse": 14.503616703611398
+      },
+      "total": {
+        "mae": 15.122466866850626,
+        "rmse": 18.927877066124687
+      }
+    },
+    "xgb_3": {
+      "margin": {
+        "mae": 11.387844674125049,
+        "rmse": 14.551454654353703
+      },
+      "total": {
+        "mae": 15.186321028743881,
+        "rmse": 18.98712702489828
+      }
+    },
+    "ridge_no_schedule": {
+      "margin": {
+        "mae": 11.26216746169298,
+        "rmse": 14.449799370336239
+      },
+      "total": {
+        "mae": 15.110536564289227,
+        "rmse": 18.876134621162013
+      }
+    },
+    "ridge_no_four_factors": {
+      "margin": {
+        "mae": 11.27414179530099,
+        "rmse": 14.417134703614522
+      },
+      "total": {
+        "mae": 14.984404287501897,
+        "rmse": 18.770237372151033
+      }
+    }
+  },
+  "selected": {
+    "margin": "full_ridge_1000",
+    "total": "full_ridge_1000"
+  },
+  "baseline_names": {
+    "margin": "core_ridge_100",
+    "total": "core_ridge_1000"
+  },
+  "holdout": {
+    "margin": {
+      "mae": 11.901471489434524,
+      "rmse": 15.141144943878391
+    },
+    "total": {
+      "mae": 14.800539764355452,
+      "rmse": 18.861837883917897
+    },
+    "winner": {
+      "accuracy": 0.7068723702664796,
+      "log_loss": 0.5778837051902791,
+      "brier": 0.1961667864688869,
+      "calibration_bins": [
+        {
+          "lower": 0.0,
+          "count": 1,
+          "predicted": 0.0958562040382846,
+          "actual": 0.0
+        },
+        {
+          "lower": 0.1,
+          "count": 23,
+          "predicted": 0.16307310168412606,
+          "actual": 0.043478260869565216
+        },
+        {
+          "lower": 0.2,
+          "count": 46,
+          "predicted": 0.24981362271038704,
+          "actual": 0.08695652173913043
+        },
+        {
+          "lower": 0.3,
+          "count": 85,
+          "predicted": 0.3596509808849097,
+          "actual": 0.25882352941176473
+        },
+        {
+          "lower": 0.4,
+          "count": 121,
+          "predicted": 0.4498888513789072,
+          "actual": 0.4628099173553719
+        },
+        {
+          "lower": 0.5,
+          "count": 135,
+          "predicted": 0.5524829929586903,
+          "actual": 0.6148148148148148
+        },
+        {
+          "lower": 0.6,
+          "count": 129,
+          "predicted": 0.6488918142353913,
+          "actual": 0.6744186046511628
+        },
+        {
+          "lower": 0.7,
+          "count": 102,
+          "predicted": 0.7458754604508887,
+          "actual": 0.7941176470588235
+        },
+        {
+          "lower": 0.8,
+          "count": 59,
+          "predicted": 0.8383408990872131,
+          "actual": 0.847457627118644
+        },
+        {
+          "lower": 0.9,
+          "count": 12,
+          "predicted": 0.9232618104480507,
+          "actual": 0.8333333333333334
+        }
+      ]
+    },
+    "interval_coverage_80": {
+      "margin": 0.7741935483870968,
+      "total": 0.8064516129032258
+    }
+  },
+  "baseline_holdout": {
+    "margin": {
+      "mae": 11.842024494926836,
+      "rmse": 15.100095038819202
+    },
+    "total": {
+      "mae": 15.056827699297994,
+      "rmse": 19.018146683370244
+    },
+    "winner": {
+      "accuracy": 0.7096774193548387,
+      "log_loss": 0.5778015813304578,
+      "brier": 0.19609325956415227,
+      "calibration_bins": [
+        {
+          "lower": 0.1,
+          "count": 14,
+          "predicted": 0.16667885662038248,
+          "actual": 0.0
+        },
+        {
+          "lower": 0.2,
+          "count": 46,
+          "predicted": 0.2539284018142598,
+          "actual": 0.06521739130434782
+        },
+        {
+          "lower": 0.3,
+          "count": 71,
+          "predicted": 0.35403065132042505,
+          "actual": 0.22535211267605634
+        },
+        {
+          "lower": 0.4,
+          "count": 143,
+          "predicted": 0.4511911724224972,
+          "actual": 0.43356643356643354
+        },
+        {
+          "lower": 0.5,
+          "count": 142,
+          "predicted": 0.5511305506623508,
+          "actual": 0.5774647887323944
+        },
+        {
+          "lower": 0.6,
+          "count": 140,
+          "predicted": 0.6502396166708759,
+          "actual": 0.7071428571428572
+        },
+        {
+          "lower": 0.7,
+          "count": 98,
+          "predicted": 0.7497103868708903,
+          "actual": 0.8469387755102041
+        },
+        {
+          "lower": 0.8,
+          "count": 55,
+          "predicted": 0.8442870674189237,
+          "actual": 0.8181818181818182
+        },
+        {
+          "lower": 0.9,
+          "count": 4,
+          "predicted": 0.9214602616337363,
+          "actual": 1.0
+        }
+      ]
+    }
+  },
+  "promoted": true,
+  "paired_mae_difference_ci95": {
+    "margin": [
+      -0.08083360913674731,
+      0.2002825628428244
+    ],
+    "total": [
+      -0.4691516216603952,
+      -0.027257723354586108
+    ]
+  },
+  "limits": [
+    "No archived pregame injury inputs; current injury scenarios excluded from validated metrics.",
+    "No historical sportsbook quote archive; no ATS/over-under profitability or market superiority claim.",
+    "Travel inferred from schedule/team home geography, not observed flights; missing venues flagged.",
+    "Final holdout metrics measure fixed models; production refit on all completed history afterward."
+  ]
+}

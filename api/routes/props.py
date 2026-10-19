@@ -7,7 +7,6 @@ from fastapi import APIRouter, Query
 from api.data import League, history, number
 
 router = APIRouter(tags=['props'])
-WNBA_BOARD_SIZE = 15  # best market per player; picks rank first, leans fill the rest
 RESEARCH_STATS = ('PTS', 'REB', 'AST')
 
 
@@ -380,16 +379,6 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
             except (ValueError, KeyError, TypeError) as exc:
                 skipped.append(dict(player=player, stat=stat, reason=str(exc)))
     output.sort(key=lambda item: item['ev'], reverse=True)
-    if league == 'wnba':
-        distinct = []
-        players = set()
-        for prop in output:
-            if prop['player'] not in players:
-                distinct.append(prop)
-                players.add(prop['player'])
-            if len(distinct) == WNBA_BOARD_SIZE:
-                break
-        output = distinct
     _evaluated_cache[league] = dict(main_page_data=output, target_date=target,
                                   game_matchups=sorted({p['game_matchup'] for p in output if p['game_matchup']}))
     return dict(count=len(output), target_date=target, skipped=skipped, budget=get_budget(league),

@@ -4,6 +4,7 @@ import "./quant-lab.css";
 import { Providers }  from "./providers";
 import { BottomNav }  from "@/components/layout/BottomNav";
 import { Navbar }     from "@/components/layout/Navbar";
+import { FloatingSlip } from "@/components/slip/FloatingSlip";
 
 export const metadata: Metadata = {
   title:       "NBA Props AI",
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <a href="#main-content" className="skip-link">Skip to content</a>
           <main id="main-content" className="app-main min-h-dvh">{children}</main>
           <BottomNav />
+          <FloatingSlip />
         </Providers>
       </body>
     </html>

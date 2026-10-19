@@ -1,5 +1,5 @@
 """
-Train XGBoost model for game score prediction.
+Legacy command alias for validated NBA game-model tuning.
 
 Run once (or whenever you want to retrain on fresh data):
     python3 scripts/train_game_model.py
@@ -105,90 +105,9 @@ def build_team_game_features(player_logs_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def train():
-    try:
-        from xgboost import XGBRegressor
-        from sklearn.metrics import mean_absolute_error
-    except ImportError:
-        print("ERROR: xgboost and scikit-learn are required.")
-        print("Install: pip install xgboost scikit-learn")
-        sys.exit(1)
-
-    from utils.kaggle_loader import load_player_game_logs
-
-    print("Loading player game logs (3 seasons)...")
-    logs = load_player_game_logs(num_seasons=3)
-
-    if logs.empty:
-        print("ERROR: No data loaded. Run the data pipeline first.")
-        sys.exit(1)
-
-    # Ensure _date column exists
-    if "_date" not in logs.columns:
-        logs["_date"] = pd.to_datetime(
-            logs["GAME_DATE"], format="%b %d, %Y", errors="coerce"
-        )
-
-    print(f"Loaded {len(logs):,} player-game rows")
-
-    print("Building team game features...")
-    team_games = build_team_game_features(logs)
-    print(f"Team-game rows after feature engineering: {len(team_games):,}")
-
-    # Time-series split — no shuffling (preserves temporal order)
-    team_games = team_games.sort_values("_date")
-    split_idx  = int(len(team_games) * 0.85)
-    train_df   = team_games.iloc[:split_idx]
-    test_df    = team_games.iloc[split_idx:]
-
-    X_train = train_df[FEATURES]
-    y_train = train_df[TARGET]
-    X_test  = test_df[FEATURES]
-    y_test  = test_df[TARGET]
-
-    print(f"Train: {len(X_train):,} rows  |  Test: {len(X_test):,} rows")
-
-    model = XGBRegressor(
-        n_estimators=300,
-        max_depth=4,
-        learning_rate=0.04,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        min_child_weight=5,
-        random_state=42,
-        n_jobs=-1,
-    )
-
-    print("Training XGBoost model...")
-    model.fit(
-        X_train, y_train,
-        eval_set=[(X_test, y_test)],
-        verbose=50,
-    )
-
-    # Evaluation
-    preds    = model.predict(X_test)
-    mae      = mean_absolute_error(y_test, preds)
-    baseline = mean_absolute_error(y_test, [y_train.mean()] * len(y_test))
-    improvement = (1 - mae / baseline) * 100
-
-    print(f"\n{'='*50}")
-    print(f"Test MAE :  {mae:.2f} pts per team per game")
-    print(f"Baseline :  {baseline:.2f} pts (predict league-mean)")
-    print(f"XGB gain :  {improvement:.1f}% improvement over baseline")
-    print(f"{'='*50}\n")
-
-    # Feature importance
-    imp = sorted(zip(FEATURES, model.feature_importances_), key=lambda x: -x[1])
-    print("Feature importances:")
-    for feat, score in imp:
-        print(f"  {feat:<20} {score:.4f}")
-
-    # Save model
-    OUT_PKL.parent.mkdir(parents=True, exist_ok=True)
-    with open(OUT_PKL, "wb") as f:
-        pickle.dump(model, f)
-    print(f"\nModel saved → {OUT_PKL}")
-    print("Re-run 'python3 scripts/train_game_model.py' any time to retrain.")
+    """Use the date-grouped candidate evaluation and guarded artifact pipeline."""
+    from scripts.tune_game_models import run
+    run("nba")
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ import { usePrefs } from "@/store/prefs";
 import { STAT_COLORS } from "@/lib/utils";
 import type { ChartRecord } from "@/lib/types";
 import { PlayerBarChart } from "@/components/charts/PlayerBarChart";
+import { PlayerPropLines } from "@/components/props/PlayerPropLines";
 
 const STATS = [
   ["PTS", "PTS"], ["AST", "AST"], ["REB", "REB"], ["FG3M", "3PM"],
@@ -221,6 +222,11 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
               : <p className="mt-3 text-sm text-text-sec">No model projection is available.</p>}
             <p className="mt-4 border-t border-white/10 pt-3 text-xs text-text-sec">{summary.data?.projection_message || "Matchup context is unavailable."}</p>
           </section>
+
+          {games.length > 0 && <PlayerPropLines key={`${player}:${stat}`} league={league} player={player} stat={stat}
+            statLabel={STATS.find(([value]) => value === stat)?.[1] ?? stat} games={games} defaultLine={Math.max(0, defaultThreshold)}
+            date={profile?.projection_context?.game_date ?? schedule.data?.target_date ?? new Date().toISOString().slice(0, 10)}
+            matchup={nextGame?.matchup ?? (nextOpponent ? `${profile?.team} vs ${nextOpponent}` : `${profile?.team ?? player}`)} accent={accent} />}
 
           <section className={card}>
             <p className="ql-kicker">SUPPORTING EVIDENCE</p>

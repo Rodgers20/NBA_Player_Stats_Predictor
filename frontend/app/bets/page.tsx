@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowUpRight, NotebookPen } from "lucide-react";
 import { GameDayPlayerPicker } from "@/components/bets/GameDayPlayerPicker";
-import { BetSlip } from "@/components/props/BetSlip";
 import { usePrefs } from "@/store/prefs";
 import { localJournalAdd, localJournalList, localJournalSettle } from "@/lib/local-journal.mjs";
 
@@ -178,7 +177,6 @@ function BetsContent() {
       </section>
 
       <div className="space-y-5">
-      <BetSlip />
       <section className="ql-panel p-5 md:p-6" aria-labelledby="settle-title">
         <p className="ql-kicker">Settle your picks</p>
         <h2 id="settle-title" className="ql-section-title mt-2">Settle or correct a result</h2>

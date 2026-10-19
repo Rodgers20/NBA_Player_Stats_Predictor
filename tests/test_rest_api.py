@@ -55,7 +55,7 @@ def test_games_maps_espn_odds_and_constructs_matchup(monkeypatch, league):
 def test_predictions_call_real_method_and_report_partial_failure(monkeypatch):
     from utils import game_predictor
     class Model:
-        def __init__(self, *_): pass
+        def __init__(self, *_, **kwargs): pass
         def predict_game(self, home, away, **kwargs):
             if home == 'BAD': raise ValueError('bad model input')
             return {'winner': home, 'predicted_spread': 5, 'predicted_total': 210, 'winner_confidence': 'MEDIUM'}
@@ -102,8 +102,8 @@ def test_wnba_hit_rates_use_original_matchup_computation(monkeypatch):
 def test_wnba_predictions_use_original_dash_predictor(monkeypatch):
     from utils import game_predictor
     class Model:
-        def __init__(self, team_def_df, player_logs_df): pass
-        def predict_game(self, home, away):
+        def __init__(self, team_def_df, player_logs_df, **kwargs): pass
+        def predict_game(self, home, away, **kwargs):
             assert (home, away) == ('NYL', 'LVA')
             return {'winner': 'NYL', 'predicted_spread': 3.2, 'predicted_total': 167.4,
                     'predicted_home_score': 85.3, 'predicted_away_score': 82.1,
@@ -126,7 +126,7 @@ def test_game_market_picks_require_real_cached_lines(monkeypatch):
     from utils import game_predictor
     class Model:
         get_pick = game_predictor.GamePredictor.get_pick
-        def __init__(self, *_): pass
+        def __init__(self, *_, **kwargs): pass
         def predict_game(self, home, away, **kwargs):
             return {'winner': home, 'predicted_spread': 8, 'predicted_total': 230,
                     'winner_confidence': 'HIGH', 'predicted_home_score': 119,
@@ -301,3 +301,32 @@ def test_refresh_empty_cache_is_explicit_and_never_fetches(monkeypatch):
     assert response['count'] == 0
     assert 'no odds were fetched' in response['message'].lower()
     assert client.get('/api/props?league=wnba').json()['status'] == 'empty'
+
+
+def test_game_predictions_skip_started_games_and_pass_wnba_context(monkeypatch):
+    from utils import game_predictor
+    received = {}
+    class Model:
+        def __init__(self, *args, **kwargs):
+            received['constructor'] = kwargs
+        def predict_game(self, home, away, **kwargs):
+            received['game'] = kwargs
+            return dict(winner=home, predicted_spread=2, predicted_total=160,
+                        winner_confidence='LOW', model_metadata={'validated': False})
+    monkeypatch.setattr(game_predictor, 'GamePredictor', Model)
+    monkeypatch.setattr(games, 'history', lambda league: sample_history())
+    monkeypatch.setattr(games.pd, 'read_csv', lambda *_: pd.DataFrame())
+    monkeypatch.setattr(games, '_schedule', lambda league: ([
+        {'HOME_TEAM': 'NYL', 'AWAY_TEAM': 'LVA', 'GAME_STATUS_STATE': 'in'},
+        {'HOME_TEAM': 'NYL', 'AWAY_TEAM': 'LVA', 'GAME_STATUS_STATE': 'post'},
+        {'HOME_TEAM': 'NYL', 'AWAY_TEAM': 'LVA', 'GAME_STATUS_STATE': 'pre',
+         'NEUTRAL_SITE': True, 'VENUE': 'Neutral arena'}], '2026-10-09'))
+    monkeypatch.setattr(games, '_cached_odds', lambda *_: {})
+    monkeypatch.setattr(games, '_team_injuries', lambda league, team: [dict(name='Test Player', status='OUT')])
+    response = client.get('/api/games/predictions?league=wnba').json()
+    assert len(response['predictions']) == 1
+    assert received['constructor'] == dict(league='wnba', target_date='2026-10-09')
+    assert received['game']['target_date'] == '2026-10-09'
+    assert received['game']['neutral']
+    assert received['game']['home_injuries'][0]['status'] == 'OUT'
+    assert received['game']['away_injuries'][0]['status'] == 'OUT'

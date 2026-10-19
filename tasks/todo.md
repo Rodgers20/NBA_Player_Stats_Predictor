@@ -192,3 +192,107 @@ No deployment has been performed. WNBA game predictions remain explicitly unsupp
 ### Review
 
 The app was unreachable because the command runner stopped both services between turns. Detached shell jobs and `launchctl` jobs started by this runner also disappeared between turns. The Makefile and README now use port 3001 consistently; `make app` starts the frontend and API on loopback. Both returned HTTP 200, and the user confirmed the in-app tab loads after refresh. For a preview that persists beyond the agent turn, the user must run `make app` in their own Terminal; Computer Use does not allow the agent to control iTerm.
+
+## Hosted WNBA odds connection
+- [ ] Refresh WNBA quotes with the existing private key and inspect provider results.
+- [ ] Connect snapshot export to explicit odds refresh with persistent budget accounting.
+- [ ] Deploy and verify public snapshot prices/status.
+
+## Priced best props + off-season credit reallocation — October 6
+Diagnosis: props show RESEARCH ONLY because prices exist only after a manual refresh click, live in process memory
+(`_cache`, 30-min TTL, lost on API restart), and a refresh is capped at 2 games x 3 markets (6 credits) with a 12/day
+budget shared by both leagues. WNBA is off-season (no events), NBA is preseason; ~497/500 credits unused.
+
+- [x] Persist quotes to disk (sqlite next to odds_budget) so restarts and the 30-min TTL stop wiping prices; freshness is checked against game start.
+- [x] Budget planner: pick the in-season league(s) from event lists (free /events call); idle league's share goes to the active one (all games, all 8 markets while credits allow); keep daily/monthly caps and reserve.
+- [x] Scheduler: refresh once in the morning and ~2h before first tip; manual button stays.
+- [x] Props route: priced rows always carry projection, line, side, price, model prob, EV; EV>0 = pick, else "lean". Research-only only when no quote exists. Never invent prices.
+- [x] Frontend: show Pick/Lean badge; keep RESEARCH ONLY for truly unpriced rows.
+- [x] Tests for planner, persistence, lean vs pick; full suite + tsc + lint; verify against live API (one real refresh).
+
+## NFL-style bet slip — October 6
+
+Ported the NFL (Gridiron) slip behavior into the static-export frontend, keeping this app's Quant Lab look: floating pill + sheet on every page (replaces the sidebar slip), parlay/singles toggle, stake/payout, Discord text, canvas-drawn PNG (no server image route on a static export), and a client-side `/slip?s=` share page whose legs live in the link.
+
+- [x] Pure logic + tests in `lib/bet-slip.mjs` (payout, singles, text, encode/decode of untrusted links, 15-leg cap).
+- [x] Store (`mode`, `stake`, `open`), `components/slip/*`, `app/slip/page.tsx`, layout mount; old `components/props/BetSlip.tsx` removed.
+- [x] 18 frontend tests, typecheck, lint, static export build; browser check of panel, singles math, share page, bad link, PNG download.
+
+Limits: slips are per-browser; shared link has no OG preview image (static hosting). Not committed.
+
+### Review
+Shipped: `utils/odds_store.py` (quotes persisted in personal.sqlite3), `utils/odds_planner.py` (fair-share budget, credits flow to the league with games,
+morning + ~2h-before-tip scheduler started from the API lifespan; `ODDS_AUTO_REFRESH=0` disables), quote max age 30 min -> 6 h, daily cap 12 -> 40 (monthly 450),
+`pick_type` pick/lean/research on every prop, frontend badges. 271 Python tests, 18 frontend tests, tsc and eslint pass.
+Live check: WNBA Finals still on (2 games Oct 7), NBA opens Oct 20. One real refresh bought 6 credits, 24 players stored on disk, and with the clock set to
+Oct 7 the board produced 5 priced picks with FanDuel/BetOnline prices. Not yet seen: the scheduler firing on its own, and the browser UI.
+Open: the WNBA board still keeps only the top 5 distinct players (existing rule + test); raise it to show more leans.
+
+## Missing prop odds and narrow board — October 8
+
+- [x] Diagnose local versus hosted quote freshness and board limits.
+- [x] Preserve every evaluated WNBA player/stat market and consistent research counts.
+- [x] Add explicit budgeted quote refresh before snapshot export; persist the CI ledger and quotes.
+- [x] Refresh actual provider data, verify priced rows, run regression checks, and update the hosted snapshot where deployment access permits.
+
+Plan review: reuse the existing quote adapter and quota ledger; keep ordinary page reads free. Never manufacture prices when a provider omits a market.
+
+### October 8 review
+Removed WNBA player-level deduplication/cap; preserved all evaluated stat markets. Export supports explicit budgeted quote refresh, and workflow restores/saves quota ledger with a private odds secret. Actual provider refresh spent six credits (473 remaining); next slate October 9 contains 58 priced markets (21 PTS, 17 AST, 20 REB). Production deployment BBkCkdzCqrPs6iKK76tPCFiHZFUx is READY at court-vision-basketball.vercel.app. Browser verified actual price labels, 58 total, and Load more reveals all 58. Validation: 275 Python tests, 18 frontend tests, TypeScript, lint, static Vercel production build. Automatic workflow changes are local and need pushing plus GitHub secrets; gh authentication is invalid. NBA provider returned no upcoming supported events, so no NBA prices were invented.
+
+## NFL-style Games, Teams, and basketball highlights — October 8
+
+Design contract: mirror Gridiron's hierarchy with a team-colored featured matchup banner, large projected/live scores, compact cards carrying winner/spread/total calls, followed-team filter, date navigation, and a selected-game detail panel. Preserve basketball's existing prediction contracts; do not invent NFL probability gauges when basketball has no calibrated winner probabilities. Add a Teams directory grouped by conference/division, follow controls, team profiles with season metrics, scoring trends, results and schedule. Highlights use real ESPN clips with explicit publisher availability states, including recent completed games when upcoming games have no clips. All data must be included in static export; preserve odds and slip changes.
+
+- [x] Compare NFL Games, Teams directory and team detail; inspect basketball data and highlight gap.
+- [x] Build teams/season/history and ESPN highlights API plus static export coverage.
+- [x] Adapt Games layout and implement basketball Teams directory/profiles and follows.
+- [x] Verify API contracts, frontend checks, desktop/mobile browser flows, and real video availability.
+- [x] Export/deploy to existing production domain and verify Games, Teams and highlights; record review.
+
+Plan review: use the user's NFL project as the visual and interaction reference, adapting football metrics to real basketball data. Separate model projections from scores/market prices. Keep league switches and saved follows scoped by league; use static-compatible profile links and avoid unpriced or fabricated video fallbacks.
+
+### Games/Teams progress and deployment block
+Implemented NFL-inspired Games banner/cards/date ribbon/follow filter/details and real highlights player + dedicated Highlights page. Teams directory and profiles include NBA/WNBA groups, scoped follows, season selector, regular-season stats, chronological latest-20 scoring chart, and schedule/results. ESPN real MP4 browser playback verified (readyState4, currentTime11s, no error), follow-to-slate filter verified, desktop and 390px layouts inspected. Export includes teams latest three seasons, highlights and dated schedules. Corrected ESPN aliases across team/profile/schedule/odds joins and excluded Cup championship games from regular-season records.
+
+Backend full suite earlier291 passed; newer targeted alias/Cup/export/date regressions24 passed. Frontend typecheck/lint/tests initially22 passed; added team-form + historical-card tests pending final count. Production deployment is NOT updated yet. Final WNBA schedule snapshot refresh automatic approval review failed because account usage limit was reached (retry5:55AM), explicitly not an unsafe-action finding. Do not bypass review. Remaining: refresh WNBA games/dates with corrected NYL mapping, final build, deploy, production/mobile checks.
+
+Final available verification: 24 frontend tests, TypeScript, ESLint and static webpack production build pass (Games, Teams directory/profile, Highlights exported). Full Python rerun in progress. Final refresh/deployment remains blocked by automatic approval-review usage-limit failure.
+
+### Production completion — October 8
+The earlier approval usage-limit blocker cleared on the user-authorized deployment retry. Refreshed all static snapshots, including corrected WNBA date mappings and actual provider quotes. Full Python suite: 294 passed. Frontend: 24 tests, TypeScript, ESLint, static webpack build and Vercel production build passed. Deployment dpl_H1ZU3Sz3VRgvq49EQopfyywWv7hc is READY at https://court-vision-basketball.vercel.app. Production HTTP checks passed for Games, Teams, team detail and Highlights. Published 30 NBA and 15 WNBA teams, 140 recent clips, and 58 priced WNBA props. Live browser verified the Games board, New York Liberty profile (26–18), and actual highlight playback (readyState 4, advancing currentTime, no video error). Returned the user tab to Games. No NBA provider prices were available; none were fabricated.
+
+## Game model audit and measured improvement — October 8
+
+Contract: improve NBA and WNBA winner, margin and total forecasts using only pregame information. Audit real data coverage first; deduplicate player logs and validate complete reciprocal team box scores. Build shared chronological features for offense/defense efficiency, pace, shooting/turnovers/rebounds/free throws, opponent strength, recent form, home court, rest/congestion and travel/venue context. Injury availability must be timestamped or explicitly described as a current scenario adjustment; never reconstruct historical injury knowledge from future box scores. Tune on earlier temporal folds and reserve a final untouched date block. Compare against meaningful simple baselines; publish metrics, uncertainty, feature ablations and data limitations. Promote only an honestly validated artifact and retain explicit fallback/status for insufficient history. No promise of beating every competing model or market.
+
+- [x] Audit current game engine, training pipeline and local data; verify free sources and freshness.
+- [x] Build tested shared pregame features and quality gates with league-specific context.
+- [x] Run chronological candidate tuning, baselines, ablations and final holdout assessment.
+- [x] Integrate selected league-specific artifacts, correct schedule/rest/injury handling, and expose model/data provenance.
+- [x] Run regression tests and representative API forecasts; document measurements and remaining limitations.
+- [ ] Refresh/export/deploy verified changes where appropriate and confirm production behavior.
+
+Plan review: feature count is not the objective; out-of-sample accuracy and calibrated uncertainty decide which features/models are retained. Current player prop models remain separate. Preserve all existing uncommitted UI/odds/slip work.
+
+### Additional requested UI scope — October 10
+- [x] Apply the two-team split-color artwork and logos to every matchup card.
+- [x] Add NFL-style Model Performance navigation/page, adapting metrics to basketball and separating live calls from fixed holdout results.
+- [ ] Verify responsive rendering, production snapshots and deployment.
+
+### October 10 release verification
+328 Python tests and 28 frontend tests passed; TypeScript and ESLint clean. Vercel production static build passed with webpack (Turbopack had stalled; build command now explicitly uses webpack). Desktop slate inspected with six different split-color artwork cards; 390px performance page, archive selector and NBA/WNBA switching verified. Current NBA API produced seven finite score forecasts with validated artifact provenance and preseason qualification. New prospective ledger saved seven pre-tipoff forecasts. WNBA operational team history now includes October 9 finals (918 games); evaluation retains October 7 cutoff. Snapshot refresh completed for 816 NBA and 301 WNBA players; current feed has no upcoming WNBA games or eligible priced props, so prior October 9 odds are not presented as current. Deployment in progress; final production alias verification remains. Full methodology/results: docs/game-model-audit.md.
+
+Production verification: deployment dpl_QyGrFXped8BcG7GRSzQgnMLXFbsd is READY on court-vision-basketball.vercel.app. Games/performance routes and NBA/WNBA report JSON returned HTTP 200; seven October 10 NBA forecasts carry validated artifact provenance. Live browser verified all matchup artwork and published 70.7%/69.7% holdout winner accuracy. Final visual polish reduces long nickname size to keep Timberwolves on one line; publishing that correction next.
+
+## Box score, standings, playoffs, power rankings — October 19
+
+Box score on Games (design quality from the NFL project, not its layout); Teams gets Standings, Playoffs and Power rankings views.
+
+- [x] ESPN adapters: `utils/basketball_boxscore.py`, `utils/basketball_standings.py`; routes `/api/games/{id}/boxscore`, `/api/standings`.
+- [x] Static export writes `standings.json` and `boxscore/{id}.json` for started games on exported schedule days.
+- [x] `BoxScore` (line score, leaders, team comparison, player tables, DNP list; 20s polling while live) and `StandingsViews` (tables with play-in line, playoff zones, power rankings).
+- [x] Tests: 9 new Python tests; full suite 336 pass.
+- [ ] Visual QA in a browser (Chrome extension not connected, Playwright Chrome missing).
+
+Review: power score = scoring margin + 0.3 per win above 5-5 in the last ten (my formula, not ESPN's); movement compares it with the season-margin rank. Playoff zones are NBA 6 direct + 4 play-in, WNBA 8; seeds come from ESPN. Early-season rankings are a small sample (UI says so). `tests/test_rest_api.py::test_validation_and_wnba_unavailable_state` fails on a props status ('empty' vs 'unavailable'); it does not touch this work, but I did not confirm it failed before.

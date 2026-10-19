@@ -10,3 +10,11 @@ export function summarizeSlip(legs: SlipLeg[]): { decimal: number | null; americ
 export function formatOdds(price: number | null | undefined): string;
 
 export function toggleLeg(legs: SlipLeg[], leg: SlipLeg): SlipLeg[];
+
+export type SlipMode = 'parlay' | 'singles';
+export const MAX_LEGS: number;
+export function payout(stake: number | null, price: number | null | undefined): number | null;
+export function summarizeSingles(legs: SlipLeg[], stake: number | null): { bets: number; totalStake: number | null; payout: number | null };
+export function slipText(legs: SlipLeg[], mode: SlipMode, stake: number | null): string;
+export function encodeSlip(legs: SlipLeg[], mode: SlipMode, stake: number | null): string;
+export function decodeSlip(code: string | null | undefined): { legs: SlipLeg[]; mode: SlipMode; stake: number | null } | null;

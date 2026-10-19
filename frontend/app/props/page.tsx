@@ -5,8 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
 import type { Prop, PropsResponse } from "@/lib/types";
-import { useSlip } from "@/store/slip";
-import { BetSlip } from "@/components/props/BetSlip";
 import { PropCard } from "@/components/props/PropCard";
 import { PropAnalysisPanel } from "@/components/props/PropAnalysisPanel";
 import { PropFilters, type Filters } from "@/components/props/PropFilters";
@@ -22,7 +20,6 @@ function slateDate(value: string | null | undefined) {
 }
 
 export default function PropsPage() {
-  const slipCount = useSlip(state => state.legs.length);
   const { defaultStat, defaultSort, league } = usePrefs();
   const [filters, setFilters] = useState<Filters>({
     stat: defaultStat,
@@ -127,8 +124,7 @@ export default function PropsPage() {
         <p role="status" className="ql-panel mb-4 border-[#f5ba64]/30 px-4 py-3 text-xs text-[#f5ba64]">{data.message} These are model projections without a sportsbook line, price, or betting pick.</p>
       )}
 
-      <a href="#props-slip" className="ql-control mb-4 block px-4 py-3 text-center text-sm font-semibold text-[#59e0c8] xl:hidden">View your slip · {slipCount} {slipCount === 1 ? 'leg' : 'legs'} ↓</a>
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_350px]"><div className="min-w-0">
+      <div className="min-w-0">
       {activeView === "props" && isPending && (
         <div className="ql-panel overflow-hidden" aria-busy="true" aria-label="Loading props">
           {Array.from({ length: 5 }).map((_, index) => (
@@ -207,7 +203,7 @@ export default function PropsPage() {
         </div>}
       </section>}
 
-      </div><div id="props-slip" className="scroll-mt-20 xl:sticky xl:top-24"><BetSlip /></div></div>
+      </div>
       <p className="mt-5 text-center text-xs text-[#a9bec0]">Historical hit rates are descriptive, not guaranteed outcomes.</p>
     </main>
   );

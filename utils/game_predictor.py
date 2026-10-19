@@ -5,13 +5,15 @@ Game-Level Predictor — Spread, Total, and Winner
 Uses team recent form (rolling 10 games) + season defensive ratings
 + home court advantage + pace + head-to-head history.
 
-Form is the primary driver of predictions — recent momentum matters
-more than season-long averages.
+Loads a validated league artifact when available, otherwise uses an explicitly
+unvalidated historical-form fallback. All inputs are cut off before game day.
 """
 
 import logging
-import pickle
-from pathlib import Path
+import math
+import unicodedata
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -32,15 +34,6 @@ MARGIN_SCALE     = 0.30   # weight for rolling scoring-margin adjustment
 # ── Rest / fatigue constants ───────────────────────────────────────────────
 B2B_PENALTY  = 2.5   # pts deducted for back-to-back (rest_days == 0)
 REST_BONUS   = 0.8   # small bonus when team has 3+ days rest
-
-# ── Vegas line anchor blend ────────────────────────────────────────────────
-MARKET_BLEND = 0.35  # trust Vegas spread/total 35%, our model 65%
-
-# ── XGBoost model weight ───────────────────────────────────────────────────
-# Set to 0 until XGB model demonstrates improvement over the heuristic.
-# The trained model sits at ~10.4 MAE vs heuristic ~9-10 MAE, so blending hurts.
-# Increase this (e.g. to 0.40) after retraining with richer features.
-XGB_WEIGHT   = 0.0  # 0 = heuristic only, 0.45 = half-and-half blend
 
 # Injury penalty — replacement-level model
 # NBA bench/replacement player averages ~7 PPG.
@@ -64,28 +57,40 @@ class GamePredictor:
       - Head-to-head record
       - Home court advantage + pace adjustment
       - Rest/fatigue (back-to-back penalty, 3+ days rest bonus)
-      - XGBoost model blend (when data/model_game_xgb.pkl is present)
+      - Validated league-specific margin/total artifact when promoted
     """
 
-    _XGB_PATH = Path(__file__).parent.parent / "data" / "nba" / "model_game_xgb.pkl"
-
-    def __init__(self, team_def_df: pd.DataFrame, player_logs_df: pd.DataFrame):
+    def __init__(self, team_def_df: pd.DataFrame, player_logs_df: pd.DataFrame,
+                 league: str = "nba", target_date=None):
+        if league not in ("nba", "wnba"):
+            raise ValueError("Unsupported basketball league")
+        self.league = league
+        self.target_date = target_date
+        self._all_logs = player_logs_df.copy()
+        self._team_history = None
+        try:
+            from utils.game_data import load_game_team_history
+            self._team_history = load_game_team_history(league)
+        except (ImportError, FileNotFoundError):
+            pass
+        except Exception:
+            logger.exception("Team-game history invalid; retaining explicit player-log fallback")
         self.team_def = team_def_df
         self.logs     = player_logs_df
         self._scores  = self._build_scores(player_logs_df)
-        self._xgb     = self._load_xgb()
 
     def refresh(self, player_logs_df: pd.DataFrame) -> None:
         """Re-build the game scores table from a fresh DF (call after data update)."""
+        self._all_logs = player_logs_df.copy()
         self.logs    = player_logs_df
         self._scores = self._build_scores(player_logs_df)
-        self._xgb    = self._load_xgb()   # reload in case model was newly trained
 
     # ── Public API ────────────────────────────────────────────────────────
 
     def predict_game(self, home: str, away: str,
                      home_injuries: list | None = None,
-                     away_injuries: list | None = None) -> dict:
+                     away_injuries: list | None = None,
+                     target_date=None, neutral: bool = False, venue=None) -> dict:
         """
         Full game prediction, optionally adjusted for known injuries.
 
@@ -105,6 +110,7 @@ class GamePredictor:
           reasoning: {winner_reason, total_reason, spread_reason, key_factors}
         }
         """
+        self._set_cutoff(target_date or self.target_date)
         home_form   = self._get_form(home)
         away_form   = self._get_form(away)
         home_season = self._get_season(home)
@@ -125,8 +131,8 @@ class GamePredictor:
         pred_away = (away_off_raw * FORM_WEIGHT + home_def_raw * SEASON_WEIGHT)
 
         # Form momentum (W/L rate vs season baseline) — scaled by FORM_WP_SCALE
-        home_form_wp   = home_form.get("wins", 0) / max(home_form.get("wins", 0) + home_form.get("losses", 0), 1)
-        away_form_wp   = away_form.get("wins", 0) / max(away_form.get("wins", 0) + away_form.get("losses", 0), 1)
+        home_form_wp   = home_form.get("wins", 0) / max(home_form.get("wins", 0) + home_form.get("losses", 0), 1) if home_form.get("games") else home_season.get("w_pct", 0.5)
+        away_form_wp   = away_form.get("wins", 0) / max(away_form.get("wins", 0) + away_form.get("losses", 0), 1) if away_form.get("games") else away_season.get("w_pct", 0.5)
         home_season_wp = home_season.get("w_pct", 0.5)
         away_season_wp = away_season.get("w_pct", 0.5)
         pred_home += (home_form_wp - home_season_wp) * FORM_WP_SCALE
@@ -143,12 +149,13 @@ class GamePredictor:
         pred_away -= h2h_boost
 
         # Home court advantage
-        pred_home += HOME_COURT_ADV
+        pred_home += 0.0 if neutral else (HOME_COURT_ADV if self.league == "nba" else 2.0)
 
         # Pace adjustment
-        home_pace   = home_season.get("pace", LEAGUE_AVG_PACE)
-        away_pace   = away_season.get("pace", LEAGUE_AVG_PACE)
-        pace_factor = ((home_pace + away_pace) / 2) / LEAGUE_AVG_PACE
+        league_pace = 98.0 if self.league == "nba" else 80.0
+        home_pace   = home_season.get("pace", league_pace)
+        away_pace   = away_season.get("pace", league_pace)
+        pace_factor = ((home_pace + away_pace) / 2) / league_pace
         pred_home   = round(pred_home * pace_factor, 1)
         pred_away   = round(pred_away * pace_factor, 1)
 
@@ -164,39 +171,68 @@ class GamePredictor:
         elif away_rest >= 3:
             pred_away += REST_BONUS
 
-        # ── XGBoost model blend ──────────────────────────────────────────
-        xgb_home = self._predict_xgb(home, away, is_home=1,
-                                      home_rest=home_rest, away_rest=away_rest,
-                                      home_form=home_form, away_form=away_form)
-        xgb_away = self._predict_xgb(away, home, is_home=0,
-                                      home_rest=away_rest, away_rest=home_rest,
-                                      home_form=away_form, away_form=home_form)
-        if xgb_home is not None and xgb_away is not None:
-            pred_home = round(pred_home * (1 - XGB_WEIGHT) + xgb_home * XGB_WEIGHT, 1)
-            pred_away = round(pred_away * (1 - XGB_WEIGHT) + xgb_away * XGB_WEIGHT, 1)
+        forecast = None
+        model_metadata = {"name": "historical_form_fallback", "validated": False,
+                          "injury_adjustment_validated": False,
+                          "market_assisted": False}
+        try:
+            from utils.game_features import aggregate_team_games, build_feature_vector
+            from utils.game_model import GameForecastModel
+            learned = GameForecastModel.load(self.league)
+            if learned is not None:
+                features = build_feature_vector(self._pregame_team_history() if self._team_history is not None else aggregate_team_games(self.logs, self.league),
+                                                self._cutoff, home, away, self.league,
+                                                neutral=neutral, venue=venue if neutral else None)
+                candidate = learned.predict(features)
+                trained_through = candidate.get("trained_through")
+                if trained_through and pd.Timestamp(trained_through).normalize() >= self._cutoff:
+                    raise ValueError("Artifact includes outcomes on or after the target date")
+                forecast = candidate
+                pred_home = (forecast["total"] + forecast["margin"]) / 2
+                pred_away = (forecast["total"] - forecast["margin"]) / 2
+                model_metadata.update(name=forecast["model_name"], validated=True,
+                                      metrics=forecast.get("metrics", {}),
+                                      version=forecast.get("version"),
+                                      trained_through=forecast.get("trained_through"),
+                                      feature_count=forecast.get("feature_count"),
+                                      calibration=forecast.get("calibration"))
+        except (ImportError, FileNotFoundError):
+            pass
+        except Exception:
+            logger.exception("Validated game artifact unavailable; using historical fallback")
+            model_metadata["artifact_unavailable"] = True
 
         # ── Injury adjustments ───────────────────────────────────────────
         home_missing, away_missing = [], []
         if home_injuries:
-            pred_home, home_missing = self._apply_injury_penalty(pred_home, home_injuries)
+            pred_home, home_missing = self._apply_injury_penalty(pred_home, home_injuries, home)
+            pred_away += sum(m.get("defensive_scenario_points", 0) for m in home_missing)
         if away_injuries:
-            pred_away, away_missing = self._apply_injury_penalty(pred_away, away_injuries)
-
-        # ── Calibration bias correction (self-learning) ──────────────────
-        try:
-            from utils.prediction_tracker import load_calibration
-            calib = load_calibration()
-            pred_home = round(pred_home - calib.get("home_score_bias", 0.0), 1)
-            pred_away = round(pred_away - calib.get("away_score_bias", 0.0), 1)
-        except Exception:
-            pass  # no calibration file yet — skip silently
+            pred_away, away_missing = self._apply_injury_penalty(pred_away, away_injuries, away)
+            pred_home += sum(m.get("defensive_scenario_points", 0) for m in away_missing)
 
         pred_total  = round(pred_home + pred_away, 1)
         pred_spread = round(pred_home - pred_away, 1)
 
         margin = abs(pred_spread)
-        winner_conf = "HIGH" if margin >= 8 else "MEDIUM" if margin >= 4 else "LOW"
-        winner      = home if pred_home >= pred_away else away
+        probability = None
+        intervals = None
+        if forecast is not None:
+            if not home_missing and not away_missing:
+                probability = forecast.get("home_win_probability")
+            sd = float(forecast.get("margin_sd") or 0)
+            if sd > 0 and (probability is None or home_missing or away_missing):
+                probability = 0.5 * (1 + math.erf(pred_spread / (sd * math.sqrt(2))))
+            empirical = forecast.get("prediction_intervals") or {}
+            if empirical:
+                margin_delta = pred_spread - forecast["margin"]
+                total_delta = pred_total - forecast["total"]
+                intervals = {"coverage": 0.80,
+                             "margin": [round(v + margin_delta, 1) for v in empirical.get("margin_80", [])],
+                             "total": [round(v + total_delta, 1) for v in empirical.get("total_80", [])],
+                             "injury_scenario_shifted": bool(home_missing or away_missing)}
+        winner_conf = "LOW"  # Compatibility label; no unsupported confidence claim.
+        winner      = (home if probability >= 0.5 else away) if probability is not None else (home if pred_home >= pred_away else away)
 
         intel = self._build_intel(
             home, away, home_form, away_form,
@@ -212,9 +248,17 @@ class GamePredictor:
             winner, winner_conf, home_missing, away_missing,
         )
 
+        model_metadata["injury_scenario_applied"] = bool(home_missing or away_missing)
+        model_metadata["venue"] = venue
+        model_metadata["venue_location_basis"] = "explicit_neutral_venue" if neutral else "home_arena_city_proxy"
         return {
-            "predicted_home_score": pred_home,
-            "predicted_away_score": pred_away,
+            "model_metadata": model_metadata,
+            "data_quality": self._data_quality(home, away, home_injuries, away_injuries),
+            "home_win_probability": probability,
+            "winner_probability": max(probability, 1-probability) if probability is not None else None,
+            "prediction_intervals": intervals,
+            "predicted_home_score": round(pred_home, 1),
+            "predicted_away_score": round(pred_away, 1),
             "predicted_total":      pred_total,
             "predicted_spread":     pred_spread,
             "winner":               winner,
@@ -249,22 +293,8 @@ class GamePredictor:
         model_spread = prediction["predicted_spread"]
         model_total  = prediction["predicted_total"]
 
-        # ── Vegas line anchor blend ─────────────────────────────────────
-        # Blend our model's spread/total toward the Vegas line (35% weight).
-        # Market lines are very well-calibrated; blending reduces model error.
-        if actual_spread is not None:
-            # actual_spread is home line (negative = home favored).
-            # Convert to "model spread space": market's implied model_spread ≈ -actual_spread
-            blended_spread = (model_spread * (1 - MARKET_BLEND)
-                              + (-actual_spread) * MARKET_BLEND)
-        else:
-            blended_spread = model_spread
-
-        if actual_total is not None:
-            blended_total = (model_total * (1 - MARKET_BLEND)
-                             + actual_total * MARKET_BLEND)
-        else:
-            blended_total = model_total
+        # Compare the displayed forecast directly with the quoted line.
+        blended_spread, blended_total = model_spread, model_total
 
         result = {
             "spread_pick":        None,
@@ -290,7 +320,7 @@ class GamePredictor:
                 result["spread_team"] = away
             abs_edge = abs(edge)
             result["spread_confidence"] = (
-                "HIGH" if abs_edge >= 4.0 else "MEDIUM" if abs_edge >= 2.0 else "LOW"
+                "LOW"  # Edge size alone does not establish calibrated confidence.
             )
 
         if actual_total is not None:
@@ -301,7 +331,7 @@ class GamePredictor:
                 result["total_pick"] = "UNDER"
             abs_edge = abs(edge)
             result["total_confidence"] = (
-                "HIGH" if abs_edge >= 5.0 else "MEDIUM" if abs_edge >= 3.0 else "LOW"
+                "LOW"  # Edge size alone does not establish calibrated confidence.
             )
 
         return result
@@ -393,61 +423,62 @@ class GamePredictor:
 
     # ── Internal helpers ──────────────────────────────────────────────────
 
+    def _set_cutoff(self, target_date=None):
+        self._cutoff = pd.Timestamp(target_date or datetime.now(ZoneInfo("America/New_York")).date()).normalize()
+        logs = self._all_logs.copy()
+        if "_date" not in logs:
+            logs["_date"] = pd.to_datetime(logs.get("GAME_DATE"), errors="coerce")
+        logs["_date"] = pd.to_datetime(logs["_date"], errors="coerce").dt.tz_localize(None)
+        self.logs = logs[logs["_date"] < self._cutoff].copy()
+        game_col = next((c for c in ("Game_ID", "GAME_ID") if c in self.logs), None)
+        player_col = next((c for c in ("Player_ID", "PLAYER_ID", "PLAYER_NAME") if c in self.logs), None)
+        if game_col and player_col:
+            self.logs = self.logs.drop_duplicates([game_col, player_col], keep="last")
+        self._scores = self._build_scores(self.logs)
+        if self._team_history is not None:
+            history = self._pregame_team_history()
+            self._scores = history.rename(columns={"date": "_date", "home": "is_home", "PTS": "team_pts"}).copy()
+            self._scores["wl"] = self._scores["margin"].map(lambda margin: "W" if margin > 0 else "L")
+            self._scores = self._scores.sort_values("_date", ascending=False)
+
+    def _pregame_team_history(self):
+        return self._team_history[self._team_history["date"] < self._cutoff].copy()
+
     def _get_rest_days(self, team: str) -> int:
-        """
-        Days of rest before the next game (0 = back-to-back).
-        Returns 1 (normal rest) when data is unavailable.
-        """
-        if self._scores.empty:
+        rows = self._scores[self._scores["team"] == team] if not self._scores.empty else pd.DataFrame()
+        if rows.empty:
             return 1
-        team_games = (
-            self._scores[self._scores["team"] == team]
-            .sort_values("_date", ascending=False)
-        )
-        if len(team_games) < 2:
-            return 1
-        try:
-            delta = (team_games.iloc[0]["_date"] - team_games.iloc[1]["_date"]).days
-            return min(max(delta, 0), 7)
-        except Exception:
-            return 1
+        cutoff = getattr(self, "_cutoff", pd.Timestamp(self.target_date or datetime.now(ZoneInfo("America/New_York")).date()))
+        return min(max(int((cutoff - rows["_date"].max()).days) - 1, 0), 10)
 
-    def _load_xgb(self):
-        """Load XGBoost model if available. Returns None when not trained yet."""
-        try:
-            with open(self._XGB_PATH, "rb") as f:
-                model = pickle.load(f)
-            logger.info("XGBoost game model loaded from %s", self._XGB_PATH)
-            return model
-        except Exception:
-            return None
+    def _data_quality(self, home, away, home_injuries, away_injuries):
+        dates = {}
+        player_latest = self.logs["_date"].max() if not self.logs.empty else None
+        for team in (home, away):
+            rows = self._scores[self._scores["team"] == team] if not self._scores.empty else pd.DataFrame()
+            last = rows["_date"].max() if not rows.empty else None
+            player_rows = self.logs[self.logs["MATCHUP"].str.startswith(team + " ", na=False)] if "MATCHUP" in self.logs else pd.DataFrame()
+            team_player_latest = player_rows["_date"].max() if not player_rows.empty else None
+            dates[team] = {"latest_game_date": last.date().isoformat() if last is not None else None,
+                           "history_age_days": int((self._cutoff-last).days) if last is not None else None,
+                           "history_older_than_14_days": bool(last is None or (self._cutoff-last).days > 14),
+                           "games_available": len(rows),
+                           "latest_player_log_date": team_player_latest.date().isoformat() if team_player_latest is not None else None,
+                           "player_boxscore_lag_days": max(int((last-team_player_latest).days), 0) if last is not None and team_player_latest is not None else None,
+                           "injury_player_history_stale": bool(team_player_latest is None or (self._cutoff-team_player_latest).days > 7)}
+        return {"as_of": self._cutoff.date().isoformat(), "teams": dates,
+                "latest_player_log_date": player_latest.date().isoformat() if player_latest is not None else None,
+                "player_history_age_days": int((self._cutoff-player_latest).days) if player_latest is not None else None,
+                "injury_player_history_stale": bool(player_latest is None or (self._cutoff-player_latest).days > 7),
+                "injury_feed_available": {home: home_injuries is not None, away: away_injuries is not None},
+                "limitations": ["Injury scenario coefficients are not historically validated",
+                                "No timestamped historical injury archive is used in training",
+                                "Team box scores reconstructed from player logs"] if self._team_history is None else
+                               ["Injury scenario coefficients are not historically validated",
+                                "No timestamped historical injury archive is used in training"],
+                "team_history_source": "validated_team_boxscores" if self._team_history is not None else "player_log_reconstruction"}
 
-    def _predict_xgb(self, team: str, opp: str, is_home: int,
-                     home_rest: int, away_rest: int,
-                     home_form: dict, away_form: dict) -> float | None:
-        """XGBoost prediction for team score. Returns None if model not available."""
-        if self._xgb is None:
-            return None
-        try:
-            opp_form = away_form   # caller swaps for home/away
-            features = {
-                "roll_ppg_10":     home_form.get("rolling_ppg") or 112.0,
-                "roll_ppg_5":      home_form.get("rolling_ppg") or 112.0,
-                "roll_wl_10":      (home_form.get("wins", 5) /
-                                    max(home_form.get("wins", 5) + home_form.get("losses", 5), 1)),
-                "is_home":         is_home,
-                "rest_days":       home_rest,
-                "is_b2b":          1 if home_rest == 0 else 0,
-                "opp_roll_ppg_10": opp_form.get("rolling_ppg") or 112.0,
-                "opp_roll_ppg_5":  opp_form.get("rolling_ppg") or 112.0,
-            }
-            X = pd.DataFrame([features])
-            return float(self._xgb.predict(X)[0])
-        except Exception as e:
-            logger.debug("XGB predict failed: %s", e)
-            return None
-
-    def _apply_injury_penalty(self, raw_score: float, injuries: list) -> tuple:
+    def _apply_injury_penalty(self, raw_score: float, injuries: list, team: str | None = None) -> tuple:
         """
         Apply a realistic injury penalty using replacement-level logic.
 
@@ -469,13 +500,16 @@ class GamePredictor:
         missing       = []
 
         for player in injuries:
-            status = player.get("status", "")
-            if status not in ("OUT", "DOUBTFUL"):
+            status = str(player.get("status", "")).strip().upper()
+            if status not in ("OUT", "DOUBTFUL", "QUESTIONABLE"):
                 continue
             name = player.get("name", "")
 
             # Look up player's L10 PPG from game logs
-            player_rows = self.logs[self.logs["PLAYER_NAME"] == name]
+            normalize = lambda value: "".join(c for c in unicodedata.normalize("NFKD", str(value).casefold()) if c.isalnum())
+            player_rows = self.logs[self.logs["PLAYER_NAME"].map(normalize) == normalize(name)]
+            if team and "MATCHUP" in player_rows:
+                player_rows = player_rows[player_rows["MATCHUP"].str.startswith(team + " ", na=False)]
             if len(player_rows) < 3:
                 continue
             ppg = float(
@@ -483,29 +517,24 @@ class GamePredictor:
                 .head(10)["PTS"]
                 .mean()
             )
-            if ppg < 5:   # non-scorers don't affect team total meaningfully
-                continue
 
-            # Check if this player has been absent from recent games already.
-            # If their last recorded game was >10 days ago, the L10 rolling PPG
-            # already partially reflects their absence → cut penalty in half.
-            recent = player_rows.sort_values("_date", ascending=False)
-            try:
-                last_game_date = pd.Timestamp(recent.iloc[0]["_date"])
-                days_absent = (pd.Timestamp("today") - last_game_date).days
-            except Exception:
-                days_absent = 0
-            already_absent = days_absent > 10
-
-            # Marginal loss above replacement level
-            net_marginal = max(ppg - REPLACEMENT_PPG, 0.0)
-            weight = OUT_MARGINAL_WEIGHT if status == "OUT" else DOUBTFUL_MARGINAL_WEIGHT
-            if already_absent:
-                weight *= 0.4   # L10 PPG already baked-in most of the absence
-
-            player_penalty = min(net_marginal * weight, MAX_PENALTY_PER_PLAYER)
+            recent = player_rows.sort_values("_date", ascending=False).head(10)
+            team_dates = set(self._scores[self._scores["team"] == team].head(10)["_date"]) if team else set()
+            participation = len(set(recent["_date"]) & team_dates) / max(len(team_dates), 1) if team_dates else 1.0
+            status_weight = {"OUT": 1.0, "DOUBTFUL": 0.75, "QUESTIONABLE": 0.35}[status]
+            average = lambda column: float(pd.to_numeric(recent[column], errors="coerce").fillna(0).mean()) if column in recent else 0.0
+            minutes = average("MIN")
+            net_marginal = max(ppg - (REPLACEMENT_PPG if self.league == "nba" else 5), 0.0)
+            weight = OUT_MARGINAL_WEIGHT * status_weight * participation
+            offense_proxy = net_marginal + 0.35*average("AST") + 0.08*average("REB")
+            defensive_proxy = min(2.0, (0.25*average("STL") + 0.25*average("BLK") + 0.05*average("REB")) * min(minutes/30, 1.2)) * status_weight * participation
+            player_penalty = min(offense_proxy * weight, MAX_PENALTY_PER_PLAYER)
             total_penalty += player_penalty
-            missing.append({"name": name, "ppg": round(ppg, 1), "status": status})
+            missing.append({"name": name, "ppg": round(ppg, 1), "status": status,
+                            "participation_fraction": round(participation, 3),
+                            "offensive_scenario_points": round(player_penalty, 2),
+                            "defensive_scenario_points": round(defensive_proxy, 2),
+                            "adjustment_validated": False})
 
             if total_penalty >= MAX_TOTAL_PENALTY:
                 break  # don't pile on more than the team cap
@@ -557,12 +586,13 @@ class GamePredictor:
 
         # ── Total reason ──────────────────────────────────────────────────
         pace_note = ""
-        home_pace = hs.get("pace", LEAGUE_AVG_PACE)
-        away_pace = as_.get("pace", LEAGUE_AVG_PACE)
+        league_pace = 98.0 if self.league == "nba" else 80.0
+        home_pace = hs.get("pace", league_pace)
+        away_pace = as_.get("pace", league_pace)
         avg_pace  = (home_pace + away_pace) / 2
-        if avg_pace > LEAGUE_AVG_PACE + 2:
-            pace_note = f" Both teams play fast (avg pace {avg_pace:.0f} vs league {LEAGUE_AVG_PACE:.0f})."
-        elif avg_pace < LEAGUE_AVG_PACE - 2:
+        if avg_pace > league_pace + 2:
+            pace_note = f" Both teams play fast (avg pace {avg_pace:.0f} vs league {league_pace:.0f})."
+        elif avg_pace < league_pace - 2:
             pace_note = f" Slow-pace matchup (avg {avg_pace:.0f})."
 
         home_def_l10 = hf.get("rolling_opp_ppg") or hs.get("opp_ppg", 0)
@@ -653,6 +683,10 @@ class GamePredictor:
             return pd.DataFrame()
 
         d = df.copy()
+        game_col = next((c for c in ("Game_ID", "GAME_ID") if c in d), None)
+        player_col = next((c for c in ("Player_ID", "PLAYER_ID", "PLAYER_NAME") if c in d), None)
+        if game_col and player_col:
+            d = d.drop_duplicates([game_col, player_col], keep="last")
 
         # Parse team and opponent from MATCHUP  e.g. "ATL vs. ORL" or "ATL @ ORL"
         d["team"]     = d["MATCHUP"].str.extract(r'^([A-Z]{2,3})\s+(?:vs\.|@)')[0]
@@ -732,30 +766,29 @@ class GamePredictor:
 
     def _get_season(self, team: str) -> dict:
         """Current season stats from team_def_df."""
-        default = {"ppg": 112.0, "opp_ppg": 112.0, "w_pct": 0.5,
-                   "pace": LEAGUE_AVG_PACE, "opp_pts_rank": 15}
-
-        if self.team_def.empty or "TEAM_ABBREVIATION" not in self.team_def.columns:
+        baseline = 112.0 if self.league == "nba" else 80.0
+        pace = 98.0 if self.league == "nba" else 80.0
+        default = {"ppg": baseline, "opp_ppg": baseline, "w_pct": 0.5,
+                   "pace": pace, "opp_pts_rank": 15 if self.league == "nba" else 7}
+        if self._scores.empty:
             return default
-
-        rows = self.team_def[self.team_def["TEAM_ABBREVIATION"] == team]
+        rows = self._scores[self._scores["team"] == team]
         if rows.empty:
             return default
-
-        row = rows.sort_values("SEASON", ascending=False).iloc[0]
-        opp_pts    = float(row.get("OPP_PTS",    112.0))
-        plus_minus = float(row.get("PLUS_MINUS",   0.0))
-        w_pct      = float(row.get("W_PCT",         0.5))
-        pace       = float(row["PACE"]) if "PACE" in row.index else LEAGUE_AVG_PACE
-        opp_rank   = int(row.get("OPP_PTS_RANK", 15))
-
-        return {
-            "ppg":          round(opp_pts + plus_minus, 1),
-            "opp_ppg":      round(opp_pts, 1),
-            "w_pct":        round(w_pct, 3),
-            "pace":         round(pace, 1),
-            "opp_pts_rank": opp_rank,
-        }
+        latest_year = rows["_date"].max().year
+        # NBA season begins in autumn; WNBA follows calendar year.
+        season_start = pd.Timestamp(year=latest_year if rows["_date"].max().month >= 9 or self.league == "wnba" else latest_year-1,
+                                    month=9 if self.league == "nba" else 1, day=1)
+        rows = rows[rows["_date"] >= season_start]
+        opponents = []
+        for _, row in rows.iterrows():
+            match = self._scores[(self._scores["team"] == row["opponent"]) & (self._scores["_date"] == row["_date"])]
+            if not match.empty:
+                opponents.append(float(match.iloc[0]["team_pts"]))
+        default.update(ppg=round(float(rows["team_pts"].mean()), 1),
+                       opp_ppg=round(sum(opponents)/len(opponents), 1) if opponents else baseline,
+                       w_pct=float((rows["wl"] == "W").mean()))
+        return default
 
     def _h2h_boost(self, h2h: dict, home: str, away: str) -> float:
         """
@@ -819,9 +852,9 @@ class GamePredictor:
             bullets.append(f"{away} elite defense — #{ar} in pts allowed ({as_['opp_ppg']:.0f} PPG)")
 
         # Total projection
-        if pt < 215:
+        if pt < (215 if self.league == "nba" else 155):
             bullets.append(f"Low total projected ({pt:.0f}) — defensive grind expected")
-        elif pt > 232:
+        elif pt > (232 if self.league == "nba" else 175):
             bullets.append(f"High total projected ({pt:.0f}) — uptempo matchup")
 
         return bullets[:5]

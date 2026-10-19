@@ -1,7 +1,7 @@
 {
-  "cached_at": "2026-10-04T01:01:24.176025",
+  "cached_at": "2026-10-19T13:05:56.318561",
   "payload": {
-    "timestamp": "2026-10-04T05:01:11Z",
+    "timestamp": "2026-10-19T17:05:47Z",
     "status": "success",
     "season": {
       "year": 2026,
@@ -8818,6 +8818,521 @@
         "displayName": "Indiana Fever",
         "injuries": [
           {
+            "id": "53789",
+            "longComment": "out",
+            "shortComment": "out",
+            "status": "Out",
+            "date": "2026-10-15T15:05Z",
+            "athlete": {
+              "firstName": "Aliyah",
+              "lastName": "Boston",
+              "displayName": "Aliyah Boston",
+              "shortName": "A. Boston",
+              "links": [
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "playercard",
+                    "desktop",
+                    "athlete"
+                  ],
+                  "href": "https://www.espn.com/wnba/player/_/id/4432831/aliyah-boston",
+                  "text": "Player Card",
+                  "shortText": "Player Card",
+                  "isExternal": false,
+                  "isPremium": false
+                },
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "stats",
+                    "desktop",
+                    "athlete"
+                  ],
+                  "href": "https://www.espn.com/wnba/player/stats/_/id/4432831/aliyah-boston",
+                  "text": "Stats",
+                  "shortText": "Stats",
+                  "isExternal": false,
+                  "isPremium": false
+                },
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "stats",
+                    "sportscenter",
+                    "app",
+                    "athlete"
+                  ],
+                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4432831&section=stats",
+                  "text": "Stats",
+                  "shortText": "Stats",
+                  "isExternal": false,
+                  "isPremium": false
+                },
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "gamelog",
+                    "desktop",
+                    "athlete"
+                  ],
+                  "href": "https://www.espn.com/wnba/player/gamelog/_/id/4432831/aliyah-boston",
+                  "text": "Game Log",
+                  "shortText": "Game Log",
+                  "isExternal": false,
+                  "isPremium": false
+                },
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "gamelog",
+                    "sportscenter",
+                    "app",
+                    "athlete"
+                  ],
+                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4432831&section=gamelog",
+                  "text": "Game Log",
+                  "shortText": "Game Log",
+                  "isExternal": false,
+                  "isPremium": false
+                },
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "news",
+                    "desktop",
+                    "athlete"
+                  ],
+                  "href": "https://www.espn.com/wnba/player/news/_/id/4432831/aliyah-boston",
+                  "text": "News",
+                  "shortText": "News",
+                  "isExternal": false,
+                  "isPremium": false
+                },
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "news",
+                    "sportscenter",
+                    "app",
+                    "athlete"
+                  ],
+                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4432831&section=news",
+                  "text": "News",
+                  "shortText": "News",
+                  "isExternal": false,
+                  "isPremium": false
+                },
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "bio",
+                    "desktop",
+                    "athlete"
+                  ],
+                  "href": "https://www.espn.com/wnba/player/bio/_/id/4432831/aliyah-boston",
+                  "text": "Bio",
+                  "shortText": "Bio",
+                  "isExternal": false,
+                  "isPremium": false
+                },
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "bio",
+                    "sportscenter",
+                    "app",
+                    "athlete"
+                  ],
+                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4432831&section=bio",
+                  "text": "Bio",
+                  "shortText": "Bio",
+                  "isExternal": false,
+                  "isPremium": false
+                },
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "overview",
+                    "desktop",
+                    "athlete"
+                  ],
+                  "href": "https://www.espn.com/wnba/player/_/id/4432831/aliyah-boston",
+                  "text": "Overview",
+                  "shortText": "Overview",
+                  "isExternal": false,
+                  "isPremium": false
+                },
+                {
+                  "language": "en-US",
+                  "rel": [
+                    "overview",
+                    "sportscenter",
+                    "app",
+                    "athlete"
+                  ],
+                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4432831",
+                  "text": "Overview",
+                  "shortText": "Overview",
+                  "isExternal": false,
+                  "isPremium": false
+                }
+              ],
+              "headshot": {
+                "href": "https://a.espncdn.com/i/headshots/wnba/players/full/4432831.png",
+                "alt": "Aliyah Boston"
+              },
+              "position": {
+                "id": "9",
+                "name": "Center",
+                "displayName": "Center",
+                "abbreviation": "C",
+                "leaf": false
+              },
+              "team": {
+                "id": "5",
+                "uid": "s:40~l:59~t:5",
+                "slug": "indiana-fever",
+                "name": "Fever",
+                "abbreviation": "IND",
+                "displayName": "Indiana Fever",
+                "logos": [
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/wnba/500/ind.png",
+                    "width": 500,
+                    "height": 500,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "default"
+                    ],
+                    "lastUpdated": "2023-05-10T21:43Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/i/teamlogos/wnba/500-dark/ind.png",
+                    "width": 500,
+                    "height": 500,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "dark"
+                    ],
+                    "lastUpdated": "2023-05-10T21:45Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/primary_logo_on_white_color.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "primary_logo_on_white_color"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/primary_logo_on_black_color.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "primary_logo_on_black_color"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/primary_logo_on_primary_color.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "primary_logo_on_primary_color"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/primary_logo_on_secondary_color.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "primary_logo_on_secondary_color"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/primary_logo_black.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "primary_logo_black"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/primary_logo_white.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "primary_logo_white"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/secondary_logo_on_white_color.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "secondary_logo_on_white_color"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/secondary_logo_on_black_color.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "secondary_logo_on_black_color"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/secondary_logo_on_primary_color.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "secondary_logo_on_primary_color"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/secondary_logo_on_secondary_color.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "secondary_logo_on_secondary_color"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/secondary_logo_black.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "secondary_logo_black"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  },
+                  {
+                    "href": "https://a.espncdn.com/guid/bfef1bdd-c2d1-310d-dd9f-645b90575da9/logos/secondary_logo_white.png",
+                    "width": 4096,
+                    "height": 4096,
+                    "alt": "",
+                    "rel": [
+                      "full",
+                      "secondary_logo_white"
+                    ],
+                    "lastUpdated": "2026-07-22T20:35Z"
+                  }
+                ],
+                "links": [
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "clubhouse",
+                      "desktop",
+                      "team"
+                    ],
+                    "href": "https://www.espn.com/wnba/team/_/name/ind/indiana-fever",
+                    "text": "Clubhouse",
+                    "shortText": "Clubhouse",
+                    "isExternal": false,
+                    "isPremium": false
+                  },
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "clubhouse",
+                      "mobile",
+                      "team"
+                    ],
+                    "href": "https://m.espn.com/wnba/clubhouse?teamId=5",
+                    "text": "Clubhouse",
+                    "shortText": "Clubhouse",
+                    "isExternal": false,
+                    "isPremium": false
+                  },
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "roster",
+                      "desktop",
+                      "team"
+                    ],
+                    "href": "https://www.espn.com/wnba/team/roster/_/name/ind/indiana-fever",
+                    "text": "Roster",
+                    "shortText": "Roster",
+                    "isExternal": false,
+                    "isPremium": false
+                  },
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "roster",
+                      "sportscenter",
+                      "app",
+                      "team"
+                    ],
+                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:5&section=roster",
+                    "text": "Roster",
+                    "shortText": "Roster",
+                    "isExternal": false,
+                    "isPremium": false
+                  },
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "stats",
+                      "desktop",
+                      "team"
+                    ],
+                    "href": "https://www.espn.com/wnba/team/stats/_/name/ind/indiana-fever",
+                    "text": "Statistics",
+                    "shortText": "Statistics",
+                    "isExternal": false,
+                    "isPremium": false
+                  },
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "stats",
+                      "sportscenter",
+                      "app",
+                      "team"
+                    ],
+                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:5&section=stats",
+                    "text": "Statistics",
+                    "shortText": "Statistics",
+                    "isExternal": false,
+                    "isPremium": false
+                  },
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "schedule",
+                      "desktop",
+                      "team"
+                    ],
+                    "href": "https://www.espn.com/wnba/team/schedule/_/name/ind",
+                    "text": "Schedule",
+                    "shortText": "Schedule",
+                    "isExternal": false,
+                    "isPremium": false
+                  },
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "schedule",
+                      "sportscenter",
+                      "app",
+                      "team"
+                    ],
+                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:5&section=scores",
+                    "text": "Schedule",
+                    "shortText": "Schedule",
+                    "isExternal": false,
+                    "isPremium": false
+                  },
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "photos",
+                      "desktop",
+                      "team"
+                    ],
+                    "href": "https://www.espn.com/wnba/team/photos/_/name/ind",
+                    "text": "photos",
+                    "shortText": "photos",
+                    "isExternal": false,
+                    "isPremium": false
+                  },
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "tickets",
+                      "desktop",
+                      "team"
+                    ],
+                    "href": "https://www.vividseats.com/indiana-fever-tickets--sports-wnba/performer/2016?wsUser=717",
+                    "text": "Tickets",
+                    "shortText": "Tickets",
+                    "isExternal": true,
+                    "isPremium": false
+                  },
+                  {
+                    "language": "en-US",
+                    "rel": [
+                      "draftpicks",
+                      "desktop",
+                      "team"
+                    ],
+                    "href": "https://www.espn.com/wnba/draft/teams/_/name/ind/indiana-fever",
+                    "text": "Draft Picks",
+                    "shortText": "Draft Picks",
+                    "isExternal": false,
+                    "isPremium": true
+                  }
+                ]
+              },
+              "notes": {
+                "items": []
+              },
+              "status": {
+                "id": "1",
+                "name": "Active",
+                "type": "active",
+                "abbreviation": "Active"
+              }
+            },
+            "source": {
+              "id": "1",
+              "description": "basic/manual",
+              "state": "basic"
+            },
+            "type": {
+              "id": "4",
+              "name": "INJURY_STATUS_OUT",
+              "description": "out",
+              "abbreviation": "O"
+            },
+            "details": {
+              "fantasyStatus": {
+                "description": "OUT",
+                "abbreviation": "OUT"
+              },
+              "type": "Knee",
+              "side": "Right",
+              "returnDate": "2027-05-01"
+            }
+          },
+          {
             "id": "36921",
             "longComment": "Harris was injured during Thursday's 86-66 win over Minnesota. She was diagnosed with a broken left fibula, though it's unknown if it will affect her heading into the 2027 campaign. The 28-year-old averaged a career-low 4.1 points along with 1.1 rebounds and 2.0 assists over 13.5 minutes per contest in 39 regular-season games, including four starts, in 2026. While Harris wasn't a consistent contributor for Indiana during the season, her absence could at least open the door for a little more involvement from Myisha Hines-Allen and Monique Billings.",
             "shortComment": "Harris (leg) will miss the rest of the season, WNBA reporter Kareem Copeland reports.",
@@ -9339,1034 +9854,6 @@
         "id": "17",
         "displayName": "Las Vegas Aces",
         "injuries": [
-          {
-            "id": "37039",
-            "longComment": "Talbot wasn't available for the 94-83 win over the Fever on Thursday. If that trend continues Sunday, Cheyenne Parker-Tyus and Brianna Turner may see more action once again.",
-            "shortComment": "Talbot (leg) is listed as questionable for Game 1 of the semifinals versus Golden State on Sunday.",
-            "status": "Day-To-Day",
-            "date": "2026-10-04T00:23Z",
-            "athlete": {
-              "firstName": "Stephanie",
-              "lastName": "Talbot",
-              "displayName": "Stephanie Talbot",
-              "shortName": "S. Talbot",
-              "links": [
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "playercard",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/_/id/3099736/stephanie-talbot",
-                  "text": "Player Card",
-                  "shortText": "Player Card",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "stats",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/stats/_/id/3099736/stephanie-talbot",
-                  "text": "Stats",
-                  "shortText": "Stats",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "stats",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:3099736&section=stats",
-                  "text": "Stats",
-                  "shortText": "Stats",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "gamelog",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/gamelog/_/id/3099736/stephanie-talbot",
-                  "text": "Game Log",
-                  "shortText": "Game Log",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "gamelog",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:3099736&section=gamelog",
-                  "text": "Game Log",
-                  "shortText": "Game Log",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "news",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/news/_/id/3099736/stephanie-talbot",
-                  "text": "News",
-                  "shortText": "News",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "news",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:3099736&section=news",
-                  "text": "News",
-                  "shortText": "News",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "bio",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/bio/_/id/3099736/stephanie-talbot",
-                  "text": "Bio",
-                  "shortText": "Bio",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "bio",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:3099736&section=bio",
-                  "text": "Bio",
-                  "shortText": "Bio",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "overview",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/_/id/3099736/stephanie-talbot",
-                  "text": "Overview",
-                  "shortText": "Overview",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "overview",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:3099736",
-                  "text": "Overview",
-                  "shortText": "Overview",
-                  "isExternal": false,
-                  "isPremium": false
-                }
-              ],
-              "headshot": {
-                "href": "https://a.espncdn.com/i/headshots/wnba/players/full/3099736.png",
-                "alt": "Stephanie Talbot"
-              },
-              "position": {
-                "id": "7",
-                "name": "Forward",
-                "displayName": "Forward",
-                "abbreviation": "F",
-                "leaf": false
-              },
-              "team": {
-                "id": "17",
-                "uid": "s:40~l:59~t:17",
-                "slug": "las-vegas-aces",
-                "name": "Aces",
-                "abbreviation": "LV",
-                "displayName": "Las Vegas Aces",
-                "logos": [
-                  {
-                    "href": "https://a.espncdn.com/i/teamlogos/wnba/500/lv.png",
-                    "width": 500,
-                    "height": 500,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "default"
-                    ],
-                    "lastUpdated": "2024-05-01T20:55Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/i/teamlogos/wnba/500-dark/lv.png",
-                    "width": 500,
-                    "height": 500,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "dark"
-                    ],
-                    "lastUpdated": "2024-05-01T20:55Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_on_white_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_white_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_on_black_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_black_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_on_primary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_primary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_on_secondary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_secondary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_black.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_black"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_white.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_white"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_on_white_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_white_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_on_black_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_black_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_on_primary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_primary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_on_secondary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_secondary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_black.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_black"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_white.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_white"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  }
-                ],
-                "links": [
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "clubhouse",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/_/name/lv/las-vegas-aces",
-                    "text": "Clubhouse",
-                    "shortText": "Clubhouse",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "clubhouse",
-                      "mobile",
-                      "team"
-                    ],
-                    "href": "https://m.espn.com/wnba/clubhouse?teamId=17",
-                    "text": "Clubhouse",
-                    "shortText": "Clubhouse",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "roster",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/roster/_/name/lv/las-vegas-aces",
-                    "text": "Roster",
-                    "shortText": "Roster",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "roster",
-                      "sportscenter",
-                      "app",
-                      "team"
-                    ],
-                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:17&section=roster",
-                    "text": "Roster",
-                    "shortText": "Roster",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "stats",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/stats/_/name/lv/las-vegas-aces",
-                    "text": "Statistics",
-                    "shortText": "Statistics",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "stats",
-                      "sportscenter",
-                      "app",
-                      "team"
-                    ],
-                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:17&section=stats",
-                    "text": "Statistics",
-                    "shortText": "Statistics",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "schedule",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/schedule/_/name/lv",
-                    "text": "Schedule",
-                    "shortText": "Schedule",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "schedule",
-                      "sportscenter",
-                      "app",
-                      "team"
-                    ],
-                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:17&section=scores",
-                    "text": "Schedule",
-                    "shortText": "Schedule",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "photos",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/photos/_/name/lv",
-                    "text": "photos",
-                    "shortText": "photos",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "tickets",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.vividseats.com/las-vegas-aces-tickets--sports-wnba/performer/75223?wsUser=717",
-                    "text": "Tickets",
-                    "shortText": "Tickets",
-                    "isExternal": true,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "draftpicks",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/draft/teams/_/name/lv/las-vegas-aces",
-                    "text": "Draft Picks",
-                    "shortText": "Draft Picks",
-                    "isExternal": false,
-                    "isPremium": true
-                  }
-                ]
-              },
-              "notes": {
-                "items": []
-              },
-              "status": {
-                "id": "1",
-                "name": "Active",
-                "type": "active",
-                "abbreviation": "Active"
-              }
-            },
-            "source": {
-              "id": "1",
-              "description": "basic/manual",
-              "state": "basic"
-            },
-            "type": {
-              "id": "6",
-              "name": "INJURY_STATUS_DAYTODAY",
-              "description": "day-to-day",
-              "abbreviation": "DD"
-            },
-            "details": {
-              "fantasyStatus": {
-                "description": "GTD",
-                "abbreviation": "GTD"
-              },
-              "type": "Leg",
-              "returnDate": "2026-10-04"
-            }
-          },
-          {
-            "id": "37038",
-            "longComment": "Evans won't be an option for the first game of the series, but her absence shouldn't impact the rotation too much. She hasn't played since Sep. 22 and is yet to suit up for the Aces in the playoffs.",
-            "shortComment": "Evans (knee) is out for Game 1 of the semifinals against the Valkyries on Sunday.",
-            "status": "Out",
-            "date": "2026-10-04T00:20Z",
-            "athlete": {
-              "firstName": "Dana",
-              "lastName": "Evans",
-              "displayName": "Dana Evans",
-              "shortName": "D. Evans",
-              "links": [
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "playercard",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/_/id/4281190/dana-evans",
-                  "text": "Player Card",
-                  "shortText": "Player Card",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "stats",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/stats/_/id/4281190/dana-evans",
-                  "text": "Stats",
-                  "shortText": "Stats",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "stats",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4281190&section=stats",
-                  "text": "Stats",
-                  "shortText": "Stats",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "gamelog",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/gamelog/_/id/4281190/dana-evans",
-                  "text": "Game Log",
-                  "shortText": "Game Log",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "gamelog",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4281190&section=gamelog",
-                  "text": "Game Log",
-                  "shortText": "Game Log",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "news",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/news/_/id/4281190/dana-evans",
-                  "text": "News",
-                  "shortText": "News",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "news",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4281190&section=news",
-                  "text": "News",
-                  "shortText": "News",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "bio",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/bio/_/id/4281190/dana-evans",
-                  "text": "Bio",
-                  "shortText": "Bio",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "bio",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4281190&section=bio",
-                  "text": "Bio",
-                  "shortText": "Bio",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "overview",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/_/id/4281190/dana-evans",
-                  "text": "Overview",
-                  "shortText": "Overview",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "overview",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4281190",
-                  "text": "Overview",
-                  "shortText": "Overview",
-                  "isExternal": false,
-                  "isPremium": false
-                }
-              ],
-              "headshot": {
-                "href": "https://a.espncdn.com/i/headshots/wnba/players/full/4281190.png",
-                "alt": "Dana Evans"
-              },
-              "position": {
-                "id": "3",
-                "name": "Guard",
-                "displayName": "Guard",
-                "abbreviation": "G",
-                "leaf": false
-              },
-              "team": {
-                "id": "17",
-                "uid": "s:40~l:59~t:17",
-                "slug": "las-vegas-aces",
-                "name": "Aces",
-                "abbreviation": "LV",
-                "displayName": "Las Vegas Aces",
-                "logos": [
-                  {
-                    "href": "https://a.espncdn.com/i/teamlogos/wnba/500/lv.png",
-                    "width": 500,
-                    "height": 500,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "default"
-                    ],
-                    "lastUpdated": "2024-05-01T20:55Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/i/teamlogos/wnba/500-dark/lv.png",
-                    "width": 500,
-                    "height": 500,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "dark"
-                    ],
-                    "lastUpdated": "2024-05-01T20:55Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_on_white_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_white_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_on_black_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_black_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_on_primary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_primary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_on_secondary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_secondary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_black.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_black"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/primary_logo_white.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_white"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_on_white_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_white_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_on_black_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_black_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_on_primary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_primary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_on_secondary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_secondary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_black.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_black"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/c97eb968-6e82-9785-a302-0bb1a1c1d064/logos/secondary_logo_white.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_white"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  }
-                ],
-                "links": [
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "clubhouse",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/_/name/lv/las-vegas-aces",
-                    "text": "Clubhouse",
-                    "shortText": "Clubhouse",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "clubhouse",
-                      "mobile",
-                      "team"
-                    ],
-                    "href": "https://m.espn.com/wnba/clubhouse?teamId=17",
-                    "text": "Clubhouse",
-                    "shortText": "Clubhouse",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "roster",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/roster/_/name/lv/las-vegas-aces",
-                    "text": "Roster",
-                    "shortText": "Roster",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "roster",
-                      "sportscenter",
-                      "app",
-                      "team"
-                    ],
-                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:17&section=roster",
-                    "text": "Roster",
-                    "shortText": "Roster",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "stats",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/stats/_/name/lv/las-vegas-aces",
-                    "text": "Statistics",
-                    "shortText": "Statistics",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "stats",
-                      "sportscenter",
-                      "app",
-                      "team"
-                    ],
-                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:17&section=stats",
-                    "text": "Statistics",
-                    "shortText": "Statistics",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "schedule",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/schedule/_/name/lv",
-                    "text": "Schedule",
-                    "shortText": "Schedule",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "schedule",
-                      "sportscenter",
-                      "app",
-                      "team"
-                    ],
-                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:17&section=scores",
-                    "text": "Schedule",
-                    "shortText": "Schedule",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "photos",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/photos/_/name/lv",
-                    "text": "photos",
-                    "shortText": "photos",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "tickets",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.vividseats.com/las-vegas-aces-tickets--sports-wnba/performer/75223?wsUser=717",
-                    "text": "Tickets",
-                    "shortText": "Tickets",
-                    "isExternal": true,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "draftpicks",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/draft/teams/_/name/lv/las-vegas-aces",
-                    "text": "Draft Picks",
-                    "shortText": "Draft Picks",
-                    "isExternal": false,
-                    "isPremium": true
-                  }
-                ]
-              },
-              "notes": {
-                "items": []
-              },
-              "status": {
-                "id": "1",
-                "name": "Active",
-                "type": "active",
-                "abbreviation": "Active"
-              }
-            },
-            "source": {
-              "id": "1",
-              "description": "basic/manual",
-              "state": "basic"
-            },
-            "type": {
-              "id": "4",
-              "name": "INJURY_STATUS_OUT",
-              "description": "out",
-              "abbreviation": "O"
-            },
-            "details": {
-              "fantasyStatus": {
-                "description": "OUT",
-                "abbreviation": "OUT"
-              },
-              "type": "Knee",
-              "returnDate": "2026-10-07"
-            }
-          },
           {
             "id": "36054",
             "longComment": "It's a big blow for the defending-champion Aces ahead of the postseason. Smith started all 38 of her appearances for Las Vegas, so a spot in the first unit is now open. Brianna Turner appears to the most likely candidate to replace Smith in the starting lineup going forward.",
@@ -13977,11 +13464,11 @@
         "displayName": "New York Liberty",
         "injuries": [
           {
-            "id": "53166",
+            "id": "53988",
             "longComment": "out",
             "shortComment": "out",
             "status": "Out",
-            "date": "2026-10-04T04:00Z",
+            "date": "2026-10-19T16:01Z",
             "athlete": {
               "firstName": "Satou",
               "lastName": "Sabally",
@@ -14488,520 +13975,6 @@
               },
               "type": "Concussion",
               "returnDate": "2027-05-01"
-            }
-          },
-          {
-            "id": "37037",
-            "longComment": "Han is under the weather and didn't practice Saturday. If she's ultimately unable to suit up for Game 1, Raquel Carrera and Rebecca Allen could see a slight bump in minutes. Han averaged 5.5 points, 1.5 rebounds and 1.0 blocks in 10.0 minutes per contest across two first-round games.",
-            "shortComment": "Han (illness) is listed as questionable for Game 1 of the semifinals against the Dream on Sunday.",
-            "status": "Day-To-Day",
-            "date": "2026-10-03T21:04Z",
-            "athlete": {
-              "firstName": "Han",
-              "lastName": "Xu",
-              "displayName": "Han Xu",
-              "shortName": "H. Xu",
-              "links": [
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "playercard",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/_/id/4337216/han-xu",
-                  "text": "Player Card",
-                  "shortText": "Player Card",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "stats",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/stats/_/id/4337216/han-xu",
-                  "text": "Stats",
-                  "shortText": "Stats",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "stats",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4337216&section=stats",
-                  "text": "Stats",
-                  "shortText": "Stats",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "gamelog",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/gamelog/_/id/4337216/han-xu",
-                  "text": "Game Log",
-                  "shortText": "Game Log",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "gamelog",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4337216&section=gamelog",
-                  "text": "Game Log",
-                  "shortText": "Game Log",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "news",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/news/_/id/4337216/han-xu",
-                  "text": "News",
-                  "shortText": "News",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "news",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4337216&section=news",
-                  "text": "News",
-                  "shortText": "News",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "bio",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/bio/_/id/4337216/han-xu",
-                  "text": "Bio",
-                  "shortText": "Bio",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "bio",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4337216&section=bio",
-                  "text": "Bio",
-                  "shortText": "Bio",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "overview",
-                    "desktop",
-                    "athlete"
-                  ],
-                  "href": "https://www.espn.com/wnba/player/_/id/4337216/han-xu",
-                  "text": "Overview",
-                  "shortText": "Overview",
-                  "isExternal": false,
-                  "isPremium": false
-                },
-                {
-                  "language": "en-US",
-                  "rel": [
-                    "overview",
-                    "sportscenter",
-                    "app",
-                    "athlete"
-                  ],
-                  "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~a:4337216",
-                  "text": "Overview",
-                  "shortText": "Overview",
-                  "isExternal": false,
-                  "isPremium": false
-                }
-              ],
-              "headshot": {
-                "href": "https://a.espncdn.com/i/headshots/wnba/players/full/4337216.png",
-                "alt": "Han Xu"
-              },
-              "position": {
-                "id": "9",
-                "name": "Center",
-                "displayName": "Center",
-                "abbreviation": "C",
-                "leaf": false
-              },
-              "team": {
-                "id": "9",
-                "uid": "s:40~l:59~t:9",
-                "slug": "new-york-liberty",
-                "name": "Liberty",
-                "abbreviation": "NY",
-                "displayName": "New York Liberty",
-                "logos": [
-                  {
-                    "href": "https://a.espncdn.com/i/teamlogos/wnba/500/ny.png",
-                    "width": 500,
-                    "height": 500,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "default"
-                    ],
-                    "lastUpdated": "2023-05-10T21:43Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/i/teamlogos/wnba/500-dark/ny.png",
-                    "width": 500,
-                    "height": 500,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "dark"
-                    ],
-                    "lastUpdated": "2023-05-10T21:45Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/primary_logo_on_white_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_white_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/primary_logo_on_black_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_black_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/primary_logo_on_primary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_primary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/primary_logo_on_secondary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_on_secondary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/primary_logo_black.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_black"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/primary_logo_white.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "primary_logo_white"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/secondary_logo_on_white_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_white_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/secondary_logo_on_black_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_black_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/secondary_logo_on_primary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_primary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/secondary_logo_on_secondary_color.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_on_secondary_color"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/secondary_logo_black.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_black"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  },
-                  {
-                    "href": "https://a.espncdn.com/guid/ad8ccde6-59b3-fbe6-2faf-a835fa224ca1/logos/secondary_logo_white.png",
-                    "width": 4096,
-                    "height": 4096,
-                    "alt": "",
-                    "rel": [
-                      "full",
-                      "secondary_logo_white"
-                    ],
-                    "lastUpdated": "2026-07-22T20:35Z"
-                  }
-                ],
-                "links": [
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "clubhouse",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/_/name/ny/new-york-liberty",
-                    "text": "Clubhouse",
-                    "shortText": "Clubhouse",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "clubhouse",
-                      "mobile",
-                      "team"
-                    ],
-                    "href": "https://m.espn.com/wnba/clubhouse?teamId=9",
-                    "text": "Clubhouse",
-                    "shortText": "Clubhouse",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "roster",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/roster/_/name/ny/new-york-liberty",
-                    "text": "Roster",
-                    "shortText": "Roster",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "roster",
-                      "sportscenter",
-                      "app",
-                      "team"
-                    ],
-                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:9&section=roster",
-                    "text": "Roster",
-                    "shortText": "Roster",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "stats",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/stats/_/name/ny/new-york-liberty",
-                    "text": "Statistics",
-                    "shortText": "Statistics",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "stats",
-                      "sportscenter",
-                      "app",
-                      "team"
-                    ],
-                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:9&section=stats",
-                    "text": "Statistics",
-                    "shortText": "Statistics",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "schedule",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/schedule/_/name/ny",
-                    "text": "Schedule",
-                    "shortText": "Schedule",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "schedule",
-                      "sportscenter",
-                      "app",
-                      "team"
-                    ],
-                    "href": "sportscenter://x-callback-url/showClubhouse?uid=s:40~l:59~t:9&section=scores",
-                    "text": "Schedule",
-                    "shortText": "Schedule",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "photos",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/team/photos/_/name/ny",
-                    "text": "photos",
-                    "shortText": "photos",
-                    "isExternal": false,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "tickets",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.vividseats.com/new-york-liberty-tickets--sports-wnba/performer/603?wsUser=717",
-                    "text": "Tickets",
-                    "shortText": "Tickets",
-                    "isExternal": true,
-                    "isPremium": false
-                  },
-                  {
-                    "language": "en-US",
-                    "rel": [
-                      "draftpicks",
-                      "desktop",
-                      "team"
-                    ],
-                    "href": "https://www.espn.com/wnba/draft/teams/_/name/ny/new-york-liberty",
-                    "text": "Draft Picks",
-                    "shortText": "Draft Picks",
-                    "isExternal": false,
-                    "isPremium": true
-                  }
-                ]
-              },
-              "notes": {
-                "items": []
-              },
-              "status": {
-                "id": "1",
-                "name": "Active",
-                "type": "active",
-                "abbreviation": "Active"
-              }
-            },
-            "source": {
-              "id": "1",
-              "description": "basic/manual",
-              "state": "basic"
-            },
-            "type": {
-              "id": "6",
-              "name": "INJURY_STATUS_DAYTODAY",
-              "description": "day-to-day",
-              "abbreviation": "DD"
-            },
-            "details": {
-              "fantasyStatus": {
-                "description": "GTD",
-                "abbreviation": "GTD"
-              },
-              "type": "Illness",
-              "returnDate": "2026-10-04"
             }
           },
           {

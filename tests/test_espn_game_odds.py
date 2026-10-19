@@ -114,3 +114,9 @@ def test_wnba_valkyries_and_sparks_match_local_team_codes(monkeypatch):
     ])
     assert 'DAL@GSV' in result
     assert 'NYL@LAS' in result
+
+
+def test_wnba_new_york_odds_join_liberty_not_nba_knicks():
+    result = odds.get_game_odds('wnba', '2026-10-09', [event(home='NY', away='ATL', lines=[line()])])
+    assert 'ATL@NYL' in result
+    assert 'ATL@NYK' not in result

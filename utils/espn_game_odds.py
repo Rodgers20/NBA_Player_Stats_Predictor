@@ -23,9 +23,7 @@ _CORE = ('https://sports.core.api.espn.com/v2/sports/basketball/leagues/'
          '{league}/events/{event_id}/competitions/{competition_id}/odds')
 _HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; BasketballResearch/1.0)'}
 _EXCLUDE_PROVIDERS = ('numberfire', 'accuscore', 'teamrankings')
-_ABBR = {'NY': 'NYK', 'GS': 'GSW', 'SA': 'SAS', 'NO': 'NOP', 'UTAH': 'UTA',
-         'NJ': 'BKN', 'WSH': 'WAS', 'PHO': 'PHX', 'LAC': 'LAC',
-         'LV': 'LVA', 'LA': 'LAS'}
+
 
 
 def _number(value):
@@ -39,9 +37,8 @@ def _number(value):
 def _team_abbr(competitor, league):
     team = competitor.get('team') or {}
     raw = str(team.get('abbreviation') or '').upper()
-    if league == 'wnba' and raw in ('GS', 'GSW'):
-        return 'GSV'
-    return _ABBR.get(raw, raw)
+    from utils.basketball_content import normalize_abbrev
+    return normalize_abbrev(league, raw)
 
 
 def _price(item, side):

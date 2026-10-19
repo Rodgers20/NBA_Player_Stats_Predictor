@@ -1,0 +1,12 @@
+{
+  "rows": 1836,
+  "games": 918,
+  "first_game": "2024-05-14",
+  "last_game": "2026-10-09",
+  "written_at": "2026-10-10T04:12:18.617829+00:00",
+  "sources": [
+    "stats.nba.com:LeagueGameLog"
+  ],
+  "historical_pregame_injuries": false,
+  "note": "Freshness must be compared to latest completed league game; fetch time does not imply current coverage."
+}
