@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ClipboardCopy, ExternalLink, ImageDown, Ticket, X } from 'lucide-react';
 import { legKey, summarizeSlip } from '@/lib/bet-slip.mjs';
 import { useSlip } from '@/store/slip';
+import { trackLegs } from '@/lib/journal-client';
 import { copySlipText, shareSlipImage, slipPath } from './slip-actions';
 import { LegRow, ModeSwitch, SlipTotals, StakeInput } from './SlipParts';
 
@@ -41,6 +42,13 @@ export function FloatingSlip() {
   const singles = effMode === 'singles';
   const correlated = effMode === 'parlay' && summarizeSlip(legs).correlated && legs.length > 1;
   const stale = legs.some(l => l.date < today());
+  const trackable = singles || legs.length === 1;
+  const canTrack = trackable && stake != null && stake > 0;
+  async function track() {
+    setFlash('Saving…');
+    const { saved, failed } = await trackLegs(legs, stake ?? 0);
+    setFlash(failed.length ? `Saved ${saved}; ${failed.length} failed. ${failed[0]}` : `Tracked ${saved} paper ${saved === 1 ? 'bet' : 'bets'}. My Bets grades them from box scores.`);
+  }
 
   return <>
     <AnimatePresence>
@@ -83,6 +91,11 @@ export function FloatingSlip() {
             <SlipTotals legs={legs} mode={effMode} stake={stake} />
             {correlated && <p className="text-[11.5px] leading-snug text-[#f5ba64]">Same-game legs can be correlated; the model chance assumes they are not.</p>}
             {stale && <p className="text-[11.5px] leading-snug text-[#f5ba64]">This slip has a past date. Replace old selections before using it.</p>}
+            <button type="button" onClick={() => void track()} disabled={!canTrack}
+              title={canTrack ? undefined : trackable ? 'Enter a stake first.' : 'Parlays can’t be tracked yet. Switch to Singles.'}
+              className="min-h-11 rounded-lg border border-[#2b4248] px-4 text-[14px] font-bold text-[#59e0c8] transition-[transform,border-color] duration-150 ease-out hover:border-[#59e0c8]/60 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40">
+              Track as paper bets
+            </button>
             <div className="grid grid-cols-[1fr_auto_auto] gap-2">
               <a href={slipPath(legs, effMode, stake)} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#59e0c8] px-4 text-[14px] font-bold text-[#0d151b] hover:brightness-110">Open slip <ExternalLink className="h-4 w-4" aria-hidden /></a>
               <button type="button" title="Copy for Discord" aria-label="Copy slip as text for Discord" onClick={async () => setFlash(await copySlipText(legs, effMode, stake) ? 'Copied. Paste it into Discord.' : "Couldn't copy.")}

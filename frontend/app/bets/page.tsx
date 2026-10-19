@@ -1,55 +1,18 @@
 "use client";
 
-import { FormEvent, Suspense, useRef, useState } from "react";
+import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowUpRight, NotebookPen } from "lucide-react";
 import { GameDayPlayerPicker } from "@/components/bets/GameDayPlayerPicker";
 import { usePrefs } from "@/store/prefs";
-import { localJournalAdd, localJournalList, localJournalSettle } from "@/lib/local-journal.mjs";
+import { JournalError, STATIC, autoSettle, request, type Journal, type Mode, type Result } from "@/lib/journal-client";
 
-type Mode = "paper" | "real";
-type Result = "win" | "loss" | "push" | "void" | "pending";
-type Bet = {
-  id: string; league: string; game_date: string; player: string; side: string;
-  line: number; stat: string; book: string; price: number; stake_cents: number;
-  profit_cents: number | null; result: Result; notes: string;
-};
-type Journal = { bets: Bet[]; summary: { settled: number; profit: number; roi: number | null; pending: number } };
-const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
-const STATIC = process.env.NEXT_PUBLIC_DATA_MODE === "static";
 const control = "ql-control w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 disabled:opacity-40";
 const button = "rounded bg-teal-400 px-5 py-3 text-sm font-bold text-[#0d151b] disabled:opacity-40 disabled:cursor-not-allowed";
 const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 const stats = [["PTS", "Points"], ["REB", "Rebounds"], ["AST", "Assists"], ["FG3M", "Threes"], ["STL", "Steals"], ["BLK", "Blocks"], ["PTS+REB", "Points + rebounds"], ["PTS+AST", "Points + assists"], ["REB+AST", "Rebounds + assists"], ["PTS+REB+AST", "PRA"], ["STL+BLK", "Steals + blocks"]] as const;
-
-class JournalError extends Error {
-  constructor(message: string, public validation = false) { super(message); }
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  if (STATIC) {
-    try {
-      if (!init?.method || init.method === 'GET') return localJournalList(localStorage, new URLSearchParams(path.replace(/^\?/, '')).get('mode') || 'paper') as T;
-      const body = JSON.parse(String(init.body || '{}'));
-      if (init.method === 'POST') return localJournalAdd(localStorage, body) as T;
-      if (init.method === 'PATCH') return localJournalSettle(localStorage, decodeURIComponent(path.slice(1)), body.result) as T;
-    } catch (error) {
-      throw new JournalError(error instanceof Error ? error.message : 'Could not save your journal.', true);
-    }
-    throw new JournalError('Unsupported journal operation.');
-  }
-  const response = await fetch(`${BASE}/api/journal${path}`, { cache: "no-store", ...init });
-  const body = await response.json().catch(() => null);
-  if (!response.ok || !body) {
-    const detail = body?.detail;
-    throw new JournalError(typeof detail === "string" ? detail : Array.isArray(detail)
-      ? detail.map((item: { loc: string[]; msg: string }) => `${item.loc.slice(1).join(".")}: ${item.msg}`).join(" · ")
-      : "The journal service is unavailable. Your change was not confirmed; retry when connected.", response.status === 422);
-  }
-  return body as T;
-}
 
 export default function BetsPage() {
   return <Suspense fallback={<div className="mx-auto max-w-5xl p-8 text-sm text-text-sec">Loading journal…</div>}><BetsContent /></Suspense>;
@@ -83,6 +46,18 @@ function BetsContent() {
     queryKey: ["journal", mode], queryFn: () => request(`?mode=${mode}`), retry: false,
   });
   const unavailable = isPending || isError || !data;
+  const attempted = useRef(new Set<string>());
+  useEffect(() => {
+    const open = (data?.bets ?? []).filter(bet => bet.result === "pending" && !attempted.current.has(bet.id));
+    if (!open.length) return;
+    open.forEach(bet => attempted.current.add(bet.id));
+    void autoSettle(open).then(async ({ settled, failed }) => {
+      if (settled) {
+        setSettleNotice(`Auto-graded ${settled} ${settled === 1 ? "bet" : "bets"} from box scores. Correct any your book settled differently.`);
+        await cache.invalidateQueries({ queryKey: ["journal"] });
+      } else if (failed) setSettleNotice("Some bets could not be auto-graded. Settle them by hand.");
+    });
+  }, [data, cache]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

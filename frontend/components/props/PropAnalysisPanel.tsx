@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Prop } from "@/lib/types";
 import { PlayerBarChart } from "@/components/charts/PlayerBarChart";
+import { gradeSide, hitSummary } from "@/lib/hit-rate.mjs";
 
 const STATS = ["PTS", "REB", "AST", "FG3M", "PTS+REB", "PTS+AST", "REB+AST", "PTS+REB+AST"];
 
@@ -20,13 +21,14 @@ export function PropAnalysisPanel({ prop, league, onClose }: { prop: Prop; leagu
   const games = chart.data?.games ?? [];
   const completedGames = games.filter(game => game.value != null);
   const line = stat === prop.stat ? prop.line : null;
-  const hits = line == null ? null : games.filter(game => game.value != null && (prop.direction.toLowerCase() === "under" ? game.value < line : game.value > line)).length;
+  const side = prop.direction.toLowerCase() === "under" ? "Under" : "Over";
+  const hits = line == null ? null : hitSummary(completedGames.map(game => game.value as number), line, side).hits;
   const chartGames = games.map(game => ({
     ...game,
-    hit: line == null || game.value == null ? null : prop.direction.toLowerCase() === "under" ? game.value < line : game.value > line,
+    hit: line == null || game.value == null ? null : gradeSide(game.value, line, side) === "hit",
   }));
 
-  return <aside className="ql-panel fixed inset-x-3 bottom-3 top-16 z-40 overflow-y-auto p-4 shadow-xl lg:sticky lg:inset-auto lg:top-24 lg:z-auto lg:max-h-[calc(100vh-7rem)]" aria-label={`${prop.player} prop history`}>
+  return <aside className="ql-panel fixed inset-x-3 bottom-3 top-16 z-40 overflow-y-auto p-4 shadow-xl lg:left-auto lg:right-4 lg:w-[420px] 2xl:sticky 2xl:inset-auto 2xl:top-24 2xl:z-auto 2xl:w-auto 2xl:max-h-[calc(100vh-7rem)]" aria-label={`${prop.player} prop history`}>
     <div className="flex items-start gap-3">
       {prop.headshot_url && !photoFailed
         ? <Image src={prop.headshot_url} alt="" width={56} height={56} unoptimized onError={() => setPhotoFailed(true)} className="h-14 w-14 rounded-md border border-white/10 object-cover object-top" />

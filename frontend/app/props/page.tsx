@@ -158,7 +158,7 @@ export default function PropsPage() {
                 <span className="ql-data-label text-[#a9bec0]">{props?.length ?? 0} PROPS</span>
               </div>
               <div className="ql-panel overflow-hidden">
-                {props?.map((prop) => <PropCard key={`${prop.player}-${prop.stat}-${prop.direction}-${prop.line}`} prop={prop} targetDate={data.target_date} selected={selectedProp === prop} onAnalyze={(next) => setSelected({ league, prop: next })} />)}
+                {props?.map((prop) => <PropCard key={`${prop.player}-${prop.stat}-${prop.direction}-${prop.line}`} prop={prop} targetDate={data.target_date} selected={selectedProp === prop} record={record.data} onAnalyze={(next) => setSelected({ league, prop: next })} />)}
               </div>
             </section>
           ))}

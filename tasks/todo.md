@@ -296,3 +296,24 @@ Box score on Games (design quality from the NFL project, not its layout); Teams 
 - [ ] Visual QA in a browser (Chrome extension not connected, Playwright Chrome missing).
 
 Review: power score = scoring margin + 0.3 per win above 5-5 in the last ten (my formula, not ESPN's); movement compares it with the season-margin rank. Playoff zones are NBA 6 direct + 4 play-in, WNBA 8; seeds come from ESPN. Early-season rankings are a small sample (UI says so). `tests/test_rest_api.py::test_validation_and_wnba_unavailable_state` fails on a props status ('empty' vs 'unavailable'); it does not touch this work, but I did not confirm it failed before.
+
+## Tonight board + quote provenance — October 19
+Audit finding: home was an arbitrary player lookup; prices showed no book or age (the quote store already had `bookmaker` and `updated_at`, `_serialise_prop` dropped them).
+- [x] `_serialise_prop` and the refresh candidate now carry `book` and `quote_updated_at` (priced rows only); test in `tests/test_odds_planner.py`.
+- [x] `lib/tonight.mjs` (break-even, quote age, picks/leans/research split) with tests; `TonightRow` and `app/page.tsx` replace the `/analysis` redirect; "Tonight" is first in the nav, Props no longer lights up on `/`.
+- [x] Props rows show book and quote age instead of "SPORTSBOOK QUOTE".
+Review: 339 Python passed, 1 failed (`test_validation_and_wnba_unavailable_state`, WNBA status 'empty' vs 'unavailable' — the failure noted earlier, not in files touched here; not re-run on a pristine HEAD). 31 frontend tests, tsc and eslint clean. Not seen in a browser (Playwright has no Chrome). Both snapshots currently hold 0 props, so the empty state is what renders today.
+Next from the audit: mobile prop rows hide EV/hit rate; slip → journal auto-settle; one shared hit-rate component; blank required price in the prop-lines panel.
+
+## Audit follow-through — October 19
+Empty Tonight board with a WNBA game on the slate: two causes. (1) no sportsbook quotes cached; (2) WNBA player history ended 10-02, past the 14-day freshness gate, so even model projections were suppressed. Ran `scripts/refresh_wnba_history.py --season 2026` (history now through 10-17; API reloads without a restart, 39 projections for ATL @ GSV). The board also hid research rows entirely; it now lists them under "Model projections · no line yet", clearly not bets.
+- [x] `lib/hit-rate.mjs` (gradeSide/hitSummary/gradeBet, tested) shared by prop-lines panel, Props inspector and auto-settle.
+- [x] Slip "Track as paper bets" (singles only) -> journal; My Bets auto-grades pending bets from box scores (live and static modes) via `lib/journal-client.ts`.
+- [x] Prop-lines price is blank and required. Inspector is a right drawer below 2xl instead of rendering under the list. Mobile prop row gets an Inspect button (hit rate/EV were already shown on mobile; the earlier audit overstated that).
+- [x] Two REST tests that depended on live WNBA schedule/history now pin both.
+Review: 340 Python, 34 frontend tests, tsc and eslint clean. Not seen in a browser. Not done: priced quotes need a paid-credit refresh (user decision); Performance Analysis slider and Hit Rates / Alt Lines pages still compute their own hit counts.
+
+## Calibration — October 19
+EV looked implausible (29 of 37 priced WNBA markets "+EV", top +66%). `evaluate_market` now shrinks the model probability toward the no-vig market by n/(n+10) (priors in `utils/market_evaluation.py`, not fitted); plays with <8 recent games or EV >20% post-shrink become research rows with a reason. Re-evaluated stored quotes free: top EV +17.7%, 2 hidden, 19 plays of 37. Every play (Tonight, Props) shows the graded record for its stat plus raw vs market probability.
+Caveats: the record is the older hit-rate pick history (1,882 graded), not these shrunk plays; 19/37 still positive-EV is probably still optimistic — fit SHRINK_PRIOR_GAMES against graded priced picks once they exist.
+Review: 346 Python, 35 frontend tests, tsc and eslint clean. Not seen in a browser.

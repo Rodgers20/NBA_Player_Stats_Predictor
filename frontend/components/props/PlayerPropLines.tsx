@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, Minus, Plus } from "lucide-react";
 import { useSlip } from "@/store/slip";
 import { decimalOdds, formatOdds } from "@/lib/bet-slip.mjs";
+import { hitSummary } from "@/lib/hit-rate.mjs";
 import type { ChartRecord } from "@/lib/types";
 
 interface Props {
@@ -19,7 +20,6 @@ interface Props {
 }
 
 const STEP = 0.5;
-const DEFAULT_PRICE = "-110";
 const BREAK_EVEN = (100 / 210) * 100;
 const press = "transition-[transform,background-color,border-color,color] duration-150 ease-out active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]";
 const one = (value: number) => (Number.isInteger(value) ? String(value) : value.toFixed(1));
@@ -33,14 +33,15 @@ function median(values: number[]) {
 /** Hit-rate view of one market: pick a line, see how often the player cleared it, add a side to the slip. */
 export function PlayerPropLines({ league, player, stat, statLabel, games, defaultLine, date, matchup, accent }: Props) {
   const [line, setLine] = useState(defaultLine);
-  const [price, setPrice] = useState(DEFAULT_PRICE);
+  const [price, setPrice] = useState("");
   const { legs, toggle } = useSlip();
 
   const valid = games.filter((game): game is ChartRecord & { value: number } => game.value != null);
   const values = valid.map(game => game.value);
-  const overs = valid.filter(game => game.value > line).length;
-  const unders = valid.filter(game => game.value < line).length;
-  const rate = valid.length ? Math.round((overs / valid.length) * 100) : null;
+  const over = hitSummary(values, line, "Over");
+  const overs = over.hits;
+  const unders = hitSummary(values, line, "Under").hits;
+  const rate = over.rate;
   const lastFive = valid.slice(-5);
   const yMax = Math.max(line, ...values, 1) * 1.12;
   const quotedPrice = Number(price);
@@ -80,8 +81,8 @@ export function PlayerPropLines({ league, player, stat, statLabel, games, defaul
             <button type="button" aria-label="Raise line" onClick={() => nudge(STEP)} className={`ql-control flex w-10 items-center justify-center hover:border-[#59e0c8]/50 ${press}`}><Plus size={16} /></button>
           </div>
           <p className="mt-4 flex items-baseline gap-2">
-            <strong className="text-4xl font-black tabular-nums" style={{ color: accent }}>{rate}%</strong>
-            <span className="text-xs text-text-sec">over in {overs} of {valid.length} games</span>
+            <strong className="text-4xl font-black tabular-nums" style={{ color: accent }}>{rate == null ? "—" : `${rate}%`}</strong>
+            <span className="text-xs text-text-sec">over in {overs} of {over.hits + over.misses} games{over.pushes ? ` · ${over.pushes} push` : ""}</span>
           </p>
           <div className="mt-2 flex items-center gap-1.5">
             <span className="ql-data-label mr-1">Last {lastFive.length}</span>
@@ -104,10 +105,10 @@ export function PlayerPropLines({ league, player, stat, statLabel, games, defaul
           </div>
           <label className="mt-3 flex items-center justify-between gap-3 text-xs text-text-sec">
             <span>Your price (American)</span>
-            <input value={price} onChange={event => setPrice(event.target.value)} inputMode="numeric" aria-invalid={!priceOk}
+            <input value={price} placeholder="-115" onChange={event => setPrice(event.target.value)} inputMode="numeric" aria-invalid={price !== "" && !priceOk}
               className="ql-control w-20 px-2 text-center text-sm font-bold tabular-nums outline-none focus:border-[#59e0c8] aria-[invalid=true]:border-red-400" />
           </label>
-          <p className="mt-1 text-[11px] text-text-sec">Not a sportsbook quote{priceOk ? ` — the slip will use ${formatOdds(quotedPrice)}` : ""}. Match it to what your book offers.</p>
+          <p className="mt-1 text-[11px] text-text-sec">{priceOk ? `The slip will use ${formatOdds(quotedPrice)}, the price you entered.` : "Enter the price your book shows to add a side. No price is assumed."}</p>
         </div>
 
         <div className="grid grid-cols-3 gap-2">

@@ -20,6 +20,10 @@ export interface Prop {
   probability_source?: string;
   model_prob?: number | null;
   price?: number | null;
+  raw_model_prob?: number | null;
+  market_prob?: number | null;
+  book?: string | null;
+  quote_updated_at?: string | null;
   is_lock:      boolean;
   is_combo:     boolean;
   game_matchup: string;

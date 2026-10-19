@@ -3,6 +3,7 @@
 import { Plus, Check } from "lucide-react";
 import { useSlip } from "@/store/slip";
 import { decimalOdds } from "@/lib/bet-slip.mjs";
+import { quoteAge, recordFor } from "@/lib/tonight.mjs";
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
@@ -14,6 +15,7 @@ interface Props {
   targetDate?: string | null;
   onAnalyze: (prop: Prop) => void;
   selected?: boolean;
+  record?: Parameters<typeof recordFor>[0];
 }
 
 function odds(value: number | null | undefined) {
@@ -21,7 +23,7 @@ function odds(value: number | null | undefined) {
   return value > 0 ? `+${Math.round(value)}` : `${Math.round(value)}`;
 }
 
-export function PropCard({ prop, targetDate, onAnalyze, selected = false }: Props) {
+export function PropCard({ prop, targetDate, onAnalyze, selected = false, record }: Props) {
   const [photoFailed, setPhotoFailed] = useState(false);
   const league = usePrefs((state) => state.league);
   const { legs, toggle } = useSlip();
@@ -38,6 +40,7 @@ export function PropCard({ prop, targetDate, onAnalyze, selected = false }: Prop
   const projectionOnly = prop.line == null && prop.model_projection != null;
   const quotedSide = prop.direction.toLowerCase() === "under" ? "Under" : "Over";
   const verified = priced;
+  const graded = recordFor(record, prop.stat);
   const ev = !verified || prop.ev == null ? "—" : `${prop.ev >= 0 ? "+" : ""}${(prop.ev * 100).toFixed(1)}%`;
   const trackParams = new URLSearchParams({ league, player: prop.player, stat: prop.stat, side: quotedSide });
   if (targetDate) trackParams.set("game_date", targetDate);
@@ -63,7 +66,7 @@ export function PropCard({ prop, targetDate, onAnalyze, selected = false }: Prop
         </div>
         <div className="text-right md:text-left">
           <p className="whitespace-nowrap text-sm font-bold text-[#59e0c8]">{projectionOnly ? `${prop.model_projection?.toFixed(1)} ${prop.stat}` : `${quotedSide} ${prop.line ?? "—"}`} {verified && prop.has_live_odds && prop.price != null && <span className="ml-1 text-[#eaf8f6]">{odds(prop.price)}</span>}</p>
-          <p className={`ql-data-label mt-0.5 text-[10px] ${verified && prop.has_live_odds ? "text-[#f5ba64]" : "text-[#a9bec0]"}`}>{projectionOnly ? "MODEL PROJECTION · NO LINE" : verified && prop.has_live_odds ? "SPORTSBOOK QUOTE" : "HISTORICAL LINE"}</p>
+          <p className={`ql-data-label mt-0.5 text-[10px] ${verified && prop.has_live_odds ? "text-[#f5ba64]" : "text-[#a9bec0]"}`}>{projectionOnly ? "MODEL PROJECTION · NO LINE" : verified && prop.has_live_odds ? `${(prop.book ?? "SPORTSBOOK").toUpperCase()}${quoteAge(prop.quote_updated_at) ? ` · ${quoteAge(prop.quote_updated_at)?.label.toUpperCase()}` : ""}` : "HISTORICAL LINE"}</p>
         </div>
         <div className="hidden text-right md:block" title="Historical hit rate">
           <p className="text-sm font-bold tabular-nums text-[#eaf8f6]">{hitRate == null ? "—" : `${hitRate}%`}</p>
@@ -85,6 +88,7 @@ export function PropCard({ prop, targetDate, onAnalyze, selected = false }: Prop
         {prop.blowout_risk && <span className="rounded border border-orange-400/40 px-1.5 py-0.5 text-[10px] font-bold text-orange-300">BLOWOUT RISK</span>}
         {verified && prop.model_prob != null && <span title="Model probability that this side hits">MODEL <strong className="tabular-nums text-[#eaf8f6]">{Math.round(prop.model_prob * 100)}%</strong></span>}
         {verified && prop.model_projection != null && <span>PROJ <strong className="tabular-nums text-[#eaf8f6]">{prop.model_projection.toFixed(1)}</strong></span>}
+        {verified && <span title="Graded picks on this stat across all days graded">GRADED {prop.stat} <strong className="tabular-nums text-[#eaf8f6]">{graded ? `${graded.pct}% (${graded.hit}/${graded.total})${graded.early ? " early" : ""}` : "none yet"}</strong></span>}
         {prop.pick_type === "pick" && <span className="rounded border border-[#59e0c8]/50 bg-[#59e0c8]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#59e0c8]">PICK · +EV</span>}
         {prop.pick_type === "lean" && <span className="rounded border border-sky-400/40 bg-sky-400/[0.07] px-1.5 py-0.5 text-[10px] font-bold text-sky-300" title="Priced, but the model sees no positive edge at this price">LEAN · NO EDGE</span>}
         {!verified && <span className="rounded border border-amber-400/40 bg-amber-400/[0.07] px-1.5 py-0.5 text-[10px] font-bold text-amber-300">RESEARCH ONLY</span>}
@@ -94,7 +98,8 @@ export function PropCard({ prop, targetDate, onAnalyze, selected = false }: Prop
       <div className="mt-2 flex gap-4 pl-[52px] text-xs md:hidden">
         <span className="text-[#a9bec0]">Hit <strong className="tabular-nums text-[#eaf8f6]">{hitRate == null ? "—" : `${hitRate}%`}</strong></span>
         <span className="text-[#a9bec0]">EV <strong className="tabular-nums text-[#eaf8f6]">{ev}</strong></span>
-        {!projectionOnly && <Link href={`/bets?${trackParams}`} className="ml-auto font-semibold text-[#59e0c8]">Track pick →</Link>}
+        <button type="button" onClick={() => onAnalyze(prop)} className="ml-auto min-h-9 font-semibold text-[#d0e0df] active:scale-[0.97]">Inspect</button>
+        {!projectionOnly && <Link href={`/bets?${trackParams}`} className="min-h-9 font-semibold text-[#59e0c8]">Track pick →</Link>}
       </div>
     </article>
   );

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { usePrefs } from "@/store/prefs";
 
 export const NAV = [
+  { href: "/", label: "Tonight" },
   { href: "/analysis", label: "Player Analysis" },
   { href: "/games", label: "Today's Games" },
   { href: "/props", label: "Best Props" },
@@ -25,12 +26,12 @@ export function Navbar() {
   return (
     <header className="site-header">
       <div className="site-header-inner">
-        <Link href="/analysis" aria-label={`${league.toUpperCase()} Props AI home`} className="site-brand">
+        <Link href="/" aria-label={`${league.toUpperCase()} Props AI home`} className="site-brand">
           {league.toUpperCase()} Props AI
         </Link>
         <nav aria-label="Main navigation" className="site-nav">
           {navForLeague(league).map(({ href, label }) => {
-            const active = path === href || path.startsWith(`${href}/`) || (href === "/props" && path === "/");
+            const active = path === href || path.startsWith(`${href}/`);
             return (
               <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`site-nav-link${active ? " active" : ""}`}>
                 {label}
