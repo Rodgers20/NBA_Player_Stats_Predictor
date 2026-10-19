@@ -4,11 +4,14 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ClipboardCopy, ExternalLink, ImageDown, Ticket, X } from 'lucide-react';
-import { legKey, summarizeSlip } from '@/lib/bet-slip.mjs';
+import { legKey, slipStakes, summarizeSlip } from '@/lib/bet-slip.mjs';
 import { useSlip } from '@/store/slip';
 import { trackLegs } from '@/lib/journal-client';
 import { copySlipText, shareSlipImage, slipPath } from './slip-actions';
+import { describeCorrelation } from '@/lib/slip-price.mjs';
 import { LegRow, ModeSwitch, SlipTotals, StakeInput } from './SlipParts';
+import { CorrelationSummary, KellyBox } from './SlipInsights';
+import { useSlipPrice } from './useSlipPrice';
 
 const EASE = [0.4, 0, 0.2, 1] as const;
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -20,7 +23,7 @@ const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_Yo
 export function FloatingSlip() {
   const pathname = usePathname();
   const reduced = useReducedMotion();
-  const { legs, mode, stake, open, added, remove, clear, setMode, setStake, setOpen } = useSlip();
+  const { legs, mode, stake, bankroll, open, added, remove, clear, setMode, setStake, setBankroll, setOpen } = useSlip();
   const [flash, setFlash] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,10 +38,14 @@ export function FloatingSlip() {
     return () => clearTimeout(t);
   }, [flash]);
 
+  const parlayMode = legs.length > 1 ? mode : 'parlay';
+  const priced = useSlipPrice(legs, open && parlayMode === 'parlay');
+
   // The slip's own page already shows it in full.
   if (pathname?.startsWith('/slip')) return null;
   const show = legs.length > 0;
-  const effMode = legs.length > 1 ? mode : 'parlay';
+  const effMode = parlayMode;
+  const stakes = slipStakes(legs, effMode, bankroll, priced?.correlated_prob);
   const singles = effMode === 'singles';
   const correlated = effMode === 'parlay' && summarizeSlip(legs).correlated && legs.length > 1;
   const stale = legs.some(l => l.date < today());
@@ -78,14 +85,22 @@ export function FloatingSlip() {
             <button type="button" onClick={() => setOpen(false)} aria-label="Close bet slip" className="-mr-2 grid h-10 w-10 place-items-center rounded-full text-[#a9bec0] hover:bg-white/10 hover:text-white"><X className="h-5 w-5" aria-hidden /></button>
           </header>
           {legs.length > 1 && <div className="px-5 pb-2"><ModeSwitch mode={mode} onChange={setMode} legs={legs.length} /></div>}
-          <ul className="min-h-0 flex-1 divide-y divide-white/10 overflow-y-auto overscroll-contain px-5">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5">
+          <ul className="divide-y divide-white/10">
             <AnimatePresence initial={false}>
               {legs.map((l, i) => <motion.div key={legKey(l)} layout={!reduced} initial={reduced ? false : { opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
                 exit={reduced ? undefined : { opacity: 0, x: -12, height: 0 }} transition={{ duration: 0.18, ease: EASE }}>
-                <LegRow leg={l} index={legs.length > 1 && !singles ? i : undefined} onRemove={() => remove(legKey(l))} />
+                <LegRow leg={l} index={legs.length > 1 && !singles ? i : undefined} onRemove={() => remove(legKey(l))}
+                  suggested={l.probability != null ? stakes.perLeg[i] : undefined}
+                  correlation={effMode === 'parlay' ? describeCorrelation(priced?.per_leg_corr.find(item => item.leg === i + 1)) : null} />
               </motion.div>)}
             </AnimatePresence>
           </ul>
+          <div className="flex flex-col gap-2 pb-3 pt-1">
+            {effMode === 'parlay' && legs.length > 1 && <CorrelationSummary price={priced} independent={summarizeSlip(legs).probability} />}
+            {legs.every(l => l.probability != null) && <KellyBox total={stakes.total} bankroll={bankroll} onBankroll={setBankroll} onUse={setStake} each={singles} />}
+          </div>
+          </div>
           <footer className="flex flex-col gap-3 border-t border-white/10 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
             <StakeInput stake={stake} onChange={setStake} each={singles} />
             <SlipTotals legs={legs} mode={effMode} stake={stake} />

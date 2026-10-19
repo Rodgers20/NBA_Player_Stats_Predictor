@@ -8,6 +8,7 @@ import type { Prop, PropsResponse } from "@/lib/types";
 import { PropCard } from "@/components/props/PropCard";
 import { PropAnalysisPanel } from "@/components/props/PropAnalysisPanel";
 import { PropFilters, type Filters } from "@/components/props/PropFilters";
+import { filterMinStars, sortByEdge } from "@/lib/prop-research.mjs";
 
 const PAGE = 30;
 
@@ -28,6 +29,7 @@ export default function PropsPage() {
     sort: defaultSort,
     game: "",
     locksOnly: false,
+    minStars: 0,
   });
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"props" | "alt" | "record">("props");
@@ -51,7 +53,7 @@ export default function PropsPage() {
     league,
     direction: filters.direction.toLowerCase(),
     location: filters.location.toLowerCase(),
-    sort: filters.sort,
+    sort: filters.sort === "edge" ? "ev" : filters.sort, // the API has no edge sort; it is applied below
     include_research: true,
     limit: PAGE * page,
     ...(filters.stat && { stat: filters.stat }),
@@ -68,8 +70,10 @@ export default function PropsPage() {
     setPage(1);
   }
   const activeView = (view === "alt" && !altLines.data?.count) || (view === "record" && !record.data?.total) ? "props" : view;
-  const byGame = Object.groupBy(data?.props ?? [], (prop) => prop.game_matchup || "Other matchups");
-  const verifiedCount = data?.props.filter((prop) => (prop.pick_type ?? (prop.recommendation_eligible ? "pick" : "research")) !== "research").length ?? 0;
+  const starred = filterMinStars(data?.props ?? [], filters.minStars);
+  const shownProps = filters.sort === "edge" ? sortByEdge(starred) : starred;
+  const byGame = Object.groupBy(shownProps, (prop) => prop.game_matchup || "Other matchups");
+  const verifiedCount = shownProps.filter((prop) => (prop.pick_type ?? (prop.recommendation_eligible ? "pick" : "research")) !== "research").length;
   const selectedProp = selected?.league === league ? selected.prop : null;
 
   return (

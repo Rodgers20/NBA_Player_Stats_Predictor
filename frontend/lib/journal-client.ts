@@ -1,5 +1,6 @@
 import { localJournalAdd, localJournalList, localJournalSettle } from "./local-journal.mjs";
 import { legKey, type SlipLeg } from "./bet-slip.mjs";
+import type { JournalSummary } from "./local-journal.mjs";
 import { gradeBet } from "./hit-rate.mjs";
 import { api } from "./api";
 
@@ -9,8 +10,10 @@ export type Bet = {
   id: string; league: string; game_date: string; player: string; side: string;
   line: number; stat: string; book: string; price: number; stake_cents: number;
   profit_cents: number | null; result: Result; notes: string;
+  /** Closing line comparison; absent for local-journal bets and null fields until odds refresh before tip-off. */
+  clv?: { close_line: number | null; close_price: number | null; clv_pct: number | null } | null;
 };
-export type Journal = { bets: Bet[]; summary: { settled: number; profit: number; roi: number | null; pending: number } };
+export type Journal = { bets: Bet[]; summary: JournalSummary };
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 export const STATIC = process.env.NEXT_PUBLIC_DATA_MODE === "static";

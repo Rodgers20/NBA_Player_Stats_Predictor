@@ -9,6 +9,7 @@ export const NAV = [
   { href: "/analysis", label: "Player Analysis" },
   { href: "/games", label: "Today's Games" },
   { href: "/props", label: "Best Props" },
+  { href: "/trends", label: "Trends" },
   { href: "/teams", label: "Teams" },
   { href: "/highlights", label: "Highlights" },
   { href: "/performance", label: "Model Performance" },

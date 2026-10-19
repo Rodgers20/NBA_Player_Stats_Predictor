@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Target, ChartNoAxesCombined, CalendarDays, Sparkles, Bookmark, ChartColumnIncreasing, Shield, Clapperboard, ChartLine } from "lucide-react";
+import { Target, ChartNoAxesCombined, CalendarDays, Sparkles, Bookmark, ChartColumnIncreasing, Shield, Clapperboard, ChartLine, Flame } from "lucide-react";
 import { NAV, navForLeague } from "./Navbar";
 import { usePrefs } from "@/store/prefs";
 
-const icons = { "/": Target, "/analysis": ChartNoAxesCombined, "/games": CalendarDays, "/props": Sparkles, "/hitrates": ChartColumnIncreasing, "/bets": Bookmark, "/teams": Shield, "/highlights": Clapperboard, "/performance": ChartLine } satisfies Record<(typeof NAV)[number]["href"] | "/hitrates", typeof CalendarDays>;
+const icons = { "/": Target, "/analysis": ChartNoAxesCombined, "/games": CalendarDays, "/props": Sparkles, "/trends": Flame, "/hitrates": ChartColumnIncreasing, "/bets": Bookmark, "/teams": Shield, "/highlights": Clapperboard, "/performance": ChartLine } satisfies Record<(typeof NAV)[number]["href"] | "/hitrates", typeof CalendarDays>;
 
 export function BottomNav() {
   const path = usePathname();

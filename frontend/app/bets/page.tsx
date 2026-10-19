@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowUpRight, NotebookPen } from "lucide-react";
 import { GameDayPlayerPicker } from "@/components/bets/GameDayPlayerPicker";
+import { BetBreakdowns } from "@/components/bets/BetBreakdowns";
+import { averageClv } from "@/lib/journal-clv.mjs";
 import { usePrefs } from "@/store/prefs";
 import { JournalError, STATIC, autoSettle, request, type Journal, type Mode, type Result } from "@/lib/journal-client";
 
@@ -45,6 +47,7 @@ function BetsContent() {
   const { data, isPending, isError, refetch } = useQuery<Journal>({
     queryKey: ["journal", mode], queryFn: () => request(`?mode=${mode}`), retry: false,
   });
+  const clv = data ? averageClv(data.bets) : null;
   const unavailable = isPending || isError || !data;
   const attempted = useRef(new Set<string>());
   useEffect(() => {
@@ -179,11 +182,15 @@ function BetsContent() {
           </div>
         </div>
         {data && !isError && <>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
             {[["Net profit", money(data.summary.profit)], ["Settled ROI", data.summary.roi === null ? "—" : `${data.summary.roi.toFixed(1)}%`],
               ["Pending stake", money(data.summary.pending)], ["Settled bets", data.summary.settled]].map(([label, value]) =>
               <div key={label} className="ql-panel p-4"><p className="ql-data-label">{label}</p><p className="ql-metric mt-3">{value}</p></div>)}
+            <div className="ql-panel col-span-2 p-4 md:col-span-1"><p className="ql-data-label">Average CLV</p>
+              <p className="ql-metric mt-3">{clv ? `${clv.average > 0 ? "+" : ""}${clv.average.toFixed(1)}%` : "—"}</p>
+              <p className="mt-2 text-xs text-[var(--color-text-sec)]">{clv ? `Across ${clv.count} ${clv.count === 1 ? "bet" : "bets"} with a closing line` : "Closing lines are saved when odds refresh before tip-off"}</p></div>
           </div>
+          <BetBreakdowns summary={data.summary} />
           {data.bets.length === 0 ? <div className="ql-panel p-7 text-sm text-[var(--color-text-sec)]">No {mode} entries yet. Only selections you explicitly save appear here.</div> :
             <div className="ql-panel overflow-x-auto"><table className="w-full whitespace-nowrap text-left text-sm">
               <caption className="sr-only">{mode === "paper" ? "Paper tests" : "Real wagers"} journal</caption>
@@ -191,7 +198,7 @@ function BetsContent() {
               <tbody>{data.bets.map(bet => <tr key={bet.id} className="border-b border-[#2b4248] last:border-0 hover:bg-[#20363a]">
                 <td className="p-4">{bet.game_date}<p className="text-xs uppercase text-[var(--color-text-sec)]">{bet.league}</p></td>
                 <td className="p-4"><p className="font-semibold">{bet.player}</p><p className="text-xs text-[var(--color-text-sec)]">{bet.side} {bet.line} {bet.stat}</p>{bet.notes && <p className="mt-1 max-w-64 whitespace-normal text-xs text-[var(--color-text-sec)]">{bet.notes}</p>}</td>
-                <td className="p-4">{bet.book}<p className="text-xs text-[var(--color-text-sec)]">{bet.price > 0 ? "+" : ""}{bet.price}</p></td>
+                <td className="p-4">{bet.book}<p className="text-xs text-[var(--color-text-sec)]">{bet.price > 0 ? "+" : ""}{bet.price}</p>{bet.clv?.clv_pct != null && <p title={`Closed ${bet.clv.close_line ?? "—"} at ${bet.clv.close_price ?? "—"}`} className={`mt-1 inline-block rounded border px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${bet.clv.clv_pct >= 0 ? "border-green-400/30 text-green-300" : "border-red-400/30 text-red-300"}`}>CLV {bet.clv.clv_pct > 0 ? "+" : ""}{bet.clv.clv_pct.toFixed(1)}%</p>}</td>
                 <td className="p-4 tabular-nums">{money(bet.stake_cents / 100)}</td><td className="p-4 capitalize">{bet.result}{bet.result === "pending" && <div className="mt-2 flex gap-2 normal-case"><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "win")} className="rounded border border-green-400/30 px-2 py-1 text-xs text-green-300 disabled:opacity-40">Win</button><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "loss")} className="rounded border border-red-400/30 px-2 py-1 text-xs text-red-300 disabled:opacity-40">Loss</button><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "push")} className="rounded border border-white/15 px-2 py-1 text-xs text-text-sec disabled:opacity-40">Push</button></div>}</td><td className="p-4 tabular-nums">{bet.profit_cents === null ? "—" : money(bet.profit_cents / 100)}</td>
               </tr>)}</tbody>
             </table></div>}

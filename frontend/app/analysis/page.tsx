@@ -11,6 +11,8 @@ import { STAT_COLORS } from "@/lib/utils";
 import type { ChartRecord } from "@/lib/types";
 import { PlayerBarChart } from "@/components/charts/PlayerBarChart";
 import { PlayerPropLines } from "@/components/props/PlayerPropLines";
+import { MatchupDefense } from "@/components/analysis/MatchupDefense";
+import { PlayerResearch } from "@/components/analysis/PlayerResearch";
 
 const STATS = [
   ["PTS", "PTS"], ["AST", "AST"], ["REB", "REB"], ["FG3M", "3PM"],
@@ -55,9 +57,10 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
   const summary = useQuery({ queryKey: ["stats", player, league], queryFn: () => api.playerStats(player, league), enabled: !!player });
   const schedule = useQuery({ queryKey: ["games", league], queryFn: () => api.games(league), enabled: !!player });
   const profile = summary.data;
-  const nextGame = schedule.data?.games.find(game => game.home_team === profile?.team || game.away_team === profile?.team);
+  const team = /^(|nan|none|null)$/i.test(profile?.team?.trim() ?? "") ? "" : profile?.team ?? "";
+  const nextGame = schedule.data?.games.find(game => team && (game.home_team === team || game.away_team === team));
   const nextOpponent = nextGame
-    ? nextGame.home_team === profile?.team ? nextGame.away_team : nextGame.home_team
+    ? nextGame.home_team === team ? nextGame.away_team : nextGame.home_team
     : null;
   const seasons = [...new Set(chart.data?.games.map(game => game.season).filter((season): season is string => !!season) ?? [])].sort();
   const currentSeason = seasons.at(-1);
@@ -123,7 +126,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-2xl font-extrabold tracking-tight text-text-pri sm:text-3xl">{player}</h2>
-              {profile?.team && <span className="ql-chip border-teal-400/30 text-teal-300">{profile.team}</span>}
+              {team && <span className="ql-chip border-teal-400/30 text-teal-300">{team}</span>}
               {profile?.injury_status && !["ACTIVE", "UNKNOWN"].includes(profile.injury_status.toUpperCase()) &&
                 <span className="ql-chip border-amber-400/30 bg-amber-400/10 text-amber-300">
                   {profile.injury_status}{profile.injury_reason ? ` · ${profile.injury_reason}` : ""}
@@ -135,7 +138,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
             </div>
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-sec">
               {summary.data?.position && <span className="ql-data-label">{summary.data.position}</span>}
-              {profile?.team && <span className="ql-data-label">{league.toUpperCase()}</span>}
+              {team && <span className="ql-data-label">{league.toUpperCase()}</span>}
             </div>
           </div>
           <div className="ml-auto grid w-full grid-cols-2 gap-4 border-t border-white/10 pt-3 sm:w-auto sm:grid-cols-4 sm:gap-6 sm:border-l sm:border-t-0 sm:py-1 sm:pl-6">
@@ -226,7 +229,9 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
           {games.length > 0 && <PlayerPropLines key={`${player}:${stat}`} league={league} player={player} stat={stat}
             statLabel={STATS.find(([value]) => value === stat)?.[1] ?? stat} games={games} defaultLine={Math.max(0, defaultThreshold)}
             date={profile?.projection_context?.game_date ?? schedule.data?.target_date ?? new Date().toISOString().slice(0, 10)}
-            matchup={nextGame?.matchup ?? (nextOpponent ? `${profile?.team} vs ${nextOpponent}` : `${profile?.team ?? player}`)} accent={accent} />}
+            matchup={nextGame?.matchup ?? (nextOpponent ? `${team} vs ${nextOpponent}` : `${team || player}`)} accent={accent} />}
+
+          <PlayerResearch key={`research:${player}:${stat}`} league={league} player={player} stat={stat} />
 
           <section className={card}>
             <p className="ql-kicker">SUPPORTING EVIDENCE</p>
@@ -275,8 +280,9 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
             <p className="ql-kicker">NEXT MATCHUP</p>
             <h2 className="ql-section-title mt-1">Matchup</h2>
             {nextGame
-              ? <p className="mt-3 text-sm text-text-sec"><strong className="text-text-pri">{profile?.team}</strong> vs. <strong className="text-text-pri">{nextOpponent}</strong>{nextGame.game_time ? ` · ${nextGame.game_time}` : ""}</p>
+              ? <p className="mt-3 text-sm text-text-sec"><strong className="text-text-pri">{team}</strong> vs. <strong className="text-text-pri">{nextOpponent}</strong>{nextGame.game_time ? ` · ${nextGame.game_time}` : ""}</p>
               : <p className="mt-3 text-sm text-text-sec">The next opponent has not been established for this player.</p>}
+            {nextGame && nextOpponent && <MatchupDefense league={league} opponent={nextOpponent} game={nextGame} position={profile?.position} stat={stat} accent={accent} />}
           </section>
           <section className={card}>
             <p className="ql-kicker">AVAILABILITY</p>

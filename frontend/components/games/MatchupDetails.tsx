@@ -3,6 +3,7 @@ import type { Game, GamePrediction, GameInjury } from '@/lib/types';
 import { fmtOdds } from '@/lib/utils';
 import { modelContext } from '@/lib/model-context.mjs';
 import { gamePicks } from '@/lib/game-board.mjs';
+import { DefenseStrip } from './DefenseStrip';
 import styles from './games.module.css';
 
 export function MatchupDetails({game,prediction,predictionStatus,league}: {game:Game;prediction?:GamePrediction;predictionStatus:string;league:string}) {
@@ -29,6 +30,7 @@ export function MatchupDetails({game,prediction,predictionStatus,league}: {game:
       {game.venue && <p className={styles.source}>{game.venue}</p>}{game.broadcast && <p className={styles.source}>Watch · {game.broadcast}</p>}
       </section>
     </div>
+    <DefenseStrip game={game} league={league} detailed/>
     <div className={styles.injuries}><Injuries team={game.away_team} injuries={game.away_injuries ?? []} league={league}/><Injuries team={game.home_team} injuries={game.home_injuries ?? []} league={league}/></div>
     {prediction?.prediction_intervals && <p className={styles.source}>80% model range · Home margin {prediction.prediction_intervals.margin?.map(value=>value.toFixed(1)).join(' to ') || '—'} · Total {prediction.prediction_intervals.total?.map(value=>value.toFixed(1)).join(' to ') || '—'} points.</p>}
     <p className={styles.source}>Model scores are estimates. Spread and total calls require a real market line. {context.probability==null?'Confidence labels are not calibrated win probabilities.':'Model win probabilities are evaluated on held-out games; see the public record for calibration.'}</p>

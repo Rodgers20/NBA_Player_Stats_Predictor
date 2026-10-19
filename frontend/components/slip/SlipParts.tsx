@@ -6,13 +6,15 @@ import { formatOdds, summarizeSingles, summarizeSlip, payout, type SlipLeg, type
 const money = (v: number) => `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** One leg: who, the pick, the saved price, and what backs it. */
-export function LegRow({ leg, index, onRemove }: { leg: SlipLeg; index?: number; onRemove?: () => void }) {
+export function LegRow({ leg, index, onRemove, suggested, correlation }: { leg: SlipLeg; index?: number; onRemove?: () => void; suggested?: number; correlation?: string | null }) {
   return <li className="flex items-start gap-3 py-3">
     {index !== undefined && <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-[11px] font-bold text-[#a9bec0]">{index + 1}</span>}
     <div className="min-w-0 flex-1">
       <p className="truncate text-sm font-bold text-[#eaf8f6]">{leg.player}</p>
       <p className="text-[15px] font-bold text-[#59e0c8]">{leg.direction} {leg.line} {leg.stat}</p>
       <p className="mt-0.5 text-[11px] text-[#a9bec0]">{leg.league.toUpperCase()} · {leg.matchup} · {leg.date}{leg.probability != null && ` · Model ${(leg.probability * 100).toFixed(1)}%`}</p>
+      {suggested !== undefined && <p className="mt-0.5 text-[11px] text-[#a9bec0]">Suggested stake <b className={suggested > 0 ? 'text-[#59e0c8]' : 'text-[#a9bec0]'}>{suggested > 0 ? money(suggested) : 'none, no edge'}</b></p>}
+      {correlation && <p className="mt-0.5 text-[11px] leading-snug text-[#f5ba64]">{correlation}</p>}
     </div>
     <div className="flex shrink-0 items-center gap-1">
       <span className="font-mono text-sm font-bold text-[#f5ba64]">{formatOdds(leg.price)}</span>

@@ -50,7 +50,7 @@ export default function GamesPage() {
       {selected && <>
         <MatchupBanner game={selected} prediction={predictionFor(selected.matchup)} teams={teamMap} league={league}/><MarketGauge game={selected}/>
         <div className={styles.sectionHeading}><h2>The slate</h2><span className="ql-data-label">SELECT A MATCHUP TO EXPLORE</span></div>
-        <div className={styles.slateGrid}>{visible.map(game=><SlateCard key={game.game_id || game.matchup} game={game} prediction={predictionFor(game.matchup)} teams={teamMap} active={game.matchup===selected.matchup} onSelect={()=>setMatchupSelection({league,matchup:game.matchup})}/>)}</div>
+        <div className={styles.slateGrid}>{visible.map(game=><SlateCard key={game.game_id || game.matchup} game={game} prediction={predictionFor(game.matchup)} teams={teamMap} active={game.matchup===selected.matchup} league={league} onSelect={()=>setMatchupSelection({league,matchup:game.matchup})}/>)}</div>
         {predictions.isError && <p className={styles.notice} role="alert">Model estimates could not be loaded. <button onClick={()=>void predictions.refetch()}>Try again</button></p>}
         {selected.game_id && gameState(selected)!=='pre' && <BoxScore key={`${league}-${selected.game_id}`} league={league} gameId={selected.game_id}/>}
         <MatchupDetails game={selected} prediction={predictionFor(selected.matchup)} predictionStatus={status} league={league}/>

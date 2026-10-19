@@ -7,6 +7,7 @@ import { useSlip } from "@/store/slip";
 import { decimalOdds, formatOdds } from "@/lib/bet-slip.mjs";
 import { breakEven, quoteAge, recordFor } from "@/lib/tonight.mjs";
 import type { Prop } from "@/lib/types";
+import { PropBooks, PropResearchChips } from "@/components/props/PropResearch";
 
 interface Props {
   prop: Prop;
@@ -38,7 +39,7 @@ export function TonightRow({ prop, league, date, record }: Props) {
   function add() {
     if (!canAdd || prop.line == null || prop.price == null) return;
     toggle({ league, date, player: prop.player, stat: prop.stat, direction: side, line: prop.line, price: prop.price,
-      probability: prop.model_prob ?? null, matchup: prop.game_matchup, addedAt: new Date().toISOString() });
+      probability: prop.model_prob ?? null, matchup: prop.game_matchup, team: prop.team, addedAt: new Date().toISOString() });
   }
   const ev = prop.ev == null ? "—" : `${prop.ev >= 0 ? "+" : ""}${(prop.ev * 100).toFixed(1)}%`;
   const model = prop.model_prob == null ? "—" : `${Math.round(prop.model_prob * 100)}%`;
@@ -74,7 +75,9 @@ export function TonightRow({ prop, league, date, record }: Props) {
       <Figure label="MODEL" value={model} hint={modelHint} />
       <Figure label="LAST GAMES" value={sample} hint="hit this side" />
     </div>
-    <p className="col-span-3 text-[11px] leading-snug text-text-sec md:order-5 md:col-span-4">
+    <div className="col-span-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-text-sec empty:hidden md:order-5 md:col-span-4"><PropResearchChips prop={prop} /></div>
+    <PropBooks prop={prop} className="col-span-3 md:order-5 md:col-span-4" />
+    <p className="col-span-3 text-[11px] leading-snug text-text-sec md:order-6 md:col-span-4">
       {prop.raw_model_prob != null && <>Raw model {Math.round(prop.raw_model_prob * 100)}%, pulled toward the market for a {prop.total}-game sample. </>}
       {graded
         ? <>Graded {prop.stat_label || prop.stat} picks: <strong className="tabular-nums text-text-pri">{graded.pct}%</strong> ({graded.hit}/{graded.total}){graded.early ? " · early sample" : ""}.</>

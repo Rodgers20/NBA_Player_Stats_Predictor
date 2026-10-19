@@ -9,6 +9,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { usePrefs } from "@/store/prefs";
 import type { Prop } from "@/lib/types";
+import { PropBooks, PropResearchChips } from "./PropResearch";
 
 interface Props {
   prop: Prop;
@@ -33,7 +34,7 @@ export function PropCard({ prop, targetDate, onAnalyze, selected = false, record
   function toggleSlip() {
     if (!canAdd || !targetDate || prop.line == null || prop.price == null) return;
     toggle({ league, date: targetDate, player: prop.player, stat: prop.stat, direction: prop.direction, line: prop.line, price: prop.price,
-      probability: prop.model_prob ?? null, matchup: prop.game_matchup, addedAt: new Date().toISOString() });
+      probability: prop.model_prob ?? null, matchup: prop.game_matchup, team: prop.team, addedAt: new Date().toISOString() });
   }
   const initial = prop.player.trim().split(/\s+/).at(-1)?.[0]?.toUpperCase() || "?";
   const hitRate = prop.hit_rate != null && Number.isFinite(prop.hit_rate) ? Math.round(prop.hit_rate) : null;
@@ -93,6 +94,8 @@ export function PropCard({ prop, targetDate, onAnalyze, selected = false, record
         {prop.pick_type === "lean" && <span className="rounded border border-sky-400/40 bg-sky-400/[0.07] px-1.5 py-0.5 text-[10px] font-bold text-sky-300" title="Priced, but the model sees no positive edge at this price">LEAN · NO EDGE</span>}
         {!verified && <span className="rounded border border-amber-400/40 bg-amber-400/[0.07] px-1.5 py-0.5 text-[10px] font-bold text-amber-300">RESEARCH ONLY</span>}
       </div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 pl-[52px] text-[11px] text-[#a9bec0] empty:hidden"><PropResearchChips prop={prop} /></div>
+      <PropBooks prop={prop} className="mt-1.5 pl-[52px]" />
       {prop.insight && <p className="mt-2 pl-[52px] text-xs leading-relaxed text-[#a9bec0]">{prop.insight}</p>}
       {prop.quality_reason && <p className="mt-1 pl-[52px] text-xs text-amber-300">{prop.quality_reason}</p>}
       <div className="mt-2 flex gap-4 pl-[52px] text-xs md:hidden">
