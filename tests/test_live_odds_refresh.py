@@ -73,8 +73,8 @@ def test_api_refresh_is_explicit_and_board_preserves_each_player_stat(monkeypatc
     monkeypatch.setattr(props, 'history', lambda league: rows)
     monkeypatch.setattr(props, '_evaluated_cache', {})
     class Model:
-        calibration_residuals = [0.0]*100
-        def predict_player_game(self, *a, **kw): return {'predicted_pts': 30, 'predicted_reb': 30}
+        calibration_residuals = [4.0]*70 + [-4.0]*30   # a believable edge, not a perfect model
+        def predict_player_game(self, *a, **kw): return {'predicted_pts': 22, 'predicted_reb': 22}
     monkeypatch.setattr(data, 'predictor', lambda *a: Model())
     client = TestClient(app)
     assert client.get('/api/props/budget').status_code == 200

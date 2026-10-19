@@ -90,7 +90,7 @@ def test_wnba_priced_board_preserves_multiple_markets_per_player(monkeypatch):
         name: {'PTS': dict(quote), 'REB': dict(quote)} for name in names})
     mock_wnba_model(monkeypatch)
     monkeypatch.setattr(market_evaluation, 'evaluate_market',
-                        lambda projection, line, price, residuals, direction:
+                        lambda projection, line, price, residuals, direction, **kwargs:
                         {'ev': 0.2 if direction == 'Over' else -0.1,
                          'model_prob': 0.75, 'probability_source': 'Test model'})
     reject_paid_fetch(monkeypatch)

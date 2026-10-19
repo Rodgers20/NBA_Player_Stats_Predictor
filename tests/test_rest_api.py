@@ -224,7 +224,9 @@ def test_unverified_props_never_claim_ev_or_locks(monkeypatch):
     assert response['props'] == [] and response['count'] == 0
 
 
-def test_validation_and_wnba_unavailable_state():
+def test_validation_and_wnba_unavailable_state(monkeypatch):
+    from utils import wnba_data_fetch
+    monkeypatch.setattr(wnba_data_fetch, 'get_todays_wnba_games', lambda *_: [])
     assert client.get('/api/players?league=football').status_code == 422
     assert client.get('/api/props?sort=bogus').status_code == 422
     response = client.get('/api/props?league=wnba').json()
@@ -281,9 +283,9 @@ def test_refresh_evaluates_cached_quotes_without_fetching_and_rechecks_expiry(mo
     monkeypatch.setattr(props, '_evaluated_cache', {})
     monkeypatch.setattr(props, 'history', lambda league: rows)
     class Model:
-        calibration_residuals = [0.0]*100
+        calibration_residuals = [4.0]*70 + [-4.0]*30   # a believable edge, not a perfect model
         def predict_player_game(self, *args, **kwargs):
-            return {'predicted_pts': 30}
+            return {'predicted_pts': 22}
     monkeypatch.setattr(data, 'predictor', lambda league, stat: Model())
     response = client.post('/api/props/refresh').json()
     assert response['count'] == 1
@@ -295,6 +297,10 @@ def test_refresh_evaluates_cached_quotes_without_fetching_and_rechecks_expiry(mo
 
 
 def test_refresh_empty_cache_is_explicit_and_never_fetches(monkeypatch):
+    import api.data
+    from utils import wnba_data_fetch
+    monkeypatch.setattr(wnba_data_fetch, 'get_todays_wnba_games', lambda *_: [{'home': {'abbrev': 'GSV'}, 'away': {'abbrev': 'ATL'}}])
+    monkeypatch.setattr(api.data, 'predictor', lambda *_: None)   # no models: the board stays empty whatever today's slate is
     monkeypatch.setattr(props, '_cached_quotes', lambda league: {})
     monkeypatch.setattr(props, '_evaluated_cache', {})
     response = client.post('/api/props/refresh?league=wnba').json()

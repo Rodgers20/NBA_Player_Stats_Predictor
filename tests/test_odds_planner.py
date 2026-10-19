@@ -72,6 +72,16 @@ def test_priced_rows_are_picks_or_leans_and_unpriced_rows_are_research(ev, reaso
     assert row['model_projection'] == 23.1
 
 
+def test_priced_rows_carry_book_and_quote_time_but_research_rows_do_not():
+    from api.routes.props import _serialise_prop
+    base = dict(player='A', stat='PTS', direction='Over', line=20.5, ev=0.12, model_prob=0.6, live_over_price=-115,
+                has_live_odds=True, bookmaker='FanDuel', quote_updated_at='2026-10-19T18:30:00Z')
+    priced = _serialise_prop(base, None)
+    assert priced['book'] == 'FanDuel' and priced['quote_updated_at'] == '2026-10-19T18:30:00Z'
+    research = _serialise_prop(base, 'Quote expired; refresh or enter the current book price')
+    assert research['book'] is None and research['quote_updated_at'] is None
+
+
 def test_next_slate_falls_forward_to_the_first_day_with_games():
     from utils.slate import next_slate
     games = {'2026-10-07': ['NYL@ATL', 'LVA@GSV']}

@@ -47,8 +47,10 @@ def _quality_reason(prop, target_date, league):
         return 'Model probability is unavailable'
     if number(prop.get('ev')) is None:
         return 'Expected value is unavailable'
+    from utils.market_evaluation import credibility_problem
     df = history(league)
-    return history_problem(df[df['PLAYER_NAME'] == prop.get('player')], target_date)
+    return (history_problem(df[df['PLAYER_NAME'] == prop.get('player')], target_date)
+            or credibility_problem(number(prop.get('total')), number(prop.get('ev'))))
 
 
 def _wnba_research_shortlist(stat, game, location, direction, locks_only, combos_only, limit):
@@ -296,6 +298,10 @@ def _serialise_prop(p, quality_reason=None):
                   recommendation_eligible=pick_type == 'pick', quality_reason=quality_reason,
                   probability_source=p.get('probability_source', 'Historical frequency; not a model probability'),
                   model_prob=number(p.get('model_prob')) if eligible else None,
+                  raw_model_prob=number(p.get('raw_model_prob')) if eligible else None,
+                  market_prob=number(p.get('market_prob')) if eligible else None,
+                  book=p.get('bookmaker') if eligible else None,
+                  quote_updated_at=p.get('quote_updated_at') if eligible else None,
                   price=number(p.get('live_under_price' if p.get('direction', '').lower() == 'under' else 'live_over_price')) if eligible else None)
     result['is_home_today'] = _home_status(p)
     result['l5_values'] = [number(value) for value in (p.get('l5_values') or [])[:5]]
@@ -357,7 +363,9 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                 for direction in ('Over', 'Under'):
                     price = quote.get('over_price' if direction == 'Over' else 'under_price')
                     evaluation = evaluate_market(projection, quote['line'], price,
-                                                 getattr(model, 'calibration_residuals', None), direction)
+                                                 getattr(model, 'calibration_residuals', None), direction,
+                                                 other_price=quote.get('under_price' if direction == 'Over' else 'over_price'),
+                                                 sample=len(values))
                     if not evaluation:
                         continue
                     hits = int((values > quote['line']).sum() if direction == 'Over' else (values < quote['line']).sum())
@@ -369,6 +377,7 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                         is_home_today=is_home,
                         l5_values=[float(value) for value in values.head(5)],
                         live_over_price=quote.get('over_price'), live_under_price=quote.get('under_price'),
+                        bookmaker=quote.get('bookmaker'), quote_updated_at=quote.get('updated_at'),
                         insight={'narrative': f'Model projects {projection:.1f} {stat} against the {quote["line"]} line. '
                                               'Estimated EV from held-out residuals; market calibration is unverified.'},
                         model_projection=round(projection, 1)))
