@@ -99,3 +99,16 @@ def test_cup_championship_excluded_but_qualifiers_count(monkeypatch):
     assert team['wins'] == 1 and team['losses'] == 0
     assert team['points_per_game'] == 90
     assert [g['id'] for g in team['games']] == ['qualifying']
+
+
+def test_response_cache_is_bounded(monkeypatch):
+    class Reply:
+        def raise_for_status(self): pass
+        def json(self): return {'ok': True}
+    monkeypatch.setattr(content.requests, 'get', lambda *a, **k: Reply())
+    monkeypatch.setattr(content, '_CACHE_MAX', 5)
+    content._cache.clear()
+    for game in range(20):
+        content._fetch_url('https://example.test/summary', event=str(game))
+    assert len(content._cache) == 5
+    content._cache.clear()

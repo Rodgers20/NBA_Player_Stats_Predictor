@@ -9,6 +9,7 @@ import requests
 
 _BASE = 'https://site.api.espn.com/apis/site/v2/sports/basketball'
 _cache = {}
+_CACHE_MAX = 512  # highlights fan out ~50 summaries per league; leave headroom
 _lock = Lock()
 
 
@@ -35,7 +36,12 @@ def _fetch_url(url, ttl=900, **params):
     except (requests.RequestException, ValueError) as exc:
         raise ProviderUnavailable('ESPN is temporarily unavailable') from exc
     with _lock:
-        _cache[key] = (monotonic(), payload)
+        now = monotonic()
+        _cache[key] = (now, payload)
+        if len(_cache) > _CACHE_MAX:
+            # Request params come from callers, so bound memory: drop the oldest entries first.
+            for stale in sorted(_cache, key=lambda k: _cache[k][0])[:len(_cache) - _CACHE_MAX]:
+                del _cache[stale]
     return payload
 
 
