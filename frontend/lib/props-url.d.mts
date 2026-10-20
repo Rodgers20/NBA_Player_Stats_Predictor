@@ -11,3 +11,4 @@ export type BoardState = BoardFilters & { q: string };
 
 export function parseFilters(search: string, defaults: BoardFilters): BoardState;
 export function filtersToSearch(filters: BoardState, defaults: BoardFilters): string;
+export function isStaleGame(game: string, matchups: string[] | undefined): boolean;

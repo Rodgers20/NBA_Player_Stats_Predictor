@@ -55,6 +55,7 @@
 .cell { display: grid; justify-items: center; padding: 6px 4px; border-radius: 10px; background: rgba(255, 255, 255, 0.035); border: 1px solid transparent; }
 .cell b { font-family: var(--font-display); font-size: 19px; line-height: 1.05; font-variant-numeric: tabular-nums; }
 .cell small { font-family: var(--font-mono); font-size: 10px; color: var(--color-text-sec); }
+.always { display: block !important; }
 .cellLabel { display: none; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; color: var(--color-text-sec); }
 .good { background: rgba(89, 224, 200, 0.12); border-color: rgba(89, 224, 200, 0.25); }
 .good b { color: var(--color-over); }

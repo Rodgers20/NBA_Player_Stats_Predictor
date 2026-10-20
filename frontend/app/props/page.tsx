@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -11,7 +11,7 @@ import { PropAnalysisPanel } from "@/components/props/PropAnalysisPanel";
 import { PropFilters, type Filters } from "@/components/props/PropFilters";
 import { filterMinStars, sortByEdge } from "@/lib/prop-research.mjs";
 import { searchProps } from "@/lib/prop-rows.mjs";
-import { filtersToSearch, parseFilters, type BoardFilters } from "@/lib/props-url.mjs";
+import { filtersToSearch, isStaleGame, parseFilters, type BoardFilters } from "@/lib/props-url.mjs";
 
 const PAGE = 30;
 
@@ -74,15 +74,14 @@ function PropsBoard() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     setPage(1);
   }
-  // A game from the other league can never match, so drop it when the league changes (not on first load).
-  const firstRun = useRef(true);
+  // A game the loaded slate does not contain can never match (other league, old link), so drop it.
+  // Keyed on the data rather than on a league change, so persisted-league rehydration cannot trigger it.
   useEffect(() => {
-    if (firstRun.current) { firstRun.current = false; return; }
+    if (!isStaleGame(filters.game, data?.game_matchups)) return;
     const url = new URL(window.location.href);
-    if (!url.searchParams.has("game")) return;
     url.searchParams.delete("game");
     router.replace(`${url.pathname}${url.search}`, { scroll: false });
-  }, [league, router]);
+  }, [filters.game, data?.game_matchups, router]);
   const activeView = (view === "alt" && !altLines.data?.count) || (view === "record" && !record.data?.total) ? "props" : view;
   const starred = searchProps(filterMinStars(data?.props ?? [], filters.minStars), filters.q);
   const shownProps = filters.sort === "edge" ? sortByEdge(starred) : starred;
@@ -165,7 +164,14 @@ function PropsBoard() {
         </div>
       )}
 
-      {activeView === "props" && !isPending && data && data.props.length > 0 && (
+      {activeView === "props" && !isPending && data && data.props.length > 0 && shownProps.length === 0 && (
+        <div className="ql-panel px-6 py-12 text-center" role="status">
+          <p className="text-sm text-[#a9bec0]">No loaded props match your search or star filter.</p>
+          <p className="mt-2 text-xs text-[#a9bec0]">Try another name, lower the minimum stars, or load more props below.</p>
+        </div>
+      )}
+
+      {activeView === "props" && !isPending && data && shownProps.length > 0 && (
         <div className={selectedProp ? "grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px] 2xl:items-start" : ""}>
         <div className="min-w-0 space-y-5">
           <p className="ql-data-label text-[#a9bec0]">{data.status === "research" ? "MODEL RESEARCH · NO PRICED PICKS" : `${verifiedCount} VERIFIED PRICED ${verifiedCount === 1 ? "MARKET" : "MARKETS"} SHOWN`} · SELECT A PLAYER FOR GAME HISTORY</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Check, ChevronDown, Plus } from "lucide-react";
@@ -28,10 +28,10 @@ export function PropHeader() {
 }
 
 function HitCell({ cell, label }: { cell: RowCell | null; label: string }) {
-  if (!cell) return <div className={`${styles.cell} ${styles.none}`} aria-label={`${label}: no games`}><span className={styles.cellLabel}>{label}</span><b>—</b></div>;
+  if (!cell) return <div role="group" className={`${styles.cell} ${styles.none}`} aria-label={`${label}: no games`}><span className={styles.cellLabel}>{label}</span><b>—</b></div>;
   return (
-    <div className={`${styles.cell} ${toneClass(cell.tone)}`} aria-label={`${cell.label}: ${cell.hits} of ${cell.total} games, ${cell.pct} percent`}>
-      <span className={styles.cellLabel}>{cell.label}</span>
+    <div role="group" className={`${styles.cell} ${toneClass(cell.tone)}`} aria-label={`${cell.label}: ${cell.hits} of ${cell.total} games, ${cell.pct} percent`}>
+      <span className={`${styles.cellLabel}${cell.label === "All" ? ` ${styles.always}` : ""}`}>{cell.label}</span>
       <b>{cell.pct}%</b>
       <small>{cell.hits}/{cell.total}</small>
     </div>
@@ -48,6 +48,7 @@ interface Props {
 
 export function PropRow({ prop, targetDate, onAnalyze, selected = false, record }: Props) {
   const [open, setOpen] = useState(false);
+  const detailsId = useId();
   const [photoFailed, setPhotoFailed] = useState(false);
   const league = usePrefs(state => state.league);
   const { legs, toggle } = useSlip();
@@ -124,13 +125,13 @@ export function PropRow({ prop, targetDate, onAnalyze, selected = false, record 
           {prop.stars ? <span className={styles.stars} aria-label={`${prop.stars} star edge`}>{"★".repeat(prop.stars)}</span> : <span>&nbsp;</span>}
         </div>
 
-        <button type="button" className={styles.toggle} aria-expanded={open} onClick={() => setOpen(value => !value)}>
+        <button type="button" className={styles.toggle} aria-expanded={open} aria-controls={detailsId} aria-label={`Details for ${prop.player} ${prop.stat_label || prop.stat}`} onClick={() => setOpen(value => !value)}>
           Details <ChevronDown size={14} aria-hidden="true" />
         </button>
       </div>
 
       {open && (
-        <div className={styles.details}>
+        <div id={detailsId} className={styles.details}>
           <div className={styles.chips}>
             <span>{prop.game_matchup || `${prop.team} vs ${prop.opponent}`}</span>
             {prop.avg != null && <span>AVG <strong>{prop.avg}</strong></span>}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
@@ -54,7 +54,9 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
   const params = useSearchParams();
   const initial = parseAnalysisView(params.toString(), DEFAULT_VIEW); // stat, window and line come from the URL so a view can be shared
   const [stat, setStat] = useState(initial.stat);
-  const [period, setPeriod] = useState<WindowKey>(initial.period);
+  const [periodChoice, setPeriod] = useState<WindowKey>(initial.period);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(syncTimer.current), []);
   const [thresholdOverride, setThresholdOverride] = useState<number | null>(initial.line);
   const players = useQuery({ queryKey: ["players", "all", league], queryFn: () => api.players("", league) });
   const names = players.data?.players ?? [];
@@ -72,6 +74,10 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
   const seasons = [...new Set(chart.data?.games.map(game => game.season).filter((season): season is string => !!season) ?? [])].sort();
   const currentSeason = seasons.at(-1);
   const previousSeason = seasons.at(-2);
+  // A shared link can ask for a window this player cannot have (no next opponent, no previous season): fall back instead of showing an empty page.
+  const period: WindowKey = (periodChoice === "h2h" && schedule.isFetched && !nextOpponent)
+    || (periodChoice === "previous" && chart.isFetched && !previousSeason)
+    || (periodChoice === "current" && chart.isFetched && !currentSeason) ? 10 : periodChoice;
   const windowContext = { nextOpponent, currentSeason, previousSeason };
   const games = chart.data ? selectWindow(chart.data.games, period, windowContext) : [];
   const valid = games.filter((game): game is ChartRecord & { value: number } => game.value != null);
@@ -112,9 +118,17 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
   }
   function selectStat(value: string) { setStat(value); setThresholdOverride(null); sync({ stat: value, line: null }); }
   function selectPeriod(value: WindowKey) { setPeriod(value); sync({ period: value }); }
-  function changeThreshold(value: number) { setThresholdOverride(value); sync({ line: value }); }
+  function changeThreshold(value: number) {
+    setThresholdOverride(value);
+    clearTimeout(syncTimer.current); // a slider drag fires many changes; write the URL once it settles
+    syncTimer.current = setTimeout(() => sync({ line: value }), 200);
+  }
 
   function choosePlayer(name: string) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("player", name);
+    url.searchParams.delete("line"); // the old player's line does not carry over
+    window.history.replaceState(null, "", url);
     setChosenPlayer(name);
     setSearch("");
     setSearchOpen(false);

@@ -87,7 +87,7 @@ export function PlayerBarChart({ games, stat, line, height = 200 }: Props) {
           const bx   = xScale(String(i)) ?? 0;
           const bw   = xScale.bandwidth();
           const hit  = d.hit;
-          const fill = hit === true ? color : hit === false ? "rgba(248,113,113,0.6)" : color;
+          const fill = hit === true ? color : hit === false ? "rgba(248,113,113,0.6)" : hit === null && d.value != null ? "rgba(169,190,192,0.55)" : color; // a push is neutral
 
           return (
             <motion.rect

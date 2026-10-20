@@ -34,7 +34,13 @@ export function filtersToSearch(filters, defaults) {
   for (const key of KEYS) {
     const value = filters[key];
     const base = key === 'q' ? '' : defaults[key];
-    if (value !== undefined && value !== base && value !== '') params.set(key, String(value));
+    // An empty value is written too when the default is not empty, so "All" stays selectable.
+    if (value !== undefined && value !== base) params.set(key, String(value));
   }
   return params.toString();
+}
+
+/** A game filter that the known slate does not contain can never match; an unknown or empty slate proves nothing. */
+export function isStaleGame(game, matchups) {
+  return Boolean(game) && Array.isArray(matchups) && matchups.length > 0 && !matchups.includes(game);
 }

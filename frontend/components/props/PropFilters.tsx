@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const STATS = [
@@ -32,10 +32,14 @@ interface Props {
 export function PropFilters({ filters, matchups, statCounts, onChange }: Props) {
   const [draft, setDraft] = useState(filters.q);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const latest = useRef(onChange);
+  // Always call the newest handler (it merges with the current URL), and never fire after unmount.
+  useEffect(() => { latest.current = onChange; });
+  useEffect(() => () => clearTimeout(timer.current), []);
   const typeSearch = (value: string) => {
     setDraft(value);
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => onChange({ q: value }), 250); // keep the URL calm while typing
+    timer.current = setTimeout(() => latest.current({ q: value }), 250); // keep the URL calm while typing
   };
   return (
     <div className="ql-panel mb-5 p-3 sm:p-4">

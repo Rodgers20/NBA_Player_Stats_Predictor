@@ -1,6 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseFilters, filtersToSearch } from './props-url.mjs';
+import { parseFilters, filtersToSearch, isStaleGame } from './props-url.mjs';
+
+test('choosing All stat survives the URL even when the default stat is not All', () => {
+  const withDefault = { stat: 'PTS', direction: 'All', location: 'All', sort: 'hit_rate', game: '', locksOnly: false, minStars: 0 };
+  const search = filtersToSearch({ ...withDefault, stat: '', q: '' }, withDefault);
+  assert.equal(search, 'stat=');
+  assert.equal(parseFilters(search, withDefault).stat, '');
+});
+
+test('a game filter is stale only when the slate is known and does not contain it', () => {
+  assert.equal(isStaleGame('BOS @ DET', ['PHI @ NYK', 'OKC @ SAS']), true);
+  assert.equal(isStaleGame('BOS @ DET', ['BOS @ DET']), false);
+  assert.equal(isStaleGame('', ['BOS @ DET']), false);
+  assert.equal(isStaleGame('BOS @ DET', []), false, 'an empty or unknown slate is never evidence');
+  assert.equal(isStaleGame('BOS @ DET', undefined), false);
+});
 
 const defaults = { stat: '', direction: 'All', location: 'All', sort: 'hit_rate', game: '', locksOnly: false, minStars: 0 };
 

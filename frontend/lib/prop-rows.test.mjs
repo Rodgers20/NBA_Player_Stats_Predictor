@@ -39,6 +39,10 @@ test('a window with no games is skipped, never shown as zero percent', () => {
   assert.deepEqual(cells.map(c => c.label), ['L10']);
 });
 
+test('a fallback without a hit count is not drawn at all, never as undefined', () => {
+  assert.deepEqual(rowCells({ total: 10, hit_rate: 60 }), []);
+});
+
 test('without windows it falls back to one overall cell, and to nothing when there is no sample', () => {
   assert.deepEqual(rowCells({ hits: 7, total: 10, hit_rate: 70 }).map(c => [c.label, c.hits, c.total, c.pct, c.tone]), [['All', 7, 10, 70, 'good']]);
   assert.deepEqual(rowCells({ hits: 0, total: 0, hit_rate: null }), []);

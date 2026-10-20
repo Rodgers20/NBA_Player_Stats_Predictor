@@ -16,7 +16,7 @@ const ROW_WINDOWS = new Set(['L5', 'L10', 'L20']);
 export function rowCells(prop) {
   const cells = hitChips(prop.hit_windows).filter(chip => ROW_WINDOWS.has(chip.label));
   if (cells.length) return cells;
-  if (!(prop.total > 0) || prop.hit_rate == null || !Number.isFinite(prop.hit_rate)) return [];
+  if (!(prop.total > 0) || !Number.isFinite(prop.hits) || prop.hit_rate == null || !Number.isFinite(prop.hit_rate)) return [];
   const pct = Math.round(prop.hit_rate);
   return [{ key: 'all', label: 'All', hits: prop.hits, total: prop.total, pct, tone: hitTone(pct) }];
 }
