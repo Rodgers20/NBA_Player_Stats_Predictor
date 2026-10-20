@@ -15,11 +15,3 @@ export function ribbonSummary(values, line, side = 'Over') {
   const { hits, misses, pushes } = hitSummary(values, line, side);
   return { hits, decided: hits + misses, pushes };
 }
-
-/** Hit counts over the most recent N games; `n` is how many games exist, so short samples stay honest. */
-export function windowSummaries(values, line, side = 'Over', windows = [5, 10, 20]) {
-  return windows.map(size => {
-    const { n, hits, misses, rate } = hitSummary(values.slice(-size), line, side);
-    return { label: `L${size}`, n, hits, decided: hits + misses, rate };
-  });
-}

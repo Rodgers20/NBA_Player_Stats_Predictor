@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
 import { gameState } from "@/lib/game-board.mjs";
 import { gameMarkets } from "@/lib/game-markets.mjs";
+import { quoteAge } from "@/lib/tonight.mjs";
 import { modelContext } from "@/lib/model-context.mjs";
 import { PageWithSidebar } from "@/components/layout/PageWithSidebar";
 import { BoxScore } from "./BoxScore";
@@ -70,8 +71,8 @@ export function GameDetailPage() {
     <div className={styles.stack}>
       {back}
       <MatchupBanner game={game} prediction={prediction} teams={teams} league={league} />
-      <Tabs tabs={[...MAIN_TABS]} value={tab} onChange={id => { setTab(id); remember(id); }} label="Game sections" />
-      <div role="tabpanel" className={styles.panel}>
+      <Tabs tabs={[...MAIN_TABS]} value={tab} onChange={id => { setTab(id); remember(id); }} label="Game sections" idPrefix="game" />
+      <div role="tabpanel" id="game-panel" aria-labelledby={`game-tab-${tab}`} className={styles.panel}>
         {tab === "lines" && <>
           <div className={styles.markets}>
             <MarketBlock title="Money line" sides={markets.moneyline} />
@@ -92,13 +93,14 @@ export function GameDetailPage() {
 
   const side = (
     <div className={`${styles.side} card-depth`}>
-      <Tabs tabs={[...SIDE_TABS]} value={sideTab} onChange={setSideTab} label="Game context" className={styles.sideTabs} />
+      <Tabs tabs={[...SIDE_TABS]} value={sideTab} onChange={setSideTab} label="Game context" className={styles.sideTabs} idPrefix="side" />
+      <div role="tabpanel" id="side-panel" aria-labelledby={`side-tab-${sideTab}`} className={styles.sidePanel}>
       {sideTab === "matchup" && <>
         <DefenseStrip game={game} league={league} detailed />
         <dl className={styles.facts}>
           {game.venue && <><dt>Venue</dt><dd>{game.venue}</dd></>}
           {game.broadcast && <><dt>Watch</dt><dd>{game.broadcast}</dd></>}
-          <dt>Lines</dt><dd>{game.odds_source ? `${game.odds_source} · ${game.odds_provider || "Sportsbook"}` : "No sportsbook quote available."}</dd>
+          <dt>Lines</dt><dd>{game.odds_source ? `${game.odds_source} · ${game.odds_provider || "Sportsbook"}${quoteAge(game.odds_updated_at) ? ` · ${quoteAge(game.odds_updated_at)?.label}` : ""}` : "No sportsbook quote available."}</dd>
         </dl>
       </>}
       {sideTab === "injuries" && <div className={gameStyles.injuries}>
@@ -111,6 +113,7 @@ export function GameDetailPage() {
           {prediction.intel?.length ? <ul className={styles.intel}>{prediction.intel.slice(0, 6).map((item, index) => <li key={index}>{item}</li>)}</ul> : <p className={gameStyles.source}>No extra model notes for this game.</p>}
         </>
         : <p className={gameStyles.source}>{status}</p>)}
+      </div>
     </div>
   );
 

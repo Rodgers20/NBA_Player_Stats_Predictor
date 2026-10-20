@@ -7,7 +7,7 @@ import type { TeamMap } from "./MatchupCards";
 export function useTeamMap(league: string): { teamMap: TeamMap; ready: boolean } {
   const teams = useQuery({ queryKey: ["teams", league], queryFn: () => api.teams(league), staleTime: 300_000 });
   const season = Number(teams.data?.season);
-  const needsPrior = Number.isFinite(season) && (teams.data?.teams ?? []).some(team => (team.games ?? []).length < 10);
+  const needsPrior = Number.isFinite(season) && (teams.data?.teams ?? []).some(team => (team.games ?? []).filter(game => game.points_for != null && game.points_against != null).length < 10);
   const prior = useQuery({ queryKey: ["teams", league, season - 1], queryFn: () => api.teams(league, season - 1), staleTime: 300_000, enabled: needsPrior });
   // Ready once team data (and prior-season data, when needed) has settled, success or failure, so cards never reflow when it lands.
   const ready = !teams.isPending && (!needsPrior || !prior.isPending);

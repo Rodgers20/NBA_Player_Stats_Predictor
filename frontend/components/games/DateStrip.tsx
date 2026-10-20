@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import styles from "./DateStrip.module.css";
 
 const label = (day: string, today: string) =>
@@ -8,9 +9,15 @@ const short = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString("
 
 /** Horizontal day picker. Arrow keys step the selected day; no animation on keyboard use. */
 export function DateStrip({ dates, date, today, onChange }: { dates: string[]; date?: string; today: string; onChange: (isoDate: string) => void }) {
+  const buttons = useRef<Record<string, HTMLButtonElement | null>>({});
   const step = (delta: number) => {
-    const next = dates[dates.indexOf(date ?? today) + delta];
-    if (next) onChange(next);
+    const from = dates.indexOf(date ?? today);
+    const next = from < 0 ? undefined : dates[from + delta];
+    if (!next) return;
+    onChange(next);
+    const node = buttons.current[next];
+    node?.focus();
+    node?.scrollIntoView({ inline: "nearest", block: "nearest" });
   };
   return (
     <nav
@@ -22,7 +29,7 @@ export function DateStrip({ dates, date, today, onChange }: { dates: string[]; d
       }}
     >
       {dates.map(day => (
-        <button key={day} type="button" aria-pressed={day === date} className={styles.day} onClick={() => onChange(day)}>
+        <button key={day} ref={node => { buttons.current[day] = node; }} type="button" aria-pressed={day === date} className={styles.day} onClick={() => onChange(day)}>
           <span>{label(day, today)}</span>
           <strong>{short(day)}</strong>
         </button>

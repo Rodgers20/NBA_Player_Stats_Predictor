@@ -19,17 +19,6 @@
 .caption strong { color: var(--color-text-pri); font-weight: 600; }
 @media (max-width: 480px) { .note { display: none; } }
 
-.windows { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip {
-  display: grid; justify-items: start; min-width: 62px; padding: 6px 10px; border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--color-border-sub);
-}
-.chipLabel { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--color-text-sec); }
-.chipRate { font-family: var(--font-display); font-size: 22px; font-weight: 700; line-height: 1.05; color: var(--color-text-pri); }
-.chipCount { font-family: var(--font-mono); font-size: 10px; color: var(--color-text-sec); }
-.good .chipRate { color: var(--color-over); }
-.bad .chipRate { color: var(--color-under); }
-
 @media (hover: hover) and (pointer: fine) {
   .bars .bar:hover { filter: brightness(1.25); }
 }

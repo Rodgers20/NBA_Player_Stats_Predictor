@@ -3,6 +3,7 @@ import type { Game, GamePrediction } from "@/lib/types";
 import { TeamLogo } from "@/components/teams/TeamLogo";
 import { gameState, marketProbability, scoreboard } from "@/lib/game-board.mjs";
 import { gameMarkets } from "@/lib/game-markets.mjs";
+import { quoteAge } from "@/lib/tonight.mjs";
 import { teamGlow } from "@/lib/team-glow.mjs";
 import { teamInfo, tipLabel, type TeamMap } from "./MatchupCards";
 import { MarketBlock } from "./MarketBlock";
@@ -71,7 +72,7 @@ export function GameCard({ game, prediction, teams, league, date, index = 0 }: {
       </div>
       <div className={styles.foot}>
         <span>Open game</span>
-        <span className={styles.sub}>{game.odds_source || game.odds_provider || "ESPN lines"}</span>
+        <span className={styles.sub}>{game.odds_source || game.odds_provider || "ESPN lines"}{quoteAge(game.odds_updated_at) ? ` · ${quoteAge(game.odds_updated_at)?.label}` : ""}</span>
       </div>
     </Link>
   );
