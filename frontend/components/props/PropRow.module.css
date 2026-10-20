@@ -1,0 +1,87 @@
+/* Dense props board row. Desktop is one aligned grid shared with the sticky header; phones stack to two lines. */
+.grid {
+  display: grid; align-items: center; column-gap: 10px;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr) 72px repeat(3, 76px) 92px 84px;
+}
+.header {
+  position: sticky; top: 68px; z-index: 20; padding: 8px 16px; margin-bottom: 8px; border-radius: 12px;
+  background: rgba(13, 21, 27, 0.92); border: 1px solid var(--color-border-sub);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-sec);
+}
+.header span { text-align: center; }
+.header span:first-child, .header span:nth-child(2) { text-align: left; }
+
+.row { border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding: 10px 16px; transition: background-color 150ms ease; }
+.row:last-child { border-bottom: 0; }
+.selected { background: rgba(89, 224, 200, 0.07); box-shadow: inset 3px 0 0 var(--color-teal-400); }
+@media (hover: hover) and (pointer: fine) { .row:hover { background: rgba(255, 255, 255, 0.025); } }
+
+.who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.add {
+  flex: 0 0 auto; display: grid; place-items: center; width: 34px; height: 34px; min-height: 0; border-radius: 10px; padding: 0;
+  color: var(--color-teal-400); background: transparent; border: 1px solid rgba(89, 224, 200, 0.4);
+  transition: transform 160ms var(--ease-out-strong), background-color 150ms ease;
+}
+.add:active { transform: scale(0.94); }
+.add:disabled { opacity: 0.3; cursor: not-allowed; }
+.add[aria-pressed="true"] { color: #0d151b; background: var(--color-teal-400); border-color: var(--color-teal-400); }
+.avatar {
+  flex: 0 0 auto; display: grid; place-items: center; width: 40px; height: 40px; min-height: 0; padding: 0; overflow: hidden;
+  border-radius: 12px; font-weight: 700; color: var(--color-teal-400); background: rgba(89, 224, 200, 0.1); border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.avatar img { width: 40px; height: 40px; object-fit: cover; object-position: top; }
+.name { display: block; max-width: 100%; min-height: 0; padding: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; font-size: 14px; font-weight: 700; color: var(--color-text-pri); background: none; border: 0; }
+.meta { margin: 2px 0 0; font-size: 11px; line-height: 1.5; color: var(--color-text-sec); }
+@media (hover: hover) and (pointer: fine) { .name:hover { color: var(--color-teal-400); } }
+
+.badge { margin-left: 6px; padding: 1px 6px; border-radius: 6px; font-size: 9px; font-weight: 700; letter-spacing: 0.06em; border: 1px solid; }
+.pick { color: var(--color-teal-400); border-color: rgba(89, 224, 200, 0.5); background: rgba(89, 224, 200, 0.1); }
+.lean { color: #7dd3fc; border-color: rgba(125, 211, 252, 0.4); }
+.research { color: var(--color-lock-gold); border-color: rgba(245, 186, 100, 0.4); }
+
+.line { display: grid; gap: 2px; min-width: 0; }
+.side { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-sec); }
+.num { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1; color: var(--color-over); font-variant-numeric: tabular-nums; }
+.under .num { color: var(--color-under); }
+.price { display: inline-block; margin-left: 8px; padding: 2px 8px; font-family: var(--font-mono); font-size: 12px; font-weight: 600; vertical-align: middle; border-radius: 8px; color: var(--color-text-pri); background: rgba(255, 255, 255, 0.07); border: 1px solid var(--color-border-card); }
+.book { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-lock-gold); }
+.book.muted { color: var(--color-text-sec); }
+
+.opp, .ev { text-align: center; font-size: 12px; color: var(--color-text-sec); }
+.opp strong, .ev strong { display: block; font-family: var(--font-display); font-size: 18px; line-height: 1.1; color: var(--color-text-pri); }
+.stars { font-size: 10px; letter-spacing: 1px; color: var(--color-lock-gold); }
+
+.cell { display: grid; justify-items: center; padding: 6px 4px; border-radius: 10px; background: rgba(255, 255, 255, 0.035); border: 1px solid transparent; }
+.cell b { font-family: var(--font-display); font-size: 19px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.cell small { font-family: var(--font-mono); font-size: 10px; color: var(--color-text-sec); }
+.cellLabel { display: none; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; color: var(--color-text-sec); }
+.good { background: rgba(89, 224, 200, 0.12); border-color: rgba(89, 224, 200, 0.25); }
+.good b { color: var(--color-over); }
+.bad { background: rgba(250, 131, 123, 0.12); border-color: rgba(250, 131, 123, 0.25); }
+.bad b { color: var(--color-under); }
+.none b { color: var(--color-text-sec); }
+
+.toggle {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 0; padding: 6px 8px; font-size: 11px; font-weight: 600; justify-self: end;
+  color: var(--color-text-sec); background: transparent; border: 1px solid var(--color-border-sub); border-radius: 8px;
+}
+.toggle svg { transition: transform 200ms var(--ease-out-strong); }
+.toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+.details { display: grid; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.025); font-size: 12px; color: var(--color-text-sec); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.chips strong { color: var(--color-text-pri); font-variant-numeric: tabular-nums; }
+.actions { display: flex; gap: 8px; }
+.actions a, .actions button { min-height: 0; padding: 6px 10px; font-size: 12px; font-weight: 600; border-radius: 8px; color: var(--color-teal-400); background: transparent; border: 1px solid var(--color-border-card); }
+
+@media (max-width: 767px) {
+  .header { display: none; }
+  .grid { grid-template-columns: repeat(5, 1fr); row-gap: 10px; }
+  .who { grid-column: 1 / 4; }
+  .line { grid-column: 4 / 6; text-align: right; }
+  .num { font-size: 26px; }
+  .opp { grid-column: 1; }
+  .cellLabel { display: block; }
+  .toggle { grid-column: 1 / -1; justify-self: stretch; justify-content: center; }
+}

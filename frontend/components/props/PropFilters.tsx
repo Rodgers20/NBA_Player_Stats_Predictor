@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const STATS = [
@@ -18,6 +19,7 @@ export interface Filters {
   game: string;
   locksOnly: boolean;
   minStars: number;
+  q: string;
 }
 
 interface Props {
@@ -28,8 +30,20 @@ interface Props {
 }
 
 export function PropFilters({ filters, matchups, statCounts, onChange }: Props) {
+  const [draft, setDraft] = useState(filters.q);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const typeSearch = (value: string) => {
+    setDraft(value);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => onChange({ q: value }), 250); // keep the URL calm while typing
+  };
   return (
     <div className="ql-panel mb-5 p-3 sm:p-4">
+      <label className="mb-3 block">
+        <span className="sr-only">Search players or teams</span>
+        <input type="search" value={draft} onChange={(event) => typeSearch(event.target.value)} placeholder="Search player or team"
+          maxLength={40} className="ql-control min-h-9 w-full px-3 py-2 text-sm text-[#eaf8f6] placeholder:text-[#a9bec0]" />
+      </label>
       <p className="ql-data-label mb-2 text-[#a9bec0]">STATISTIC</p>
       <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Filter by stat">
         {STATS.map(([value, label]) => (
