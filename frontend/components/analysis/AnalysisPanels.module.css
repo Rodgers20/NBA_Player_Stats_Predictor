@@ -1,0 +1,25 @@
+.chips { display: flex; gap: 8px; overflow-x: auto; max-width: 100%; padding: 2px 2px 6px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: 0 0 auto; display: grid; justify-items: center; gap: 1px; min-width: 70px; min-height: 0; padding: 7px 10px; border-radius: 12px;
+  color: var(--color-text-sec); background: rgba(255, 255, 255, 0.035); border: 1px solid var(--color-border-sub);
+  transition: background-color 150ms ease, border-color 150ms ease, transform 160ms var(--ease-out-strong);
+}
+.chip:active:not(:disabled) { transform: scale(0.97); }
+.chip:disabled { opacity: 0.4; cursor: not-allowed; }
+.label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.rate { font-family: var(--font-display); font-size: 21px; font-weight: 700; line-height: 1.05; color: var(--color-text-pri); font-variant-numeric: tabular-nums; }
+.count { font-family: var(--font-mono); font-size: 10px; }
+.good .rate { color: var(--color-over); }
+.bad .rate { color: var(--color-under); }
+.chip[aria-pressed="true"] { background: rgba(89, 224, 200, 0.14); border-color: rgba(89, 224, 200, 0.65); color: var(--color-teal-400); }
+@media (hover: hover) and (pointer: fine) { .chip:hover:not(:disabled) { border-color: var(--color-border-card); } }
+
+.log { margin-top: 12px; border-top: 1px solid var(--color-border-sub); padding-top: 10px; }
+.log summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--color-teal-400); }
+.scroll { margin-top: 8px; max-height: 320px; overflow: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.table th { position: sticky; top: 0; text-align: left; padding: 6px 8px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-sec); background: var(--color-bg-card); }
+.table td { padding: 6px 8px; border-top: 1px solid rgba(255, 255, 255, 0.05); font-variant-numeric: tabular-nums; }
+.over { color: var(--color-over); }
+.under { color: var(--color-under); }

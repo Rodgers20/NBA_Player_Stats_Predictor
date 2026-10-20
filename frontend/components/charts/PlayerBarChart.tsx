@@ -52,7 +52,7 @@ export function PlayerBarChart({ games, stat, line, height = 200 }: Props) {
       viewBox={`0 0 ${W} ${H}`}
       className="w-full"
       style={{ minWidth: W }}
-      aria-label={`${stat} last ${data.length} games`}
+      aria-label={`${stat} last ${data.length} games${line !== null ? ` against a line of ${line}` : ""}. A table of every game follows the chart.`}
     >
       <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
         {/* Grid lines */}
@@ -102,7 +102,9 @@ export function PlayerBarChart({ games, stat, line, height = 200 }: Props) {
               initial={{ scaleY: 0, originY: 1 }}
               animate={{ scaleY: 1 }}
               transition={{ duration: 0.4, delay: i * 0.02 }}
-            />
+            >
+              <title>{`${d.date} ${d.opponent}: ${d.value ?? "no result"}${hit === true ? " (over)" : hit === false ? " (under)" : line !== null && d.value === line ? " (push)" : ""}`}</title>
+            </motion.rect>
           );
         })}
 
