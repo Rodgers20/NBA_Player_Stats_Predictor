@@ -22,7 +22,7 @@ export function SlipTicket({ legs, mode, stake, code }: { legs: SlipLeg[]; mode:
     <article aria-label={head} className="ql-panel overflow-hidden shadow-[0_18px_50px_rgba(0,0,0,0.45)]">
       <header className="flex items-center gap-3 border-b border-dashed border-[#2b4248] bg-white/[.03] px-5 py-4">
         <span className="h-8 w-2 rounded-sm bg-[#59e0c8]" aria-hidden />
-        <div><p className="text-xl font-black uppercase leading-none text-[#eaf8f6]">Bet slip</p><p className="mt-1 text-[12px] text-[#a9bec0]">NBA · WNBA props</p></div>
+        <div><p className="text-xl font-black uppercase leading-none text-[#eaf8f6]">Bet slip</p><p className="mt-1 text-[12px] text-[#a9bec0]">NBA · WNBA bets</p></div>
         <div className="ml-auto text-right">
           <p className="text-lg font-extrabold uppercase leading-none text-[#eaf8f6]">{head}</p>
           {parlay && <p className={`mt-1 font-mono text-xl font-extrabold leading-none ${american === null ? 'text-[#a9bec0]' : 'text-[#f5ba64]'}`}>{american === null ? 'Odds at your book' : formatOdds(american)}</p>}

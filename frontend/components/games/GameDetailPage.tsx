@@ -20,6 +20,8 @@ import { MarketGauge, MatchupBanner, teamInfo } from "./MatchupCards";
 import { Injuries, MatchupDetails } from "./MatchupDetails";
 import { Tabs, type TabDef } from "./GameTabs";
 import { useTeamMap } from "./useTeamMap";
+import { useGameSlip, withAdds } from "./useGameSlip";
+import type { Game, GamePrediction } from "@/lib/types";
 import gameStyles from "./games.module.css";
 import styles from "./GameDetail.module.css";
 
@@ -32,6 +34,22 @@ function remember(tab: MainTab) {
   const url = new URL(window.location.href);
   url.searchParams.set("tab", tab);
   window.history.replaceState(null, "", url);
+}
+
+/** The three markets with their slip buttons. Its own component so the slip hook runs only once the game is loaded. */
+function GameMarkets({ game, markets, league, date, prediction }: { game: Game; markets: ReturnType<typeof gameMarkets>; league: "nba" | "wnba"; date?: string; prediction?: GamePrediction }) {
+  const slip = useGameSlip(game, league, date, prediction);
+  const totalActions = [
+    slip.total.over && { text: `Over ${game.total}`, add: slip.total.over },
+    slip.total.under && { text: `Under ${game.total}`, add: slip.total.under },
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
+  return (
+    <div className={styles.markets}>
+      <MarketBlock title="Money line" sides={withAdds(markets.moneyline, [slip.moneyline.away, slip.moneyline.home])} />
+      <MarketBlock title="Spread" sides={withAdds(markets.spread, [slip.spread.away, slip.spread.home])} />
+      <MarketBlock title={markets.totalTitle} sides={withAdds(markets.total, [undefined, undefined])} actions={totalActions} />
+    </div>
+  );
 }
 
 export function GameDetailPage() {
@@ -74,11 +92,7 @@ export function GameDetailPage() {
       <Tabs tabs={[...MAIN_TABS]} value={tab} onChange={id => { setTab(id); remember(id); }} label="Game sections" idPrefix="game" />
       <div role="tabpanel" id="game-panel" aria-labelledby={`game-tab-${tab}`} className={styles.panel}>
         {tab === "lines" && <>
-          <div className={styles.markets}>
-            <MarketBlock title="Money line" sides={markets.moneyline} />
-            <MarketBlock title="Spread" sides={markets.spread} />
-            <MarketBlock title={markets.totalTitle} sides={markets.total} />
-          </div>
+          <GameMarkets game={game} markets={markets} league={league} date={date ?? games.data?.target_date ?? undefined} prediction={prediction} />
           <MarketGauge game={game} />
           <MatchupDetails game={game} prediction={prediction} predictionStatus={status} league={league} showDefense={false} showAvailability={false} />
         </>}

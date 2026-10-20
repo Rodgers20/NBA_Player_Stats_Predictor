@@ -1,4 +1,5 @@
 import { suggestedStake, sanitizeBankroll } from './bankroll.mjs';
+import { legText } from './team-legs.mjs';
 
 export function decimalOdds(price) {
   return Number.isFinite(price) && Math.abs(price) >= 100 ? (price > 0 ? 1 + price / 100 : 1 + 100 / -price) : null;
@@ -68,7 +69,7 @@ export function sanitizePersistedSlip(value) {
 
 /** Plain text a person or a Discord bet bot can read, one leg per line. */
 export function slipText(legs, mode, stake) {
-  const lines = legs.map(leg => `${leg.player} ${leg.direction} ${leg.line} ${leg.stat} (${formatOdds(leg.price)}) · ${leg.league.toUpperCase()} ${leg.matchup} ${leg.date}`);
+  const lines = legs.map(leg => `${legText(leg)} · ${leg.league.toUpperCase()} ${leg.matchup} ${leg.date}`);
   if (mode === 'singles' && legs.length > 1) return [`${legs.length} singles${stake ? `, $${stake} each` : ''}`, ...lines].join('\n');
   const american = summarizeSlip(legs).american;
   const head = legs.length === 1 ? 'Single' : `${legs.length}-leg parlay`;

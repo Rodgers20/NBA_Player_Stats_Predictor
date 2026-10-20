@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { Game, GamePrediction } from "@/lib/types";
 import { TeamLogo } from "@/components/teams/TeamLogo";
@@ -7,6 +9,7 @@ import { quoteAge } from "@/lib/tonight.mjs";
 import { teamGlow } from "@/lib/team-glow.mjs";
 import { teamInfo, tipLabel, type TeamMap } from "./MatchupCards";
 import { MarketBlock } from "./MarketBlock";
+import { useGameSlip, withAdds } from "./useGameSlip";
 import styles from "./GameCard.module.css";
 
 /** Card-shaped placeholders so the grid keeps its geometry while data loads. */
@@ -31,9 +34,14 @@ export function GameCard({ game, prediction, teams, league, date, index = 0 }: {
   const homePct = outlook == null ? null : Math.round(outlook * 100);
   const { moneyline, spread, total, totalTitle } = gameMarkets(game, away.abbrev, home.abbrev, teams[game.away_team]?.games ?? [], teams[game.home_team]?.games ?? []);
   const href = `/games/detail?${new URLSearchParams({ league, ...(game.game_id ? { id: game.game_id } : { matchup: game.matchup }), ...(date ? { date } : {}) })}`;
+  const slip = useGameSlip(game, league as "nba" | "wnba", date, prediction);
+  const totalActions = [
+    slip.total.over && { text: `Over ${game.total}`, add: slip.total.over },
+    slip.total.under && { text: `Under ${game.total}`, add: slip.total.under },
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   return (
-    <Link href={href} className={`${styles.card} card-depth enter`} style={{ "--i": index } as React.CSSProperties}>
+    <article className={`${styles.card} card-depth enter`} style={{ "--i": index } as React.CSSProperties}>
       <div className={styles.glow} aria-hidden style={{ backgroundImage: `${teamGlow(away.color, "left")}, ${teamGlow(home.color, "right")}` }} />
       <div className={styles.head}>
         <div className={styles.top}>
@@ -66,14 +74,14 @@ export function GameCard({ game, prediction, teams, league, date, index = 0 }: {
         </div>
       ) : null}
       <div className={styles.blocks}>
-        <MarketBlock title="Money line" sides={moneyline} />
-        <MarketBlock title="Spread" sides={spread} />
-        <MarketBlock title={totalTitle} sides={total} />
+        <MarketBlock title="Money line" sides={withAdds(moneyline, [slip.moneyline.away, slip.moneyline.home])} />
+        <MarketBlock title="Spread" sides={withAdds(spread, [slip.spread.away, slip.spread.home])} />
+        <MarketBlock title={totalTitle} sides={withAdds(total, [undefined, undefined])} actions={totalActions} />
       </div>
       <div className={styles.foot}>
-        <span>Open game</span>
+        <Link href={href} className={styles.stretch} aria-label={`Open ${away.name} at ${home.name}`}>Open game</Link>
         <span className={styles.sub}>{game.odds_source || game.odds_provider || "ESPN lines"}{quoteAge(game.odds_updated_at) ? ` · ${quoteAge(game.odds_updated_at)?.label}` : ""}</span>
       </div>
-    </Link>
+    </article>
   );
 }
