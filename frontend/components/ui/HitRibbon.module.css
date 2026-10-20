@@ -17,6 +17,7 @@
 }
 .caption { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--color-text-sec); }
 .caption strong { color: var(--color-text-pri); font-weight: 600; }
+@media (max-width: 480px) { .note { display: none; } }
 
 .windows { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {

@@ -6,7 +6,7 @@ import type { Side } from "@/lib/hit-rate.mjs";
 import styles from "./HitRibbon.module.css";
 
 /** Real per-game results as mini bars with the line drawn through. Renders nothing without data. */
-export function HitRibbon({ values, line, side = "Over", label }: { values: number[]; line: number; side?: Side; label: string }) {
+export function HitRibbon({ values, line, side = "Over", label, flat = false, note }: { values: number[]; line: number; side?: Side; label: string; flat?: boolean; note?: string }) {
   const [active, setActive] = useState<number | null>(null);
   if (!values.length) return null;
   const cells = ribbonCells(values, line, side);
@@ -23,18 +23,18 @@ export function HitRibbon({ values, line, side = "Over", label }: { values: numb
           <span
             key={index}
             className={`${styles.bar} ${styles[cell.result]}${active === index ? ` ${styles.on}` : ""}`}
-            style={{ height: `${cell.heightPct}%`, "--i": index } as React.CSSProperties}
+            style={{ height: flat ? "100%" : `${cell.heightPct}%`, "--i": index } as React.CSSProperties}
             onPointerEnter={() => setActive(index)}
             onPointerDown={() => setActive(index)}
           />
         ))}
-        <span className={styles.line} style={{ bottom: `${(line / top) * 100}%` }} />
+        {flat ? null : <span className={styles.line} style={{ bottom: `${(line / top) * 100}%` }} />}
       </div>
       <div className={styles.caption}>
         {picked
           ? <span><strong>{picked.value}</strong> vs {line} · {picked.result}</span>
           : <span><strong>{hits}/{cells.length}</strong> {label}</span>}
-        <span>{side} {line}</span>
+        <span className={styles.note}>{note ?? `${side} ${line}`}</span>
       </div>
     </div>
   );

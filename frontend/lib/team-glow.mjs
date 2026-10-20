@@ -7,8 +7,8 @@ export function safeTeamColor(color) {
     : FALLBACK;
 }
 
-/** Soft corner glow for a game card edge, built only from the safe colour. */
-export function teamGlow(color) {
-  const safe = safeTeamColor(color);
-  return `radial-gradient(120% 140% at 0% 0%, ${safe}66, transparent 60%)`;
+/** Soft corner glow for a game card edge ('left' or 'right'), built only from the safe colour. */
+export function teamGlow(color, edge = 'left') {
+  const at = edge === 'right' ? '100% 0%' : '0% 0%';
+  return `radial-gradient(120% 140% at ${at}, ${safeTeamColor(color)}66, transparent 60%)`;
 }

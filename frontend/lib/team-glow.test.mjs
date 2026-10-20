@@ -18,3 +18,9 @@ test('the glow gradient is built only from the safe colour', () => {
   assert.ok(!glow.includes('url('));
   assert.ok(teamGlow('1d428a').includes('#1d428a'));
 });
+
+test('the glow can come from either card edge and ignores anything else', () => {
+  assert.ok(teamGlow('1d428a', 'right').includes('at 100% 0%'));
+  assert.ok(teamGlow('1d428a', 'left').includes('at 0% 0%'));
+  assert.ok(teamGlow('1d428a', 'nowhere; evil').includes('at 0% 0%'));
+});
