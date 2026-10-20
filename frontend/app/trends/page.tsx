@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
 import { fmtOdds } from "@/lib/utils";
 import { formatOdds } from "@/lib/prop-research.mjs";
+import { TrendSlipButton } from "@/components/trends/TrendSlipButton";
 import type { TrendCard } from "@/lib/types";
 
 const SIDES = [["all", "All"], ["over", "Overs"], ["under", "Unders"]] as const;
@@ -17,7 +18,7 @@ function Stars({ count }: { count: number }) {
   return <span role="img" aria-label={`${count} of 5 stars`} className="text-sm tracking-tight text-[#f5ba64]">{"★".repeat(count)}<span className="text-white/15">{"★".repeat(5 - count)}</span></span>;
 }
 
-function TrendItem({ card, league }: { card: TrendCard; league: string }) {
+function TrendItem({ card, league }: { card: TrendCard; league: "nba" | "wnba" }) {
   const stat = card.stat === "FG3M" ? "3PM" : card.stat;
   return <li className="ql-panel flex flex-col gap-3 p-4">
     <div className="flex items-start justify-between gap-3">
@@ -25,7 +26,10 @@ function TrendItem({ card, league }: { card: TrendCard; league: string }) {
         <Link href={`/analysis?league=${league}&player=${encodeURIComponent(card.player)}`} className={`block truncate font-bold text-text-pri hover:text-teal-300 ${focus}`}>{card.player}</Link>
         <p className="ql-data-label mt-0.5">{card.team}{card.opponent ? ` vs ${card.opponent}` : ""} · {stat}</p>
       </div>
-      <Stars count={card.stars} />
+      <div className="flex shrink-0 items-center gap-2">
+        <Stars count={card.stars} />
+        <TrendSlipButton card={card} league={league} />
+      </div>
     </div>
     <p className="text-base font-extrabold leading-snug text-text-pri">{card.text}</p>
     <div className="flex gap-1" role="img" aria-label={`Last ${card.games} games, oldest to newest: ${card.results.map(hit => hit ? "hit" : "miss").join(", ")}`}>
