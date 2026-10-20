@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { usePrefs } from '@/store/prefs';
 import { shiftDate } from '@/lib/game-board.mjs';
 import { useTeamMap } from '@/components/games/useTeamMap';
-import { GameCard } from '@/components/games/GameCard';
+import { GameCard, GameCardSkeletons } from '@/components/games/GameCard';
 import { DateStrip } from '@/components/games/DateStrip';
 import cardStyles from '@/components/games/GameCard.module.css';
 import styles from '@/components/games/games.module.css';
@@ -22,7 +22,7 @@ export default function GamesPage() {
   const client=useQueryClient();
   const games=useQuery({queryKey:['games',league,gameDate],queryFn:()=>api.games(league,gameDate),refetchInterval:isStatic ? false : 60_000});
   const predictions=useQuery({queryKey:['game-predictions',league,gameDate],queryFn:()=>api.predictions(league,gameDate),staleTime:300_000});
-  const teamMap=useTeamMap(league);
+  const {teamMap,ready}=useTeamMap(league);
   const index=useQuery({queryKey:['schedule-index',league],queryFn:()=>api.scheduleIndex(league),enabled:isStatic});
   const refresh=useMutation({mutationFn:api.refreshGameLines,onSuccess:async()=>{await Promise.all([client.invalidateQueries({queryKey:['games',league]}),client.invalidateQueries({queryKey:['game-predictions',league]})]);}});
   const data=games.data;
@@ -37,9 +37,9 @@ export default function GamesPage() {
     <DateStrip dates={dates} date={date} today={today} onChange={day=>setDateSelection({league,date:day})}/>
     {isStatic && <p className={styles.source}>Snapshot scores and lines · Updates require a new data refresh.</p>}
     {(refresh.data || refresh.error) && <p role="status" className={styles.notice}>{refresh.data?.message || refresh.error?.message}</p>}
-    {games.isPending && <div className={styles.skeleton} aria-label="Loading game schedule"/>}
+    {(games.isPending || (!games.isError && !ready)) && <GameCardSkeletons/>}
     {games.isError && <div role="alert" className={styles.empty}><h2>Schedule unavailable</h2><p>We couldn&apos;t load games for this date.</p><button onClick={()=>void games.refetch()}>Try again</button></div>}
-    {!games.isPending && data && <>
+    {!games.isPending && ready && data && <>
       <div className={styles.sectionHeading}><h2>The slate</h2><div className={styles.filters} role="group" aria-label="Filter games"><button aria-pressed={!followingOnly} onClick={()=>setFollowingOnly(false)}>All games</button><button aria-pressed={followingOnly} onClick={()=>setFollowingOnly(true)}>Teams I follow</button></div></div>
       {!visible.length && <div className={styles.empty}><h3>{followingOnly ? 'No followed teams on this slate' : 'No games scheduled'}</h3><p>{followingOnly ? 'Follow teams in the directory, or switch back to All games.' : 'Choose another day to browse the schedule and results.'}</p>{followingOnly && <Link href="/teams">Find your teams ↗</Link>}</div>}
       <div className={cardStyles.grid}>{visible.map((game,i)=><GameCard key={game.game_id || game.matchup} game={game} prediction={predictionFor(game.matchup)} teams={teamMap} league={league} date={date} index={i}/>)}</div>

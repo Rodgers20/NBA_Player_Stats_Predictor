@@ -7,6 +7,12 @@
 @media (hover: hover) and (pointer: fine) {
   .card:hover { border-color: rgba(89, 224, 200, 0.5); }
 }
+.skeletonCard {
+  min-height: 640px; border-radius: 16px; border: 1px solid var(--color-border-sub);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
 .glow { position: absolute; inset: 0 0 auto 0; height: 200px; pointer-events: none; opacity: 0.85; }
 .head { position: relative; padding: 14px 16px 0; }
 .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-sec); }

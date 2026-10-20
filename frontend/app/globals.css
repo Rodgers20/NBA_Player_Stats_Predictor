@@ -76,7 +76,7 @@ body {
 }
 
 .enter {
-  animation: enter-rise 280ms var(--ease-out-strong) both;
+  animation: enter-rise 280ms var(--ease-out-strong) backwards;
   animation-delay: calc(var(--i, 0) * 40ms);
 }
 @keyframes enter-rise {

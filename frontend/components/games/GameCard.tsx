@@ -8,6 +8,15 @@ import { teamInfo, tipLabel, type TeamMap } from "./MatchupCards";
 import { MarketBlock } from "./MarketBlock";
 import styles from "./GameCard.module.css";
 
+/** Card-shaped placeholders so the grid keeps its geometry while data loads. */
+export function GameCardSkeletons({ count = 3 }: { count?: number }) {
+  return (
+    <div className={styles.grid} role="status" aria-label="Loading games">
+      {Array.from({ length: count }, (_, index) => <div key={index} className={styles.skeletonCard} />)}
+    </div>
+  );
+}
+
 const record = (wins?: number | null, losses?: number | null) => (wins != null && losses != null ? `${wins}–${losses}` : "");
 
 /** Slate card: team-colour glow, tip/score, win outlook and the three main markets with real recent form. */
@@ -23,7 +32,7 @@ export function GameCard({ game, prediction, teams, league, date, index = 0 }: {
   const href = `/games/detail?${new URLSearchParams({ league, ...(game.game_id ? { id: game.game_id } : { matchup: game.matchup }), ...(date ? { date } : {}) })}`;
 
   return (
-    <Link href={href} className={`${styles.card} card-depth enter`} style={{ "--i": index } as React.CSSProperties} aria-label={`${away.name} at ${home.name}, open game`}>
+    <Link href={href} className={`${styles.card} card-depth enter`} style={{ "--i": index } as React.CSSProperties}>
       <div className={styles.glow} aria-hidden style={{ backgroundImage: `${teamGlow(away.color, "left")}, ${teamGlow(home.color, "right")}` }} />
       <div className={styles.head}>
         <div className={styles.top}>

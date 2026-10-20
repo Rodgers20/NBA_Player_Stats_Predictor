@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ribbonCells, windowSummaries } from './hit-ribbon.mjs';
+import { ribbonCells, ribbonSummary, windowSummaries } from './hit-ribbon.mjs';
+
+test('summary counts hits out of decided games, leaving pushes out of the denominator', () => {
+  assert.deepEqual(ribbonSummary([2, 1, 0], 1), { hits: 1, decided: 2, pushes: 1 });
+  assert.deepEqual(ribbonSummary([], 1), { hits: 0, decided: 0, pushes: 0 });
+});
+
+test('window chips report hits out of decided games so the percentage and the count agree', () => {
+  const l5 = windowSummaries([2, 1, 0], 1).find(item => item.label === 'L5');
+  assert.deepEqual({ hits: l5.hits, decided: l5.decided, rate: l5.rate, n: l5.n }, { hits: 1, decided: 2, rate: 50, n: 3 });
+});
 
 test('ribbon cells grade each game and keep oldest-first order', () => {
   assert.deepEqual(ribbonCells([2, 1, 0], 0.5).map(cell => cell.result), ['hit', 'hit', 'miss']);

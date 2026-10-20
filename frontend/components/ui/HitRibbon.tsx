@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ribbonCells, windowSummaries } from "@/lib/hit-ribbon.mjs";
+import { ribbonCells, ribbonSummary, windowSummaries } from "@/lib/hit-ribbon.mjs";
 import type { Side } from "@/lib/hit-rate.mjs";
 import styles from "./HitRibbon.module.css";
 
@@ -10,11 +10,10 @@ export function HitRibbon({ values, line, side = "Over", label, flat = false, no
   const [active, setActive] = useState<number | null>(null);
   if (!values.length) return null;
   const cells = ribbonCells(values, line, side);
-  const hits = cells.filter(cell => cell.result === "hit").length;
-  const pushes = cells.filter(cell => cell.result === "push").length;
+  const { hits, decided, pushes } = ribbonSummary(values, line, side);
   const top = Math.max(line, ...values) || 1;
   const picked = active === null ? null : cells[active];
-  const summary = `${hits}/${cells.length} ${label}${pushes ? `, ${pushes} push` : ""}`;
+  const summary = `${hits}/${decided} ${label}${pushes ? `, ${pushes} push` : ""}`;
 
   return (
     <div className={styles.ribbon} role="img" aria-label={`${side} ${line}: ${summary}`}>
@@ -33,7 +32,7 @@ export function HitRibbon({ values, line, side = "Over", label, flat = false, no
       <div className={styles.caption}>
         {picked
           ? <span><strong>{picked.value}</strong> vs {line} · {picked.result}</span>
-          : <span><strong>{hits}/{cells.length}</strong> {label}</span>}
+          : <span><strong>{hits}/{decided}</strong> {label}{pushes ? ` · ${pushes} push` : ""}</span>}
         <span className={styles.note}>{note ?? `${side} ${line}`}</span>
       </div>
     </div>
@@ -49,7 +48,7 @@ export function HitWindows({ values, line, side = "Over" }: { values: number[]; 
         <div key={item.label} className={`${styles.chip}${item.rate !== null && item.rate >= 60 ? ` ${styles.good}` : item.rate !== null && item.rate <= 40 ? ` ${styles.bad}` : ""}`}>
           <span className={styles.chipLabel}>{item.label}</span>
           <span className={styles.chipRate}>{item.rate === null ? "–" : `${item.rate}%`}</span>
-          <span className={styles.chipCount}>{item.hits}/{item.n}</span>
+          <span className={styles.chipCount}>{item.hits}/{item.decided}</span>
         </div>
       ))}
     </div>

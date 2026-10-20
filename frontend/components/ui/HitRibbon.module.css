@@ -2,7 +2,7 @@
 .bars { position: relative; display: flex; align-items: flex-end; gap: 3px; height: 36px; }
 .bar {
   flex: 1 1 0; min-width: 4px; max-width: 14px; border-radius: 3px 3px 1px 1px;
-  transform-origin: bottom; animation: grow 320ms var(--ease-out-strong) both; animation-delay: calc(var(--i, 0) * 30ms);
+  transform-origin: bottom; animation: grow 320ms var(--ease-out-strong) backwards; animation-delay: calc(var(--i, 0) * 30ms);
   transition: opacity 120ms ease, filter 120ms ease;
 }
 .hit { background: var(--color-over); }

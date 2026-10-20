@@ -48,7 +48,7 @@ export function GameDetailPage() {
 
   const games = useQuery({ queryKey: ["games", league, date], queryFn: () => api.games(league, date), enabled: validId || !!matchup });
   const predictions = useQuery({ queryKey: ["game-predictions", league, date], queryFn: () => api.predictions(league, date), staleTime: 300_000 });
-  const teams = useTeamMap(league);
+  const { teamMap: teams, ready } = useTeamMap(league);
 
   const game = games.data?.games.find(item => (validId ? item.game_id === id : item.matchup === matchup));
   const prediction = game && predictions.data?.target_date === games.data?.target_date ? predictions.data?.predictions.find(item => item.matchup === game.matchup) : undefined;
@@ -56,7 +56,7 @@ export function GameDetailPage() {
 
   const back = <Link href="/games" className={styles.back}><ArrowLeft size={16} /> All games</Link>;
   if (!validId && !matchup) return <div className={gameStyles.page}>{back}<p role="alert" className={gameStyles.empty}>That game link is not valid.</p></div>;
-  if (games.isPending) return <div className={gameStyles.page}>{back}<div className={gameStyles.skeleton} aria-label="Loading game" /></div>;
+  if (games.isPending || (!games.isError && !ready)) return <div className={gameStyles.page}>{back}<div className={gameStyles.skeleton} aria-label="Loading game" /></div>;
   if (games.isError) return <div className={gameStyles.page}>{back}<div role="alert" className={gameStyles.empty}><h2>Game unavailable</h2><p>We couldn&apos;t load this game.</p><button onClick={() => void games.refetch()}>Try again</button></div></div>;
   if (!game) return <div className={gameStyles.page}>{back}<div role="alert" className={gameStyles.empty}><h2>Game not found</h2><p>It may be on a different date than this link expects.</p><Link href="/games">Back to the slate ↗</Link></div></div>;
 

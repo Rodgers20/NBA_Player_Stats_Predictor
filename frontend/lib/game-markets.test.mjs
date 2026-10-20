@@ -33,6 +33,14 @@ test('spread labels each team with the handicap it carries today', () => {
   assert.equal(spread[1].form.values.length, 1);
 });
 
+test('captions name the real window and never claim a historical spread record', () => {
+  const m = gameMarkets({ spread: 1.5, total: 221.5, away_ml: -120, home_ml: 100 }, 'BOS', 'DET', teams.away, teams.home);
+  assert.equal(m.moneyline[0].form.caption, 'L2 wins');
+  assert.equal(m.moneyline[1].form.caption, 'L1 wins');
+  assert.equal(m.spread[0].form.caption, 'L2 would cover');
+  assert.equal(m.total[1].form.caption, 'L1 over');
+});
+
 test('total is titled with its line and carries each team combined points', () => {
   const { total, totalTitle } = gameMarkets({ spread: null, total: 221.5, away_ml: null, home_ml: null }, 'BOS', 'DET', teams.away, teams.home);
   assert.equal(totalTitle, 'Total 221.5');

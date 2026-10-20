@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ellipsis } from "lucide-react";
 import { usePrefs } from "@/store/prefs";
 import { navForLeague } from "./Navbar";
@@ -20,9 +20,26 @@ export function BottomNav() {
   const primary = items.filter(({ href }) => href in PRIMARY);
   const more = items.filter(({ href }) => !(href in PRIMARY));
 
+  const sheet = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const moreActive = more.some(({ href }) => isActivePath(path, href));
+
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next) requestAnimationFrame(() => sheet.current?.querySelector<HTMLElement>("a")?.focus());
+  };
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      // Keyboard-initiated: close instantly, no slide, and hand focus back to the button.
+      const node = sheet.current;
+      if (node) { node.style.transition = "none"; requestAnimationFrame(() => { node.style.transition = ""; }); }
+      setOpen(false);
+      trigger.current?.focus();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
@@ -39,13 +56,13 @@ export function BottomNav() {
             </Link>
           );
         })}
-        <button type="button" aria-expanded={open} aria-controls="more-sheet" onClick={() => setOpen(value => !value)} className={styles.pillItem}>
+        <button ref={trigger} type="button" aria-expanded={open} aria-controls="more-sheet" aria-current={moreActive ? "page" : undefined} onClick={toggle} className={styles.pillItem}>
           <Ellipsis size={19} aria-hidden="true" />
           <span>More</span>
         </button>
       </nav>
       <div className={styles.scrim} data-open={open} onClick={() => setOpen(false)} aria-hidden="true" />
-      <div id="more-sheet" role="dialog" aria-label="More pages" className={styles.sheet} data-open={open} inert={!open}>
+      <div ref={sheet} id="more-sheet" role="dialog" aria-modal="true" aria-label="More pages" className={styles.sheet} data-open={open} inert={!open}>
         {more.map(({ href, label }) => {
           const Icon = navIcons[href as keyof typeof navIcons];
           return (
