@@ -189,6 +189,8 @@ body {
   box-shadow: 0 2px 8px rgba(20, 184, 166, 0.25);
 }
 .mobile-nav { display: none; }
+/* Courtside Night: clear the 72px desktop rail */
+@media (min-width: 901px) { .site-header, .app-main { margin-left: 72px; } }
 @media (max-width: 900px) {
   .site-header-inner { min-height: 60px; padding: 0 1rem; }
   .site-nav { display: none; }
