@@ -81,3 +81,8 @@ test('persisted slips from before bankroll/team still load; junk is dropped', ()
   assert.deepEqual(sanitizePersistedSlip(null).bankroll, { units: 100, unitSize: 10 });
   assert.deepEqual(sanitizePersistedSlip({ bankroll: { units: 50, unitSize: 20 } }).bankroll, { units: 50, unitSize: 20 });
 });
+
+test('sanitizePersistedSlip drops hand-edited legs that would crash rendering', () => {
+  const bad = [{ ...leg(1), league: 5 }, { ...leg(2), matchup: null }, { ...leg(3), price: 'x' }, { ...leg(4), price: NaN }];
+  assert.deepEqual(sanitizePersistedSlip({ legs: [...bad, leg(5), leg(6, { price: null })] }).legs.map(l => l.player), ['P5', 'P6']);
+});

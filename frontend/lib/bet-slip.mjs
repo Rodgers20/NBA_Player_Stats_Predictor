@@ -60,7 +60,7 @@ export function slipStakes(legs, mode, bankroll, correlatedProb = null) {
 /** Untrusted persisted slip (older shapes have no bankroll or team): keep what is valid, default the rest. */
 export function sanitizePersistedSlip(value) {
   const legs = Array.isArray(value?.legs)
-    ? value.legs.filter(l => l && typeof l.player === 'string' && typeof l.stat === 'string' && typeof l.date === 'string' && Number.isFinite(l.line)).slice(0, MAX_LEGS)
+    ? value.legs.filter(l => l && typeof l.player === 'string' && typeof l.stat === 'string' && typeof l.date === 'string' && typeof l.league === 'string' && typeof l.matchup === 'string' && Number.isFinite(l.line) && (l.price == null || Number.isFinite(l.price))).slice(0, MAX_LEGS)
     : [];
   return { legs, mode: value?.mode === 'singles' ? 'singles' : 'parlay',
     stake: Number.isFinite(value?.stake) && value.stake > 0 ? value.stake : null, bankroll: sanitizeBankroll(value?.bankroll) };

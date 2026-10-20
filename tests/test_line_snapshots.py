@@ -81,3 +81,33 @@ def test_grading_hook_fills_close_fields(monkeypatch):
     missing = dict(player='Nobody', stat='PTS', direction='Over', line=1.5)
     prediction_tracker._fill_closing_line(missing, '2999-01-01')
     assert 'close_line' not in missing
+
+
+def test_malformed_book_entry_still_saves_quote_and_valid_snapshots():
+    q = quote(('FD', 20.5, -110, -110))
+    q['A']['PTS']['books'] = ['junk', dict(book='X', line=float('nan'), over_price=-110, under_price=-110),
+                              dict(book='Y', line='abc', over_price=-110, under_price=-110),
+                              *q['A']['PTS']['books']]
+    odds_store.save('nba', q)
+    assert odds_store.load('nba')['A']['PTS']['bookmaker'] == 'FD'
+    assert [r['book'] for r in line_snapshots.history('nba', 'A', 'PTS')] == ['FD']
+
+
+def test_snapshot_failure_never_loses_quotes(monkeypatch):
+    import sqlite3
+
+    def boom(*args, **kwargs):
+        raise sqlite3.OperationalError('database is locked')
+    monkeypatch.setattr(line_snapshots, 'record', boom)
+    odds_store.save('nba', quote(('FD', 20.5, -110, -110)))
+    assert 'PTS' in odds_store.load('nba')['A']
+
+
+def test_history_is_capped_to_latest_rows_in_ascending_order():
+    with odds_budget.connection() as db:
+        line_snapshots.record(db, 'nba', quote(('FD', 1.5, -110, -110)), now=1)
+        for i in range(2, 2100):
+            line_snapshots.record(db, 'nba', quote(('FD', i + 0.5, -110, -110)), now=i)
+    rows = line_snapshots.history('nba', 'A', 'PTS')
+    assert len(rows) == 2000 and rows[-1]['ts'] == 2099 and rows[0]['ts'] < rows[1]['ts']
+    assert line_snapshots.open_lines('nba')[('A', 'PTS', 'FD')] == 1.5

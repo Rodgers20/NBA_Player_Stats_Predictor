@@ -28,6 +28,8 @@ def _setup(db):
 def _close_fields(payload):
     """Optional closing line/price entered by the user; only validated keys that were supplied."""
     out = {}
+    if (payload.get('close_line') is None) != (payload.get('close_price') is None):
+        raise ValueError('close_line and close_price must be provided together')
     if payload.get('close_line') is not None:
         try:
             out['close_line'] = float(payload['close_line'])
