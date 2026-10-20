@@ -47,7 +47,7 @@ export default function GamesPage() {
     {!games.isPending && data && <>
       <div className={styles.sectionHeading}><h2>The slate</h2><div className={styles.filters} role="group" aria-label="Filter games"><button aria-pressed={!followingOnly} onClick={()=>setFollowingOnly(false)}>All games</button><button aria-pressed={followingOnly} onClick={()=>setFollowingOnly(true)}>Teams I follow</button></div></div>
       {!visible.length && <div className={styles.empty}><h3>{followingOnly ? 'No followed teams on this slate' : 'No games scheduled'}</h3><p>{followingOnly ? 'Follow teams in the directory, or switch back to All games.' : 'Choose another day to browse the schedule and results.'}</p>{followingOnly && <Link href="/teams">Find your teams ↗</Link>}</div>}
-      <div className={cardStyles.grid}>{visible.map((game,i)=><GameCard key={game.game_id || game.matchup} game={game} prediction={predictionFor(game.matchup)} teams={teamMap} league={league} index={i}/>)}</div>
+      <div className={cardStyles.grid}>{visible.map((game,i)=><GameCard key={game.game_id || game.matchup} game={game} prediction={predictionFor(game.matchup)} teams={teamMap} league={league} date={date} index={i}/>)}</div>
       {predictions.isError && <p className={styles.notice} role="alert">Model estimates could not be loaded. <button onClick={()=>void predictions.refetch()}>Try again</button></p>}
     </>}
   </div>;
