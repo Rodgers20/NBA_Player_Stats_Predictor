@@ -17,8 +17,12 @@ import urllib.request
 
 def fetch(base, path, method='GET'):
     request = urllib.request.Request(base + path, method=method)
-    with urllib.request.urlopen(request, timeout=120) as response:
-        return json.load(response)
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as exc:
+        # The bare status hides why the API refused; surface its detail in CI logs.
+        raise RuntimeError(f'{method} {path} -> {exc.code}: {exc.read().decode(errors="replace")[:500]}') from exc
 
 
 def save(root, name, data):
