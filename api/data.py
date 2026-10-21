@@ -39,7 +39,8 @@ def history(league):
     try:
         return _load_history(league, path.stat().st_mtime_ns)
     except (ValueError, KeyError, OSError) as exc:
-        raise HTTPException(503, f'{league.upper()} player history is unavailable') from exc
+        # Include the cause so a refused request is diagnosable from the response alone.
+        raise HTTPException(503, f'{league.upper()} player history is unavailable: {type(exc).__name__}: {exc}'[:300]) from exc
 
 
 @lru_cache(maxsize=12)
