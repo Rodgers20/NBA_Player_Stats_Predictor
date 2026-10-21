@@ -1,0 +1,40 @@
+"use client";
+
+import { useState } from "react";
+import { ribbonCells, ribbonSummary } from "@/lib/hit-ribbon.mjs";
+import type { Side } from "@/lib/hit-rate.mjs";
+import styles from "./HitRibbon.module.css";
+
+/** Real per-game results as mini bars with the line drawn through. Renders nothing without data. */
+export function HitRibbon({ values, line, side = "Over", label, flat = false, note }: { values: number[]; line: number; side?: Side; label: string; flat?: boolean; note?: string }) {
+  const [active, setActive] = useState<number | null>(null);
+  if (!values.length) return null;
+  const cells = ribbonCells(values, line, side);
+  const { hits, decided, pushes } = ribbonSummary(values, line, side);
+  const top = Math.max(line, ...values) || 1;
+  const picked = active === null ? null : cells[active];
+  const summary = `${hits}/${decided} ${label}${pushes ? `, ${pushes} push` : ""}`;
+
+  return (
+    <div className={styles.ribbon} role="img" aria-label={`${note ?? `${side} ${line}`}: ${summary}`}>
+      <div className={`${styles.bars}${picked ? ` ${styles.dim}` : ""}`} onPointerLeave={() => setActive(null)}>
+        {cells.map((cell, index) => (
+          <span
+            key={index}
+            className={`${styles.bar} ${styles[cell.result]}${active === index ? ` ${styles.on}` : ""}`}
+            style={{ height: flat ? "100%" : `${cell.heightPct}%`, "--i": index } as React.CSSProperties}
+            onPointerEnter={() => setActive(index)}
+            onPointerDown={() => setActive(index)}
+          />
+        ))}
+        {flat ? null : <span className={styles.line} style={{ bottom: `${(line / top) * 100}%` }} />}
+      </div>
+      <div className={styles.caption}>
+        {picked
+          ? <span><strong>{picked.value}</strong> vs {line} · {picked.result}</span>
+          : <span><strong>{hits}/{decided}</strong> {label}{pushes ? ` · ${pushes} push` : ""}</span>}
+        <span className={styles.note}>{note ?? `${side} ${line}`}</span>
+      </div>
+    </div>
+  );
+}

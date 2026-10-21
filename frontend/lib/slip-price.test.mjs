@@ -5,6 +5,12 @@ import { buildPriceRequest, describeCorrelation, relatedProps } from './slip-pri
 const leg = (player, stat, extra = {}) => ({ league: 'nba', date: '2026-10-20', player, stat, direction: 'Over', line: 20.5,
   price: -110, probability: 0.56, matchup: 'LAL vs BOS', ...extra });
 
+test('a slip with any team market is never sent to the player-prop pricing service', () => {
+  const team = leg('BOS', 'ML', { direction: 'Win', line: 0, probability: 0.55 });
+  assert.equal(buildPriceRequest([leg('A B', 'PTS'), team]), null);
+  assert.equal(buildPriceRequest([team, leg('A B', 'PTS', { stat: 'SPREAD' })]), null);
+});
+
 test('request maps legs, resolves teams from loaded props and builds a shared game id', () => {
   const body = buildPriceRequest([leg('A B', 'PTS'), leg('C D', 'AST', { direction: 'Under' })], { 'a b': 'LAL' });
   assert.deepEqual(body.legs[0], { player: 'A B', team: 'LAL', game: 'nba:2026-10-20:LAL vs BOS', stat: 'PTS', side: 'Over', prob: 0.56, price: -110 });

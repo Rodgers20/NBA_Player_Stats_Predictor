@@ -1,3 +1,5 @@
+import { isTeamLeg } from './team-legs.mjs';
+
 export const MAX_PRICED_LEGS = 12; // matches api/routes/slip.py
 
 const parts = stat => String(stat || '').toUpperCase().split('+').filter(Boolean);
@@ -6,6 +8,7 @@ const norm = name => String(name || '').trim().toLowerCase();
 /** Body for POST /api/slip/price, or null when the slip cannot be priced (needs 2+ legs with model probabilities). */
 export function buildPriceRequest(legs, teamByPlayer = {}) {
   if (legs.length < 2 || legs.length > MAX_PRICED_LEGS) return null;
+  if (legs.some(isTeamLeg)) return null; // the service models player stats only; the slip falls back to independent maths
   if (!legs.every(leg => Number.isFinite(leg.probability) && leg.probability > 0 && leg.probability < 1)) return null;
   return { legs: legs.map(leg => ({
     player: leg.player, team: leg.team || teamByPlayer[norm(leg.player)] || '',

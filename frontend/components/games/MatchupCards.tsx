@@ -5,6 +5,7 @@ import type { BasketballTeam } from '@/lib/team-types';
 import { TeamLogo } from '@/components/teams/TeamLogo';
 import { DefenseStrip } from './DefenseStrip';
 import { gamePicks, gameState, marketProbability, scoreboard } from '@/lib/game-board.mjs';
+import { safeTeamColor } from '@/lib/team-glow.mjs';
 import styles from './games.module.css';
 
 export type TeamMap = Record<string, BasketballTeam>;
@@ -16,7 +17,7 @@ export function tipLabel(game: Game) {
   const date = new Date(raw);
   return Number.isNaN(date.getTime()) ? game.game_time || 'Tip time pending' : `${date.toLocaleString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})} ET`;
 }
-function teamColor(color?: string | null) { return color && /^#?[a-f0-9]{6}$/i.test(color) ? `#${color.replace('#','')}` : '#26434d'; }
+const teamColor = safeTeamColor;
 function points(value: number | null, actual: boolean) { return value == null ? '—' : actual ? String(value) : value.toFixed(1); }
 
 export function MatchupBanner({game,prediction,teams,league}: {game:Game;prediction?:GamePrediction;teams:TeamMap;league:string}) {

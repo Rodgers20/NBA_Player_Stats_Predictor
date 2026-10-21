@@ -53,8 +53,9 @@ export function FloatingSlip() {
   const canTrack = trackable && stake != null && stake > 0;
   async function track() {
     setFlash('Saving…');
-    const { saved, failed } = await trackLegs(legs, stake ?? 0);
-    setFlash(failed.length ? `Saved ${saved}; ${failed.length} failed. ${failed[0]}` : `Tracked ${saved} paper ${saved === 1 ? 'bet' : 'bets'}. My Bets grades them from box scores.`);
+    const { saved, failed, skipped } = await trackLegs(legs, stake ?? 0);
+    const note = skipped ? ` ${skipped} team ${skipped === 1 ? 'bet is' : 'bets are'} not tracked yet.` : '';
+    setFlash(failed.length ? `Saved ${saved}; ${failed.length} failed. ${failed[0]}` : `Tracked ${saved} paper ${saved === 1 ? 'bet' : 'bets'}. My Bets grades them from box scores.${note}`);
   }
 
   return <>

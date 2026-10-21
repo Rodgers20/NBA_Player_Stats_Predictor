@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
 import type { Prop, PropsResponse } from "@/lib/types";
-import { PropCard } from "@/components/props/PropCard";
+import { PropHeader, PropRow } from "@/components/props/PropRow";
 import { PropAnalysisPanel } from "@/components/props/PropAnalysisPanel";
 import { PropFilters, type Filters } from "@/components/props/PropFilters";
 import { filterMinStars, sortByEdge } from "@/lib/prop-research.mjs";
+import { searchProps } from "@/lib/prop-rows.mjs";
+import { filtersToSearch, isStaleGame, parseFilters, type BoardFilters } from "@/lib/props-url.mjs";
 
 const PAGE = 30;
 
@@ -21,16 +24,17 @@ function slateDate(value: string | null | undefined) {
 }
 
 export default function PropsPage() {
+  return <Suspense fallback={<p className="p-8 text-text-sec">Loading props…</p>}><PropsBoard /></Suspense>;
+}
+
+function PropsBoard() {
   const { defaultStat, defaultSort, league } = usePrefs();
-  const [filters, setFilters] = useState<Filters>({
-    stat: defaultStat,
-    direction: "All",
-    location: "All",
-    sort: defaultSort,
-    game: "",
-    locksOnly: false,
-    minStars: 0,
-  });
+  const router = useRouter();
+  const pathname = usePathname();
+  const search = useSearchParams();
+  // Filters live in the URL so a view can be shared, bookmarked and survive a reload.
+  const defaults: BoardFilters = { stat: defaultStat, direction: "All", location: "All", sort: defaultSort, game: "", locksOnly: false, minStars: 0 };
+  const filters: Filters = parseFilters(search.toString(), defaults);
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"props" | "alt" | "record">("props");
   const [selected, setSelected] = useState<{ league: "nba" | "wnba"; prop: Prop } | null>(null);
@@ -66,11 +70,20 @@ export default function PropsPage() {
   });
 
   function handleChange(update: Partial<Filters>) {
-    setFilters((current) => ({ ...current, ...update }));
+    const qs = filtersToSearch({ ...filters, ...update }, defaults);
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     setPage(1);
   }
+  // A game the loaded slate does not contain can never match (other league, old link), so drop it.
+  // Keyed on the data rather than on a league change, so persisted-league rehydration cannot trigger it.
+  useEffect(() => {
+    if (!isStaleGame(filters.game, data?.game_matchups)) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("game");
+    router.replace(`${url.pathname}${url.search}`, { scroll: false });
+  }, [filters.game, data?.game_matchups, router]);
   const activeView = (view === "alt" && !altLines.data?.count) || (view === "record" && !record.data?.total) ? "props" : view;
-  const starred = filterMinStars(data?.props ?? [], filters.minStars);
+  const starred = searchProps(filterMinStars(data?.props ?? [], filters.minStars), filters.q);
   const shownProps = filters.sort === "edge" ? sortByEdge(starred) : starred;
   const byGame = Object.groupBy(shownProps, (prop) => prop.game_matchup || "Other matchups");
   const verifiedCount = shownProps.filter((prop) => (prop.pick_type ?? (prop.recommendation_eligible ? "pick" : "research")) !== "research").length;
@@ -151,10 +164,18 @@ export default function PropsPage() {
         </div>
       )}
 
-      {activeView === "props" && !isPending && data && data.props.length > 0 && (
+      {activeView === "props" && !isPending && data && data.props.length > 0 && shownProps.length === 0 && (
+        <div className="ql-panel px-6 py-12 text-center" role="status">
+          <p className="text-sm text-[#a9bec0]">No loaded props match your search or star filter.</p>
+          <p className="mt-2 text-xs text-[#a9bec0]">Try another name, lower the minimum stars, or load more props below.</p>
+        </div>
+      )}
+
+      {activeView === "props" && !isPending && data && shownProps.length > 0 && (
         <div className={selectedProp ? "grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px] 2xl:items-start" : ""}>
         <div className="min-w-0 space-y-5">
           <p className="ql-data-label text-[#a9bec0]">{data.status === "research" ? "MODEL RESEARCH · NO PRICED PICKS" : `${verifiedCount} VERIFIED PRICED ${verifiedCount === 1 ? "MARKET" : "MARKETS"} SHOWN`} · SELECT A PLAYER FOR GAME HISTORY</p>
+          <PropHeader />
           {Object.entries(byGame).map(([matchup, props]) => (
             <section key={matchup} aria-label={matchup}>
               <div className="mb-2 flex items-baseline justify-between border-b border-white/10 pb-2">
@@ -162,7 +183,7 @@ export default function PropsPage() {
                 <span className="ql-data-label text-[#a9bec0]">{props?.length ?? 0} PROPS</span>
               </div>
               <div className="ql-panel overflow-hidden">
-                {props?.map((prop) => <PropCard key={`${prop.player}-${prop.stat}-${prop.direction}-${prop.line}`} prop={prop} targetDate={data.target_date} selected={selectedProp === prop} record={record.data} onAnalyze={(next) => setSelected({ league, prop: next })} />)}
+                {props?.map((prop) => <PropRow key={`${prop.player}-${prop.stat}-${prop.direction}-${prop.line}`} prop={prop} targetDate={data.target_date} selected={selectedProp === prop} record={record.data} onAnalyze={(next) => setSelected({ league, prop: next })} />)}
               </div>
             </section>
           ))}

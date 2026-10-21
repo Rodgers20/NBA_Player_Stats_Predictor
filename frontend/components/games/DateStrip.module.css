@@ -1,0 +1,14 @@
+.strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+.strip::-webkit-scrollbar { display: none; }
+.day {
+  flex: 0 0 auto; display: grid; justify-items: center; gap: 2px; min-width: 76px; padding: 10px 14px; border-radius: 14px;
+  color: var(--color-text-sec); background: rgba(255, 255, 255, 0.03); border: 1px solid var(--color-border-sub);
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out-strong);
+}
+.day:active { transform: scale(0.97); }
+.day span { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.day strong { font-family: var(--font-display); font-size: 20px; font-weight: 700; line-height: 1.1; color: var(--color-text-pri); }
+.day[aria-pressed="true"] { background: rgba(89, 224, 200, 0.14); border-color: rgba(89, 224, 200, 0.6); color: var(--color-teal-400); }
+@media (hover: hover) and (pointer: fine) {
+  .day:hover { border-color: var(--color-border-card); color: var(--color-text-pri); }
+}

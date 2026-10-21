@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./quant-lab.css";
 import { Providers }  from "./providers";
+import { AppRail }    from "@/components/layout/AppRail";
 import { BottomNav }  from "@/components/layout/BottomNav";
 import { Navbar }     from "@/components/layout/Navbar";
 import { FloatingSlip } from "@/components/slip/FloatingSlip";
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <Providers>
+          <AppRail />
           <Navbar />
           <a href="#main-content" className="skip-link">Skip to content</a>
           <main id="main-content" className="app-main min-h-dvh">{children}</main>

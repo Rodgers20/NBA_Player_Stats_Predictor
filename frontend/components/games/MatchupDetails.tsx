@@ -6,7 +6,7 @@ import { gamePicks } from '@/lib/game-board.mjs';
 import { DefenseStrip } from './DefenseStrip';
 import styles from './games.module.css';
 
-export function MatchupDetails({game,prediction,predictionStatus,league}: {game:Game;prediction?:GamePrediction;predictionStatus:string;league:string}) {
+export function MatchupDetails({game,prediction,predictionStatus,league,showDefense=true,showAvailability=true}: {game:Game;prediction?:GamePrediction;predictionStatus:string;league:string;showDefense?:boolean;showAvailability?:boolean}) {
   const picks=gamePicks(game,prediction),context=modelContext(prediction);
   return <section className={styles.details} aria-label={`${game.matchup} analysis`}>
     <div className={styles.sectionHeading}><div><p className="ql-kicker">MATCHUP ANALYSIS</p><h2>{game.matchup}</h2></div><Link href={`/props`}>Explore player props ↗</Link></div>
@@ -30,8 +30,8 @@ export function MatchupDetails({game,prediction,predictionStatus,league}: {game:
       {game.venue && <p className={styles.source}>{game.venue}</p>}{game.broadcast && <p className={styles.source}>Watch · {game.broadcast}</p>}
       </section>
     </div>
-    <DefenseStrip game={game} league={league} detailed/>
-    <div className={styles.injuries}><Injuries team={game.away_team} injuries={game.away_injuries ?? []} league={league}/><Injuries team={game.home_team} injuries={game.home_injuries ?? []} league={league}/></div>
+    {showDefense && <DefenseStrip game={game} league={league} detailed/>}
+    {showAvailability && <div className={styles.injuries}><Injuries team={game.away_team} injuries={game.away_injuries ?? []} league={league}/><Injuries team={game.home_team} injuries={game.home_injuries ?? []} league={league}/></div>}
     {prediction?.prediction_intervals && <p className={styles.source}>80% model range · Home margin {prediction.prediction_intervals.margin?.map(value=>value.toFixed(1)).join(' to ') || '—'} · Total {prediction.prediction_intervals.total?.map(value=>value.toFixed(1)).join(' to ') || '—'} points.</p>}
     <p className={styles.source}>Model scores are estimates. Spread and total calls require a real market line. {context.probability==null?'Confidence labels are not calibrated win probabilities.':'Model win probabilities are evaluated on held-out games; see the public record for calibration.'}</p>
   </section>;
@@ -39,6 +39,6 @@ export function MatchupDetails({game,prediction,predictionStatus,league}: {game:
 function Call({label,value,detail,reason}: {label:string;value:string;detail:string;reason?:string|null}) {
   return <div className={styles.call}><p>{label}</p><h4>{value}</h4><small>{detail}</small>{reason && <p className={styles.reason}>{reason}</p>}</div>;
 }
-function Injuries({team,injuries,league}: {team:string;injuries:GameInjury[];league:string}) {
+export function Injuries({team,injuries,league}: {team:string;injuries:GameInjury[];league:string}) {
   return <section><h3><Link href={`/teams/detail?team=${team}&league=${league}`}>{team}</Link> availability</h3>{injuries.length ? <ul>{injuries.slice(0,5).map((item,index)=><li key={`${item.name}-${index}`}><strong>{item.name}</strong><span>{item.status}</span>{item.reason && <small>{item.reason}</small>}</li>)}</ul> : <p>No injury report available.</p>}</section>;
 }

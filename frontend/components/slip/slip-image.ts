@@ -1,4 +1,5 @@
 import { formatOdds, summarizeSingles, summarizeSlip, payout, type SlipLeg, type SlipMode } from '@/lib/bet-slip.mjs';
+import { isTeamLeg, legDetail, legTitle, priceIsAssumed } from '@/lib/team-legs.mjs';
 
 const W = 900, ROW = 104, PAD = 36;
 const C = { bg: '#0d151b', card: '#152128', line: '#2b4248', ink: '#eaf8f6', muted: '#a9bec0', accent: '#59e0c8', gold: '#f5ba64' };
@@ -28,10 +29,10 @@ export function drawSlipImage(legs: SlipLeg[], mode: SlipMode, stake: number | n
   legs.forEach((l, i) => {
     const y = 150 + ROW * i;
     g.fillStyle = C.line; g.fillRect(PAD + 12, y, W - 2 * PAD - 24, 1);
-    text(l.player, PAD + 12, y + 36, 24, C.ink, 700);
-    text(`${l.direction} ${l.line} ${l.stat}`, PAD + 12, y + 70, 30, C.accent, 800);
+    text(isTeamLeg(l) ? legDetail(l) : l.player, PAD + 12, y + 36, 24, C.ink, 700);
+    text(isTeamLeg(l) ? legTitle(l) : legDetail(l), PAD + 12, y + 70, 30, C.accent, 800);
     text(`${l.league.toUpperCase()} · ${l.matchup} · ${l.date}`, PAD + 12, y + 94, 17, C.muted, 500);
-    text(formatOdds(l.price), W - PAD - 12, y + 62, 28, C.gold, 800, 'right');
+    text(`${formatOdds(l.price)}${priceIsAssumed(l) ? '*' : ''}`, W - PAD - 12, y + 62, 28, C.gold, 800, 'right');
   });
 
   const fy = 150 + ROW * legs.length;
@@ -53,7 +54,7 @@ export function drawSlipImage(legs: SlipLeg[], mode: SlipMode, stake: number | n
     text(v, x + kw + 8, fy + 62, 22, color, 700);
     g.font = `700 22px ${FONT}`; x += kw + 8 + g.measureText(v).width + 32;
   }
-  text('Reference slip, not a bet. Confirm odds at your book.', PAD + 12, fy + 92, 16, C.muted, 500);
+  text(`Reference slip, not a bet. Confirm odds at your book.${legs.some(priceIsAssumed) ? ' * assumed price' : ''}`, PAD + 12, fy + 92, 16, C.muted, 500);
 
   return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('image failed'))), 'image/png'));
 }
