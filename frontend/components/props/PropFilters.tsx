@@ -9,7 +9,13 @@ const STATS = [
   ["PTS+AST", "Pts+Ast"], ["PTS+REB", "Pts+Reb"],
   ["AST+REB", "Ast+Reb"], ["PTS+AST+REB", "PRA"],
   ["DD", "Dbl-Dbl"], ["TD", "Tri-Dbl"],
+  ["ML", "Moneyline"], ["SPREAD", "Spread"], ["TOTAL", "Totals"],
 ] as const;
+
+/** Stat filters that switch the board from player props to whole-game lines. */
+export const LINE_MARKETS = ["ML", "SPREAD", "TOTAL"] as const;
+export type LineMarket = (typeof LINE_MARKETS)[number];
+export const isLineMarket = (stat: string): stat is LineMarket => (LINE_MARKETS as readonly string[]).includes(stat);
 
 export interface Filters {
   stat: string;
@@ -78,7 +84,8 @@ export function PropFilters({ filters, matchups, statCounts, onChange }: Props) 
         </div>
       )}
 
-      <div className="flex flex-wrap items-end gap-x-5 gap-y-3 border-t border-white/10 pt-3">
+      {isLineMarket(filters.stat) && <p className="border-t border-white/10 pt-3 text-xs text-[#a9bec0]">Whole-game lines from the game model. Side, location and star filters apply to player props only.</p>}
+      {!isLineMarket(filters.stat) && <div className="flex flex-wrap items-end gap-x-5 gap-y-3 border-t border-white/10 pt-3">
         <div role="group" aria-label="Filter by direction">
           <p className="ql-data-label mb-1.5 text-[#a9bec0]">SIDE</p>
           <div className="flex items-center gap-1.5">
@@ -159,7 +166,7 @@ export function PropFilters({ filters, matchups, statCounts, onChange }: Props) 
             </select>
           </label>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

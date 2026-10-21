@@ -1,7 +1,7 @@
 import type { TeamsResponse } from './team-types';
 import type { StandingsResponse } from './standings-types';
 import type { BoxScore } from './boxscore-types';
-import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse, HighlightsResponse, ScheduleIndex, PerformanceResponse, LineHistory, DefenseRankings, TrendsResponse } from "./types";
+import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse, HighlightsResponse, ScheduleIndex, PerformanceResponse, LineHistory, DefenseRankings, TrendsResponse, MatchupResponse } from "./types";
 import { playerKey, filterProps, seriesChart, scheduledPlayersSnapshot, filterDefense, filterTrends } from './snapshot.mjs';
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, '');
@@ -59,6 +59,9 @@ export const api = {
     return response.json() as Promise<{ count: number; message: string; skipped: { reason: string }[]; budget?: { message: string } }>;
   },
   games: (league = 'nba', gameDate?: string) => STATIC ? snapshot<GamesResponse>(league, gameDate ? `schedule/${gameDate}` : 'games') : get<GamesResponse>('/api/games', { league, ...(gameDate ? {game_date: gameDate} : {}) }),
+  matchup: (league: string, home: string, away: string) => STATIC
+    ? snapshot<MatchupResponse>(league, `matchup/${away}-${home}`)
+    : get<MatchupResponse>('/api/games/matchup', { league, home, away }),
   teams: (league = 'nba', season?: number) => STATIC ? snapshot<TeamsResponse>(league, season ? `teams-${season}` : 'teams') : get<TeamsResponse>('/api/teams', {league, ...(season ? {season} : {})}),
   performance: (league = 'nba') => STATIC ? snapshot<PerformanceResponse>(league, 'performance') : get<PerformanceResponse>('/api/performance', {league}),
   standings: (league = 'nba') => STATIC ? snapshot<StandingsResponse>(league, 'standings') : get<StandingsResponse>('/api/standings', {league}),

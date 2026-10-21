@@ -35,7 +35,7 @@ def test_export_writes_empty_lists_and_collision_safe_player_paths(tmp_path, mon
     assert manifest['generated_at']
     assert manifest['schema_version'] == 3
     for league in ('nba', 'wnba'):
-        assert f'/api/defense?league={league}' in calls and f'/api/trends?league={league}&limit=200' in calls
+        assert f'/api/defense?league={league}' in calls and f'/api/trends?league={league}&limit=400' in calls
         assert (out / league / 'defense.json').exists() and (out / league / 'trends.json').exists()
     assert not any('line-history' in path or 'clv' in path for path in calls)
     files = [path for path in out.rglob('*') if path.is_file() and path.name != 'manifest.json']

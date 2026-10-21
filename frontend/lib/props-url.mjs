@@ -1,4 +1,4 @@
-const STATS = new Set(['', 'PTS', 'AST', 'REB', 'FG3M', 'BLK', 'STL', 'PTS+AST', 'PTS+REB', 'AST+REB', 'PTS+AST+REB', 'DD', 'TD']);
+const STATS = new Set(['', 'PTS', 'AST', 'REB', 'FG3M', 'BLK', 'STL', 'PTS+AST', 'PTS+REB', 'AST+REB', 'PTS+AST+REB', 'DD', 'TD', 'ML', 'SPREAD', 'TOTAL']);
 const DIRECTIONS = new Set(['All', 'Over', 'Under']);
 const LOCATIONS = new Set(['All', 'Home', 'Away']);
 const SORTS = new Set(['hit_rate', 'ev', 'edge']);

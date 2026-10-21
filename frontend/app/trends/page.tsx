@@ -48,8 +48,14 @@ export default function TrendsPage() {
   const league = usePrefs(state => state.league);
   const [side, setSide] = useState<(typeof SIDES)[number][0]>("all");
   const [stat, setStat] = useState<(typeof STATS)[number][0]>("all");
-  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["trends", league], queryFn: () => api.trends(league, { limit: 200 }), staleTime: 300_000 });
-  const cards = (data?.trends ?? []).filter(card => (side === "all" || card.side === side) && (stat === "all" || card.stat === stat));
+  const [scope, setScope] = useState<"tonight" | "all">("tonight");
+  const [team, setTeam] = useState("");
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["trends", league], queryFn: () => api.trends(league, { limit: 400 }), staleTime: 300_000 });
+  const slateTeams = data?.slate?.teams ?? [];
+  // Without a known slate there is nothing to narrow to, so show everyone rather than an empty board.
+  const tonight = scope === "tonight" && slateTeams.length > 0;
+  const cards = (data?.trends ?? []).filter(card => (side === "all" || card.side === side) && (stat === "all" || card.stat === stat)
+    && (!tonight || (card.playing_today === true && (!team || card.team === team))));
   const chip = (active: boolean) => `ql-chip shrink-0 ${active ? "ql-chip-active" : ""}`;
 
   return <div className="ql-page mx-auto max-w-[1700px] px-4 py-6 sm:px-8">
@@ -62,6 +68,20 @@ export default function TrendsPage() {
       <span className="ql-data-label border border-white/10 px-3 py-2">{data ? `${cards.length} OF ${data.trends.length} STREAKS` : `${league.toUpperCase()} / TRENDS`}</span>
     </div>
 
+    {slateTeams.length > 0 && <div className="mb-3 flex flex-wrap items-center gap-3">
+      <div className="flex gap-1.5" role="group" aria-label="Players shown">
+        <button type="button" aria-pressed={tonight} onClick={() => setScope("tonight")} className={chip(tonight)}>Tonight&apos;s games</button>
+        <button type="button" aria-pressed={!tonight} onClick={() => setScope("all")} className={chip(!tonight)}>All players</button>
+      </div>
+      {tonight && <label className="ql-data-label flex items-center gap-2">TEAM
+        <select value={team} onChange={event => setTeam(event.target.value)} className="ql-control min-h-8 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-text-pri">
+          <option value="">All {slateTeams.length} teams playing</option>
+          {slateTeams.map(abbrev => <option key={abbrev} value={abbrev}>{abbrev}</option>)}
+        </select>
+      </label>}
+      {data?.slate?.date && <span className="ql-data-label text-text-sec">SLATE {data.slate.date}</span>}
+    </div>}
+
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-3">
       <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Side">{SIDES.map(([value, label]) => <button key={value} type="button" aria-pressed={side === value} onClick={() => setSide(value)} className={chip(side === value)}>{label}</button>)}</div>
       <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Statistic">{STATS.map(([value, label]) => <button key={value} type="button" aria-pressed={stat === value} onClick={() => setStat(value)} className={chip(stat === value)}>{label}</button>)}</div>
@@ -71,7 +91,7 @@ export default function TrendsPage() {
     {isError && <div role="alert" className="ql-panel p-5 text-sm text-red-300">Trends are unavailable. <button type="button" onClick={() => void refetch()} className="underline">Try again</button></div>}
     {!isPending && !isError && cards.length === 0 && <div role="status" className="ql-panel p-6">
       <h2 className="ql-section-title">{data?.trends.length ? "No trends match these filters" : "No qualifying streaks right now"}</h2>
-      <p className="mt-2 max-w-2xl text-sm text-text-sec">{data?.trends.length ? "Try another side or stat." : "A trend needs a player with ten games inside the last 14 days, so this page fills in once the season is underway and goes quiet in the off-season."}</p>
+      <p className="mt-2 max-w-2xl text-sm text-text-sec">{data?.trends.length ? (tonight ? "No streaks among tonight's players match these filters. Try another side, stat or team, or switch to All players." : "Try another side or stat.") :"A trend needs a player with ten games inside the last 14 days, so this page fills in once the season is underway and goes quiet in the off-season."}</p>
     </div>}
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{cards.map(card => <TrendItem key={`${card.player}-${card.stat}-${card.side}`} card={card} league={league} />)}</ul>
   </div>;

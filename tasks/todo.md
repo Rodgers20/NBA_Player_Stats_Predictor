@@ -317,3 +317,12 @@ Review: 340 Python, 34 frontend tests, tsc and eslint clean. Not seen in a brows
 EV looked implausible (29 of 37 priced WNBA markets "+EV", top +66%). `evaluate_market` now shrinks the model probability toward the no-vig market by n/(n+10) (priors in `utils/market_evaluation.py`, not fitted); plays with <8 recent games or EV >20% post-shrink become research rows with a reason. Re-evaluated stored quotes free: top EV +17.7%, 2 hidden, 19 plays of 37. Every play (Tonight, Props) shows the graded record for its stat plus raw vs market probability.
 Caveats: the record is the older hit-rate pick history (1,882 graded), not these shrunk plays; 19/37 still positive-EV is probably still optimistic — fit SHRINK_PRIOR_GAMES against graded priced picks once they exist.
 Review: 346 Python, 35 frontend tests, tsc and eslint clean. Not seen in a browser.
+
+## Opening-week asks — October 21
+User asks: ML/spread/total filter on Best Props; richer game Matchup (H2H, road/home form, strengths/weaknesses); per-game Props tab; why so many unders; Trends only for teams playing today.
+Finding (unders): production NBA board was 188 Under vs 39 Over priced rows, mean projection 0.73 under the line. Reproduced on 60 PTS lines: projection −1.59 vs line, 83% under. Two feature causes at season start: `days_rest` clamps to 14 after the offseason, and preseason games (24 min vs 27 regular) feed the rolling and "season" averages. Removing both gives +0.45 and 43% under.
+- [ ] `next_game_features`: ignore preseason (SEASON_ID 1xxxx) and treat an offseason gap (>60 days) as normal rest. Test first.
+- [ ] Trends: cards carry `playing_today`, opponent from the slate; page defaults to tonight's games with an "All players" toggle.
+- [ ] `utils/matchup.py` + `GET /api/games/matchup`: head-to-head, away team on the road, home team at home, strengths and weaknesses ranked against the league; export per slate game; Matchup tab on the game page.
+- [ ] Game Props tab lists that game's priced props (picks, leans, research) instead of a link.
+- [ ] Best Props "Game lines" markets: moneyline, spread, totals (chips on the board).

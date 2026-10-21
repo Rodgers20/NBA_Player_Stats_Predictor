@@ -91,7 +91,7 @@ def export(base, out, refresh_odds=False):
                 print(f'{league}: quote refresh evaluated {result.get("count", 0)} markets; {result.get("message", "")}')
             save(root, 'props', fetch(base, f'/api/props?league={league}&direction=all&include_research=true&limit=500'))
             save(root, 'defense', fetch(base, f'/api/defense?league={league}'))
-            save(root, 'trends', fetch(base, f'/api/trends?league={league}&limit=200'))
+            save(root, 'trends', fetch(base, f'/api/trends?league={league}&limit=400'))
             save(root, 'alt-lines', fetch(base, f'/api/props/alt-lines?league={league}'))
             games = fetch(base, f'/api/games?league={league}')
             save(root, 'games', games)
@@ -119,10 +119,15 @@ def export(base, out, refresh_odds=False):
             save(root, 'performance', fetch(base, f'/api/performance?league={league}'))
             today = datetime.now(ZoneInfo('America/New_York')).date()
             dates = sorted({(today + timedelta(days=offset)).isoformat() for offset in range(-2, 4)} | {slate_date})
+            matchups = set()
             for day in dates:
                 day_games = fetch(base, f'/api/games?league={league}&game_date={day}')
                 save(root, f'schedule/{day}', day_games)
                 for game in day_games.get('games', []):
+                    pair = f'{game["away_team"]}-{game["home_team"]}'
+                    if pair not in matchups:  # a pairing is date-independent, so one file serves every day it appears
+                        matchups.add(pair)
+                        save(root, f'matchup/{pair}', fetch(base, f'/api/games/matchup?league={league}&home={game["home_team"]}&away={game["away_team"]}'))
                     if game.get('game_id') and game.get('status_state') in ('in', 'post'):
                         save(root, f'boxscore/{game["game_id"]}', fetch(base, f'/api/games/{game["game_id"]}/boxscore?league={league}'))
                 save(root, f'schedule/{day}-predictions', fetch(base, f'/api/games/predictions?league={league}&game_date={day}'))

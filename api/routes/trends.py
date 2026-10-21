@@ -26,7 +26,25 @@ def live_quotes(league):
             for player, markets in quotes.items()}
 
 
+def slate_matchups(league):
+    """(date, {team: opponent}) for the next slate; (None, {}) when the schedule provider is down."""
+    from api.routes.games import _schedule
+    try:
+        records, target = _schedule(league)
+    except Exception as exc:  # trends still work without knowing who plays tonight
+        print(f'[trends] schedule unavailable: {exc}')
+        return None, {}
+    teams = {}
+    for row in records:
+        home, away = row.get('HOME_TEAM'), row.get('AWAY_TEAM')
+        if home and away:
+            teams[home], teams[away] = away, home
+    return target, teams
+
+
 @router.get('/trends')
 def get_trends(league: League = 'nba', limit: int = Query(60, ge=1, le=500)):
-    cards = trends.build_trends(history(league), live_quotes(league), today())[:limit]
-    return dict(league=league, count=len(cards), trends=cards)
+    slate_date, teams = slate_matchups(league)
+    cards = trends.build_trends(history(league), live_quotes(league), today(), slate=teams or None)[:limit]
+    return dict(league=league, count=len(cards), trends=cards,
+                slate=dict(date=slate_date, teams=sorted(teams)))

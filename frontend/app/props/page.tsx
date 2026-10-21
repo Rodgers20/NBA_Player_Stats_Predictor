@@ -8,7 +8,8 @@ import { usePrefs } from "@/store/prefs";
 import type { Prop, PropsResponse } from "@/lib/types";
 import { PropHeader, PropRow } from "@/components/props/PropRow";
 import { PropAnalysisPanel } from "@/components/props/PropAnalysisPanel";
-import { PropFilters, type Filters } from "@/components/props/PropFilters";
+import { PropFilters, isLineMarket, type Filters } from "@/components/props/PropFilters";
+import { GameLinesBoard } from "@/components/props/GameLinesBoard";
 import { filterMinStars, sortByEdge } from "@/lib/prop-research.mjs";
 import { searchProps } from "@/lib/prop-rows.mjs";
 import { filtersToSearch, isStaleGame, parseFilters, type BoardFilters } from "@/lib/props-url.mjs";
@@ -53,6 +54,8 @@ function PropsBoard() {
     },
   });
 
+  // ML, spread and totals are whole-game lines, not player props, so they get their own board.
+  const lineMarket = isLineMarket(filters.stat) ? filters.stat : null;
   const params = {
     league,
     direction: filters.direction.toLowerCase(),
@@ -67,6 +70,7 @@ function PropsBoard() {
     queryKey: ["props", params],
     queryFn: () => api.props(params),
     refetchInterval: 120_000,
+    enabled: !lineMarket,
   });
 
   function handleChange(update: Partial<Filters>) {
@@ -88,6 +92,7 @@ function PropsBoard() {
   const byGame = Object.groupBy(shownProps, (prop) => prop.game_matchup || "Other matchups");
   const verifiedCount = shownProps.filter((prop) => (prop.pick_type ?? (prop.recommendation_eligible ? "pick" : "research")) !== "research").length;
   const selectedProp = selected?.league === league ? selected.prop : null;
+  const showPlayers = activeView === "props" && !lineMarket;
 
   return (
     <main className="ql-page mx-auto max-w-[1440px] px-4 pb-12 pt-7 sm:px-8">
@@ -142,7 +147,8 @@ function PropsBoard() {
       )}
 
       <div className="min-w-0">
-      {activeView === "props" && isPending && (
+      {activeView === "props" && lineMarket && <GameLinesBoard league={league} market={lineMarket} />}
+      {showPlayers && isPending && (
         <div className="ql-panel overflow-hidden" aria-busy="true" aria-label="Loading props">
           {Array.from({ length: 5 }).map((_, index) => (
             <div key={index} className="h-32 animate-pulse border-b border-white/5" />
@@ -150,28 +156,28 @@ function PropsBoard() {
         </div>
       )}
 
-      {activeView === "props" && isError && (
+      {showPlayers && isError && (
         <div className="ql-panel p-8 text-center text-sm text-[#fa837b]" role="alert">
           <p>We couldn&apos;t load the prop board.</p>
           <button type="button" className="mt-2 underline" onClick={() => void refetch()}>Try again</button>
         </div>
       )}
 
-      {activeView === "props" && !isPending && data?.props.length === 0 && (
+      {showPlayers && !isPending && data?.props.length === 0 && (
         <div className="ql-panel px-6 py-12 text-center" role="status">
           <p className="text-sm text-[#a9bec0]">{data.message || "No props match the current filters."}</p>
           <p className="mt-2 text-xs text-[#a9bec0]">Try another stat, direction, game, or league.</p>
         </div>
       )}
 
-      {activeView === "props" && !isPending && data && data.props.length > 0 && shownProps.length === 0 && (
+      {showPlayers && !isPending && data && data.props.length > 0 && shownProps.length === 0 && (
         <div className="ql-panel px-6 py-12 text-center" role="status">
           <p className="text-sm text-[#a9bec0]">No loaded props match your search or star filter.</p>
           <p className="mt-2 text-xs text-[#a9bec0]">Try another name, lower the minimum stars, or load more props below.</p>
         </div>
       )}
 
-      {activeView === "props" && !isPending && data && shownProps.length > 0 && (
+      {showPlayers && !isPending && data && shownProps.length > 0 && (
         <div className={selectedProp ? "grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px] 2xl:items-start" : ""}>
         <div className="min-w-0 space-y-5">
           <p className="ql-data-label text-[#a9bec0]">{data.status === "research" ? "MODEL RESEARCH · NO PRICED PICKS" : `${verifiedCount} VERIFIED PRICED ${verifiedCount === 1 ? "MARKET" : "MARKETS"} SHOWN`} · SELECT A PLAYER FOR GAME HISTORY</p>
@@ -192,7 +198,7 @@ function PropsBoard() {
         </div>
       )}
 
-      {activeView === "props" && data && data.props.length > 0 && data.props.length < data.count && (
+      {showPlayers && data && data.props.length > 0 && data.props.length < data.count && (
         <button
           type="button"
           onClick={() => setPage((current) => current + 1)}

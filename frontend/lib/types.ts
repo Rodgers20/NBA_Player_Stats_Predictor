@@ -286,5 +286,20 @@ export interface TrendCard {
   stars: number;                   // 3-5
   line_source: 'live' | 'derived';
   live: { line: number; price: number | null; book: string | null } | null;
+  playing_today?: boolean | null;  // null/absent = the schedule was unknown when this was built
 }
-export interface TrendsResponse { league: string; count: number; trends: TrendCard[] }
+export interface MatchupMetric { label: string; column: string; side: 'offense' | 'defense'; rank: number; of: number; value: number; display: string }
+export interface MatchupProfile { metrics: MatchupMetric[]; strengths: MatchupMetric[]; weaknesses: MatchupMetric[] }
+export interface VenueForm {
+  team: string; games: number; wins?: number; losses?: number; pts_for?: number; pts_against?: number; margin?: number;
+  recent?: { date: string; opponent: string; pts: number; opp_pts: number; won: boolean }[];
+}
+export interface MatchupEdge { team: string; against: string; label: string; defense_label: string; attack_rank: number; defense_rank: number; of: number; gap: number }
+export interface MatchupResponse {
+  league: string; home: string; away: string; available: boolean; season: string | null; message?: string;
+  h2h?: { games: { date: string; home: string; away: string; home_pts: number; away_pts: number; winner: string; kind: string }[]; record: Record<string, number> };
+  splits?: { home: VenueForm; away: VenueForm };
+  profiles?: Record<string, MatchupProfile | null>;
+  edges?: MatchupEdge[];
+}
+export interface TrendsResponse { league: string; count: number; trends: TrendCard[]; slate?: { date: string | null; teams: string[] } }

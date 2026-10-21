@@ -56,3 +56,11 @@ test('search text is trimmed, stripped of control characters and capped', () => 
 test('a leading question mark is accepted', () => {
   assert.equal(parseFilters('?stat=REB', defaults).stat, 'REB');
 });
+
+test('moneyline, spread and totals are valid stat filters and survive the URL', () => {
+  const defaults = { stat: 'PTS', direction: 'All', location: 'All', sort: 'hit_rate', game: '', locksOnly: false, minStars: 0 };
+  for (const stat of ['ML', 'SPREAD', 'TOTAL']) {
+    assert.equal(parseFilters(filtersToSearch({ ...defaults, stat, q: '' }, defaults), defaults).stat, stat);
+  }
+  assert.equal(parseFilters('stat=PARLAY', defaults).stat, 'PTS');
+});

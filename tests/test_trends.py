@@ -62,7 +62,29 @@ def test_nan_values_never_count_as_hits_and_cards_sort_by_stars():
     assert (result[0]['player'], result[0]['stars']) == ('A', 4) and {c['player'] for c in result} == {'A', 'B'}
 
 
+def test_slate_marks_players_playing_today_and_ranks_them_first():
+    streak = [2, 3, 4, 5, 3, 4, 2, 5, 3, 4]
+    both = pd.concat([frame(streak, player='Away Guy', team='AAA'), frame([2, 3, 4, 5, 3, 4, 2, 5, 9, 4], player='Idle Star', team='BBB')])
+    result = cards(both, slate={'AAA': 'CCC'})
+    assert result[0]['player'] == 'Away Guy' and result[0]['playing_today'] is True and result[0]['opponent'] == 'CCC'
+    idle = [c for c in result if c['player'] == 'Idle Star']
+    assert idle and all(c['playing_today'] is False for c in idle)
+    assert all(c['playing_today'] is None for c in cards(both))  # no schedule: unknown, not "not playing"
+
+
+def test_route_reports_the_slate(monkeypatch):
+    df = frame([2, 3, 4, 5, 3, 4, 2, 5, 3, 4])
+    monkeypatch.setattr(trends_route, 'history', lambda league: df)
+    monkeypatch.setattr(trends_route, 'live_quotes', lambda league: {})
+    monkeypatch.setattr(trends_route, 'today', lambda: TODAY)
+    monkeypatch.setattr(trends_route, 'slate_matchups', lambda league: ('2026-03-10', {'AAA': 'CCC', 'CCC': 'AAA'}))
+    body = TestClient(app).get('/api/trends?league=nba').json()
+    assert body['slate'] == {'date': '2026-03-10', 'teams': ['AAA', 'CCC']}
+    assert body['trends'][0]['playing_today'] is True
+
+
 def test_route_limits_and_validates(monkeypatch):
+    monkeypatch.setattr(trends_route, 'slate_matchups', lambda league: (None, {}))
     df = frame([2, 3, 4, 5, 3, 4, 2, 5, 9, 4])
     monkeypatch.setattr(trends_route, 'history', lambda league: df)
     monkeypatch.setattr(trends_route, 'live_quotes', lambda league: {})

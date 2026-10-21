@@ -79,8 +79,18 @@ def _player_cards(name, rows, quotes):
     return [c for c in cards if c]
 
 
-def build_trends(history, quotes=None, today=None, recent_days=RECENT_DAYS):
-    """Cards for players with a full window of recent games, strongest first."""
+def _tag_slate(cards, slate):
+    """`slate` maps each team playing today to its opponent. None means the schedule is unknown, so nothing is claimed."""
+    for card in cards:
+        opponent = (slate or {}).get(card['team'])
+        card['playing_today'] = None if slate is None else opponent is not None
+        if opponent:
+            card['opponent'] = opponent
+    return cards
+
+
+def build_trends(history, quotes=None, today=None, recent_days=RECENT_DAYS, slate=None):
+    """Cards for players with a full window of recent games. Players on tonight's slate first, then strongest."""
     today = pd.Timestamp.now().normalize() if today is None else pd.Timestamp(today).normalize()
     past = history[history['_date'] < today].sort_values('_date')
     cards = []
@@ -91,4 +101,5 @@ def build_trends(history, quotes=None, today=None, recent_days=RECENT_DAYS):
         if 'MIN' in rows and pd.to_numeric(rows['MIN'], errors='coerce').mean() < MIN_MINUTES:
             continue
         cards += _player_cards(name, rows, quotes or {})
-    return sorted(cards, key=lambda c: (-c['stars'], -c['hits'], c['player'], c['stat']))
+    cards = _tag_slate(cards, slate)
+    return sorted(cards, key=lambda c: (c['playing_today'] is not True, -c['stars'], -c['hits'], c['player'], c['stat']))
