@@ -1,5 +1,7 @@
 import { localJournalAdd, localJournalList, localJournalSettle } from "./local-journal.mjs";
 import { legKey, type SlipLeg } from "./bet-slip.mjs";
+import { isTeamLeg } from "./team-legs.mjs";
+import type { JournalSummary } from "./local-journal.mjs";
 import { gradeBet } from "./hit-rate.mjs";
 import { api } from "./api";
 
@@ -9,8 +11,10 @@ export type Bet = {
   id: string; league: string; game_date: string; player: string; side: string;
   line: number; stat: string; book: string; price: number; stake_cents: number;
   profit_cents: number | null; result: Result; notes: string;
+  /** Closing line comparison; absent for local-journal bets and null fields until odds refresh before tip-off. */
+  clv?: { close_line: number | null; close_price: number | null; clv_pct: number | null } | null;
 };
-export type Journal = { bets: Bet[]; summary: { settled: number; profit: number; roi: number | null; pending: number } };
+export type Journal = { bets: Bet[]; summary: JournalSummary };
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 export const STATIC = process.env.NEXT_PUBLIC_DATA_MODE === "static";
@@ -48,10 +52,13 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
  * Records each slip leg as its own paper bet. The token is the leg's key, so tapping Track twice
  * (or tracking the same leg again) cannot create a duplicate.
  */
-export async function trackLegs(legs: SlipLeg[], stake: number): Promise<{ saved: number; failed: string[] }> {
+export async function trackLegs(legs: SlipLeg[], stake: number): Promise<{ saved: number; failed: string[]; skipped: number }> {
   const failed: string[] = [];
   let saved = 0;
+  let skipped = 0;
   for (const leg of legs) {
+    // The journal stores player stats only, so team markets (moneyline, spread, total) are not tracked yet.
+    if (isTeamLeg(leg)) { skipped += 1; continue; }
     try {
       await request<{ id: string }>("", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({
         token: `slip-${legKey(leg)}`, mode: "paper", league: leg.league, player: leg.player, game_date: leg.date,
@@ -62,7 +69,7 @@ export async function trackLegs(legs: SlipLeg[], stake: number): Promise<{ saved
       failed.push(`${leg.player}: ${error instanceof Error ? error.message : "could not save"}`);
     }
   }
-  return { saved, failed };
+  return { saved, failed, skipped };
 }
 
 /**

@@ -1,3 +1,6 @@
+import { suggestedStake, sanitizeBankroll } from './bankroll.mjs';
+import { legText } from './team-legs.mjs';
+
 export function decimalOdds(price) {
   return Number.isFinite(price) && Math.abs(price) >= 100 ? (price > 0 ? 1 + price / 100 : 1 + 100 / -price) : null;
 }
@@ -43,9 +46,30 @@ export function summarizeSingles(legs, stake) {
   return { bets: legs.length, totalStake: stake > 0 ? stake * legs.length : null, payout: complete ? returns.reduce((a, b) => a + b, 0) : null };
 }
 
+/**
+ * Fractional-Kelly stakes in dollars: one per leg (as a single bet) and a total for the slip.
+ * A parlay is staked as one bet on its combined price, using the correlation-adjusted chance when known.
+ */
+export function slipStakes(legs, mode, bankroll, correlatedProb = null) {
+  const perLeg = legs.map(leg => suggestedStake(leg.probability, leg.price, bankroll));
+  if (mode === 'singles' || legs.length < 2) return { perLeg, total: Math.round(perLeg.reduce((a, b) => a + b, 0) * 100) / 100 };
+  const s = summarizeSlip(legs);
+  const p = Number.isFinite(correlatedProb) ? correlatedProb : s.probability;
+  return { perLeg, total: suggestedStake(p, s.american, bankroll) };
+}
+
+/** Untrusted persisted slip (older shapes have no bankroll or team): keep what is valid, default the rest. */
+export function sanitizePersistedSlip(value) {
+  const legs = Array.isArray(value?.legs)
+    ? value.legs.filter(l => l && typeof l.player === 'string' && typeof l.stat === 'string' && typeof l.date === 'string' && typeof l.league === 'string' && typeof l.matchup === 'string' && Number.isFinite(l.line) && (l.price == null || Number.isFinite(l.price))).slice(0, MAX_LEGS)
+    : [];
+  return { legs, mode: value?.mode === 'singles' ? 'singles' : 'parlay',
+    stake: Number.isFinite(value?.stake) && value.stake > 0 ? value.stake : null, bankroll: sanitizeBankroll(value?.bankroll) };
+}
+
 /** Plain text a person or a Discord bet bot can read, one leg per line. */
 export function slipText(legs, mode, stake) {
-  const lines = legs.map(leg => `${leg.player} ${leg.direction} ${leg.line} ${leg.stat} (${formatOdds(leg.price)}) · ${leg.league.toUpperCase()} ${leg.matchup} ${leg.date}`);
+  const lines = legs.map(leg => `${legText(leg)} · ${leg.league.toUpperCase()} ${leg.matchup} ${leg.date}`);
   if (mode === 'singles' && legs.length > 1) return [`${legs.length} singles${stake ? `, $${stake} each` : ''}`, ...lines].join('\n');
   const american = summarizeSlip(legs).american;
   const head = legs.length === 1 ? 'Single' : `${legs.length}-leg parlay`;

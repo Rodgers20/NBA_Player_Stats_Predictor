@@ -80,3 +80,10 @@ def test_public_container_disables_private_journal(monkeypatch):
     response = TestClient(app).get('/api/journal')
     assert response.status_code == 503
     assert 'local app' in response.json()['detail']
+
+
+@pytest.mark.parametrize('extra', [dict(close_line=24.5), dict(close_price=-120)])
+def test_close_line_and_price_must_come_together(client, extra):
+    response = client.post('/api/journal', json=entry(**extra))
+    assert response.status_code == 422
+    assert 'close_line and close_price must be provided together' in response.text

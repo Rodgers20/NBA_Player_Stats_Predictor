@@ -8,6 +8,8 @@ import { tonightBoard } from "@/lib/tonight.mjs";
 import { tipLabel } from "@/components/games/MatchupCards";
 import { TonightRow } from "@/components/tonight/TonightRow";
 import { ResearchList } from "@/components/tonight/ResearchList";
+import { GameEdges } from "@/components/tonight/GameEdges";
+import { bettableEdges, gameEdges } from "@/lib/game-edges.mjs";
 
 const BOARD_LIMIT = 100;
 const SLATE_PREVIEW = 8;
@@ -34,9 +36,14 @@ export default function TonightPage() {
     refetchInterval: 120_000,
   });
   const games = useQuery({ queryKey: ["games", league], queryFn: () => api.games(league) });
+  const predictions = useQuery({ queryKey: ["game-predictions", league], queryFn: () => api.predictions(league), staleTime: 300_000 });
   const record = useQuery({ queryKey: ["props-record"], queryFn: api.propsRecord });
 
   const board = tonightBoard(props.data?.props ?? []);
+  // Game-line value needs no props feed: the model's win chance against each moneyline price. Only use predictions for the same slate.
+  const sameSlate = predictions.data && predictions.data.target_date === games.data?.target_date;
+  const edges = gameEdges(games.data?.games ?? [], sameSlate ? predictions.data?.predictions ?? [] : []);
+  const hasLineEdge = bettableEdges(edges).length > 0;
   const date = props.data?.target_date ?? games.data?.target_date ?? "";
   const slate = games.data?.games ?? [];
   const graded = record.data?.total ? `${Math.round(record.data.pct)}%` : "—";
@@ -49,7 +56,7 @@ export default function TonightPage() {
     </header>
 
     <div className="mb-6 grid grid-cols-3 gap-3">
-      <Stat label="BETTABLE" value={props.isPending ? "…" : String(board.picks.length)} hint="positive edge, priced" />
+      <Stat label="BETTABLE" value={props.isPending ? "…" : String(board.picks.length + bettableEdges(edges).length)} hint="props and moneylines, priced" />
       <Stat label="NO EDGE" value={props.isPending ? "…" : String(board.leans.length)} hint="priced, not worth it" />
       <Stat label="GRADED RECORD" value={graded} hint={record.data?.total ? `${record.data.hit} of ${record.data.total} picks` : "no graded picks yet"} />
     </div>
@@ -73,9 +80,12 @@ export default function TonightPage() {
       </div>
     </section>}
 
-    {props.data && board.picks.length === 0 && <section className="ql-panel px-6 py-10 text-center" role="status">
+    {!props.isPending && <GameEdges edges={edges} league={league} date={date} />}
+
+    {props.data && board.picks.length === 0 && !hasLineEdge && <section className="ql-panel px-6 py-10 text-center" role="status">
       <h2 className="ql-section-title">No bettable edges right now</h2>
-      <p className="mx-auto mt-2 max-w-[60ch] text-sm text-text-sec">{props.data.message || "No priced market passed the price, history and model checks."}</p>
+      <p className="mx-auto mt-2 max-w-[60ch] text-sm text-text-sec">{slate.length > 0 ? `There ${slate.length === 1 ? "is 1 game" : `are ${slate.length} games`} on the slate, but no sportsbook player props are posted for ${slate.length === 1 ? "it" : "them"} yet and the model sees no moneyline edge. Props usually appear the morning of the game.` : "No priced market passed the price, history and model checks."}</p>
+      {props.data.message && <p className="mx-auto mt-2 max-w-[60ch] text-xs text-text-sec">{props.data.message}</p>}
       <p className="mx-auto mt-2 max-w-[60ch] text-xs text-text-sec">Passing is a result. Nothing here is padded with unpriced guesses.</p>
       <div className="mt-5 flex flex-wrap justify-center gap-2">
         <Link href="/props" className="ql-chip text-[#59e0c8] hover:border-[#59e0c8]/50">Best Props</Link>

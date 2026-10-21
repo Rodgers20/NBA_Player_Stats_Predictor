@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
@@ -10,14 +10,21 @@ import { usePrefs } from "@/store/prefs";
 import { STAT_COLORS } from "@/lib/utils";
 import type { ChartRecord } from "@/lib/types";
 import { PlayerBarChart } from "@/components/charts/PlayerBarChart";
+import { WindowChips } from "@/components/analysis/WindowChips";
+import { GameLogTable } from "@/components/analysis/GameLogTable";
+import { gradeSide, hitSummary } from "@/lib/hit-rate.mjs";
+import { selectWindow, windowCounts, type WindowKey } from "@/lib/analysis-windows.mjs";
+import { analysisViewToSearch, parseAnalysisView, type AnalysisView } from "@/lib/analysis-url.mjs";
 import { PlayerPropLines } from "@/components/props/PlayerPropLines";
+import { MatchupDefense } from "@/components/analysis/MatchupDefense";
+import { PlayerResearch } from "@/components/analysis/PlayerResearch";
 
 const STATS = [
   ["PTS", "PTS"], ["AST", "AST"], ["REB", "REB"], ["FG3M", "3PM"],
   ["BLK", "BLK"], ["STL", "STL"], ["PTS+AST", "P+A"],
   ["PTS+REB", "P+R"], ["REB+AST", "A+R"], ["PTS+REB+AST", "PRA"], ["STL+BLK", "S+B"],
 ] as const;
-const PERIODS = [5, 10, 20] as const;
+const DEFAULT_VIEW: AnalysisView = { stat: "PTS", period: 10, line: null };
 const fmt = (value: number | null | undefined) => value == null ? "—" : value.toFixed(1);
 const card = "ql-panel p-4 sm:p-5";
 
@@ -44,9 +51,13 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [photoFailed, setPhotoFailed] = useState(false);
-  const [stat, setStat] = useState("PTS");
-  const [period, setPeriod] = useState<5 | 10 | 20 | "h2h" | "home" | "away" | "current" | "previous">(10);
-  const [thresholdOverride, setThresholdOverride] = useState<number | null>(null);
+  const params = useSearchParams();
+  const initial = parseAnalysisView(params.toString(), DEFAULT_VIEW); // stat, window and line come from the URL so a view can be shared
+  const [stat, setStat] = useState(initial.stat);
+  const [periodChoice, setPeriod] = useState<WindowKey>(initial.period);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(syncTimer.current), []);
+  const [thresholdOverride, setThresholdOverride] = useState<number | null>(initial.line);
   const players = useQuery({ queryKey: ["players", "all", league], queryFn: () => api.players("", league) });
   const names = players.data?.players ?? [];
   const player = chosenPlayer || linkedPlayer || (league === "wnba" && names.includes("A'ja Wilson") ? "A'ja Wilson" : names[0]) || "";
@@ -55,32 +66,37 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
   const summary = useQuery({ queryKey: ["stats", player, league], queryFn: () => api.playerStats(player, league), enabled: !!player });
   const schedule = useQuery({ queryKey: ["games", league], queryFn: () => api.games(league), enabled: !!player });
   const profile = summary.data;
-  const nextGame = schedule.data?.games.find(game => game.home_team === profile?.team || game.away_team === profile?.team);
+  const team = /^(|nan|none|null)$/i.test(profile?.team?.trim() ?? "") ? "" : profile?.team ?? "";
+  const nextGame = schedule.data?.games.find(game => team && (game.home_team === team || game.away_team === team));
   const nextOpponent = nextGame
-    ? nextGame.home_team === profile?.team ? nextGame.away_team : nextGame.home_team
+    ? nextGame.home_team === team ? nextGame.away_team : nextGame.home_team
     : null;
   const seasons = [...new Set(chart.data?.games.map(game => game.season).filter((season): season is string => !!season) ?? [])].sort();
   const currentSeason = seasons.at(-1);
   const previousSeason = seasons.at(-2);
-  const games = period === "h2h"
-    ? chart.data?.games.filter(game => game.opponent.split(" ").at(-1) === nextOpponent).slice(-10) ?? []
-    : period === "home"
-    ? chart.data?.games.filter(game => game.is_home === true || game.is_home == null && game.opponent.includes("vs.")).slice(-10) ?? []
-    : period === "away"
-      ? chart.data?.games.filter(game => game.is_home === false || game.is_home == null && game.opponent.includes("@")).slice(-10) ?? []
-      : period === "current"
-        ? chart.data?.games.filter(game => game.season === currentSeason) ?? []
-        : period === "previous"
-          ? chart.data?.games.filter(game => game.season === previousSeason) ?? []
-          : chart.data?.games.slice(-period) ?? [];
+  // A shared link can ask for a window this player cannot have (no next opponent, no previous season): fall back instead of showing an empty page.
+  const period: WindowKey = (periodChoice === "h2h" && schedule.isFetched && !nextOpponent)
+    || (periodChoice === "previous" && chart.isFetched && !previousSeason)
+    || (periodChoice === "current" && chart.isFetched && !currentSeason) ? 10 : periodChoice;
+  const windowContext = { nextOpponent, currentSeason, previousSeason };
+  const games = chart.data ? selectWindow(chart.data.games, period, windowContext) : [];
   const valid = games.filter((game): game is ChartRecord & { value: number } => game.value != null);
   const average = valid.length ? valid.reduce((sum, game) => sum + game.value, 0) / valid.length : null;
   const recentTwenty = chart.data?.games.slice(-20).map(game => game.value).filter((value): value is number => value != null) ?? [];
   const defaultThreshold = recentTwenty.length ? Math.round(recentTwenty.reduce((sum, value) => sum + value, 0) / recentTwenty.length * 2) / 2 : 10;
   const threshold = thresholdOverride ?? Math.max(0, defaultThreshold);
-  const hits = valid.filter(game => game.value >= threshold).length;
-  const hitRate = valid.length ? Math.round(hits / valid.length * 100) : null;
-  const chartGames = games.map(game => ({ ...game, hit: game.value == null ? null : game.value >= threshold }));
+  // Over the line, like every other board: a game exactly on the line is a push and leaves the denominator.
+  const tally = hitSummary(valid.map(game => game.value), threshold, "Over");
+  const hits = tally.hits;
+  const decided = tally.hits + tally.misses;
+  const hitRate = tally.rate;
+  const grade = (value: number | null) => (value == null ? null : { hit: true, miss: false, push: null }[gradeSide(value, threshold, "Over")]);
+  const chartGames = games.map(game => ({ ...game, hit: grade(game.value) }));
+  const counts = windowCounts(chart.data?.games ?? [], threshold, windowContext);
+  const windowLabels: Record<string, string> = {
+    5: "L5", 10: "L10", 20: "L20", h2h: "H2H", home: "Home", away: "Away",
+    current: currentSeason?.split("-")[0] ?? "Season", previous: previousSeason?.split("-")[0] ?? "Prev",
+  };
   const followed = followedPlayers.includes(player);
   const accent = STAT_COLORS[stat] ?? "#59e0c8";
   const seasonParts = stat.split("+").map(part => summary.data?.season_avgs[part]);
@@ -93,7 +109,26 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
   const historyAverage = historyValues.length ? historyValues.reduce((sum, value) => sum + value, 0) / historyValues.length : null;
   const lastTen = chart.data?.games.slice(-10).filter(game => game.value != null).reverse() ?? [];
 
+  function sync(next: Partial<AnalysisView>) {
+    const view = { stat, period, line: thresholdOverride, ...next };
+    const url = new URL(window.location.href);
+    for (const key of ["stat", "period", "line"]) url.searchParams.delete(key);
+    new URLSearchParams(analysisViewToSearch(view, DEFAULT_VIEW)).forEach((value, key) => url.searchParams.set(key, value));
+    window.history.replaceState(null, "", url);
+  }
+  function selectStat(value: string) { setStat(value); setThresholdOverride(null); sync({ stat: value, line: null }); }
+  function selectPeriod(value: WindowKey) { setPeriod(value); sync({ period: value }); }
+  function changeThreshold(value: number) {
+    setThresholdOverride(value);
+    clearTimeout(syncTimer.current); // a slider drag fires many changes; write the URL once it settles
+    syncTimer.current = setTimeout(() => sync({ line: value }), 200);
+  }
+
   function choosePlayer(name: string) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("player", name);
+    url.searchParams.delete("line"); // the old player's line does not carry over
+    window.history.replaceState(null, "", url);
     setChosenPlayer(name);
     setSearch("");
     setSearchOpen(false);
@@ -123,7 +158,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-2xl font-extrabold tracking-tight text-text-pri sm:text-3xl">{player}</h2>
-              {profile?.team && <span className="ql-chip border-teal-400/30 text-teal-300">{profile.team}</span>}
+              {team && <span className="ql-chip border-teal-400/30 text-teal-300">{team}</span>}
               {profile?.injury_status && !["ACTIVE", "UNKNOWN"].includes(profile.injury_status.toUpperCase()) &&
                 <span className="ql-chip border-amber-400/30 bg-amber-400/10 text-amber-300">
                   {profile.injury_status}{profile.injury_reason ? ` · ${profile.injury_reason}` : ""}
@@ -135,7 +170,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
             </div>
             <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-sec">
               {summary.data?.position && <span className="ql-data-label">{summary.data.position}</span>}
-              {profile?.team && <span className="ql-data-label">{league.toUpperCase()}</span>}
+              {team && <span className="ql-data-label">{league.toUpperCase()}</span>}
             </div>
           </div>
           <div className="ml-auto grid w-full grid-cols-2 gap-4 border-t border-white/10 pt-3 sm:w-auto sm:grid-cols-4 sm:gap-6 sm:border-l sm:border-t-0 sm:py-1 sm:pl-6">
@@ -164,21 +199,11 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-3">
         <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1">
           {STATS.map(([value, label]) => <button key={value} aria-pressed={stat === value}
-            onClick={() => { setStat(value); setThresholdOverride(null); }}
+            onClick={() => selectStat(value)}
             className={`ql-chip shrink-0 ${stat === value ? "ql-chip-active" : ""}`}>{label}</button>)}
         </div>
-        <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1">
-          {PERIODS.map(value => <button key={value} aria-pressed={period === value} onClick={() => setPeriod(value)}
-            className={`ql-chip shrink-0 ${period === value ? "ql-chip-active" : ""}`}>L{value}</button>)}
-          <button aria-pressed={period === "h2h"} disabled={!nextOpponent} title={nextOpponent ? `Versus ${nextOpponent}` : "Upcoming opponent unavailable"} onClick={() => setPeriod("h2h")}
-            className={`ql-chip shrink-0 disabled:opacity-40 ${period === "h2h" ? "ql-chip-active" : ""}`}>H2H</button>
-          <button aria-pressed={period === "home" || period === "away"} onClick={() => setPeriod(period === "home" ? "away" : period === "away" ? 10 : "home")}
-            className={`ql-chip shrink-0 ${period === "home" || period === "away" ? "ql-chip-active" : ""}`}>{period === "home" ? "Home" : period === "away" ? "Away" : "H/W"}</button>
-          <button aria-pressed={period === "current"} disabled={!currentSeason} onClick={() => setPeriod("current")}
-            className={`ql-chip shrink-0 disabled:opacity-40 ${period === "current" ? "ql-chip-active" : ""}`}>{currentSeason?.split("-")[0] ?? "Current"}</button>
-          <button aria-pressed={period === "previous"} disabled={!previousSeason} onClick={() => setPeriod("previous")}
-            className={`ql-chip shrink-0 disabled:opacity-40 ${period === "previous" ? "ql-chip-active" : ""}`}>{previousSeason?.split("-")[0] ?? "Previous"}</button>
-        </div>
+        <WindowChips counts={counts} value={period} labels={windowLabels} onSelect={selectPeriod}
+          disabled={nextOpponent ? {} : { h2h: "Upcoming opponent unavailable" }} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_300px] lg:items-start">
@@ -189,7 +214,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
                 <p className="ql-kicker">PERFORMANCE ANALYSIS</p>
                 <h2 className="ql-section-title mt-2">{stat} · {period === "h2h" ? `vs. ${nextOpponent}` : period === "home" ? "Home" : period === "away" ? "Away" : period === "current" ? currentSeason : period === "previous" ? previousSeason : `Last ${games.length} Games`}</h2>
                 <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-sm text-text-sec"><strong className="tabular-nums text-text-pri">{hits} of {valid.length}</strong> games at {threshold}+</span>
+                  <span className="text-sm text-text-sec"><strong className="tabular-nums text-text-pri">{hits} of {decided}</strong> games over {threshold}{tally.pushes ? ` · ${tally.pushes} push` : ""}</span>
                 </div>
               </div>
               <div className="flex items-end gap-5">
@@ -200,7 +225,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
             <div className="mb-5 flex flex-wrap items-center gap-3 border-y border-white/10 bg-white/[.025] px-4 py-3">
               <label htmlFor="threshold" className="ql-data-label">THRESHOLD</label>
               <input id="threshold" type="range" min="0" max={Math.max(50, Math.ceil(Math.max(...valid.map(game => game.value), 0) + 5))}
-                step="0.5" value={threshold} onChange={event => setThresholdOverride(Number(event.target.value))}
+                step="0.5" value={threshold} onChange={event => changeThreshold(Number(event.target.value))}
                 className="min-w-[150px] flex-1 accent-teal-400" />
               <output htmlFor="threshold" className="min-w-12 text-right font-mono text-sm font-bold tabular-nums text-teal-400">{threshold}+</output>
             </div>
@@ -210,6 +235,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
             {!chart.isPending && chart.data && games.length === 0 && <p className="py-12 text-center text-sm text-text-sec">No completed games are available for this player.</p>}
             {games.length > 0 && <div className="overflow-x-auto"><PlayerBarChart games={chartGames} stat={stat} line={threshold} height={280} /></div>}
             {games.length > 0 && <p className="mt-3 text-xs text-text-sec">{games[0].date} to {games.at(-1)?.date} · Historical results · Threshold is for analysis, not a live sportsbook line.</p>}
+            {games.length > 0 && <GameLogTable games={chartGames} line={threshold} stat={stat} />}
           </section>
 
           <section className={`${card} border-l-[3px] border-l-teal-400`}>
@@ -226,7 +252,9 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
           {games.length > 0 && <PlayerPropLines key={`${player}:${stat}`} league={league} player={player} stat={stat}
             statLabel={STATS.find(([value]) => value === stat)?.[1] ?? stat} games={games} defaultLine={Math.max(0, defaultThreshold)}
             date={profile?.projection_context?.game_date ?? schedule.data?.target_date ?? new Date().toISOString().slice(0, 10)}
-            matchup={nextGame?.matchup ?? (nextOpponent ? `${profile?.team} vs ${nextOpponent}` : `${profile?.team ?? player}`)} accent={accent} />}
+            matchup={nextGame?.matchup ?? (nextOpponent ? `${team} vs ${nextOpponent}` : `${team || player}`)} accent={accent} />}
+
+          <PlayerResearch key={`research:${player}:${stat}`} league={league} player={player} stat={stat} />
 
           <section className={card}>
             <p className="ql-kicker">SUPPORTING EVIDENCE</p>
@@ -234,7 +262,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
             <p className="mb-4 mt-1 text-xs text-text-sec">Season averages vs. recent five-game form · Select a stat to update the chart</p>
             {summary.isError && <p role="alert" className="text-sm text-red-300">Player summary is unavailable.</p>}
             {summary.data && <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-              {(["PTS", "REB", "AST", "FG3M", "STL", "BLK"] as const).map(key => <button key={key} type="button" aria-pressed={stat === key} onClick={() => { setStat(key); setThresholdOverride(null); }} className={`ql-metric border bg-white/[.025] p-3 text-left hover:border-teal-400/40 ${stat === key ? "border-teal-400/50" : "border-white/10"}`}>
+              {(["PTS", "REB", "AST", "FG3M", "STL", "BLK"] as const).map(key => <button key={key} type="button" aria-pressed={stat === key} onClick={() => selectStat(key)} className={`ql-metric border bg-white/[.025] p-3 text-left hover:border-teal-400/40 ${stat === key ? "border-teal-400/50" : "border-white/10"}`}>
                 <p className="ql-data-label">{key === "FG3M" ? "3PM" : key} / GAME</p>
                 <p className="mt-2 text-xl font-bold tabular-nums" style={{ color: STAT_COLORS[key] ?? "#59e0c8" }}>{fmt(summary.data?.season_avgs[key])}</p>
                 <p className="mt-1 text-xs tabular-nums text-text-sec">L5 {fmt(summary.data?.l5_avgs[key])}</p>
@@ -275,8 +303,9 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
             <p className="ql-kicker">NEXT MATCHUP</p>
             <h2 className="ql-section-title mt-1">Matchup</h2>
             {nextGame
-              ? <p className="mt-3 text-sm text-text-sec"><strong className="text-text-pri">{profile?.team}</strong> vs. <strong className="text-text-pri">{nextOpponent}</strong>{nextGame.game_time ? ` · ${nextGame.game_time}` : ""}</p>
+              ? <p className="mt-3 text-sm text-text-sec"><strong className="text-text-pri">{team}</strong> vs. <strong className="text-text-pri">{nextOpponent}</strong>{nextGame.game_time ? ` · ${nextGame.game_time}` : ""}</p>
               : <p className="mt-3 text-sm text-text-sec">The next opponent has not been established for this player.</p>}
+            {nextGame && nextOpponent && <MatchupDefense league={league} opponent={nextOpponent} game={nextGame} position={profile?.position} stat={stat} accent={accent} />}
           </section>
           <section className={card}>
             <p className="ql-kicker">AVAILABILITY</p>

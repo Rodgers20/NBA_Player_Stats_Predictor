@@ -265,7 +265,8 @@ def save_daily_props(date: str, props: list[dict]) -> None:
 
     # Keep only the fields useful for grading and export
     KEEP = {"player", "team", "opponent", "stat", "line", "direction",
-            "avg", "hit_rate", "ev", "is_lock", "game_matchup"}
+            "avg", "hit_rate", "ev", "is_lock", "game_matchup",
+            "close_line", "close_price"}
     clean = []
     for p in props:
         entry = {k: p[k] for k in KEEP if k in p}
@@ -281,6 +282,25 @@ def save_daily_props(date: str, props: list[dict]) -> None:
     }
     _save_props_history(history)
     print(f"[PropsTracker] Saved {len(clean)} props for {date}")
+
+
+def _fill_closing_line(prop: dict, date: str) -> None:
+    """Record close_line/close_price from stored line snapshots when they exist.
+
+    Never raises: a missing or unreadable snapshot table must not block grading.
+    """
+    if prop.get("close_line") is not None:
+        return
+    try:
+        from utils import clv, line_snapshots
+        snaps = line_snapshots.history("nba", prop["player"], prop["stat"])
+        close = clv.closing_quote(snaps, line_snapshots.day_cutoff_ts(date))
+    except Exception as exc:  # sqlite/date errors are non-fatal for grading
+        print(f"[PropsTracker] closing line unavailable for {prop.get('player')}: {exc}")
+        return
+    if close:
+        key = "under_price" if prop.get("direction", "Over") == "Under" else "over_price"
+        prop["close_line"], prop["close_price"] = close["line"], close.get(key)
 
 
 def grade_props(date: str) -> dict:
@@ -317,6 +337,7 @@ def grade_props(date: str) -> dict:
         if line is None:
             continue
 
+        _fill_closing_line(prop, date)
         actual = _lookup_actual_stat(logs_df, player, stat, date)
         if actual is None:
             continue   # player didn't play or data not yet available

@@ -1,8 +1,8 @@
 import type { TeamsResponse } from './team-types';
 import type { StandingsResponse } from './standings-types';
 import type { BoxScore } from './boxscore-types';
-import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse, HighlightsResponse, ScheduleIndex, PerformanceResponse } from "./types";
-import { playerKey, filterProps, seriesChart, scheduledPlayersSnapshot } from './snapshot.mjs';
+import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse, HighlightsResponse, ScheduleIndex, PerformanceResponse, LineHistory, DefenseRankings, TrendsResponse } from "./types";
+import { playerKey, filterProps, seriesChart, scheduledPlayersSnapshot, filterDefense, filterTrends } from './snapshot.mjs';
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, '');
 const STATIC = process.env.NEXT_PUBLIC_DATA_MODE === 'static';
@@ -28,6 +28,26 @@ export const api = {
   props: async (params: Params = {}) => STATIC
     ? filterProps(await snapshot<PropsResponse>(String(params.league ?? 'nba'), 'props'), params)
     : get<PropsResponse>('/api/props', params),
+  // Line history is a live-only research aid; static snapshots deliberately carry none.
+  lineHistory: async (player: string, stat: string, league = 'nba'): Promise<LineHistory> => STATIC
+    ? { league, player, stat, snapshots: [] }
+    : get<LineHistory>('/api/props/line-history', { player, stat, league }),
+  defense: async (league = 'nba', stat = ''): Promise<DefenseRankings> => {
+    if (!STATIC) return get<DefenseRankings>('/api/defense', { league, stat });
+    try {
+      return filterDefense(await snapshot<DefenseRankings>(league, 'defense'), stat);
+    } catch {
+      return { league, stat: stat || null, season: null, rankings: [] };
+    }
+  },
+  trends: async (league = 'nba', params: Params = {}): Promise<TrendsResponse> => {
+    if (!STATIC) return get<TrendsResponse>('/api/trends', { league, ...params });
+    try {
+      return filterTrends(await snapshot<TrendsResponse>(league, 'trends'), params);
+    } catch {
+      return { league, count: 0, trends: [] };
+    }
+  },
   altLines: (league = 'nba') => STATIC ? snapshot<AltLinesResponse>(league, 'alt-lines') : get<AltLinesResponse>('/api/props/alt-lines', { league }),
   propsRecord: () => get<PropsRecordResponse>(STATIC ? '/data/props-record.json' : '/api/props/record'),
   predictions: (league = 'nba', gameDate?: string) => STATIC ? snapshot<GamePredictionsResponse>(league, gameDate ? `schedule/${gameDate}-predictions` : 'predictions') : get<GamePredictionsResponse>('/api/games/predictions', { league, ...(gameDate ? {game_date: gameDate} : {}) }),

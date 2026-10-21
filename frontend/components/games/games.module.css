@@ -135,3 +135,16 @@
 .modelWarnings {padding:10px 12px;margin-bottom:14px;border:1px solid #f5ba6445;border-radius:5px;background:#f5ba6408;color:#e7c493;list-style:disc;list-style-position:inside;font-size:11px;line-height:1.7;}
 
 .cardSide>span.longTeamName {font-size:16px;white-space:nowrap;overflow-wrap:normal;letter-spacing:-.02em;}
+.defStrip {display:grid;gap:6px;border-top:1px solid var(--color-border-card);margin-top:12px;padding-top:10px;font-size:11px;color:var(--color-text-sec);}
+.defRow {display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;}
+.defRow>b {min-width:34px;font:600 11px/1.2 var(--font-mono);color:var(--color-text-pri);letter-spacing:.06em;}
+.defCells {display:flex;gap:10px;font-variant-numeric:tabular-nums;}
+.defCells strong {color:var(--color-text-pri);}
+.defCells .defSoft strong {color:var(--color-teal-400);}
+.defCells .defTough strong {color:#fb7185;}
+.defNone {font-size:11px;}
+.defRow>small {flex-basis:100%;font-size:11px;}
+.defDetailed {margin-top:18px;padding:18px;border:1px solid var(--color-border-card);border-radius:6px;font-size:12px;}
+.defDetailed .smallHeading {margin-bottom:4px;}
+.defDetailed .smallHeading span {margin-left:8px;font-size:11px;font-weight:400;color:var(--color-text-sec);}
+.slateCard .defStrip {margin:0;padding:10px 16px 14px;border-top:1px solid var(--color-border-card);}

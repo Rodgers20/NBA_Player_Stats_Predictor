@@ -1,2 +1,3 @@
-import type { TeamGame } from "./team-types";
+import type { TeamGame, BasketballTeam } from "./team-types";
 export function recentScoringGames(games: TeamGame[], limit?: number): TeamGame[];
+export function withPriorSeason(teams: BasketballTeam[], priorTeams: BasketballTeam[] | undefined, minGames?: number): BasketballTeam[];

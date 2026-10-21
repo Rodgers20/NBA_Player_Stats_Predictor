@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const STATS = [
@@ -17,6 +18,8 @@ export interface Filters {
   sort: string;
   game: string;
   locksOnly: boolean;
+  minStars: number;
+  q: string;
 }
 
 interface Props {
@@ -27,8 +30,24 @@ interface Props {
 }
 
 export function PropFilters({ filters, matchups, statCounts, onChange }: Props) {
+  const [draft, setDraft] = useState(filters.q);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const latest = useRef(onChange);
+  // Always call the newest handler (it merges with the current URL), and never fire after unmount.
+  useEffect(() => { latest.current = onChange; });
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const typeSearch = (value: string) => {
+    setDraft(value);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => latest.current({ q: value }), 250); // keep the URL calm while typing
+  };
   return (
     <div className="ql-panel mb-5 p-3 sm:p-4">
+      <label className="mb-3 block">
+        <span className="sr-only">Search players or teams</span>
+        <input type="search" value={draft} onChange={(event) => typeSearch(event.target.value)} placeholder="Search player or team"
+          maxLength={40} className="ql-control min-h-9 w-full px-3 py-2 text-sm text-[#eaf8f6] placeholder:text-[#a9bec0]" />
+      </label>
       <p className="ql-data-label mb-2 text-[#a9bec0]">STATISTIC</p>
       <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Filter by stat">
         {STATS.map(([value, label]) => (
@@ -125,6 +144,18 @@ export function PropFilters({ filters, matchups, statCounts, onChange }: Props) 
             >
               <option value="hit_rate">Highest Hit Rate</option>
               <option value="ev">Highest EV</option>
+              <option value="edge">Biggest Edge</option>
+            </select>
+          </label>
+          <label className="ql-data-label flex flex-col gap-1.5 text-[#a9bec0]">
+            MIN STARS
+            <select
+              value={filters.minStars}
+              onChange={(event) => onChange({ minStars: Number(event.target.value) })}
+              className="ql-control min-h-8 min-w-24 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-[#eaf8f6]"
+            >
+              <option value={0}>Any</option>
+              {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}+ ★</option>)}
             </select>
           </label>
         </div>

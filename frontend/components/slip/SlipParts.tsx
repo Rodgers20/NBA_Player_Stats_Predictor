@@ -2,20 +2,24 @@
 
 import { X } from 'lucide-react';
 import { formatOdds, summarizeSingles, summarizeSlip, payout, type SlipLeg, type SlipMode } from '@/lib/bet-slip.mjs';
+import { isTeamLeg, legDetail, legTitle, priceIsAssumed } from '@/lib/team-legs.mjs';
 
 const money = (v: number) => `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** One leg: who, the pick, the saved price, and what backs it. */
-export function LegRow({ leg, index, onRemove }: { leg: SlipLeg; index?: number; onRemove?: () => void }) {
+export function LegRow({ leg, index, onRemove, suggested, correlation }: { leg: SlipLeg; index?: number; onRemove?: () => void; suggested?: number; correlation?: string | null }) {
   return <li className="flex items-start gap-3 py-3">
     {index !== undefined && <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-[11px] font-bold text-[#a9bec0]">{index + 1}</span>}
     <div className="min-w-0 flex-1">
-      <p className="truncate text-sm font-bold text-[#eaf8f6]">{leg.player}</p>
-      <p className="text-[15px] font-bold text-[#59e0c8]">{leg.direction} {leg.line} {leg.stat}</p>
+      <p className="truncate text-sm font-bold text-[#eaf8f6]">{isTeamLeg(leg) ? legDetail(leg) : leg.player}</p>
+      <p className="text-[15px] font-bold text-[#59e0c8]">{isTeamLeg(leg) ? legTitle(leg) : legDetail(leg)}</p>
       <p className="mt-0.5 text-[11px] text-[#a9bec0]">{leg.league.toUpperCase()} · {leg.matchup} · {leg.date}{leg.probability != null && ` · Model ${(leg.probability * 100).toFixed(1)}%`}</p>
+      {suggested !== undefined && <p className="mt-0.5 text-[11px] text-[#a9bec0]">Suggested stake <b className={suggested > 0 ? 'text-[#59e0c8]' : 'text-[#a9bec0]'}>{suggested > 0 ? money(suggested) : 'none, no edge'}</b></p>}
+      {priceIsAssumed(leg) && <p className="mt-0.5 text-[11px] leading-snug text-[#f5ba64]">Price assumed at {formatOdds(leg.price)}: ESPN gives this line but not its price. Confirm at your book.</p>}
+      {correlation && <p className="mt-0.5 text-[11px] leading-snug text-[#f5ba64]">{correlation}</p>}
     </div>
     <div className="flex shrink-0 items-center gap-1">
-      <span className="font-mono text-sm font-bold text-[#f5ba64]">{formatOdds(leg.price)}</span>
+      <span className="font-mono text-sm font-bold text-[#f5ba64]" title={priceIsAssumed(leg) ? 'Assumed standard price' : undefined}>{formatOdds(leg.price)}{priceIsAssumed(leg) ? '*' : ''}</span>
       {onRemove && <button type="button" onClick={onRemove} aria-label={`Remove ${leg.player} ${leg.stat} from slip`} className="-mr-1.5 grid h-9 w-9 place-items-center rounded-full text-[#a9bec0] hover:bg-white/10 hover:text-white"><X size={16} aria-hidden /></button>}
     </div>
   </li>;

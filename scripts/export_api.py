@@ -1,6 +1,6 @@
 """Build a complete public snapshot; failed exports leave the previous snapshot intact.
 
-Personal journal data is deliberately never exported.
+Personal journal, CLV and line-history data is deliberately never exported.
 """
 import argparse
 from datetime import datetime, timezone, timedelta
@@ -90,6 +90,8 @@ def export(base, out, refresh_odds=False):
                 result = fetch(base, f'/api/props/refresh?league={league}&fetch_odds=true', method='POST')
                 print(f'{league}: quote refresh evaluated {result.get("count", 0)} markets; {result.get("message", "")}')
             save(root, 'props', fetch(base, f'/api/props?league={league}&direction=all&include_research=true&limit=500'))
+            save(root, 'defense', fetch(base, f'/api/defense?league={league}'))
+            save(root, 'trends', fetch(base, f'/api/trends?league={league}&limit=200'))
             save(root, 'alt-lines', fetch(base, f'/api/props/alt-lines?league={league}'))
             games = fetch(base, f'/api/games?league={league}')
             save(root, 'games', games)
@@ -140,7 +142,7 @@ def export(base, out, refresh_odds=False):
         save(stage, 'props-record', fetch(base, '/api/props/record'))
         files = [path for path in stage.rglob('*') if path.is_file()]
         save(stage, 'manifest', {
-            'schema_version': 2,
+            'schema_version': 3,
             'generated_at': datetime.now(timezone.utc).isoformat(),
             'leagues': ['nba', 'wnba'],
             'snapshot_files': len(files),

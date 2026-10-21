@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { legKey, toggleLeg, MAX_LEGS, type SlipLeg, type SlipMode } from '@/lib/bet-slip.mjs';
+import { legKey, toggleLeg, sanitizePersistedSlip, MAX_LEGS, type SlipLeg, type SlipMode } from '@/lib/bet-slip.mjs';
+import { DEFAULT_BANKROLL, sanitizeBankroll, type Bankroll } from '@/lib/bankroll.mjs';
 
 interface SlipState {
   legs: SlipLeg[];
   mode: SlipMode;
   stake: number | null;
+  /** Units × unit size feed the suggested stake. Kept when the slip is cleared. */
+  bankroll: Bankroll;
   open: boolean;
   /** Bumped on every add, so the slip pill pulses once. */
   added: number;
@@ -15,11 +18,12 @@ interface SlipState {
   load: (legs: SlipLeg[], mode: SlipMode, stake: number | null) => void;
   setMode: (mode: SlipMode) => void;
   setStake: (stake: number | null) => void;
+  setBankroll: (bankroll: Bankroll) => void;
   setOpen: (open: boolean) => void;
 }
 /** The slip lives in this browser only; nothing leaves it until it is shared as a link. */
 export const useSlip = create<SlipState>()(persist((set) => ({
-  legs: [], mode: 'parlay', stake: null, open: false, added: 0,
+  legs: [], mode: 'parlay', stake: null, bankroll: DEFAULT_BANKROLL, open: false, added: 0,
   toggle: (leg) => set(state => {
     const legs = toggleLeg(state.legs, leg);
     if (legs.length > MAX_LEGS) return {};
@@ -30,5 +34,11 @@ export const useSlip = create<SlipState>()(persist((set) => ({
   load: (legs, mode, stake) => set({ legs, mode, stake, open: true }),
   setMode: (mode) => set({ mode }),
   setStake: (stake) => set({ stake }),
+  setBankroll: (bankroll) => set({ bankroll: sanitizeBankroll(bankroll) }),
   setOpen: (open) => set({ open }),
-}), { name: 'basketball-slip-v1', skipHydration: true, partialize: ({ legs, mode, stake }) => ({ legs, mode, stake }) }));
+}), {
+  name: 'basketball-slip-v1', skipHydration: true,
+  partialize: ({ legs, mode, stake, bankroll }) => ({ legs, mode, stake, bankroll }),
+  // Slips saved before the bankroll existed have no such field: keep their legs, default the rest.
+  merge: (persisted, current) => ({ ...current, ...sanitizePersistedSlip(persisted) }),
+}));

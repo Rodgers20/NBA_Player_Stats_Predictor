@@ -52,7 +52,7 @@ export function PlayerBarChart({ games, stat, line, height = 200 }: Props) {
       viewBox={`0 0 ${W} ${H}`}
       className="w-full"
       style={{ minWidth: W }}
-      aria-label={`${stat} last ${data.length} games`}
+      aria-label={`${stat} last ${data.length} games${line !== null ? ` against a line of ${line}` : ""}. A table of every game follows the chart.`}
     >
       <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
         {/* Grid lines */}
@@ -87,7 +87,7 @@ export function PlayerBarChart({ games, stat, line, height = 200 }: Props) {
           const bx   = xScale(String(i)) ?? 0;
           const bw   = xScale.bandwidth();
           const hit  = d.hit;
-          const fill = hit === true ? color : hit === false ? "rgba(248,113,113,0.6)" : color;
+          const fill = hit === true ? color : hit === false ? "rgba(248,113,113,0.6)" : hit === null && d.value != null ? "rgba(169,190,192,0.55)" : color; // a push is neutral
 
           return (
             <motion.rect
@@ -102,9 +102,26 @@ export function PlayerBarChart({ games, stat, line, height = 200 }: Props) {
               initial={{ scaleY: 0, originY: 1 }}
               animate={{ scaleY: 1 }}
               transition={{ duration: 0.4, delay: i * 0.02 }}
-            />
+            >
+              <title>{`${d.date} ${d.opponent}: ${d.value ?? "no result"}${hit === true ? " (over)" : hit === false ? " (under)" : line !== null && d.value === line ? " (push)" : ""}`}</title>
+            </motion.rect>
           );
         })}
+
+        {/* Value labels — only when bars are wide enough to stay legible */}
+        {xScale.bandwidth() >= 18 && data.map((d, i) => d.value != null && (
+          <text
+            key={i}
+            x={(xScale(String(i)) ?? 0) + xScale.bandwidth() / 2}
+            y={yScale(d.value) - 4}
+            textAnchor="middle"
+            fontSize={10}
+            fontWeight={600}
+            fill="#eaf8f6"
+          >
+            {Number.isInteger(d.value) ? d.value : d.value.toFixed(1)}
+          </text>
+        ))}
 
         {/* X axis labels — every other label for space */}
         {data.map((d, i) => i % 2 === 0 && (

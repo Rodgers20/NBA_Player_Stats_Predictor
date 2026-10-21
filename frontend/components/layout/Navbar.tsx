@@ -9,6 +9,7 @@ export const NAV = [
   { href: "/analysis", label: "Player Analysis" },
   { href: "/games", label: "Today's Games" },
   { href: "/props", label: "Best Props" },
+  { href: "/trends", label: "Trends" },
   { href: "/teams", label: "Teams" },
   { href: "/highlights", label: "Highlights" },
   { href: "/performance", label: "Model Performance" },
@@ -29,16 +30,6 @@ export function Navbar() {
         <Link href="/" aria-label={`${league.toUpperCase()} Props AI home`} className="site-brand">
           {league.toUpperCase()} Props AI
         </Link>
-        <nav aria-label="Main navigation" className="site-nav">
-          {navForLeague(league).map(({ href, label }) => {
-            const active = path === href || path.startsWith(`${href}/`);
-            return (
-              <Link key={href} href={href} aria-current={active ? "page" : undefined} className={`site-nav-link${active ? " active" : ""}`}>
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
         <div className="site-league-toggle" role="group" aria-label="League">
           {(["nba", "wnba"] as const).map((value) => (
             <button

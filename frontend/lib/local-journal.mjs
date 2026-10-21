@@ -11,15 +11,57 @@ function write(storage, bets) {
   storage.setItem(KEY, JSON.stringify(bets));
 }
 
-export function localJournalList(storage, mode) {
-  const bets = read(storage).filter(bet => bet.mode === mode);
+export const ODDS_RANGES = ['< -150', '-150 to +100', '+100 to +200', '> +200']; // keep in sync with utils/personal_bets.py
+
+export function oddsRange(price) {
+  if (price < -150) return ODDS_RANGES[0];
+  if (price <= 100) return ODDS_RANGES[1];
+  return price <= 200 ? ODDS_RANGES[2] : ODDS_RANGES[3];
+}
+
+function breakdown(settled, key, fixedOrder) {
+  const groups = new Map();
+  for (const bet of settled) groups.set(key(bet), [...(groups.get(key(bet)) || []), bet]);
+  const rows = [...groups].map(([name, items]) => {
+    const stake = items.reduce((sum, bet) => sum + bet.stake_cents, 0);
+    const profit = items.reduce((sum, bet) => sum + bet.profit_cents, 0);
+    const count = result => items.filter(bet => bet.result === result).length;
+    return { key: name, bets: items.length, wins: count('win'), losses: count('loss'), pushes: count('push'),
+      staked: stake / 100, profit: profit / 100, roi: stake ? 100 * profit / stake : null };
+  });
+  return fixedOrder ? rows.sort((a, b) => fixedOrder.indexOf(a.key) - fixedOrder.indexOf(b.key))
+    : rows.sort((a, b) => b.bets - a.bets || (a.key < b.key ? -1 : 1));
+}
+
+function curve(settled) {
+  const ordered = [...settled].sort((a, b) =>
+    a.game_date === b.game_date ? (a.created_at < b.created_at ? -1 : 1) : (a.game_date < b.game_date ? -1 : 1));
+  let cents = 0, peak = 0, drawdown = 0;
+  const points = ordered.map((bet, index) => {
+    cents += bet.profit_cents; peak = Math.max(peak, cents); drawdown = Math.max(drawdown, peak - cents);
+    return { n: index + 1, date: bet.game_date, pnl: cents / 100 };
+  });
+  return { points, drawdown: drawdown / 100 };
+}
+
+export function summarizeBets(bets) {
   const settled = bets.filter(bet => ['win','loss','push'].includes(bet.result));
   const stake = settled.reduce((sum, bet) => sum + bet.stake_cents, 0);
   const profitCents = settled.reduce((sum, bet) => sum + bet.profit_cents, 0);
-  return { mode, bets, summary: { count: bets.length, settled: settled.length,
+  const { points, drawdown } = curve(settled);
+  return { count: bets.length, settled: settled.length,
     profit: profitCents / 100, roi: stake ? 100 * profitCents / stake : null,
     pending: bets.filter(bet => bet.result === 'pending').reduce((sum, bet) => sum + bet.stake_cents, 0) / 100,
-    staked: stake / 100 } };
+    staked: stake / 100,
+    by_stat: breakdown(settled, bet => bet.stat), by_side: breakdown(settled, bet => bet.side),
+    by_book: breakdown(settled, bet => bet.book),
+    by_odds: breakdown(settled, bet => oddsRange(bet.price), ODDS_RANGES),
+    curve: points, max_drawdown: drawdown };
+}
+
+export function localJournalList(storage, mode) {
+  const bets = read(storage).filter(bet => bet.mode === mode);
+  return { mode, bets, summary: summarizeBets(bets) };
 }
 
 export function localJournalAdd(storage, entry) {

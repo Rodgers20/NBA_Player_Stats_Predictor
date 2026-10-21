@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { playerKey, filterProps, windowChart, seriesChart } from './snapshot.mjs';
+import { playerKey, filterProps, windowChart, seriesChart, filterDefense, filterTrends } from './snapshot.mjs';
+test('defense and trend snapshots filter like the live endpoints', () => {
+  const defense = { league: 'nba', stat: null, season: null, rankings: [{ stat: 'PTS' }, { stat: 'REB' }] };
+  assert.deepEqual(filterDefense(defense, 'reb').rankings, [{ stat: 'REB' }]);
+  const trends = { league: 'nba', count: 3, trends: [{ side: 'over', stat: 'PTS' }, { side: 'under', stat: 'PTS' }, { side: 'over', stat: 'REB' }] };
+  assert.equal(filterTrends(trends, { side: 'over', stat: 'PTS', limit: 5 }).count, 1);
+  assert.equal(filterTrends(trends, { side: 'all' }).count, 3);
+});
 test('snapshot identifiers preserve case punctuation and unicode without path traversal', () => {
   assert.notEqual(playerKey('A B'), playerKey('a-b'));
   assert.match(playerKey('../A’ja'), /^[a-f0-9]+$/);

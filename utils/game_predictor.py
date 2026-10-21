@@ -17,6 +17,8 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
+from utils.early_season import current_season_games, shrink_early_season
+
 logger = logging.getLogger(__name__)
 
 # ── Constants ──────────────────────────────────────────────────────────────
@@ -90,13 +92,16 @@ class GamePredictor:
     def predict_game(self, home: str, away: str,
                      home_injuries: list | None = None,
                      away_injuries: list | None = None,
-                     target_date=None, neutral: bool = False, venue=None) -> dict:
+                     target_date=None, neutral: bool = False, venue=None,
+                     market_spread: float | None = None) -> dict:
         """
         Full game prediction, optionally adjusted for known injuries.
 
         Args:
             home: home team abbreviation
             away: away team abbreviation
+            market_spread: sportsbook home line (negative = home favoured). Only used as the
+                prior the forecast is pulled toward while teams have few games this season.
             home_injuries: list of {name, status, reason} dicts for home team
             away_injuries: list of {name, status, reason} dicts for away team
 
@@ -180,13 +185,27 @@ class GamePredictor:
             from utils.game_model import GameForecastModel
             learned = GameForecastModel.load(self.league)
             if learned is not None:
-                features = build_feature_vector(self._pregame_team_history() if self._team_history is not None else aggregate_team_games(self.logs, self.league),
-                                                self._cutoff, home, away, self.league,
+                team_games = self._pregame_team_history() if self._team_history is not None else aggregate_team_games(self.logs, self.league)
+                features = build_feature_vector(team_games, self._cutoff, home, away, self.league,
                                                 neutral=neutral, venue=venue if neutral else None)
                 candidate = learned.predict(features)
                 trained_through = candidate.get("trained_through")
                 if trained_through and pd.Timestamp(trained_through).normalize() >= self._cutoff:
                     raise ValueError("Artifact includes outcomes on or after the target date")
+                # Rosters change over the summer and the model cannot see that, so
+                # lean on it only as much as this season's games support.
+                counts = [current_season_games(team_games, team, self._cutoff, self.league) for team in (home, away)]
+                if None not in counts:
+                    # The market already prices the new rosters, so it is the better prior when we have it.
+                    prior = (-market_spread if market_spread is not None
+                             else 0.0 if neutral else (HOME_COURT_ADV if self.league == "nba" else 2.0))
+                    candidate = shrink_early_season(candidate, min(counts), prior)
+                    model_metadata["early_season_weight"] = round(candidate["early_season_weight"], 3)
+                    if market_spread is not None and candidate["early_season_weight"] < 1:
+                        # Kept apart from the pure model in the forecast ledger and performance summaries.
+                        model_metadata.update(market_assisted=True,
+                                              version=f'{candidate.get("version")}+market-prior')
+                        candidate["version"] = model_metadata["version"]
                 forecast = candidate
                 pred_home = (forecast["total"] + forecast["margin"]) / 2
                 pred_away = (forecast["total"] - forecast["margin"]) / 2

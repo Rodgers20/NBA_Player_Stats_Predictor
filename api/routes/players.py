@@ -159,7 +159,9 @@ def get_player_stats(player_name: str, league: League = 'nba'):
                     projections[stat] = round(value, 1)
         except Exception:
             logger.exception('Player projection unavailable: %s %s %s', league, player_name, stat)
-    return dict(player=player_name, team=str(latest.get('TEAM_ABBREVIATION', '')), position=position,
+    teams = frame['TEAM_ABBREVIATION'].dropna().astype(str).str.strip() if 'TEAM_ABBREVIATION' in frame else []
+    teams = [team for team in teams if team and team.lower() not in ('nan', 'none')]
+    return dict(player=player_name, team=teams[-1] if teams else '', position=position,
                 headshot_url=_headshot_url(frame, league), fg_pct=fg_pct,
                 injury_status=injury_status, injury_reason=injury_reason,
                 season_avgs=averages(season), l5_avgs=averages(frame.tail(5)), games_played=len(season),

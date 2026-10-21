@@ -3,7 +3,9 @@ import type { CSSProperties } from 'react';
 import type { Game, GamePrediction } from '@/lib/types';
 import type { BasketballTeam } from '@/lib/team-types';
 import { TeamLogo } from '@/components/teams/TeamLogo';
+import { DefenseStrip } from './DefenseStrip';
 import { gamePicks, gameState, marketProbability, scoreboard } from '@/lib/game-board.mjs';
+import { safeTeamColor } from '@/lib/team-glow.mjs';
 import styles from './games.module.css';
 
 export type TeamMap = Record<string, BasketballTeam>;
@@ -15,7 +17,7 @@ export function tipLabel(game: Game) {
   const date = new Date(raw);
   return Number.isNaN(date.getTime()) ? game.game_time || 'Tip time pending' : `${date.toLocaleString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})} ET`;
 }
-function teamColor(color?: string | null) { return color && /^#?[a-f0-9]{6}$/i.test(color) ? `#${color.replace('#','')}` : '#26434d'; }
+const teamColor = safeTeamColor;
 function points(value: number | null, actual: boolean) { return value == null ? '—' : actual ? String(value) : value.toFixed(1); }
 
 export function MatchupBanner({game,prediction,teams,league}: {game:Game;prediction?:GamePrediction;teams:TeamMap;league:string}) {
@@ -41,7 +43,7 @@ export function MarketGauge({game}: {game:Game}) {
   </div>;
 }
 
-export function SlateCard({game,prediction,teams,active,onSelect}: {game:Game;prediction?:GamePrediction;teams:TeamMap;active:boolean;onSelect:()=>void}) {
+export function SlateCard({game,prediction,teams,active,league,onSelect}: {game:Game;prediction?:GamePrediction;teams:TeamMap;active:boolean;league:string;onSelect:()=>void}) {
   const score=scoreboard(game,prediction),actual=gameState(game)!=='pre',picks=gamePicks(game,prediction);
   const market=marketProbability(game),away=teamInfo(game,'away',teams),home=teamInfo(game,'home',teams);
   const artwork={'--away-color':teamColor(away.color),'--home-color':teamColor(home.color)} as CSSProperties;
@@ -57,5 +59,6 @@ export function SlateCard({game,prediction,teams,active,onSelect}: {game:Game;pr
       <p className={styles.scoreHint}>{market==null ? 'Select to explore this matchup' : `Sportsbook outlook · ${game.home_team} ${Math.round(market*100)}%`}</p>
     </div>
     <dl className={styles.cardPicks}>{Object.entries(picks).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+    <DefenseStrip game={game} league={league}/>
   </button>;
 }
