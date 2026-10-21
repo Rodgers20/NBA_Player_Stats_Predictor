@@ -11,7 +11,10 @@ import { TrendSlipButton } from "@/components/trends/TrendSlipButton";
 import type { TrendCard } from "@/lib/types";
 
 const SIDES = [["all", "All"], ["over", "Overs"], ["under", "Unders"]] as const;
-const STATS = [["all", "All"], ["PTS", "PTS"], ["REB", "REB"], ["AST", "AST"], ["FG3M", "3PM"]] as const;
+const STATS = [
+  ["all", "All"], ["PTS", "PTS"], ["REB", "REB"], ["AST", "AST"], ["FG3M", "3PM"], ["STL", "STL"], ["BLK", "BLK"],
+  ["PTS+REB", "P+R"], ["PTS+AST", "P+A"], ["REB+AST", "R+A"], ["PTS+REB+AST", "PRA"],
+] as const;
 const focus = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]";
 
 function Stars({ count }: { count: number }) {

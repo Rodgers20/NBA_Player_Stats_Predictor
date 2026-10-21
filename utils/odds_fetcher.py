@@ -49,8 +49,12 @@ MARKET_TO_STAT = {
     "player_threes":           "FG3M",
     "player_points_rebounds":  "PTS+REB",
     "player_points_assists":   "PTS+AST",
+    "player_rebounds_assists": "REB+AST",
     "player_points_rebounds_assists": "PTS+REB+AST",
 }
+# Bought per event on an explicit refresh; each market costs one credit (enforced by odds_budget).
+REFRESH_MARKETS = ",".join(["player_points", "player_rebounds", "player_assists", "player_points_rebounds",
+                            "player_points_assists", "player_rebounds_assists", "player_points_rebounds_assists"])
 
 # Cache TTL: 30 minutes
 _CACHE_TTL = 30 * 60
@@ -95,7 +99,7 @@ _TEAM_NAME_TO_ABBR: dict = {
 # ── Public API ──────────────────────────────────────────────────────────────
 
 def get_live_odds(force_refresh: bool = False, target_date: str | None = None, max_events: int = 2) -> dict:
-    """Read cache by default. Explicit refresh buys 3 market credits per event, up to max_events."""
+    """Read cache by default. Explicit refresh buys one credit per market per event (7), up to max_events."""
     global _cache, _cache_ts, _cache_date
     target = target_date or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     fallback = _cache if _cache_date == target and 0 <= time.time() - _cache_ts < _CACHE_TTL else {}
@@ -113,7 +117,7 @@ def get_live_odds(force_refresh: bool = False, target_date: str | None = None, m
             return fallback
         fresh, successes = {}, 0
         for event_id in event_ids:
-            payload = _fetch_event_odds(event_id, 'player_points,player_rebounds,player_assists')
+            payload = _fetch_event_odds(event_id, REFRESH_MARKETS)
             if payload:
                 successes += 1
                 _parse_event_odds(payload, fresh, target_date=target)

@@ -5,7 +5,7 @@ export const ASSUMED_PRICE = -110;
 
 const TEAM_STATS = new Set(['ML', 'SPREAD', 'TOTAL']);
 export const isTeamLeg = leg => TEAM_STATS.has(leg?.stat);
-export const priceIsAssumed = leg => leg?.stat === 'SPREAD' || leg?.stat === 'TOTAL';
+export const priceIsAssumed = leg => leg?.stat === 'SPREAD' || leg?.stat === 'TOTAL' || leg?.assumedPrice === true;
 
 const base = (game, league, date) => ({ league, date, matchup: game.matchup, addedAt: new Date().toISOString() });
 const abbrev = (game, side) => (side === 'home' ? game.home_team : game.away_team);

@@ -7,7 +7,7 @@ const STATS = [
   ["", "All"], ["PTS", "Points"], ["AST", "Assists"], ["REB", "Rebounds"],
   ["FG3M", "3-Ptrs"], ["BLK", "Blocks"], ["STL", "Steals"],
   ["PTS+AST", "Pts+Ast"], ["PTS+REB", "Pts+Reb"],
-  ["AST+REB", "Ast+Reb"], ["PTS+AST+REB", "PRA"],
+  ["REB+AST", "Reb+Ast"], ["PTS+REB+AST", "PRA"],
   ["DD", "Dbl-Dbl"], ["TD", "Tri-Dbl"],
   ["ML", "Moneyline"], ["SPREAD", "Spread"], ["TOTAL", "Totals"],
 ] as const;

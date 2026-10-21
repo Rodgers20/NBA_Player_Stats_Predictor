@@ -49,5 +49,9 @@ def _load_model(league, stat, modified):
 
 
 def predictor(league, stat):
+    if '+' in stat:  # a combo market is priced from its single-stat models
+        from utils.combo_model import ComboModel
+        parts = {part: predictor(league, part) for part in stat.split('+')}
+        return None if any(model is None for model in parts.values()) else ComboModel(parts)
     path = get_config(league).models_dir / f'{stat.lower()}_predictor.pkl'
     return _load_model(league, stat, path.stat().st_mtime_ns) if path.exists() else None

@@ -15,7 +15,7 @@ export function LegRow({ leg, index, onRemove, suggested, correlation }: { leg: 
       <p className="text-[15px] font-bold text-[#59e0c8]">{isTeamLeg(leg) ? legTitle(leg) : legDetail(leg)}</p>
       <p className="mt-0.5 text-[11px] text-[#a9bec0]">{leg.league.toUpperCase()} · {leg.matchup} · {leg.date}{leg.probability != null && ` · Model ${(leg.probability * 100).toFixed(1)}%`}</p>
       {suggested !== undefined && <p className="mt-0.5 text-[11px] text-[#a9bec0]">Suggested stake <b className={suggested > 0 ? 'text-[#59e0c8]' : 'text-[#a9bec0]'}>{suggested > 0 ? money(suggested) : 'none, no edge'}</b></p>}
-      {priceIsAssumed(leg) && <p className="mt-0.5 text-[11px] leading-snug text-[#f5ba64]">Price assumed at {formatOdds(leg.price)}: ESPN gives this line but not its price. Confirm at your book.</p>}
+      {priceIsAssumed(leg) && <p className="mt-0.5 text-[11px] leading-snug text-[#f5ba64]">Price assumed at {formatOdds(leg.price)}: no sportsbook price was entered for this line. Confirm at your book.</p>}
       {correlation && <p className="mt-0.5 text-[11px] leading-snug text-[#f5ba64]">{correlation}</p>}
     </div>
     <div className="flex shrink-0 items-center gap-1">

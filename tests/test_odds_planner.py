@@ -6,10 +6,11 @@ from utils import odds_budget, odds_planner as planner, odds_store
 
 
 def test_off_season_league_hands_its_credits_to_the_active_one():
-    assert planner.split_events({'nba': 10, 'wnba': 0}, 30) == {'nba': 10, 'wnba': 0}
-    assert planner.split_events({'nba': 10, 'wnba': 3}, 18) == {'nba': 3, 'wnba': 3}
-    assert planner.split_events({'nba': 10, 'wnba': 1}, 18) == {'nba': 5, 'wnba': 1}
-    assert planner.split_events({'nba': 4, 'wnba': 0}, 6) == {'nba': 2, 'wnba': 0}
+    cost = planner.CORE_COST
+    assert planner.split_events({'nba': 10, 'wnba': 0}, 10 * cost) == {'nba': 10, 'wnba': 0}
+    assert planner.split_events({'nba': 10, 'wnba': 3}, 6 * cost) == {'nba': 3, 'wnba': 3}
+    assert planner.split_events({'nba': 10, 'wnba': 1}, 6 * cost) == {'nba': 5, 'wnba': 1}
+    assert planner.split_events({'nba': 4, 'wnba': 0}, 2 * cost) == {'nba': 2, 'wnba': 0}
     assert planner.split_events({'nba': 0, 'wnba': 0}, 40) == {'nba': 0, 'wnba': 0}
 
 
@@ -27,7 +28,7 @@ def test_headroom_respects_fair_share_reserve_and_daily_cap(monkeypatch):
 def test_plan_sends_everything_to_nba_when_wnba_is_idle(monkeypatch):
     odds_budget.report('ok', 497)
     events = {'nba': [{}] * 12, 'wnba': []}
-    assert planner.plan('manual', events, datetime(2026, 10, 6, 15, tzinfo=timezone.utc)) == {'nba': 6, 'wnba': 0}
+    assert planner.plan('manual', events, datetime(2026, 10, 6, 15, tzinfo=timezone.utc)) == {'nba': 18 // planner.CORE_COST, 'wnba': 0}
 
 
 def test_due_kind_morning_then_pretip():

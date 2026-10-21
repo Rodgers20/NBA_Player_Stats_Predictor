@@ -97,3 +97,27 @@ def test_route_limits_and_validates(monkeypatch):
     body = client.get('/api/trends?league=nba&limit=1').json()
     assert body['league'] == 'nba' and body['count'] == 1 and body['trends'][0]['player'] == 'Big Man'
     assert client.get('/api/trends?league=nba&limit=0').status_code == 422
+
+
+def frame_with(**columns):
+    n = 10
+    base = frame([0] * n)
+    return base.assign(**{key: value for key, value in columns.items()})
+
+
+def test_combos_steals_and_blocks_get_cards_but_never_combo_unders():
+    df = frame_with(PTS=[20, 22, 25, 21, 24, 23, 26, 22, 25, 24], REB=[8, 9, 10, 9, 8, 10, 9, 8, 9, 10],
+                    AST=[5, 6, 7, 5, 6, 7, 6, 5, 6, 7], STL=[2, 2, 2, 3, 2, 2, 2, 2, 1, 2], BLK=[2, 2, 2, 3, 2, 2, 2, 2, 1, 2])
+    result = cards(df)
+    stats = {c['stat'] for c in result}
+    assert {'PTS+REB', 'PTS+AST', 'REB+AST', 'PTS+REB+AST', 'STL', 'BLK'} <= stats
+    assert all(c['side'] == 'over' for c in result if '+' in c['stat'])
+    pra = next(c for c in result if c['stat'] == 'PTS+REB+AST')
+    assert pra['avg'] == 38.2 and pra['text'].startswith('Over ') and 'points + rebounds + assists' in pra['text']
+
+
+def test_a_posted_combo_line_is_over_only_even_when_the_under_would_hit():
+    df = frame_with(PTS=[10] * 10, REB=[5] * 10, AST=[4] * 10, STL=[0] * 10, BLK=[0] * 10)
+    quote = {'line': 25.5, 'over_price': -110, 'under_price': -110, 'bookmaker': 'DK', 'home_team': 'AAA', 'away_team': 'BBB'}
+    result = cards(df, quotes={'Big Man': {'PTS+REB+AST': quote}})
+    assert [c for c in result if c['stat'] == 'PTS+REB+AST' and c['line_source'] == 'live'] == []

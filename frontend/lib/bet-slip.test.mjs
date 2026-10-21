@@ -86,3 +86,12 @@ test('sanitizePersistedSlip drops hand-edited legs that would crash rendering', 
   const bad = [{ ...leg(1), league: 5 }, { ...leg(2), matchup: null }, { ...leg(3), price: 'x' }, { ...leg(4), price: NaN }];
   assert.deepEqual(sanitizePersistedSlip({ legs: [...bad, leg(5), leg(6, { price: null })] }).legs.map(l => l.player), ['P5', 'P6']);
 });
+
+test('an assumed price survives the share link and shows as assumed', async () => {
+  const { encodeSlip, decodeSlip } = await import('./bet-slip.mjs');
+  const { priceIsAssumed } = await import('./team-legs.mjs');
+  const leg = { league: 'nba', date: '2026-10-21', player: 'Trae Young', stat: 'AST', direction: 'Over', line: 6.5, price: -110, assumedPrice: true, probability: null, matchup: 'ATL vs ORL', addedAt: '' };
+  const back = decodeSlip(encodeSlip([leg, { ...leg, assumedPrice: undefined, price: -120 }], 'parlay', null));
+  assert.equal(priceIsAssumed(back.legs[0]), true);
+  assert.equal(priceIsAssumed(back.legs[1]), false);
+});

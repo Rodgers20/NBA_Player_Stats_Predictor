@@ -86,7 +86,7 @@ const toBase64Url = s => {
 const fromBase64Url = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)));
 
 export function encodeSlip(legs, mode, stake) {
-  const packed = legs.map(l => [l.league, l.date, l.player, l.stat, l.direction, l.line, l.price, l.probability ?? null, l.matchup]);
+  const packed = legs.map(l => [l.league, l.date, l.player, l.stat, l.direction, l.line, l.price, l.probability ?? null, l.matchup, l.assumedPrice ? 1 : 0]);
   return toBase64Url(JSON.stringify({ v: 1, m: mode, s: stake ?? null, l: packed }));
 }
 
@@ -98,10 +98,10 @@ export function decodeSlip(code) {
     if (raw?.v !== 1 || !Array.isArray(raw.l)) return null;
     const legs = raw.l.slice(0, MAX_LEGS).flatMap(p => {
       if (!Array.isArray(p)) return [];
-      const [league, date, player, stat, direction, line, price, probability, matchup] = p;
+      const [league, date, player, stat, direction, line, price, probability, matchup, assumed] = p;
       if (!['nba', 'wnba'].includes(league) || ![date, player, stat, direction, matchup].every(v => typeof v === 'string')) return [];
       if (typeof line !== 'number' || decimalOdds(price) === null) return [];
-      return [{ league, date, player, stat, direction, line, price, probability: typeof probability === 'number' ? probability : null, matchup, addedAt: '' }];
+      return [{ league, date, player, stat, direction, line, price, probability: typeof probability === 'number' ? probability : null, matchup, addedAt: '', ...(assumed === 1 && { assumedPrice: true }) }];
     });
     const stake = typeof raw.s === 'number' && raw.s > 0 ? raw.s : null;
     return { legs, mode: raw.m === 'singles' ? 'singles' : 'parlay', stake };

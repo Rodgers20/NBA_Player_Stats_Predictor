@@ -250,7 +250,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
           </section>
 
           {games.length > 0 && <PlayerPropLines key={`${player}:${stat}`} league={league} player={player} stat={stat}
-            statLabel={STATS.find(([value]) => value === stat)?.[1] ?? stat} games={games} defaultLine={Math.max(0, defaultThreshold)}
+            statLabel={STATS.find(([value]) => value === stat)?.[1] ?? stat} stats={STATS} onStatChange={selectStat} games={games} defaultLine={Math.max(0, defaultThreshold)}
             date={profile?.projection_context?.game_date ?? schedule.data?.target_date ?? new Date().toISOString().slice(0, 10)}
             matchup={nextGame?.matchup ?? (nextOpponent ? `${team} vs ${nextOpponent}` : `${team || player}`)} accent={accent} />}
 

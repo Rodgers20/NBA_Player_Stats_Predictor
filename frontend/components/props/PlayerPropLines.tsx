@@ -5,6 +5,7 @@ import { Check, Minus, Plus } from "lucide-react";
 import { useSlip } from "@/store/slip";
 import { decimalOdds, formatOdds } from "@/lib/bet-slip.mjs";
 import { hitSummary } from "@/lib/hit-rate.mjs";
+import { ASSUMED_PRICE } from "@/lib/team-legs.mjs";
 import type { ChartRecord } from "@/lib/types";
 
 interface Props {
@@ -12,6 +13,9 @@ interface Props {
   player: string;
   stat: string;
   statLabel: string;
+  /** Every market the player can be measured on, as [value, label]; picking one here is the same as picking it in the page's stat tabs. */
+  stats: readonly (readonly [string, string])[];
+  onStatChange: (stat: string) => void;
   games: ChartRecord[];
   defaultLine: number;
   date: string;
@@ -31,7 +35,7 @@ function median(values: number[]) {
 }
 
 /** Hit-rate view of one market: pick a line, see how often the player cleared it, add a side to the slip. */
-export function PlayerPropLines({ league, player, stat, statLabel, games, defaultLine, date, matchup, accent }: Props) {
+export function PlayerPropLines({ league, player, stat, statLabel, stats: markets, onStatChange, games, defaultLine, date, matchup, accent }: Props) {
   const [line, setLine] = useState(defaultLine);
   const [price, setPrice] = useState("");
   const { legs, toggle } = useSlip();
@@ -46,12 +50,15 @@ export function PlayerPropLines({ league, player, stat, statLabel, games, defaul
   const yMax = Math.max(line, ...values, 1) * 1.12;
   const quotedPrice = Number(price);
   const priceOk = price.trim() !== "" && decimalOdds(quotedPrice) !== null;
+  // A blank price falls back to the standard -110 (flagged on the slip); only a price that was typed wrongly blocks adding.
+  const canAdd = priceOk || price.trim() === "";
 
   const inSlip = (direction: "Over" | "Under") => legs.some(leg => leg.league === league && leg.date === date
     && leg.player === player && leg.stat === stat && leg.line === line && leg.direction === direction);
   function addSide(direction: "Over" | "Under") {
-    if (!priceOk) return;
-    toggle({ league, date, player, stat, direction, line, price: quotedPrice, probability: null, matchup, addedAt: new Date().toISOString() });
+    if (!canAdd) return;
+    toggle({ league, date, player, stat, direction, line, price: priceOk ? quotedPrice : ASSUMED_PRICE, assumedPrice: !priceOk,
+      probability: null, matchup, addedAt: new Date().toISOString() });
   }
   const nudge = (delta: number) => setLine(Math.max(0, Math.round((line + delta) * 2) / 2));
 
@@ -66,6 +73,10 @@ export function PlayerPropLines({ league, player, stat, statLabel, games, defaul
   return <section className="ql-panel p-4 sm:p-5" aria-labelledby="prop-lines-title">
     <p className="ql-kicker">PROP LINES</p>
     <h2 id="prop-lines-title" className="ql-section-title mt-1">{statLabel} · set a line</h2>
+    <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Prop market">
+      {markets.map(([value, label]) => <button key={value} type="button" aria-pressed={value === stat} onClick={() => onStatChange(value)}
+        className={`rounded border px-2.5 py-1 text-xs font-bold ${press} ${value === stat ? "border-[#59e0c8] bg-[#59e0c8] text-[#0d151b]" : "border-white/15 text-text-sec hover:border-[#59e0c8]/50 hover:text-text-pri"}`}>{label}</button>)}
+    </div>
     <p className="mb-4 mt-1 text-xs text-text-sec">Set a line to see how often {player} cleared it over the games selected above, then add Over or Under to your bet slip. Bars are games, oldest first.</p>
 
     {valid.length === 0 ? <p className="py-10 text-center text-sm text-text-sec">No completed games to measure a line against.</p>
@@ -95,8 +106,8 @@ export function PlayerPropLines({ league, player, stat, statLabel, games, defaul
           <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
             {(["Over", "Under"] as const).map(side => {
               const added = inSlip(side);
-              return <button key={side} type="button" onClick={() => addSide(side)} disabled={!priceOk} aria-pressed={added}
-                title={priceOk ? undefined : "Enter your book's American price, e.g. -110"}
+              return <button key={side} type="button" onClick={() => addSide(side)} disabled={!canAdd} aria-pressed={added}
+                title={canAdd ? undefined : "That price isn't valid. Use American odds, e.g. -110"}
                 className={`ql-control flex flex-col items-center justify-center gap-0.5 px-2 py-2 text-sm font-bold hover:border-[#59e0c8]/50 disabled:cursor-not-allowed disabled:opacity-40 ${press} ${added ? "!border-[#59e0c8] !bg-[#59e0c8] !text-[#0d151b]" : ""}`}>
                 <span className="flex items-center gap-1">{added ? <Check size={15} /> : <Plus size={15} />}{added ? "In slip" : side}</span>
                 <span className="text-[11px] font-semibold tabular-nums opacity-80">{side} {one(line)}</span>
@@ -108,7 +119,7 @@ export function PlayerPropLines({ league, player, stat, statLabel, games, defaul
             <input value={price} placeholder="-115" onChange={event => setPrice(event.target.value)} inputMode="numeric" aria-invalid={price !== "" && !priceOk}
               className="ql-control w-20 px-2 text-center text-sm font-bold tabular-nums outline-none focus:border-[#59e0c8] aria-[invalid=true]:border-red-400" />
           </label>
-          <p className="mt-1 text-[11px] text-text-sec">{priceOk ? `The slip will use ${formatOdds(quotedPrice)}, the price you entered.` : "Enter the price your book shows to add a side. No price is assumed."}</p>
+          <p className="mt-1 text-[11px] text-text-sec">{priceOk ? `The slip will use ${formatOdds(quotedPrice)}, the price you entered.` : canAdd ? `No price entered: the slip uses ${formatOdds(ASSUMED_PRICE)}, marked as assumed. Enter your book's price to replace it.` : "Enter American odds such as -115 or +120."}</p>
         </div>
 
         <div className="grid grid-cols-3 gap-2">

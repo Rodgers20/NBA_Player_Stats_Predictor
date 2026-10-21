@@ -15,7 +15,7 @@ from utils.slate import next_slate
 
 logger = logging.getLogger(__name__)
 ET = ZoneInfo('America/New_York')
-CORE_COST = 3          # player_points + player_rebounds + player_assists
+CORE_COST = 7          # NBA: points, rebounds, assists and the four combos. WNBA buys three, so this is conservative there.
 RESERVE = 25           # never plan the provider account below this
 LEAGUES = ('nba', 'wnba')
 MORNING_HOUR = 9

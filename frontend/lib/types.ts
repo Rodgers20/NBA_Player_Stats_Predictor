@@ -275,7 +275,7 @@ export interface TrendCard {
   player: string;
   team: string;
   opponent: string | null;
-  stat: 'PTS' | 'REB' | 'AST' | 'FG3M';
+  stat: 'PTS' | 'REB' | 'AST' | 'FG3M' | 'STL' | 'BLK' | 'PTS+REB' | 'PTS+AST' | 'REB+AST' | 'PTS+REB+AST';
   side: 'over' | 'under';
   line: number;
   hits: number;

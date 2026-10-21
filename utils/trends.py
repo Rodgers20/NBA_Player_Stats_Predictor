@@ -10,9 +10,13 @@ import pandas as pd
 
 WINDOW = 10
 MIN_HITS = 8
-STATS = ('PTS', 'REB', 'AST', 'FG3M')
-NOUNS = {'PTS': 'points', 'REB': 'rebounds', 'AST': 'assists', 'FG3M': 'threes'}
-MIN_AVG = {'PTS': 8, 'REB': 3, 'AST': 2, 'FG3M': 1}   # skip players whose stat is negligible
+COMBOS = ('PTS+REB', 'PTS+AST', 'REB+AST', 'PTS+REB+AST')
+STATS = ('PTS', 'REB', 'AST', 'FG3M', 'STL', 'BLK') + COMBOS
+NOUNS = {'PTS': 'points', 'REB': 'rebounds', 'AST': 'assists', 'FG3M': 'threes', 'STL': 'steals', 'BLK': 'blocks',
+         'PTS+REB': 'points + rebounds', 'PTS+AST': 'points + assists', 'REB+AST': 'rebounds + assists',
+         'PTS+REB+AST': 'points + rebounds + assists'}
+MIN_AVG = {'PTS': 8, 'REB': 3, 'AST': 2, 'FG3M': 1, 'STL': 1, 'BLK': 1,   # skip players whose stat is negligible
+           'PTS+REB': 12, 'PTS+AST': 12, 'REB+AST': 6, 'PTS+REB+AST': 16}
 MIN_MINUTES = 15
 RECENT_DAYS = 14
 # ponytail: derived lines stay within 60%-140% of the average so "Over 0.5" never headlines; tune if too loose.
@@ -61,7 +65,10 @@ def _player_cards(name, rows, quotes):
     team = str(rows['TEAM_ABBREVIATION'].iloc[-1]) if 'TEAM_ABBREVIATION' in rows else ''
     cards = []
     for stat in STATS:
-        values = pd.to_numeric(rows[stat], errors='coerce').tolist()
+        parts = stat.split('+')
+        if not all(part in rows for part in parts):
+            continue
+        values = sum(pd.to_numeric(rows[part], errors='coerce') for part in parts).tolist()
         if not all(math.isfinite(v) for v in values):
             continue
         avg = sum(values) / len(values)
@@ -70,8 +77,9 @@ def _player_cards(name, rows, quotes):
         quote = (quotes.get(name) or {}).get(stat)
         if quote and quote.get('line') is not None:
             line = float(quote['line'])
+            # Combos are over-only; a single stat gets both sides on the posted line.
             cards += [_card(name, team, _opponent(quote, team), stat, side, line, values, 'live', _live(quote, side))
-                      for side in ('over', 'under')]
+                      for side in (('over',) if stat in COMBOS else ('over', 'under'))]
         else:
             # Books sell unders only on the posted line, so a derived (alternate) line is over-only.
             line = _derived_line(values, avg, 'over')

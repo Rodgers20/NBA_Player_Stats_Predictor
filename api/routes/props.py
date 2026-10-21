@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException, Query
 from api.data import League, history, number
 from api.routes import prop_extras
-from utils import early_season
+from utils.combo_model import COMBOS, add_combo_columns
 from utils.edge_rating import edge_fields
 
 router = APIRouter(tags=['props'])
@@ -291,9 +291,7 @@ def _serialise_prop(p, quality_reason=None):
     narrative = insight.get('narrative', '') if isinstance(insight, dict) else str(insight)
     eligible = quality_reason is None   # a real, fresh sportsbook price backs this row
     ev = number(p.get('ev')) if eligible else None
-    projection, line = number(p.get('model_projection')), number(p.get('line'))
-    favors = projection is None or line is None or (projection > line if p.get('direction', 'Over') == 'Over' else projection < line)
-    pick_type = 'research' if not eligible else 'pick' if ev is not None and ev > 0 and favors else 'lean'
+    pick_type = 'research' if not eligible else 'pick' if ev is not None and ev > 0 else 'lean'
     result = {key: p.get(key, '') for key in ('player', 'team', 'opponent', 'stat', 'game_matchup')}
     result.update({key: number(p.get(key)) for key in ('line', 'avg', 'l5_avg', 'hits', 'total', 'def_rank', 'live_line', 'model_projection')})
     result.update(stat_label=p.get('stat_label', p.get('stat', '')), direction=p.get('direction', 'Over'),
@@ -378,13 +376,13 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
     quotes = _cached_quotes(league)
     target = slate_date(league)
     output, skipped = [], []
-    df = history(league) if quotes else None
+    df = add_combo_columns(history(league)) if quotes else None
     opens = _open_lines(league) if quotes else {}
     injured_by_team = {}
     for player, markets in quotes.items():
         player_history = df[df['PLAYER_NAME'] == player].sort_values('_date', ascending=False)
         for stat, quote in markets.items():
-            if stat not in ('PTS', 'AST', 'REB'):
+            if stat not in ('PTS', 'AST', 'REB') + COMBOS:
                 continue
             reason = quote_problem(quote, target) or history_problem(player_history, target)
             if reason:
@@ -404,9 +402,6 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                 result = model.predict_player_game(player, player_history, game_date=target,
                                                    is_home=is_home)
                 projection = result[f'predicted_{stat.lower()}']
-                games_played = early_season.player_season_games(player_history, target, league) if 'SEASON_ID' in player_history else None
-                if games_played is not None:
-                    projection = early_season.shrink_projection(projection, quote['line'], games_played)
                 recent = player_history[player_history['_date'] < target].head(10)
                 values = recent[stat]
                 shared = prop_extras.shared_fields(league, player, stat, quote, opponent, opens)
@@ -414,7 +409,8 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                     injured_by_team[team] = prop_extras.unavailable_teammates(league, team, _injuries_for)
                 impacts = prop_extras.teammate_impacts(player, stat, player_history, df, injured_by_team[team])
                 candidates = []
-                for direction in ('Over', 'Under'):
+                # Books sell combo unders rarely and never as the bet we want to promote: combos are over-only.
+                for direction in (('Over',) if stat in COMBOS else ('Over', 'Under')):
                     price = quote.get('over_price' if direction == 'Over' else 'under_price')
                     evaluation = evaluate_market(projection, quote['line'], price,
                                                  getattr(model, 'calibration_residuals', None), direction,
