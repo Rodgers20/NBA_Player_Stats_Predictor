@@ -53,12 +53,23 @@ jobs:
             'fastapi>=0.111' 'uvicorn[standard]>=0.29' 'python-multipart>=0.0.9'
           npm ci --prefix frontend
 
-      - name: Refresh free historical data and export public snapshot
+      - name: Restore persistent odds credit ledger
+        uses: actions/cache/restore@v4
+        with:
+          path: data/personal.sqlite3
+          key: odds-ledger-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            odds-ledger-${{ github.ref_name }}-
+
+      - name: Refresh historical data and sportsbook quotes, then export public snapshot
         timeout-minutes: 50
+        env:
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+          ODDS_AUTO_REFRESH: "0"
         run: |
           set -euo pipefail
-          # Paid odds keys are never provided to this job. Do not add them here:
-          # the daily build has no persistent paid-API quota ledger.
+          # Only the explicit export refresh spends credits. The restored ledger
+          # keeps daily/monthly allowances across otherwise ephemeral runners.
           python scripts/refresh_nba_history.py
           python scripts/refresh_wnba_history.py
           python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/snapshot-api.log" 2>&1 &
@@ -74,12 +85,19 @@ jobs:
             fi
             sleep 2
           done
-          python scripts/export_api.py --out frontend/public/data --api http://127.0.0.1:8000 || {
+          python scripts/export_api.py --refresh-odds --out frontend/public/data --api http://127.0.0.1:8000 || {
             cat "$RUNNER_TEMP/snapshot-api.log"
             exit 1
           }
           du -sh frontend/public/data
           python -c 'from pathlib import Path; p=Path("frontend/public/data"); n=sum(f.stat().st_size for f in p.rglob("*") if f.is_file()); print(f"Snapshot payload: {n:,} bytes")'
+
+      - name: Save odds credit ledger even when export fails
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/personal.sqlite3
+          key: odds-ledger-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Pull Vercel production settings
         working-directory: frontend

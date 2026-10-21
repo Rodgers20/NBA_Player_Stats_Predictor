@@ -215,3 +215,129 @@ def joint_probability(
     for probs in groups.values():
         out *= _joint_correlated(probs, same_player_rho) if len(probs) > 1 else probs[0]
     return min(max(out, 0.0), 1.0)
+
+
+# ---------------------------------------------------------------------------
+# Same-game (SGP) correlation
+#
+# ``joint_probability`` above only links legs on the SAME player. The tables
+# below add conservative same-game terms for ``joint_probability_sgp``.
+# Every value is a Gaussian-copula correlation between the two STATS (before
+# side adjustment). They are judgement-based priors shaded toward zero, NOT
+# fitted: the tracked history measured -0.002 across different players
+# (n=1436), so we only apply effects with a clear mechanical or basketball
+# reason and keep them small. Re-fit once same-game history is large enough.
+# ---------------------------------------------------------------------------
+
+# Same player: a combo prop contains the other leg's stat (PTS vs PTS+REB+AST,
+# or PTS+REB vs PTS+REB+AST). The naive overlap is sd(part)/sd(combo) ~= 0.7-0.8
+# (see EMPIRICAL_RESID_SD); we use 0.60 so we never overstate the overlap.
+SAME_PLAYER_CONTAINED_RHO = 0.60
+# Same player: two combos that only partly overlap (PTS+REB vs PTS+AST).
+SAME_PLAYER_SHARED_COMPOSITE_RHO = 0.45
+# Same player, distinct single stats. Usage and minutes lift all of them a
+# little, PTS-AST and PTS-REB most. Unlisted pairs use SAME_PLAYER_RHO.
+SAME_PLAYER_SINGLE_STAT_RHO: dict[frozenset, float] = {
+    frozenset(("PTS", "AST")): 0.15,
+    frozenset(("PTS", "REB")): 0.10,
+    frozenset(("REB", "AST")): 0.05,
+    frozenset(("PTS", "FG3M")): 0.45,  # threes are points: a mechanical overlap
+}
+
+# Different players, same team. Negative: teammates split the same possessions
+# and rebounds. Positive: a passer's assists create a scorer's points.
+TEAMMATE_STAT_RHO: dict[frozenset, float] = {
+    frozenset(("PTS",)): -0.05,         # PTS vs PTS: shots are shared within a team
+    frozenset(("PTS", "AST")): 0.10,    # one player's PTS with a teammate's AST
+    frozenset(("REB",)): -0.10,         # REB vs REB: a board for one is not for the other
+    frozenset(("AST",)): -0.03,         # AST vs AST: one assist per made basket
+}
+# Players on opposing teams in one game share pace and game script.
+OPPONENT_RHO = 0.04
+
+MAX_ABS_RHO = 0.80  # hard cap so the matrix stays well conditioned
+_SGP_SAMPLES = 200_000
+_SGP_SEED = 20260915
+
+
+def _parts(stat: str) -> frozenset:
+    return frozenset(s for s in (stat or "").upper().split("+") if s)
+
+
+def _same_player_rho(a: frozenset, b: frozenset) -> tuple[float, str]:
+    if a < b or b < a:
+        return SAME_PLAYER_CONTAINED_RHO, "same player, one prop is part of the other"
+    if len(a) > 1 and len(b) > 1 and a & b:
+        return SAME_PLAYER_SHARED_COMPOSITE_RHO, "same player, combo props share a stat"
+    return SAME_PLAYER_SINGLE_STAT_RHO.get(a | b, SAME_PLAYER_RHO), "same player, related stats"
+
+
+def _teammate_rho(a: frozenset, b: frozenset) -> tuple[float, str]:
+    """Mean table value over component pairs, so combo props blend their parts."""
+    pairs = [TEAMMATE_STAT_RHO.get(frozenset((x, y)), 0.0) for x in a for y in b]
+    rho = sum(pairs) / len(pairs) if pairs else 0.0
+    return rho, "teammates share possessions and rebounds" if rho < 0 else "teammates, assists feed points"
+
+
+def stat_correlation(a: dict, b: dict) -> tuple[float, str]:
+    """Correlation of two legs' underlying STATS (positive = move together), plus a reason.
+
+    Legs in different games, or with no game given, are independent.
+    """
+    game = a.get("game") or ""
+    if not game or game != b.get("game"):
+        return 0.0, ""
+    pa, pb = _parts(a.get("stat")), _parts(b.get("stat"))
+    if (a.get("player") or "").lower() == (b.get("player") or "").lower():
+        rho, why = _same_player_rho(pa, pb)
+    elif a.get("team") and a.get("team") == b.get("team"):
+        rho, why = _teammate_rho(pa, pb)
+    elif a.get("team") and b.get("team"):
+        rho, why = OPPONENT_RHO, "opponents share game pace"
+    else:
+        return 0.0, ""
+    return max(-MAX_ABS_RHO, min(MAX_ABS_RHO, rho)), why
+
+
+def _side_sign(leg: dict) -> int:
+    return -1 if str(leg.get("side", "Over")).lower().startswith("u") else 1
+
+
+def hit_correlation(a: dict, b: dict) -> tuple[float, str]:
+    """Correlation of the legs' HIT events: stat correlation times the side signs.
+
+    An Under paired with an Over of a positively-correlated stat correlates negatively.
+    """
+    rho, why = stat_correlation(a, b)
+    return rho * _side_sign(a) * _side_sign(b), why
+
+
+def joint_probability_sgp(legs: list[dict]) -> float:
+    """P(all legs hit) under a Gaussian copula with the pairwise hit correlations.
+
+    Each leg needs ``prob`` (its own win probability). With no correlated pair
+    this is exactly the product; otherwise a fixed-seed Monte Carlo
+    (SE ~0.001) estimates the orthant probability, so results are repeatable.
+    """
+    import numpy as np
+
+    n = len(legs)
+    probs = [min(max(float(leg["prob"]), 1e-6), 1.0 - 1e-6) for leg in legs]
+    independent = math.prod(probs)
+    corr = np.eye(n)
+    for i in range(n):
+        for j in range(i + 1, n):
+            corr[i, j] = corr[j, i] = hit_correlation(legs[i], legs[j])[0]
+    if n < 2 or not np.abs(corr - np.eye(n)).any():
+        return independent
+    for shrink in (0.0, 0.1, 0.25, 0.5, 0.9):  # blend toward identity until positive definite
+        try:
+            chol = np.linalg.cholesky((1 - shrink) * corr + shrink * np.eye(n))
+            break
+        except np.linalg.LinAlgError:
+            continue
+    else:
+        return independent
+    draws = np.random.default_rng(_SGP_SEED).standard_normal((_SGP_SAMPLES, n)) @ chol.T
+    bounds = np.array([_norm_ppf(p) for p in probs])
+    return float(min(max((draws <= bounds).all(axis=1).mean(), 0.0), min(probs)))

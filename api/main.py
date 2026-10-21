@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import props, games, players, hitrates
+from api.routes import props, games, players, hitrates, teams, performance, trends
 
 @asynccontextmanager
 async def lifespan(_app):
@@ -28,7 +28,7 @@ app.add_middleware(
     allow_origins=os.getenv('API_CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001').split(','),
     allow_credentials=False, allow_methods=['GET', 'POST', 'PATCH', 'DELETE'], allow_headers=['*'],
 )
-for router in (props.router, games.router, players.router, hitrates.router):
+for router in (props.router, games.router, players.router, hitrates.router, teams.router, performance.router, trends.router):
     app.include_router(router, prefix='/api')
 
 
@@ -37,8 +37,9 @@ def health():
     return {'status': 'ok'}
 
 
-from api.routes import journal
+from api.routes import journal, slip
 app.include_router(journal.router, prefix='/api')
+app.include_router(slip.router, prefix='/api')
 
 if os.getenv('SERVE_FRONTEND') == '1':
     from pathlib import Path

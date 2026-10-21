@@ -17,6 +17,7 @@ export interface Filters {
   sort: string;
   game: string;
   locksOnly: boolean;
+  minStars: number;
 }
 
 interface Props {
@@ -125,6 +126,18 @@ export function PropFilters({ filters, matchups, statCounts, onChange }: Props) 
             >
               <option value="hit_rate">Highest Hit Rate</option>
               <option value="ev">Highest EV</option>
+              <option value="edge">Biggest Edge</option>
+            </select>
+          </label>
+          <label className="ql-data-label flex flex-col gap-1.5 text-[#a9bec0]">
+            MIN STARS
+            <select
+              value={filters.minStars}
+              onChange={(event) => onChange({ minStars: Number(event.target.value) })}
+              className="ql-control min-h-8 min-w-24 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-[#eaf8f6]"
+            >
+              <option value={0}>Any</option>
+              {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}+ ★</option>)}
             </select>
           </label>
         </div>

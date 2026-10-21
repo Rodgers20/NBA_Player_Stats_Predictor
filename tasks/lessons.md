@@ -20,3 +20,7 @@
 - A working preview does not establish that the production domain works. After hosting changes, verify the exact user-facing production domain and its deployment alias before handing it off.
 
 - Distinguish an existing Odds API subscription/key from missing quoted data in a hosted snapshot. Inspect the refresh/export pipeline before implying the user lacks provider access.
+- Restoring an older deployment does not finish an odds integration. Verify the hosted snapshot contains current provider quotes, and connect its refresh job before describing odds as hooked up.
+- When odds fixes exist locally, verify the production snapshot and refresh workflow too. Persisting quotes in the API does not update a static deployment; export must explicitly refresh quotes within the credit budget, and a player-level deduplication must not hide separate stat markets.
+
+- When the user requests the NFL matchup artwork across the slate, apply it to every game card as well as the featured matchup; verify multiple games rather than just the selected banner. Model Performance must distinguish current-version prospective results, legacy calls and fixed holdouts.

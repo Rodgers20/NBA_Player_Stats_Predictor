@@ -1,0 +1,13 @@
+{
+  "rows": 7882,
+  "games": 3941,
+  "first_game": "2023-10-24",
+  "last_game": "2026-06-13",
+  "written_at": "2026-10-08T21:40:01.403597+00:00",
+  "sources": [
+    "kaggle:historical-nba-data-and-player-box-scores:v515",
+    "stats.nba.com:LeagueGameLog"
+  ],
+  "historical_pregame_injuries": false,
+  "note": "Freshness must be compared to latest completed league game; fetch time does not imply current coverage."
+}

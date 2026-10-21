@@ -1,5 +1,8 @@
-import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse } from "./types";
-import { playerKey, filterProps, seriesChart, scheduledPlayersSnapshot } from './snapshot.mjs';
+import type { TeamsResponse } from './team-types';
+import type { StandingsResponse } from './standings-types';
+import type { BoxScore } from './boxscore-types';
+import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse, HighlightsResponse, ScheduleIndex, PerformanceResponse, LineHistory, DefenseRankings, TrendsResponse } from "./types";
+import { playerKey, filterProps, seriesChart, scheduledPlayersSnapshot, filterDefense, filterTrends } from './snapshot.mjs';
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, '');
 const STATIC = process.env.NEXT_PUBLIC_DATA_MODE === 'static';
@@ -25,9 +28,29 @@ export const api = {
   props: async (params: Params = {}) => STATIC
     ? filterProps(await snapshot<PropsResponse>(String(params.league ?? 'nba'), 'props'), params)
     : get<PropsResponse>('/api/props', params),
+  // Line history is a live-only research aid; static snapshots deliberately carry none.
+  lineHistory: async (player: string, stat: string, league = 'nba'): Promise<LineHistory> => STATIC
+    ? { league, player, stat, snapshots: [] }
+    : get<LineHistory>('/api/props/line-history', { player, stat, league }),
+  defense: async (league = 'nba', stat = ''): Promise<DefenseRankings> => {
+    if (!STATIC) return get<DefenseRankings>('/api/defense', { league, stat });
+    try {
+      return filterDefense(await snapshot<DefenseRankings>(league, 'defense'), stat);
+    } catch {
+      return { league, stat: stat || null, season: null, rankings: [] };
+    }
+  },
+  trends: async (league = 'nba', params: Params = {}): Promise<TrendsResponse> => {
+    if (!STATIC) return get<TrendsResponse>('/api/trends', { league, ...params });
+    try {
+      return filterTrends(await snapshot<TrendsResponse>(league, 'trends'), params);
+    } catch {
+      return { league, count: 0, trends: [] };
+    }
+  },
   altLines: (league = 'nba') => STATIC ? snapshot<AltLinesResponse>(league, 'alt-lines') : get<AltLinesResponse>('/api/props/alt-lines', { league }),
   propsRecord: () => get<PropsRecordResponse>(STATIC ? '/data/props-record.json' : '/api/props/record'),
-  predictions: (league = 'nba') => STATIC ? snapshot<GamePredictionsResponse>(league, 'predictions') : get<GamePredictionsResponse>('/api/games/predictions', { league }),
+  predictions: (league = 'nba', gameDate?: string) => STATIC ? snapshot<GamePredictionsResponse>(league, gameDate ? `schedule/${gameDate}-predictions` : 'predictions') : get<GamePredictionsResponse>('/api/games/predictions', { league, ...(gameDate ? {game_date: gameDate} : {}) }),
   budget: (league = 'nba') => get<{ configured: boolean; daily: number; daily_limit: number; monthly: number; monthly_limit: number; remaining: number | null; message: string }>('/api/props/budget', { league }),
   refreshProps: async (league = 'nba') => {
     if (STATIC) throw new Error('Refreshing quotes requires the connected app.');
@@ -35,7 +58,13 @@ export const api = {
     if (!response.ok) throw new Error('Could not refresh quotes. Please try again later.');
     return response.json() as Promise<{ count: number; message: string; skipped: { reason: string }[]; budget?: { message: string } }>;
   },
-  games: (league = 'nba') => STATIC ? snapshot<GamesResponse>(league, 'games') : get<GamesResponse>('/api/games', { league }),
+  games: (league = 'nba', gameDate?: string) => STATIC ? snapshot<GamesResponse>(league, gameDate ? `schedule/${gameDate}` : 'games') : get<GamesResponse>('/api/games', { league, ...(gameDate ? {game_date: gameDate} : {}) }),
+  teams: (league = 'nba', season?: number) => STATIC ? snapshot<TeamsResponse>(league, season ? `teams-${season}` : 'teams') : get<TeamsResponse>('/api/teams', {league, ...(season ? {season} : {})}),
+  performance: (league = 'nba') => STATIC ? snapshot<PerformanceResponse>(league, 'performance') : get<PerformanceResponse>('/api/performance', {league}),
+  standings: (league = 'nba') => STATIC ? snapshot<StandingsResponse>(league, 'standings') : get<StandingsResponse>('/api/standings', {league}),
+  boxscore: (league: string, gameId: string) => STATIC ? snapshot<BoxScore>(league, `boxscore/${gameId}`) : get<BoxScore>(`/api/games/${encodeURIComponent(gameId)}/boxscore`, {league}),
+  highlights: (league = 'nba') => STATIC ? snapshot<HighlightsResponse>(league, 'highlights') : get<HighlightsResponse>('/api/highlights', {league}),
+  scheduleIndex: (league = 'nba') => STATIC ? snapshot<ScheduleIndex>(league, 'schedule-index') : Promise.resolve(null),
   refreshGameLines: async (league: 'nba' | 'wnba') => {
     if (STATIC) throw new Error('Refreshing game lines requires the connected app.');
     const response = await fetch(`${BASE}/api/games/refresh-lines?league=${encodeURIComponent(league)}`, { method: 'POST' });

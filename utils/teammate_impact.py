@@ -69,6 +69,7 @@ def analyze_teammate_impact(
         "avg_without": round(avg_without, 1),
         "diff": round(diff, 1),
         "games_without": len(games_without),
+        "values_without": list(games_without),
         "stat": stat
     }
 

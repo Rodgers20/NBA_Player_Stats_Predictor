@@ -192,3 +192,7 @@ button { min-height: 36px; }
 .skip-link { position: fixed; z-index: 100; top: -100px; left: 16px; padding: 12px; background: var(--color-teal-400); color: #0b101a; }
 .skip-link:focus { top: 10px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* Keep the expanded basketball navigation usable on laptops and small phones. */
+@media(min-width:901px) and (max-width:1350px) {.site-header-inner {gap:10px;padding:0 18px;}.site-nav {min-width:0;overflow-x:auto;}.site-nav-link {padding:8px 10px;font-size:12px;}.site-brand {font-size:16px;}.site-league-pill {font-size:11px;padding:5px 8px;}}
+@media(max-width:900px) {.mobile-nav {overflow-x:auto;justify-content:flex-start;}.mobile-nav-link {flex:1 0 70px;min-width:70px;padding:8px 4px;}.mobile-nav-link span {max-width:78px;line-height:1.25;}}

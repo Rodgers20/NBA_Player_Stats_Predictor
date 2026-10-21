@@ -1,56 +1,20 @@
 "use client";
 
-import { FormEvent, Suspense, useRef, useState } from "react";
+import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowUpRight, NotebookPen } from "lucide-react";
 import { GameDayPlayerPicker } from "@/components/bets/GameDayPlayerPicker";
-import { BetSlip } from "@/components/props/BetSlip";
+import { BetBreakdowns } from "@/components/bets/BetBreakdowns";
+import { averageClv } from "@/lib/journal-clv.mjs";
 import { usePrefs } from "@/store/prefs";
-import { localJournalAdd, localJournalList, localJournalSettle } from "@/lib/local-journal.mjs";
+import { JournalError, STATIC, autoSettle, request, type Journal, type Mode, type Result } from "@/lib/journal-client";
 
-type Mode = "paper" | "real";
-type Result = "win" | "loss" | "push" | "void" | "pending";
-type Bet = {
-  id: string; league: string; game_date: string; player: string; side: string;
-  line: number; stat: string; book: string; price: number; stake_cents: number;
-  profit_cents: number | null; result: Result; notes: string;
-};
-type Journal = { bets: Bet[]; summary: { settled: number; profit: number; roi: number | null; pending: number } };
-const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
-const STATIC = process.env.NEXT_PUBLIC_DATA_MODE === "static";
 const control = "ql-control w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 disabled:opacity-40";
 const button = "rounded bg-teal-400 px-5 py-3 text-sm font-bold text-[#0d151b] disabled:opacity-40 disabled:cursor-not-allowed";
 const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 const stats = [["PTS", "Points"], ["REB", "Rebounds"], ["AST", "Assists"], ["FG3M", "Threes"], ["STL", "Steals"], ["BLK", "Blocks"], ["PTS+REB", "Points + rebounds"], ["PTS+AST", "Points + assists"], ["REB+AST", "Rebounds + assists"], ["PTS+REB+AST", "PRA"], ["STL+BLK", "Steals + blocks"]] as const;
-
-class JournalError extends Error {
-  constructor(message: string, public validation = false) { super(message); }
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  if (STATIC) {
-    try {
-      if (!init?.method || init.method === 'GET') return localJournalList(localStorage, new URLSearchParams(path.replace(/^\?/, '')).get('mode') || 'paper') as T;
-      const body = JSON.parse(String(init.body || '{}'));
-      if (init.method === 'POST') return localJournalAdd(localStorage, body) as T;
-      if (init.method === 'PATCH') return localJournalSettle(localStorage, decodeURIComponent(path.slice(1)), body.result) as T;
-    } catch (error) {
-      throw new JournalError(error instanceof Error ? error.message : 'Could not save your journal.', true);
-    }
-    throw new JournalError('Unsupported journal operation.');
-  }
-  const response = await fetch(`${BASE}/api/journal${path}`, { cache: "no-store", ...init });
-  const body = await response.json().catch(() => null);
-  if (!response.ok || !body) {
-    const detail = body?.detail;
-    throw new JournalError(typeof detail === "string" ? detail : Array.isArray(detail)
-      ? detail.map((item: { loc: string[]; msg: string }) => `${item.loc.slice(1).join(".")}: ${item.msg}`).join(" · ")
-      : "The journal service is unavailable. Your change was not confirmed; retry when connected.", response.status === 422);
-  }
-  return body as T;
-}
 
 export default function BetsPage() {
   return <Suspense fallback={<div className="mx-auto max-w-5xl p-8 text-sm text-text-sec">Loading journal…</div>}><BetsContent /></Suspense>;
@@ -83,7 +47,20 @@ function BetsContent() {
   const { data, isPending, isError, refetch } = useQuery<Journal>({
     queryKey: ["journal", mode], queryFn: () => request(`?mode=${mode}`), retry: false,
   });
+  const clv = data ? averageClv(data.bets) : null;
   const unavailable = isPending || isError || !data;
+  const attempted = useRef(new Set<string>());
+  useEffect(() => {
+    const open = (data?.bets ?? []).filter(bet => bet.result === "pending" && !attempted.current.has(bet.id));
+    if (!open.length) return;
+    open.forEach(bet => attempted.current.add(bet.id));
+    void autoSettle(open).then(async ({ settled, failed }) => {
+      if (settled) {
+        setSettleNotice(`Auto-graded ${settled} ${settled === 1 ? "bet" : "bets"} from box scores. Correct any your book settled differently.`);
+        await cache.invalidateQueries({ queryKey: ["journal"] });
+      } else if (failed) setSettleNotice("Some bets could not be auto-graded. Settle them by hand.");
+    });
+  }, [data, cache]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -178,7 +155,6 @@ function BetsContent() {
       </section>
 
       <div className="space-y-5">
-      <BetSlip />
       <section className="ql-panel p-5 md:p-6" aria-labelledby="settle-title">
         <p className="ql-kicker">Settle your picks</p>
         <h2 id="settle-title" className="ql-section-title mt-2">Settle or correct a result</h2>
@@ -206,11 +182,15 @@ function BetsContent() {
           </div>
         </div>
         {data && !isError && <>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
             {[["Net profit", money(data.summary.profit)], ["Settled ROI", data.summary.roi === null ? "—" : `${data.summary.roi.toFixed(1)}%`],
               ["Pending stake", money(data.summary.pending)], ["Settled bets", data.summary.settled]].map(([label, value]) =>
               <div key={label} className="ql-panel p-4"><p className="ql-data-label">{label}</p><p className="ql-metric mt-3">{value}</p></div>)}
+            <div className="ql-panel col-span-2 p-4 md:col-span-1"><p className="ql-data-label">Average CLV</p>
+              <p className="ql-metric mt-3">{clv ? `${clv.average > 0 ? "+" : ""}${clv.average.toFixed(1)}%` : "—"}</p>
+              <p className="mt-2 text-xs text-[var(--color-text-sec)]">{clv ? `Across ${clv.count} ${clv.count === 1 ? "bet" : "bets"} with a closing line` : "Closing lines are saved when odds refresh before tip-off"}</p></div>
           </div>
+          <BetBreakdowns summary={data.summary} />
           {data.bets.length === 0 ? <div className="ql-panel p-7 text-sm text-[var(--color-text-sec)]">No {mode} entries yet. Only selections you explicitly save appear here.</div> :
             <div className="ql-panel overflow-x-auto"><table className="w-full whitespace-nowrap text-left text-sm">
               <caption className="sr-only">{mode === "paper" ? "Paper tests" : "Real wagers"} journal</caption>
@@ -218,7 +198,7 @@ function BetsContent() {
               <tbody>{data.bets.map(bet => <tr key={bet.id} className="border-b border-[#2b4248] last:border-0 hover:bg-[#20363a]">
                 <td className="p-4">{bet.game_date}<p className="text-xs uppercase text-[var(--color-text-sec)]">{bet.league}</p></td>
                 <td className="p-4"><p className="font-semibold">{bet.player}</p><p className="text-xs text-[var(--color-text-sec)]">{bet.side} {bet.line} {bet.stat}</p>{bet.notes && <p className="mt-1 max-w-64 whitespace-normal text-xs text-[var(--color-text-sec)]">{bet.notes}</p>}</td>
-                <td className="p-4">{bet.book}<p className="text-xs text-[var(--color-text-sec)]">{bet.price > 0 ? "+" : ""}{bet.price}</p></td>
+                <td className="p-4">{bet.book}<p className="text-xs text-[var(--color-text-sec)]">{bet.price > 0 ? "+" : ""}{bet.price}</p>{bet.clv?.clv_pct != null && <p title={`Closed ${bet.clv.close_line ?? "—"} at ${bet.clv.close_price ?? "—"}`} className={`mt-1 inline-block rounded border px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${bet.clv.clv_pct >= 0 ? "border-green-400/30 text-green-300" : "border-red-400/30 text-red-300"}`}>CLV {bet.clv.clv_pct > 0 ? "+" : ""}{bet.clv.clv_pct.toFixed(1)}%</p>}</td>
                 <td className="p-4 tabular-nums">{money(bet.stake_cents / 100)}</td><td className="p-4 capitalize">{bet.result}{bet.result === "pending" && <div className="mt-2 flex gap-2 normal-case"><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "win")} className="rounded border border-green-400/30 px-2 py-1 text-xs text-green-300 disabled:opacity-40">Win</button><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "loss")} className="rounded border border-red-400/30 px-2 py-1 text-xs text-red-300 disabled:opacity-40">Loss</button><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "push")} className="rounded border border-white/15 px-2 py-1 text-xs text-text-sec disabled:opacity-40">Push</button></div>}</td><td className="p-4 tabular-nums">{bet.profit_cents === null ? "—" : money(bet.profit_cents / 100)}</td>
               </tr>)}</tbody>
             </table></div>}

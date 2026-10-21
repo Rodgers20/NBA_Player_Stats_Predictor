@@ -106,6 +106,21 @@ export function PlayerBarChart({ games, stat, line, height = 200 }: Props) {
           );
         })}
 
+        {/* Value labels — only when bars are wide enough to stay legible */}
+        {xScale.bandwidth() >= 18 && data.map((d, i) => d.value != null && (
+          <text
+            key={i}
+            x={(xScale(String(i)) ?? 0) + xScale.bandwidth() / 2}
+            y={yScale(d.value) - 4}
+            textAnchor="middle"
+            fontSize={10}
+            fontWeight={600}
+            fill="#eaf8f6"
+          >
+            {Number.isInteger(d.value) ? d.value : d.value.toFixed(1)}
+          </text>
+        ))}
+
         {/* X axis labels — every other label for space */}
         {data.map((d, i) => i % 2 === 0 && (
           <text

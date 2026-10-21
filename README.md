@@ -51,6 +51,14 @@ SQLite journal and keeps paper and real entries separate.
   app and is unavailable in static mode. Re-export to refresh the snapshot;
   export failures preserve the previous data and fail the build command.
 
+The scheduled Vercel snapshot workflow refreshes sportsbook quotes before
+exporting. Configure the repository secret `THE_ODDS_API_KEY` alongside
+`VERCEL_TOKEN`. It restores and saves the SQLite odds ledger and quote cache
+between runs, including failed exports, and disables the API background
+scheduler so refreshes use the explicit budgeted export path. GitHub caches
+can be evicted; provider quota checks also limit refreshes. Missing quotes
+remain unpriced research rather than invented sportsbook prices.
+
 `make build` checks the normal Next server build. `make test` runs the Python
 suite, frontend behavior tests, lint and TypeScript checks. See
 [tasks/todo.md](tasks/todo.md) for transformation verification and limitations.

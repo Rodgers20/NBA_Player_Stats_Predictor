@@ -60,3 +60,6 @@ htmlcov/
 # Local personal journal and generated public snapshots
 data/personal.sqlite3*
 frontend/public/data/
+
+# Recomputable game-model feature cache
+data/*/game_features-*.parquet

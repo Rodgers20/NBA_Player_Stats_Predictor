@@ -5,11 +5,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
 import type { Prop, PropsResponse } from "@/lib/types";
-import { useSlip } from "@/store/slip";
-import { BetSlip } from "@/components/props/BetSlip";
 import { PropCard } from "@/components/props/PropCard";
 import { PropAnalysisPanel } from "@/components/props/PropAnalysisPanel";
 import { PropFilters, type Filters } from "@/components/props/PropFilters";
+import { filterMinStars, sortByEdge } from "@/lib/prop-research.mjs";
 
 const PAGE = 30;
 
@@ -22,7 +21,6 @@ function slateDate(value: string | null | undefined) {
 }
 
 export default function PropsPage() {
-  const slipCount = useSlip(state => state.legs.length);
   const { defaultStat, defaultSort, league } = usePrefs();
   const [filters, setFilters] = useState<Filters>({
     stat: defaultStat,
@@ -31,6 +29,7 @@ export default function PropsPage() {
     sort: defaultSort,
     game: "",
     locksOnly: false,
+    minStars: 0,
   });
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"props" | "alt" | "record">("props");
@@ -54,7 +53,7 @@ export default function PropsPage() {
     league,
     direction: filters.direction.toLowerCase(),
     location: filters.location.toLowerCase(),
-    sort: filters.sort,
+    sort: filters.sort === "edge" ? "ev" : filters.sort, // the API has no edge sort; it is applied below
     include_research: true,
     limit: PAGE * page,
     ...(filters.stat && { stat: filters.stat }),
@@ -71,8 +70,10 @@ export default function PropsPage() {
     setPage(1);
   }
   const activeView = (view === "alt" && !altLines.data?.count) || (view === "record" && !record.data?.total) ? "props" : view;
-  const byGame = Object.groupBy(data?.props ?? [], (prop) => prop.game_matchup || "Other matchups");
-  const verifiedCount = data?.props.filter((prop) => (prop.pick_type ?? (prop.recommendation_eligible ? "pick" : "research")) !== "research").length ?? 0;
+  const starred = filterMinStars(data?.props ?? [], filters.minStars);
+  const shownProps = filters.sort === "edge" ? sortByEdge(starred) : starred;
+  const byGame = Object.groupBy(shownProps, (prop) => prop.game_matchup || "Other matchups");
+  const verifiedCount = shownProps.filter((prop) => (prop.pick_type ?? (prop.recommendation_eligible ? "pick" : "research")) !== "research").length;
   const selectedProp = selected?.league === league ? selected.prop : null;
 
   return (
@@ -127,8 +128,7 @@ export default function PropsPage() {
         <p role="status" className="ql-panel mb-4 border-[#f5ba64]/30 px-4 py-3 text-xs text-[#f5ba64]">{data.message} These are model projections without a sportsbook line, price, or betting pick.</p>
       )}
 
-      <a href="#props-slip" className="ql-control mb-4 block px-4 py-3 text-center text-sm font-semibold text-[#59e0c8] xl:hidden">View your slip · {slipCount} {slipCount === 1 ? 'leg' : 'legs'} ↓</a>
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_350px]"><div className="min-w-0">
+      <div className="min-w-0">
       {activeView === "props" && isPending && (
         <div className="ql-panel overflow-hidden" aria-busy="true" aria-label="Loading props">
           {Array.from({ length: 5 }).map((_, index) => (
@@ -162,7 +162,7 @@ export default function PropsPage() {
                 <span className="ql-data-label text-[#a9bec0]">{props?.length ?? 0} PROPS</span>
               </div>
               <div className="ql-panel overflow-hidden">
-                {props?.map((prop) => <PropCard key={`${prop.player}-${prop.stat}-${prop.direction}-${prop.line}`} prop={prop} targetDate={data.target_date} selected={selectedProp === prop} onAnalyze={(next) => setSelected({ league, prop: next })} />)}
+                {props?.map((prop) => <PropCard key={`${prop.player}-${prop.stat}-${prop.direction}-${prop.line}`} prop={prop} targetDate={data.target_date} selected={selectedProp === prop} record={record.data} onAnalyze={(next) => setSelected({ league, prop: next })} />)}
               </div>
             </section>
           ))}
@@ -207,7 +207,7 @@ export default function PropsPage() {
         </div>}
       </section>}
 
-      </div><div id="props-slip" className="scroll-mt-20 xl:sticky xl:top-24"><BetSlip /></div></div>
+      </div>
       <p className="mt-5 text-center text-xs text-[#a9bec0]">Historical hit rates are descriptive, not guaranteed outcomes.</p>
     </main>
   );

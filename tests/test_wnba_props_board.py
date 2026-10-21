@@ -1,4 +1,4 @@
-"""WNBA Props separates unpriced research from a five-player priced board."""
+"""WNBA Props separates unpriced research from a board containing every evaluated market."""
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -73,7 +73,7 @@ def test_wnba_research_without_stat_covers_every_stat(monkeypatch):
     assert response['count'] == 21
 
 
-def test_wnba_priced_board_caps_board_at_fifteen_distinct_players(monkeypatch):
+def test_wnba_priced_board_preserves_multiple_markets_per_player(monkeypatch):
     from utils import market_evaluation
 
     names = [f'Player {index}' for index in range(20)]
@@ -90,16 +90,16 @@ def test_wnba_priced_board_caps_board_at_fifteen_distinct_players(monkeypatch):
         name: {'PTS': dict(quote), 'REB': dict(quote)} for name in names})
     mock_wnba_model(monkeypatch)
     monkeypatch.setattr(market_evaluation, 'evaluate_market',
-                        lambda projection, line, price, residuals, direction:
+                        lambda projection, line, price, residuals, direction, **kwargs:
                         {'ev': 0.2 if direction == 'Over' else -0.1,
                          'model_prob': 0.75, 'probability_source': 'Test model'})
     reject_paid_fetch(monkeypatch)
 
     refreshed = client.post('/api/props/refresh?league=wnba').json()
-    assert refreshed['count'] == 15
+    assert refreshed['count'] == 40
     assert refreshed['status'] == 'ready'
     board = client.get('/api/props?league=wnba').json()
     assert board['status'] == 'ready'
-    assert board['count'] == len(board['props']) == 15
-    assert len({row['player'] for row in board['props']}) == 15
+    assert board['count'] == len(board['props']) == 40
+    assert len({row['player'] for row in board['props']}) == 20
     assert all(row['ev'] > 0 and row['recommendation_eligible'] for row in board['props'])
