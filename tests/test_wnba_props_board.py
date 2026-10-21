@@ -87,7 +87,7 @@ def test_wnba_priced_board_preserves_multiple_markets_per_player(monkeypatch):
     monkeypatch.setattr(props, '_evaluated_cache', {})
     monkeypatch.setattr(props, 'history', lambda league: rows)
     monkeypatch.setattr(wnba_odds_fetcher, '_cache', {
-        name: {'PTS': dict(quote), 'REB': dict(quote)} for name in names})
+        name: {'PTS': dict(quote), 'REB': dict(quote, line=10.5)} for name in names})
     mock_wnba_model(monkeypatch)
     monkeypatch.setattr(market_evaluation, 'evaluate_market',
                         lambda projection, line, price, residuals, direction, **kwargs:

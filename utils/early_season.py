@@ -45,3 +45,22 @@ def shrink_early_season(forecast: dict, games: float, baseline: float) -> dict:
         out['prediction_intervals'] = dict(
             intervals, margin_80=[v + shift for v in intervals.get('margin_80', [])])
     return out
+
+
+def player_season_games(history: pd.DataFrame, target: pd.Timestamp, league: str = 'nba') -> int:
+    """Regular-season games a player has logged this season before ``target`` (exhibitions, SEASON_ID 1xxxx, excluded)."""
+    target = pd.Timestamp(target)
+    start_year = target.year - int(league == 'nba' and target.month < 7)
+    start = pd.Timestamp(year=start_year, month=7 if league == 'nba' else 1, day=1)
+    regular = ~history['SEASON_ID'].astype(str).str.startswith('1')
+    return int(((history['_date'] >= start) & (history['_date'] < target) & regular).sum())
+
+
+def shrink_projection(projection: float, line: float, games: int) -> float:
+    """Pull a player projection toward the market line until the player has real games this season.
+
+    The player model reads only the player's own box scores, so after an offseason of trades and role
+    changes the sportsbook line knows more than it does. Same half-life as the team forecast.
+    """
+    weight = max(games, 0) / (max(games, 0) + TRUST_HALF_LIFE_GAMES)
+    return line + (projection - line) * weight

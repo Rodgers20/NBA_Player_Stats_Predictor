@@ -20,15 +20,19 @@ def cards(df, **kw):
     return trends.build_trends(df, today=TODAY, **kw)
 
 
-def test_derived_under_card_uses_tightest_line_with_enough_hits():
-    # nine of ten games below 5.5, one outlier
-    result = [c for c in cards(frame([2, 3, 4, 5, 3, 4, 2, 5, 9, 4])) if c['side'] == 'under']
-    assert len(result) == 1
-    card = result[0]
-    assert (card['line'], card['hits'], card['games'], card['stat']) == (5.5, 9, 10, 'REB')
-    assert card['results'] == [True] * 8 + [False, True]
-    assert card['text'] == 'Under 5.5 rebounds in 9 of last 10'
-    assert card['stars'] == 4 and card['live'] is None and card['line_source'] == 'derived'
+def test_derived_lines_never_produce_unders():
+    # Books only offer unders on the posted line; an alternate line can only be bet over.
+    # nine of ten games below 5.5 would make a derived "Under 5.5", which cannot be bet.
+    result = cards(frame([2, 3, 4, 5, 3, 4, 2, 5, 9, 4]))
+    assert result and all(c['side'] == 'over' for c in result if c['line_source'] == 'derived')
+
+
+def test_posted_line_keeps_the_under_card_with_its_price():
+    quote = {'line': 5.5, 'over_price': -110, 'under_price': -125, 'bookmaker': 'DK',
+             'home_team': 'AAA', 'away_team': 'BBB'}
+    result = cards(frame([2, 3, 4, 5, 3, 4, 2, 5, 9, 4]), quotes={'Big Man': {'REB': quote}})
+    assert [(c['side'], c['line'], c['hits'], c['line_source']) for c in result] == [('under', 5.5, 9, 'live')]
+    assert result[0]['text'] == 'Under 5.5 rebounds in 9 of last 10' and result[0]['stars'] == 4
 
 
 def test_derived_over_card_and_trivial_lines_skipped():
@@ -59,7 +63,7 @@ def test_nan_values_never_count_as_hits_and_cards_sort_by_stars():
                       frame([2, 3, 4, 5, 3, 4, 2, 5, 3, 4], player='B')])
     result = cards(both)
     assert [c['stars'] for c in result] == sorted([c['stars'] for c in result], reverse=True)
-    assert (result[0]['player'], result[0]['stars']) == ('A', 4) and {c['player'] for c in result} == {'A', 'B'}
+    assert {c['player'] for c in result} == {'A', 'B'}
 
 
 def test_slate_marks_players_playing_today_and_ranks_them_first():

@@ -1,8 +1,9 @@
 """Plain-language trend cards from player game logs (pure; no I/O, no odds fetches).
 
 A card is "Under 5.5 rebounds in 9 of last 10". The line is the live sportsbook line when a
-quote is supplied for that player/stat, otherwise the most decisive non-trivial half-point line
-the last ten games support (a derived line, labelled as such).
+quote is supplied for that player/stat (over or under), otherwise the most decisive non-trivial
+half-point line the last ten games support (a derived line, labelled as such). A derived line is an
+alternate line, and books sell alternate overs only, so derived cards are never unders.
 """
 import math
 import pandas as pd
@@ -72,10 +73,10 @@ def _player_cards(name, rows, quotes):
             cards += [_card(name, team, _opponent(quote, team), stat, side, line, values, 'live', _live(quote, side))
                       for side in ('over', 'under')]
         else:
-            for side in ('over', 'under'):
-                line = _derived_line(values, avg, side)
-                if line is not None:
-                    cards.append(_card(name, team, None, stat, side, line, values, 'derived', None))
+            # Books sell unders only on the posted line, so a derived (alternate) line is over-only.
+            line = _derived_line(values, avg, 'over')
+            if line is not None:
+                cards.append(_card(name, team, None, stat, 'over', line, values, 'derived', None))
     return [c for c in cards if c]
 
 
