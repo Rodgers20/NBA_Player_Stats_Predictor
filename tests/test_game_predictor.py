@@ -106,6 +106,26 @@ def test_promoted_forecast_contract_probability_and_intervals(monkeypatch):
     assert received['neutral'] and received['venue'] == 'Test arena'
 
 
+def test_opening_night_forecast_defers_to_market_and_is_versioned_apart(monkeypatch):
+    monkeypatch.setitem(sys.modules, "utils.game_features", SimpleNamespace(
+        aggregate_team_games=lambda frame, league: frame,
+        build_feature_vector=lambda *a, **k: {"test": 1}))
+    forecast = SimpleNamespace(predict=lambda vector: dict(margin=-9.0, total=170,
+        home_win_probability=.2, margin_sd=12, total_sd=12, model_name="validated_test",
+        metrics={}, version="game-forecast-v1",
+        prediction_intervals={"margin_80": [-24, 6], "total_80": [150, 192]}))
+    monkeypatch.setitem(sys.modules, "utils.game_model", SimpleNamespace(
+        GameForecastModel=SimpleNamespace(load=lambda league: forecast)))
+    monkeypatch.setattr("utils.game_predictor.current_season_games", lambda *a, **k: 0)
+    model = GamePredictor(pd.DataFrame(), logs(), league='nba')
+    prediction = model.predict_game('NYL', 'LVA', target_date='2026-09-25', market_spread=-4.5)
+    assert prediction['predicted_spread'] == pytest.approx(4.5, abs=.1)
+    assert prediction['model_metadata']['market_assisted'] is True
+    assert prediction['model_metadata']['version'] == 'game-forecast-v1+market-prior'
+    assert prediction['home_win_probability'] > .6
+    assert prediction['model_metadata']['early_season_weight'] == 0
+
+
 def test_authoritative_team_boxscores_override_partial_player_totals(monkeypatch):
     from utils import game_data
     canonical = pd.DataFrame([

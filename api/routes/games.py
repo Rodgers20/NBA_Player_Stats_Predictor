@@ -193,9 +193,11 @@ def get_predictions(league: League = 'nba', game_date: str | None = None):
             state = row.get('GAME_STATUS_STATE') or _status_state(row.get('GAME_STATUS_TEXT'))
             if state in ('in', 'post'):
                 continue  # Current history is not a published pregame forecast.
+            quote = odds.get(f'{away}@{home}', {})
+            market_spread = number((quote.get('spread') or {}).get('home_line'))
             result = model.predict_game(home, away, target_date=target,
                                         neutral=bool(row.get('NEUTRAL_SITE', False)),
-                                        venue=row.get('VENUE'),
+                                        venue=row.get('VENUE'), market_spread=market_spread,
                                         home_injuries=_team_injuries(league, home),
                                         away_injuries=_team_injuries(league, away))
             metadata = result.get('model_metadata')
@@ -207,8 +209,6 @@ def get_predictions(league: League = 'nba', game_date: str | None = None):
                     metadata['context_warning'] = 'Preseason rotations and minutes are outside model validation.'
                 elif row.get('SEASON_TYPE') is None:
                     metadata['context_warning'] = 'Schedule game type unavailable; preseason performance is unvalidated.'
-            quote = odds.get(f'{away}@{home}', {})
-            market_spread = number((quote.get('spread') or {}).get('home_line'))
             market_total = number((quote.get('total') or {}).get('line'))
             pick = model.get_pick(result, home=home, away=away,
                                   actual_spread=market_spread, actual_total=market_total) if hasattr(model, 'get_pick') else {}
