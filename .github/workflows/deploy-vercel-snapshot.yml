@@ -63,6 +63,12 @@ jobs:
           restore-keys: |
             odds-ledger-${{ github.ref_name }}-
 
+      - name: Diagnose history file
+        run: |
+          ls -la data/nba | head -20
+          head -c 300 data/nba/player_game_logs.csv; echo
+          python -c "from api.data import _load_history; print(len(_load_history('nba', 0)))" 2>&1 | tail -5
+
       - name: Refresh historical data and sportsbook quotes, then export public snapshot
         timeout-minutes: 50
         env:
