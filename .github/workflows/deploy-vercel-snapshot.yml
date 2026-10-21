@@ -23,6 +23,10 @@ jobs:
       VERCEL_PROJECT_ID: prj_rUI2qlg3baRdxkb6b2JALeFx8n5H
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Player history and the trained models are Git LFS files; without this the
+          # runner gets 130-byte pointer files and the API reports history unavailable.
+          lfs: true
 
       - uses: actions/setup-python@v5
         with:
@@ -62,12 +66,6 @@ jobs:
           key: odds-ledger-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             odds-ledger-${{ github.ref_name }}-
-
-      - name: Diagnose history file
-        run: |
-          ls -la data/nba | head -20
-          head -c 300 data/nba/player_game_logs.csv; echo
-          python -c "from api.data import _load_history; print(len(_load_history('nba', 0)))" 2>&1 | tail -5
 
       - name: Refresh historical data and sportsbook quotes, then export public snapshot
         timeout-minutes: 50

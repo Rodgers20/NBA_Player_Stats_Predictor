@@ -1,12 +1,14 @@
 """Local-only data and model access; importing the API never starts Dash."""
 from functools import lru_cache
 from typing import Literal
+import logging
 import math
 import pandas as pd
 from fastapi import HTTPException
 from utils.league_config import get_config
 
 League = Literal['nba', 'wnba']
+logger = logging.getLogger(__name__)
 
 
 def number(value):
@@ -39,8 +41,8 @@ def history(league):
     try:
         return _load_history(league, path.stat().st_mtime_ns)
     except (ValueError, KeyError, OSError) as exc:
-        # Include the cause so a refused request is diagnosable from the response alone.
-        raise HTTPException(503, f'{league.upper()} player history is unavailable: {type(exc).__name__}: {exc}'[:300]) from exc
+        logger.exception('%s player history failed to load', league)
+        raise HTTPException(503, f'{league.upper()} player history is unavailable') from exc
 
 
 @lru_cache(maxsize=12)
