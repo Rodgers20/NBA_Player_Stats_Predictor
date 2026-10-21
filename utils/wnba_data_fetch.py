@@ -55,6 +55,46 @@ def get_todays_wnba_games(
     return games
 
 
+_STATS_TIMEOUT = 8      # seconds to wait on stats.nba.com before giving up
+_STATS_BACKOFF = 600    # seconds to skip it after a failure
+_stats_down_until = 0.0
+
+
+def _espn_wnba_games(target_date: str) -> Optional[list[dict]]:
+    """Same game dicts from ESPN's scoreboard; None if that fails too."""
+    from utils.basketball_content import _fetch
+    from utils.espn_game_odds import _team_abbr
+    try:
+        board = _fetch("wnba", "scoreboard", dates=target_date.replace("-", ""))
+    except Exception as e:
+        logger.warning(f"WNBA ESPN scoreboard fetch failed: {e}")
+        return None
+    games = []
+    for event in board.get("events") or []:
+        comp = (event.get("competitions") or [{}])[0]
+        sides = {c.get("homeAway"): c for c in comp.get("competitors") or []}
+        if "home" not in sides or "away" not in sides:
+            continue
+        status = (comp.get("status") or event.get("status") or {}).get("type") or {}
+        state = status.get("state", "pre")
+
+        def side(competitor):
+            team = competitor.get("team") or {}
+            overall = next((r.get("summary") for r in competitor.get("records") or []
+                            if r.get("type") == "total"), "") or ""
+            wins, _, losses = overall.partition("-")
+            return {"team_id": int(team["id"]) if str(team.get("id", "")).isdigit() else None,
+                    "abbrev": _team_abbr(competitor, "wnba"), "name": team.get("displayName", ""),
+                    "wins": int(wins) if wins.isdigit() else 0, "losses": int(losses) if losses.isdigit() else 0,
+                    "score": int(competitor["score"]) if state != "pre" and str(competitor.get("score", "")).isdigit() else None}
+
+        games.append({"game_id": str(event.get("id")),
+                      "status": {"pre": "Scheduled", "in": "In Progress", "post": "Final"}.get(state, "Scheduled"),
+                      "status_text": status.get("shortDetail") or status.get("description") or "",
+                      "tip_time_et": event.get("date", ""), "home": side(sides["home"]), "away": side(sides["away"])})
+    return games
+
+
 def _et_iso(value) -> str:
     """The scoreboard's gameEt is Eastern wall-clock time with a bogus trailing Z; return a real offset."""
     try:
@@ -82,12 +122,17 @@ def _fetch_todays_wnba_games(target_date: Optional[str] = None) -> Optional[list
     if target_date is None:
         target_date = date.today().strftime("%Y-%m-%d")
 
+    global _stats_down_until
+    if time.monotonic() < _stats_down_until:
+        return _espn_wnba_games(target_date)
     try:
-        sb = scoreboardv3.ScoreboardV3(game_date=target_date, league_id="10")
+        sb = scoreboardv3.ScoreboardV3(game_date=target_date, league_id="10", timeout=_STATS_TIMEOUT)
         frames = sb.get_data_frames()
     except Exception as e:
+        # stats.nba.com blocks cloud runners; stop waiting on it for a while and use ESPN.
         logger.warning(f"WNBA scoreboard fetch failed: {e}")
-        return None   # signals failure to the caching wrapper — not cached
+        _stats_down_until = time.monotonic() + _STATS_BACKOFF
+        return _espn_wnba_games(target_date)
 
     if len(frames) < 3:
         return []

@@ -59,6 +59,37 @@ def test_get_todays_wnba_games_parses_two_games(monkeypatch):
     assert g2["status"] == "Final"
 
 
+def test_blocked_stats_service_falls_back_to_espn_and_is_skipped_afterwards(monkeypatch):
+    calls = []
+
+    class _Blocked:
+        def __init__(self, *args, **kwargs):
+            calls.append(kwargs.get("timeout"))
+            raise TimeoutError("stats.nba.com blocked")
+
+    from nba_api.stats.endpoints import scoreboardv3 as sb_module
+    from utils import basketball_content
+    monkeypatch.setattr(sb_module, "ScoreboardV3", _Blocked)
+    competitor = lambda side, abbr, name, score: dict(
+        homeAway=side, score=score, team=dict(id="1", abbreviation=abbr, displayName=name),
+        records=[dict(type="total", summary="10-4")])
+    board = dict(events=[dict(id="401", date="2026-08-03T23:00Z", competitions=[dict(
+        competitors=[competitor("home", "NYL", "New York Liberty", "0"),
+                     competitor("away", "LVA", "Las Vegas Aces", "0")],
+        status=dict(type=dict(state="pre", shortDetail="8/3 - 7:00 PM EDT")))])])
+    monkeypatch.setattr(basketball_content, "_fetch", lambda league, path, **params: board)
+    monkeypatch.setattr(wnba_data_fetch, "_stats_down_until", 0.0)
+    wnba_data_fetch.clear_schedule_cache()
+
+    games = wnba_data_fetch.get_todays_wnba_games("2026-08-03")
+    assert [(g["home"]["abbrev"], g["away"]["abbrev"], g["home"]["wins"], g["home"]["losses"])
+            for g in games] == [("NYL", "LVA", 10, 4)]
+    assert games[0]["game_id"] == "401" and games[0]["status_text"]
+    assert calls and calls[0] <= 10                      # bounded wait on the blocked service
+    wnba_data_fetch.get_todays_wnba_games("2026-08-04")
+    assert len(calls) == 1                               # stats service skipped while it is down
+
+
 def test_get_todays_wnba_games_empty_on_no_games(monkeypatch):
     _fake_scoreboardv3(monkeypatch, pd.DataFrame(), pd.DataFrame())
     assert wnba_data_fetch.get_todays_wnba_games("2026-01-01") == []

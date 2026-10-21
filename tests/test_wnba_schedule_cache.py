@@ -17,8 +17,10 @@ from utils import wnba_data_fetch
 @pytest.fixture(autouse=True)
 def _clear_cache():
     wnba_data_fetch.clear_schedule_cache()
+    wnba_data_fetch._stats_down_until = 0.0
     yield
     wnba_data_fetch.clear_schedule_cache()
+    wnba_data_fetch._stats_down_until = 0.0
 
 
 def _patch_endpoint(monkeypatch, payload, counter):
@@ -92,10 +94,14 @@ def test_failure_is_not_cached(monkeypatch):
 
     import nba_api.stats.endpoints as eps
     monkeypatch.setattr(eps.scoreboardv3, "ScoreboardV3", _Boom, raising=False)
+    fallback = []
+    monkeypatch.setattr(wnba_data_fetch, "_espn_wnba_games",
+                        lambda target: fallback.append(1))   # ESPN down too -> None
 
     assert wnba_data_fetch.get_todays_wnba_games("2026-08-03") == []
     assert wnba_data_fetch.get_todays_wnba_games("2026-08-03") == []
-    assert len(calls) == 2, "a failure must be retried, not cached"
+    assert len(calls) == 1, "the blocked stats service is skipped after its first failure"
+    assert len(fallback) == 2, "a failure on every source must be retried, not cached"
 
 
 def test_cache_returns_equal_value(monkeypatch):
