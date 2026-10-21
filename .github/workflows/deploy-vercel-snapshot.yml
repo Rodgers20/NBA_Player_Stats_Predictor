@@ -70,8 +70,10 @@ jobs:
           set -euo pipefail
           # Only the explicit export refresh spends credits. The restored ledger
           # keeps daily/monthly allowances across otherwise ephemeral runners.
-          python scripts/refresh_nba_history.py
-          python scripts/refresh_wnba_history.py
+          # stats.nba.com blocks GitHub-hosted runners, so a failed history pull must not
+          # stop odds, props and the deploy; they fall back to the committed history.
+          python scripts/refresh_nba_history.py || echo "::warning::NBA history refresh failed; using committed history"
+          python scripts/refresh_wnba_history.py || echo "::warning::WNBA history refresh failed; using committed history"
           python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/snapshot-api.log" 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
