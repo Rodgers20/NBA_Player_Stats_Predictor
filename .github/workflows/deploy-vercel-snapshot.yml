@@ -47,8 +47,10 @@ jobs:
       - name: Install Python and frontend dependencies
         run: |
           # Public snapshot runtime only; skip Dash, notebooks, Kaggle, and tests.
-          python -m pip install 'pandas>=2.0' 'numpy>=1.24' 'pyarrow>=14.0' \
-            'nba_api>=1.4' 'scikit-learn>=1.3' 'scipy>=1.11' 'xgboost>=2.0' \
+          # Pinned to the versions the saved models and tests were built on: pandas 3 and
+          # scikit-learn 1.9 broke history loading and model unpickling on unpinned runners.
+          python -m pip install 'pandas>=2.2,<3' 'numpy>=2.2,<2.3' 'pyarrow>=14.0' \
+            'nba_api>=1.4' 'scikit-learn==1.6.1' 'scipy>=1.11' 'xgboost>=2.1.3,<3' \
             'requests>=2.31' 'python-dotenv>=1.0' \
             'fastapi>=0.111' 'uvicorn[standard]>=0.29' 'python-multipart>=0.0.9'
           npm ci --prefix frontend
