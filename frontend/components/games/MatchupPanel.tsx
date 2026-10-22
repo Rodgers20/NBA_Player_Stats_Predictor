@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { TeamRankings } from "./TeamRankings";
 import type { Game, MatchupMetric, MatchupProfile, MatchupResponse, VenueForm } from "@/lib/types";
 
 const day = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -89,6 +90,7 @@ export function MatchupPanel({ game, league }: { game: Game; league: string }) {
 
   const edges = data.edges ?? [];
   return <div className="space-y-6">
+    <TeamRankings away={data.away} home={data.home} profiles={data.profiles} season={data.season} />
     <HeadToHead data={data} />
     <section aria-label="Home and road form">
       <h3 className={heading}>HOME AND ROAD FORM</h3>

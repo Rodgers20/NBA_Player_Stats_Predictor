@@ -10,6 +10,7 @@ import { TonightRow } from "@/components/tonight/TonightRow";
 import { ResearchList } from "@/components/tonight/ResearchList";
 import { GameEdges } from "@/components/tonight/GameEdges";
 import { bettableEdges, gameEdges } from "@/lib/game-edges.mjs";
+import { isPastSlate } from "@/lib/slate-freshness.mjs";
 
 const BOARD_LIMIT = 100;
 const SLATE_PREVIEW = 8;
@@ -42,10 +43,12 @@ export default function TonightPage() {
   const board = tonightBoard(props.data?.props ?? []);
   // Game-line value needs no props feed: the model's win chance against each moneyline price. Only use predictions for the same slate.
   const sameSlate = predictions.data && predictions.data.target_date === games.data?.target_date;
-  const edges = gameEdges(games.data?.games ?? [], sameSlate ? predictions.data?.predictions ?? [] : []);
+  // The static snapshot is rebuilt once a day; until then it holds yesterday's slate, which must not read as tonight's.
+  const stale = props.data?.status === "stale" || isPastSlate(games.data?.target_date);
+  const edges = stale ? [] : gameEdges(games.data?.games ?? [], sameSlate ? predictions.data?.predictions ?? [] : []);
   const hasLineEdge = bettableEdges(edges).length > 0;
   const date = props.data?.target_date ?? games.data?.target_date ?? "";
-  const slate = games.data?.games ?? [];
+  const slate = stale ? [] : games.data?.games ?? [];
   const graded = record.data?.total ? `${Math.round(record.data.pct)}%` : "—";
 
   return <main className="ql-page mx-auto max-w-[1100px] px-4 pb-14 pt-7 sm:px-8">
@@ -82,7 +85,12 @@ export default function TonightPage() {
 
     {!props.isPending && <GameEdges edges={edges} league={league} date={date} />}
 
-    {props.data && board.picks.length === 0 && !hasLineEdge && <section className="ql-panel px-6 py-10 text-center" role="status">
+    {stale && <section className="ql-panel px-6 py-10 text-center" role="status">
+      <h2 className="ql-section-title">Today&apos;s picks aren&apos;t published yet</h2>
+      <p className="mx-auto mt-2 max-w-[60ch] text-sm text-text-sec">The board last refreshed for {slateDate(date)}. New picks appear after the morning data refresh, around 7:15 AM ET.</p>
+    </section>}
+
+    {!stale && props.data && board.picks.length === 0 && !hasLineEdge && <section className="ql-panel px-6 py-10 text-center" role="status">
       <h2 className="ql-section-title">No bettable edges right now</h2>
       <p className="mx-auto mt-2 max-w-[60ch] text-sm text-text-sec">{slate.length > 0 ? `There ${slate.length === 1 ? "is 1 game" : `are ${slate.length} games`} on the slate, but no sportsbook player props are posted for ${slate.length === 1 ? "it" : "them"} yet and the model sees no moneyline edge. Props usually appear the morning of the game.` : "No priced market passed the price, history and model checks."}</p>
       {props.data.message && <p className="mx-auto mt-2 max-w-[60ch] text-xs text-text-sec">{props.data.message}</p>}

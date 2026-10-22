@@ -146,7 +146,7 @@ def _wnba_research_shortlist(stat, game, location, direction, locks_only, combos
                 model_projection=round(projection, 1), avg=round(avg, 1),
                 l5_avg=round(sum(values[:5]) / len(values[:5]), 1),
                 hits=None, total=None, hit_rate=None, def_rank=None, is_lock=False, is_combo=False,
-                blowout_risk=False, l5_values=values[:5], chart_windows={}, **prop_extras.EXTRA_DEFAULTS,
+                blowout_risk=False, l5_values=values[:5], l10_values=values[:10], chart_windows={}, **prop_extras.EXTRA_DEFAULTS,
                 edge_pct=None, implied_prob=None, stars=None, high_edge=False,
                 insight=f'Model projects {projection:.1f} {research_stat} against {avg:.1f} over the last {len(values)} games. No betting edge or pick is claimed.'))
     if not shortlist:
@@ -314,6 +314,7 @@ def _serialise_prop(p, quality_reason=None):
     result['def_rank_of'] = number(result['def_rank_of'])
     result['is_home_today'] = _home_status(p)
     result['l5_values'] = [number(value) for value in (p.get('l5_values') or [])[:5]]
+    result['l10_values'] = [number(value) for value in (p.get('l10_values') or [])[:10]]
     result['chart_windows'] = {
         key: {'values': [number(value) for value in window.get('values', [])],
               'labels': [str(label) for label in window.get('labels', [])]}
@@ -426,6 +427,7 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                         game_matchup=quote.get('game_matchup', ''), has_live_odds=True,
                         is_home_today=is_home,
                         l5_values=[float(value) for value in values.head(5)],
+                        l10_values=[float(value) for value in values.head(10)],
                         live_over_price=quote.get('over_price'), live_under_price=quote.get('under_price'),
                         bookmaker=quote.get('bookmaker'), quote_updated_at=quote.get('updated_at'),
                         insight={'narrative': f'Model projects {projection:.1f} {stat} against the {quote["line"]} line. '

@@ -8,6 +8,8 @@ interface PrefsState {
   followedTeams:   string[];
   defaultStat:     string;
   defaultSort:     "ev" | "hit_rate";
+  /** Sportsbooks the props board is limited to; empty means every book. */
+  books:           string[];
 
   followPlayer:   (name: string) => void;
   unfollowPlayer: (name: string) => void;
@@ -15,6 +17,7 @@ interface PrefsState {
   unfollowTeam:   (abbrev: string) => void;
   setDefaultStat: (stat: string) => void;
   setDefaultSort: (sort: "ev" | "hit_rate") => void;
+  setBooks:       (books: string[]) => void;
 }
 
 export const usePrefs = create<PrefsState>()(
@@ -26,6 +29,7 @@ export const usePrefs = create<PrefsState>()(
       followedTeams:   [],
       defaultStat:     "",
       defaultSort:     "ev",
+      books:           [],
 
       followPlayer: (name) =>
         set({ followedPlayers: [...new Set([...get().followedPlayers, name])] }),
@@ -39,6 +43,7 @@ export const usePrefs = create<PrefsState>()(
 
       setDefaultStat: (stat) => set({ defaultStat: stat }),
       setDefaultSort: (sort) => set({ defaultSort: sort }),
+      setBooks: (books) => set({ books: [...new Set(books)] }),
     }),
     { name: "nba-prefs", skipHydration: true }
   )

@@ -5,6 +5,8 @@ import logging
 import pandas as pd
 from fastapi import APIRouter, Query, HTTPException
 from api.data import League, history, predictor, number
+from functools import lru_cache
+from utils.game_context import annotate, build_league_context
 from utils.league_config import get_config
 
 router = APIRouter(tags=['players'])
@@ -47,6 +49,44 @@ def _injury_context(player_name: str, league: League) -> tuple[str | None, str |
     return status, reason
 
 
+@lru_cache(maxsize=4)
+def _read_team_history(path, modified):
+    return pd.read_csv(path, usecols=['GAME_ID', 'TEAM_ABBREVIATION', 'PTS', 'OPP_PTS'])
+
+
+def _team_history(league):
+    """Team game scores, or None when this league has no team-game history."""
+    path = get_config(league).data_dir / 'game_team_history.csv'
+    return _read_team_history(path, path.stat().st_mtime_ns) if path.exists() else None
+
+
+_context_cache = {}
+
+
+def _league_context(league):
+    """Indexed once per loaded history; the cache holds the frame itself so its id cannot be reused."""
+    frame = history(league)
+    cached = _context_cache.get(league)
+    if cached is None or cached[0] is not frame:
+        _context_cache[league] = cached = (frame, build_league_context(frame, _team_history(league)))
+    return cached[1]
+
+
+def _game_context(frame, league):
+    """Per-game minutes, margin, result, rest and absent teammates for the player's rows; [] when the logs lack them."""
+    try:
+        return annotate(frame, _league_context(league))
+    except (KeyError, ValueError, TypeError):
+        logger.warning('Game context unavailable for %s history', league, exc_info=True)
+        return []
+
+
+def _context_fields(context, size):
+    """The last `size` context records as sparse dicts: missing values are left out to keep the payload small."""
+    rows = context[-size:] if size and len(context) >= size else [{}] * size
+    return [{key: value for key, value in row.items() if value is not None and value != []} for row in rows]
+
+
 def _player(player_name, league):
     df = history(league)
     frame = df[df['PLAYER_NAME'].str.casefold() == player_name.casefold()].copy()
@@ -74,13 +114,15 @@ def list_scheduled_players(game_date: date, league: League = 'nba'):
 def get_player_series(player_name: str, games: int = Query(200, ge=5, le=200),
                       league: League = 'nba'):
     """One compact, chronological game series for every static chart statistic."""
-    frame = _player(player_name, league).tail(games)
+    whole = _player(player_name, league)
+    frame = whole.tail(games)
     base_stats = ('PTS', 'REB', 'AST', 'FG3M', 'STL', 'BLK')
     missing = [stat for stat in base_stats if stat not in frame]
     if missing:
         raise HTTPException(503, f'Player history lacks {", ".join(missing)}')
+    context = _context_fields(_game_context(whole, league), len(frame))
     records = []
-    for _, row in frame.iterrows():
+    for (_, row), extra in zip(frame.iterrows(), context):
         matchup = str(row.get('MATCHUP') or '')
         is_home = True if ' vs. ' in matchup else False if ' @ ' in matchup else None
         if is_home is None and 'is_home' in frame:
@@ -90,7 +132,7 @@ def get_player_series(player_name: str, games: int = Query(200, ge=5, le=200),
         season = row.get('SEASON')
         records.append(dict(date=row['_date'].date().isoformat(), opponent=matchup,
                             season=None if pd.isna(season) else str(season), is_home=is_home,
-                            **{stat.lower(): number(row.get(stat)) for stat in base_stats}))
+                            **{stat.lower(): number(row.get(stat)) for stat in base_stats}, **extra))
     return dict(player=player_name, games=records)
 
 
@@ -101,13 +143,15 @@ def get_player_chart_data(player_name: str, stat: str = 'PTS', games: int = Quer
     stat = stat.upper()
     if stat not in STATS:
         raise HTTPException(400, f"Unknown stat '{stat}'")
-    frame = _player(player_name, league).tail(games)
+    whole = _player(player_name, league)
+    frame = whole.tail(games)
     columns = stat.split('+')
     if any(col not in frame for col in columns):
         raise HTTPException(503, 'This statistic is unavailable in player history')
     values = frame[columns].apply(pd.to_numeric, errors='coerce').sum(axis=1, min_count=len(columns))
+    context = _context_fields(_game_context(whole, league), len(frame))
     records = []
-    for (_, row), raw in zip(frame.iterrows(), values):
+    for (_, row), raw, extra in zip(frame.iterrows(), values, context):
         value = number(raw)
         hit = None if line is None or value is None else (value > line if direction == 'over' else value < line)
         matchup = str(row.get('MATCHUP') or '')
@@ -119,7 +163,7 @@ def get_player_chart_data(player_name: str, stat: str = 'PTS', games: int = Quer
         season = row.get('SEASON')
         records.append(dict(date=row['_date'].date().isoformat(), opponent=matchup,
                             value=value, hit=hit, season=None if pd.isna(season) else str(season),
-                            is_home=is_home))
+                            is_home=is_home, **extra))
     return dict(player=player_name, stat=stat, line=line, direction=direction,
                 avg=number(values.mean()), l5_avg=number(values.tail(5).mean()), games=records)
 

@@ -9,31 +9,36 @@ import { usePrefs } from "@/store/prefs";
 import { decimalOdds } from "@/lib/bet-slip.mjs";
 import { quoteAge, recordFor } from "@/lib/tonight.mjs";
 import { formatOdds } from "@/lib/prop-research.mjs";
-import { rowCells } from "@/lib/prop-rows.mjs";
-import type { RowCell } from "@/lib/prop-rows.mjs";
+import { rowCells, rowDashes, windowCell } from "@/lib/prop-rows.mjs";
+import type { Dash, RowCell } from "@/lib/prop-rows.mjs";
 import type { Prop } from "@/lib/types";
+import { HitDashes } from "@/components/ui/HitDashes";
 import { PropBooks, PropResearchChips } from "./PropResearch";
 import styles from "./PropRow.module.css";
 
 const toneClass = (tone: RowCell["tone"]) => (tone === "good" ? styles.good : tone === "bad" ? styles.bad : "");
 
 /** Sticky column header; shares the row grid so columns line up. */
-export function PropHeader() {
+const extraWindow = (window?: string) => (window === "season" ? { key: "season", label: "Season" } : { key: "h2h", label: "H2H" });
+
+export function PropHeader({ window }: { window?: string }) {
   return (
     <div className={`${styles.grid} ${styles.header}`} aria-hidden="true">
-      <span>Player</span><span>Line</span><span>Opp def</span><span>L5</span><span>L10</span><span>L20</span><span>EV · Edge</span><span />
+      <span>Player</span><span>Line</span><span>Opp def</span><span>L5</span><span>L10</span><span>L20</span><span>{extraWindow(window).label}</span><span>EV · Edge</span><span />
 
     </div>
   );
 }
 
-function HitCell({ cell, label }: { cell: RowCell | null; label: string }) {
-  if (!cell) return <div role="group" className={`${styles.cell} ${styles.none}`} aria-label={`${label}: no games`}><span className={styles.cellLabel}>{label}</span><b>—</b></div>;
+function HitCell({ cell, label, picked = false, dashes = [] }: { cell: RowCell | null; label: string; picked?: boolean; dashes?: Dash[] }) {
+  const pickedClass = picked ? ` ${styles.picked}` : "";
+  if (!cell) return <div role="group" className={`${styles.cell} ${styles.none}${pickedClass}`} aria-label={`${label}: no games`}><span className={styles.cellLabel}>{label}</span><b>—</b></div>;
   return (
-    <div role="group" className={`${styles.cell} ${toneClass(cell.tone)}`} aria-label={`${cell.label}: ${cell.hits} of ${cell.total} games, ${cell.pct} percent`}>
+    <div role="group" className={`${styles.cell} ${toneClass(cell.tone)}${pickedClass}`} aria-label={`${cell.label}: ${cell.hits} of ${cell.total} games, ${cell.pct} percent`}>
       <span className={`${styles.cellLabel}${cell.label === "All" ? ` ${styles.always}` : ""}`}>{cell.label}</span>
       <b>{cell.pct}%</b>
       <small>{cell.hits}/{cell.total}</small>
+      <HitDashes dashes={dashes} />
     </div>
   );
 }
@@ -44,9 +49,11 @@ interface Props {
   onAnalyze: (prop: Prop) => void;
   selected?: boolean;
   record?: Parameters<typeof recordFor>[0];
+  /** Hit window the board ranks by; its cell is outlined, and H2H/Season fill the extra column. */
+  window?: string;
 }
 
-export function PropRow({ prop, targetDate, onAnalyze, selected = false, record }: Props) {
+export function PropRow({ prop, targetDate, onAnalyze, selected = false, record, window }: Props) {
   const [open, setOpen] = useState(false);
   const detailsId = useId();
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -67,6 +74,9 @@ export function PropRow({ prop, targetDate, onAnalyze, selected = false, record 
   const age = quoteAge(prop.quote_updated_at)?.label;
   const cells = rowCells(prop);
   const slots = cells[0]?.label === "All" ? [cells[0], null, null] : ["L5", "L10", "L20"].map(label => cells.find(cell => cell.label === label) ?? null);
+  const extra = extraWindow(window);
+  const extraCell = windowCell(prop, extra.key);
+  const dashes = rowDashes(prop);
   const ev = !priced || prop.ev == null ? "—" : `${prop.ev >= 0 ? "+" : ""}${(prop.ev * 100).toFixed(1)}%`;
   const graded = recordFor(record, prop.stat);
   const initial = prop.player.trim().split(/\s+/).at(-1)?.[0]?.toUpperCase() || "?";
@@ -116,9 +126,10 @@ export function PropRow({ prop, targetDate, onAnalyze, selected = false, record 
           <span>{prop.opponent ?? ""}</span>
         </div>
 
-        <HitCell cell={slots[0]} label="L5" />
-        <HitCell cell={slots[1]} label="L10" />
-        <HitCell cell={slots[2]} label="L20" />
+        <HitCell cell={slots[0]} label="L5" picked={window === "L5"} />
+        <HitCell cell={slots[1]} label="L10" picked={window === "L10"} dashes={dashes} />
+        <HitCell cell={slots[2]} label="L20" picked={window === "L20"} />
+        <HitCell cell={extraCell} label={extra.label} picked={window === extra.key} />
 
         <div className={styles.ev} title="Expected value for verified markets only">
           <strong>{ev}</strong>

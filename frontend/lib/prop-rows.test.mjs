@@ -1,6 +1,43 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { searchProps, rowCells } from './prop-rows.mjs';
+import { searchProps, rowCells, rowDashes, windowCell, sortByWindow } from './prop-rows.mjs';
+
+test('dashes grade the last 10 results oldest first against the line and side', () => {
+  const over = rowDashes({ line: 4.5, direction: 'Over', l10_values: [6, 4.5, 3, 5] }); // newest first
+  assert.deepEqual(over.map(d => d.result), ['hit', 'miss', 'push', 'hit']);
+  assert.deepEqual(over.map(d => d.value), [5, 3, 4.5, 6]);
+  const under = rowDashes({ line: 4.5, direction: 'Under', l10_values: [6, 3] });
+  assert.deepEqual(under.map(d => d.result), ['hit', 'miss']);
+});
+
+test('dashes never exceed ten and skip missing results', () => {
+  const values = [null, ...Array.from({ length: 12 }, (_, i) => i)];
+  assert.equal(rowDashes({ line: 5, direction: 'Over', l10_values: values }).length, 10);
+});
+
+test('no line or no results means no dashes, never a row of misses', () => {
+  assert.deepEqual(rowDashes({ line: null, direction: 'Over', l10_values: [1, 2] }), []);
+  assert.deepEqual(rowDashes({ line: 3, direction: 'Over' }), []);
+  assert.deepEqual(rowDashes({ line: 3, direction: 'Over', l10_values: [] }), []);
+});
+
+const windowed = (l10, total = 10, h2h) => ({ hit_windows: { L5: { hits: 4, total: 5, pct: 80 }, L10: { hits: l10, total, pct: l10 * 10 }, L20: { hits: 12, total: 20, pct: 60 }, ...(h2h && { h2h }), season: { hits: 0, total: 0, pct: 0 } } });
+
+test('a window cell is the chosen window, or null when it has no games', () => {
+  assert.equal(windowCell(windowed(9), 'L10').pct, 90);
+  assert.equal(windowCell(windowed(9), 'h2h'), null);
+  assert.equal(windowCell(windowed(9), 'season'), null);
+  assert.equal(windowCell({}, 'L10'), null);
+});
+
+test('sorting by a window ranks the highest rate first and keeps unknown windows last', () => {
+  const rows = [
+    { player: 'low', ...windowed(5) }, { player: 'none' }, { player: 'high', ...windowed(9) },
+    { player: 'tie-small', ...windowed(9, 5) },
+  ];
+  assert.deepEqual(sortByWindow(rows, 'L10').map(r => r.player), ['high', 'tie-small', 'low', 'none']);
+  assert.deepEqual(rows.map(r => r.player), ['low', 'none', 'high', 'tie-small']); // input untouched
+});
 
 const props = [
   { player: 'Cade Cunningham', team: 'DET', opponent: 'BOS' },

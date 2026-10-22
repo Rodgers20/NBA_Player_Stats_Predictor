@@ -11,7 +11,8 @@ import { PropAnalysisPanel } from "@/components/props/PropAnalysisPanel";
 import { PropFilters, isLineMarket, type Filters } from "@/components/props/PropFilters";
 import { GameLinesBoard } from "@/components/props/GameLinesBoard";
 import { filterMinStars, sortByEdge } from "@/lib/prop-research.mjs";
-import { searchProps } from "@/lib/prop-rows.mjs";
+import { searchProps, sortByWindow } from "@/lib/prop-rows.mjs";
+import { applyBoardFilters, availableBooks, availablePlayers, selectedStats } from "@/lib/prop-filters.mjs";
 import { filtersToSearch, isStaleGame, parseFilters, type BoardFilters } from "@/lib/props-url.mjs";
 
 const PAGE = 30;
@@ -29,12 +30,12 @@ export default function PropsPage() {
 }
 
 function PropsBoard() {
-  const { defaultStat, defaultSort, league } = usePrefs();
+  const { defaultStat, defaultSort, league, books, setBooks } = usePrefs();
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
   // Filters live in the URL so a view can be shared, bookmarked and survive a reload.
-  const defaults: BoardFilters = { stat: defaultStat, direction: "All", location: "All", sort: defaultSort, game: "", locksOnly: false, minStars: 0 };
+  const defaults: BoardFilters = { stat: defaultStat, direction: "All", location: "All", sort: defaultSort, game: "", locksOnly: false, minStars: 0, window: "L10", ev: false, players: "" };
   const filters: Filters = parseFilters(search.toString(), defaults);
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"props" | "alt" | "record">("props");
@@ -56,6 +57,8 @@ function PropsBoard() {
 
   // ML, spread and totals are whole-game lines, not player props, so they get their own board.
   const lineMarket = isLineMarket(filters.stat) ? filters.stat : null;
+  // The API filters one stat; several are narrowed here from the loaded rows.
+  const statList = selectedStats(filters.stat);
   const params = {
     league,
     direction: filters.direction.toLowerCase(),
@@ -63,7 +66,7 @@ function PropsBoard() {
     sort: filters.sort === "edge" ? "ev" : filters.sort, // the API has no edge sort; it is applied below
     include_research: true,
     limit: PAGE * page,
-    ...(filters.stat && { stat: filters.stat }),
+    ...(statList.length === 1 && { stat: statList[0] }),
     ...(filters.game && { game: filters.game }),
   };
   const { data, isPending, isError, refetch } = useQuery<PropsResponse>({
@@ -87,12 +90,20 @@ function PropsBoard() {
     router.replace(`${url.pathname}${url.search}`, { scroll: false });
   }, [filters.game, data?.game_matchups, router]);
   const activeView = (view === "alt" && !altLines.data?.count) || (view === "record" && !record.data?.total) ? "props" : view;
-  const starred = searchProps(filterMinStars(data?.props ?? [], filters.minStars), filters.q);
-  const shownProps = filters.sort === "edge" ? sortByEdge(starred) : starred;
+  const loaded = data?.props ?? [];
+  const narrowed = applyBoardFilters(loaded, {
+    evOnly: filters.ev, stats: statList.length > 1 ? statList : [],
+    players: filters.players ? filters.players.split("|") : [], books,
+  });
+  const starred = searchProps(filterMinStars(narrowed, filters.minStars), filters.q);
+  // "Highest hit rate" follows the chosen window (L5/L10/L20/H2H/season), not the overall sample the API sorts by.
+  const shownProps = filters.sort === "edge" ? sortByEdge(starred) : filters.sort === "hit_rate" ? sortByWindow(starred, filters.window) : starred;
   const byGame = Object.groupBy(shownProps, (prop) => prop.game_matchup || "Other matchups");
   const verifiedCount = shownProps.filter((prop) => (prop.pick_type ?? (prop.recommendation_eligible ? "pick" : "research")) !== "research").length;
   const selectedProp = selected?.league === league ? selected.prop : null;
-  const showPlayers = activeView === "props" && !lineMarket;
+  // The static snapshot withholds a past slate (status "stale") instead of showing yesterday's picks.
+  const pastSlate = data?.status === "stale";
+  const showPlayers = activeView === "props" && !lineMarket && !pastSlate;
 
   return (
     <main className="ql-page mx-auto max-w-[1440px] px-4 pb-12 pt-7 sm:px-8">
@@ -134,7 +145,8 @@ function PropsBoard() {
         <p className="mb-4 text-xs text-[#a9bec0]">NBA and WNBA share one free Odds API pool. Quotes refresh each morning and about two hours before tip-off, and credits go to whichever league has games, so off-season credits fund the other league. In-progress games do not produce pregame picks.</p>
       )}
 
-      {activeView === "props" && <PropFilters filters={filters} matchups={data?.game_matchups ?? []} statCounts={data?.stat_counts} onChange={handleChange} />}
+      {activeView === "props" && <PropFilters filters={filters} matchups={data?.game_matchups ?? []} statCounts={data?.stat_counts} onChange={handleChange}
+        bookOptions={availableBooks(loaded)} books={books} onBooksChange={setBooks} playerOptions={availablePlayers(loaded)} />}
 
       {!isStatic && (refresh.error || refresh.data || budget.data?.configured === false) && (
         <p role="status" className="mb-4 text-xs text-[#a9bec0]">
@@ -148,6 +160,12 @@ function PropsBoard() {
 
       <div className="min-w-0">
       {activeView === "props" && lineMarket && <GameLinesBoard league={league} market={lineMarket} />}
+      {activeView === "props" && !lineMarket && pastSlate && (
+        <div className="ql-panel px-6 py-12 text-center" role="status">
+          <p className="text-sm text-[#eaf8f6]">{"Today's picks aren't published yet."}</p>
+          <p className="mt-2 text-xs text-[#a9bec0]">The board last refreshed for {slateDate(data?.target_date)}. New picks appear after the morning data refresh, around 7:15 AM ET.</p>
+        </div>
+      )}
       {showPlayers && isPending && (
         <div className="ql-panel overflow-hidden" aria-busy="true" aria-label="Loading props">
           {Array.from({ length: 5 }).map((_, index) => (
@@ -172,7 +190,7 @@ function PropsBoard() {
 
       {showPlayers && !isPending && data && data.props.length > 0 && shownProps.length === 0 && (
         <div className="ql-panel px-6 py-12 text-center" role="status">
-          <p className="text-sm text-[#a9bec0]">No loaded props match your search or star filter.</p>
+          <p className="text-sm text-[#a9bec0]">No loaded props match your filters.</p>
           <p className="mt-2 text-xs text-[#a9bec0]">Try another name, lower the minimum stars, or load more props below.</p>
         </div>
       )}
@@ -181,7 +199,7 @@ function PropsBoard() {
         <div className={selectedProp ? "grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px] 2xl:items-start" : ""}>
         <div className="min-w-0 space-y-5">
           <p className="ql-data-label text-[#a9bec0]">{data.status === "research" ? "MODEL RESEARCH · NO PRICED PICKS" : `${verifiedCount} VERIFIED PRICED ${verifiedCount === 1 ? "MARKET" : "MARKETS"} SHOWN`} · SELECT A PLAYER FOR GAME HISTORY</p>
-          <PropHeader />
+          <PropHeader window={filters.window} />
           {Object.entries(byGame).map(([matchup, props]) => (
             <section key={matchup} aria-label={matchup}>
               <div className="mb-2 flex items-baseline justify-between border-b border-white/10 pb-2">
@@ -189,7 +207,7 @@ function PropsBoard() {
                 <span className="ql-data-label text-[#a9bec0]">{props?.length ?? 0} PROPS</span>
               </div>
               <div className="ql-panel overflow-hidden">
-                {props?.map((prop) => <PropRow key={`${prop.player}-${prop.stat}-${prop.direction}-${prop.line}`} prop={prop} targetDate={data.target_date} selected={selectedProp === prop} record={record.data} onAnalyze={(next) => setSelected({ league, prop: next })} />)}
+                {props?.map((prop) => <PropRow key={`${prop.player}-${prop.stat}-${prop.direction}-${prop.line}`} prop={prop} targetDate={data.target_date} selected={selectedProp === prop} record={record.data} window={filters.window} onAnalyze={(next) => setSelected({ league, prop: next })} />)}
               </div>
             </section>
           ))}

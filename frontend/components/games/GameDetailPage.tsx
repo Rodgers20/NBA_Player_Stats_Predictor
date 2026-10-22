@@ -19,6 +19,7 @@ import { MarketBlock } from "./MarketBlock";
 import { MarketGauge, MatchupBanner, teamInfo } from "./MatchupCards";
 import { Injuries, MatchupDetails } from "./MatchupDetails";
 import { GameProps } from "./GameProps";
+import { GameInsights } from "./GameInsights";
 import { MatchupPanel } from "./MatchupPanel";
 import { Tabs, type TabDef } from "./GameTabs";
 import { useTeamMap } from "./useTeamMap";
@@ -27,8 +28,8 @@ import type { Game, GamePrediction } from "@/lib/types";
 import gameStyles from "./games.module.css";
 import styles from "./GameDetail.module.css";
 
-const MAIN_TABS = [{ id: "lines", label: "Gamelines" }, { id: "props", label: "Props" }, { id: "matchup", label: "Matchup" }, { id: "box", label: "Box score" }, { id: "clips", label: "Highlights" }] as const satisfies readonly TabDef<string>[];
-const SIDE_TABS = [{ id: "matchup", label: "Defense" }, { id: "injuries", label: "Injuries" }, { id: "insights", label: "Insights" }] as const satisfies readonly TabDef<string>[];
+const MAIN_TABS = [{ id: "lines", label: "Gamelines" }, { id: "props", label: "Props" }, { id: "insights", label: "Insights" }, { id: "matchup", label: "Matchup" }, { id: "box", label: "Box score" }, { id: "clips", label: "Highlights" }] as const satisfies readonly TabDef<string>[];
+const SIDE_TABS = [{ id: "matchup", label: "Defense" }, { id: "injuries", label: "Injuries" }, { id: "insights", label: "Model notes" }] as const satisfies readonly TabDef<string>[];
 type MainTab = (typeof MAIN_TABS)[number]["id"];
 type SideTab = (typeof SIDE_TABS)[number]["id"];
 
@@ -99,6 +100,7 @@ export function GameDetailPage() {
           <MatchupDetails game={game} prediction={prediction} predictionStatus={status} league={league} showDefense={false} showAvailability={false} />
         </>}
         {tab === "props" && <GameProps game={game} league={league} date={date ?? games.data?.target_date ?? undefined} />}
+        {tab === "insights" && <GameInsights game={game} league={league} />}
         {tab === "matchup" && <MatchupPanel game={game} league={league} />}
         {tab === "box" && (game.game_id && state !== "pre"
           ? <BoxScore key={`${league}-${game.game_id}`} league={league} gameId={game.game_id} />

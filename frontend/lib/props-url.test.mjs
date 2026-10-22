@@ -17,7 +17,46 @@ test('a game filter is stale only when the slate is known and does not contain i
   assert.equal(isStaleGame('BOS @ DET', undefined), false);
 });
 
-const defaults = { stat: '', direction: 'All', location: 'All', sort: 'hit_rate', game: '', locksOnly: false, minStars: 0 };
+const defaults = { stat: '', direction: 'All', location: 'All', sort: 'hit_rate', game: '', locksOnly: false, minStars: 0, window: 'L10', ev: false, players: '' };
+
+test('several stats can be picked, and junk entries are dropped', () => {
+  assert.equal(parseFilters('stat=PTS,AST', defaults).stat, 'PTS,AST');
+  assert.equal(parseFilters('stat=PTS,ZZZ,PTS', defaults).stat, 'PTS');
+  assert.equal(parseFilters('stat=ZZZ,QQQ', { ...defaults, stat: 'REB' }).stat, 'REB');
+  const search = filtersToSearch({ ...defaults, stat: 'PTS+AST,REB', q: '' }, defaults);
+  assert.equal(parseFilters(search, defaults).stat, 'PTS+AST,REB');
+});
+
+test('a whole-game line market is picked on its own', () => {
+  assert.equal(parseFilters('stat=PTS,ML,SPREAD', defaults).stat, 'ML');
+});
+
+test('only +EV is a plain on/off switch in the URL', () => {
+  assert.equal(filtersToSearch({ ...defaults, ev: true, q: '' }, defaults), 'ev=true');
+  assert.equal(parseFilters('ev=true', defaults).ev, true);
+  assert.equal(parseFilters('ev=yes', defaults).ev, false);
+});
+
+test('picked players survive the URL, trimmed, de-duplicated and capped', () => {
+  assert.equal(parseFilters('players=Cade%20Cunningham%7CJalen%20Duren', defaults).players, 'Cade Cunningham|Jalen Duren');
+  assert.equal(parseFilters('players=A%7CA%7C%20%7CB', defaults).players, 'A|B');
+  assert.equal(parseFilters(`players=${Array.from({ length: 30 }, (_, i) => `p${i}`).join('%7C')}`, defaults).players.split('|').length, 10);
+  assert.equal(parseFilters(`players=${'x'.repeat(100)}`, defaults).players.length, 40);
+});
+
+test('the hit window survives the URL, and only a non-default window is written', () => {
+  assert.equal(filtersToSearch({ ...defaults, q: '' }, defaults), '');
+  for (const window of ['L5', 'L20', 'h2h', 'season']) {
+    const search = filtersToSearch({ ...defaults, window, q: '' }, defaults);
+    assert.equal(search, `window=${window}`);
+    assert.equal(parseFilters(search, defaults).window, window);
+  }
+});
+
+test('an unknown hit window falls back to the default', () => {
+  assert.equal(parseFilters('window=L99', defaults).window, 'L10');
+  assert.equal(parseFilters('window=%3Cscript%3E', defaults).window, 'L10');
+});
 
 test('an empty query gives the defaults and an empty search', () => {
   assert.deepEqual(parseFilters('', defaults), { ...defaults, q: '' });

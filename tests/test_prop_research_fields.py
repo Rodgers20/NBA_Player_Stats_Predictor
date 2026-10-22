@@ -89,6 +89,15 @@ def test_teammate_split_lists_only_key_out_teammates(refreshed):
         hit_rate_without=100.0)]
 
 
+def test_serialised_prop_carries_the_last_ten_results_newest_first():
+    row = props._serialise_prop(dict(player='X', stat='PTS', l10_values=list(range(12))), None)
+    assert row['l10_values'] == list(range(10))
+
+
+def test_serialised_prop_without_results_has_an_empty_list():
+    assert props._serialise_prop(dict(player='X', stat='PTS'), None)['l10_values'] == []
+
+
 def test_priced_fields_empty_for_research_rows():
     row = props._serialise_prop(dict(player='X', stat='PTS'), 'No verified sportsbook line')
     assert row['stars'] is None and row['edge_pct'] is None and row['high_edge'] is False

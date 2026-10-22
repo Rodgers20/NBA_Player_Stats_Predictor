@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { DEF_STATS, basePosition, positionMatchup } from "@/lib/defense-view.mjs";
@@ -32,7 +33,9 @@ export function MatchupDefense({ league, opponent, game, position, stat, accent 
   league: "nba" | "wnba"; opponent: string; game: Game; position: string | undefined; stat: string; accent: string;
 }) {
   const defense = useQuery({ queryKey: ["defense", league], queryFn: () => api.defense(league), staleTime: 300_000 });
-  const slot = basePosition(position);
+  const own = basePosition(position);
+  const [chosen, setChosen] = useState<"G" | "F" | "C" | null>(null);
+  const slot = chosen ?? own;   // the data has three position groups, so the tabs are G, F and C
   const matchup = slot && defense.data ? positionMatchup(defense.data.rankings, opponent, slot) : {};
   const headline = DEF_STATS.includes(stat as never) ? matchup[stat as keyof typeof matchup] : undefined;
   const involved = stat.split("+");
@@ -47,6 +50,11 @@ export function MatchupDefense({ league, opponent, game, position, stat, accent 
       <span className="ql-data-label">{opponent} DEFENSE{slot ? ` VS ${slot}` : ""}</span>
       {wins != null && losses != null && <span className="ql-data-label">{wins}–{losses}</span>}
     </div>
+    {defense.data && <div className="mt-2 flex gap-1" role="group" aria-label="Defense against position">
+      {(["G", "F", "C"] as const).map(option => <button key={option} type="button" aria-pressed={slot === option} onClick={() => setChosen(option)}
+        className={`ql-chip min-h-7 px-2.5 py-0.5 text-[11px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8] ${slot === option ? "ql-chip-active" : "text-[#a9bec0]"}`}>
+        vs {option}{own === option ? " · own" : ""}</button>)}
+    </div>}
     {defense.isPending && <div className="mt-3 h-16 animate-pulse bg-white/5" />}
     {defense.isError && <p className="mt-3 text-xs text-text-sec">Defense rankings are unavailable.</p>}
     {defense.data && !slot && <p className="mt-3 text-xs text-text-sec">Player position unknown, so a position matchup can&apos;t be shown.</p>}

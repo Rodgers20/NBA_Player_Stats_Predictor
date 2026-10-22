@@ -18,6 +18,10 @@ import { analysisViewToSearch, parseAnalysisView, type AnalysisView } from "@/li
 import { PlayerPropLines } from "@/components/props/PlayerPropLines";
 import { MatchupDefense } from "@/components/analysis/MatchupDefense";
 import { PlayerResearch } from "@/components/analysis/PlayerResearch";
+import { GameFilterPanel } from "@/components/analysis/GameFilters";
+import { DEFAULT_GAME_FILTERS, applyGameFilters, type GameFilters } from "@/lib/game-filters.mjs";
+import { MinutesBars } from "@/components/analysis/MinutesBars";
+import { scopeLabel, streakInsight } from "@/lib/insights.mjs";
 
 const STATS = [
   ["PTS", "PTS"], ["AST", "AST"], ["REB", "REB"], ["FG3M", "3PM"],
@@ -58,6 +62,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
   const syncTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(syncTimer.current), []);
   const [thresholdOverride, setThresholdOverride] = useState<number | null>(initial.line);
+  const [gameFilters, setGameFilters] = useState<GameFilters>(DEFAULT_GAME_FILTERS);
   const players = useQuery({ queryKey: ["players", "all", league], queryFn: () => api.players("", league) });
   const names = players.data?.players ?? [];
   const player = chosenPlayer || linkedPlayer || (league === "wnba" && names.includes("A'ja Wilson") ? "A'ja Wilson" : names[0]) || "";
@@ -79,7 +84,10 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
     || (periodChoice === "previous" && chart.isFetched && !previousSeason)
     || (periodChoice === "current" && chart.isFetched && !currentSeason) ? 10 : periodChoice;
   const windowContext = { nextOpponent, currentSeason, previousSeason };
-  const games = chart.data ? selectWindow(chart.data.games, period, windowContext) : [];
+  // Game filters narrow the sample first, so "L10" means the last 10 games that match them.
+  const allGames = chart.data?.games ?? [];
+  const filteredGames = applyGameFilters(allGames, gameFilters);
+  const games = chart.data ? selectWindow(filteredGames, period, windowContext) : [];
   const valid = games.filter((game): game is ChartRecord & { value: number } => game.value != null);
   const average = valid.length ? valid.reduce((sum, game) => sum + game.value, 0) / valid.length : null;
   const recentTwenty = chart.data?.games.slice(-20).map(game => game.value).filter((value): value is number => value != null) ?? [];
@@ -90,9 +98,10 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
   const hits = tally.hits;
   const decided = tally.hits + tally.misses;
   const hitRate = tally.rate;
+  const insight = player ? streakInsight({ player, stat, line: threshold, games: filteredGames, scope: scopeLabel(gameFilters) }) : null;
   const grade = (value: number | null) => (value == null ? null : { hit: true, miss: false, push: null }[gradeSide(value, threshold, "Over")]);
   const chartGames = games.map(game => ({ ...game, hit: grade(game.value) }));
-  const counts = windowCounts(chart.data?.games ?? [], threshold, windowContext);
+  const counts = windowCounts(filteredGames, threshold, windowContext);
   const windowLabels: Record<string, string> = {
     5: "L5", 10: "L10", 20: "L20", h2h: "H2H", home: "Home", away: "Away",
     current: currentSeason?.split("-")[0] ?? "Season", previous: previousSeason?.split("-")[0] ?? "Prev",
@@ -134,9 +143,10 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
     setSearchOpen(false);
     setPhotoFailed(false);
     setThresholdOverride(null);
+    setGameFilters(DEFAULT_GAME_FILTERS); // teammates, minutes and margins belong to the old player
   }
 
-  return <div className="ql-page mx-auto max-w-[1700px] px-4 py-6 sm:px-8">
+  return <div className="ql-page ql-enter mx-auto max-w-[1700px] px-4 py-6 sm:px-8">
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
         <p className="ql-kicker">01 / PLAYER INTELLIGENCE</p>
@@ -208,6 +218,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_300px] lg:items-start">
         <div className="min-w-0 space-y-4">
+          {allGames.length > 0 && <GameFilterPanel games={allGames} value={gameFilters} onChange={setGameFilters} matching={filteredGames.length} />}
           <section className={card}>
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -232,7 +243,7 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
             <p className="ql-data-label mb-3">LAST {games.length} GAMES / PERFORMANCE VS. ANALYSIS THRESHOLD</p>
             {chart.isPending && <div className="h-64 animate-pulse rounded-xl bg-white/5" />}
             {chart.isError && <p role="alert" className="text-sm text-red-300">Game history is unavailable. <button className="underline" onClick={() => void chart.refetch()}>Try again</button></p>}
-            {!chart.isPending && chart.data && games.length === 0 && <p className="py-12 text-center text-sm text-text-sec">No completed games are available for this player.</p>}
+            {!chart.isPending && chart.data && games.length === 0 && <p className="py-12 text-center text-sm text-text-sec">{allGames.length > 0 ? "No games match these filters. Loosen or reset them." : "No completed games are available for this player."}</p>}
             {games.length > 0 && <div className="overflow-x-auto"><PlayerBarChart games={chartGames} stat={stat} line={threshold} height={280} /></div>}
             {games.length > 0 && <p className="mt-3 text-xs text-text-sec">{games[0].date} to {games.at(-1)?.date} · Historical results · Threshold is for analysis, not a live sportsbook line.</p>}
             {games.length > 0 && <GameLogTable games={chartGames} line={threshold} stat={stat} />}
@@ -267,6 +278,11 @@ function PlayerAnalysis({ linkedPlayer, league }: { linkedPlayer: string; league
                 <p className="mt-2 text-xl font-bold tabular-nums" style={{ color: STAT_COLORS[key] ?? "#59e0c8" }}>{fmt(summary.data?.season_avgs[key])}</p>
                 <p className="mt-1 text-xs tabular-nums text-text-sec">L5 {fmt(summary.data?.l5_avgs[key])}</p>
               </button>)}
+            </div>}
+            <MinutesBars games={games} />
+            {insight && <div className="mt-5 border-l-2 border-amber-300 bg-amber-300/[.06] p-4">
+              <h3 className="ql-data-label text-amber-200">INSIGHT</h3>
+              <p className="mt-2 text-sm text-text-pri">{insight}</p>
             </div>}
             <div className="mt-5 border-l-2 border-teal-400 bg-teal-400/[.06] p-4">
               <h3 className="ql-data-label text-teal-300">TREND INSIGHT</h3>

@@ -34,6 +34,7 @@ export interface Prop {
   live_line:    number | null;
   is_home_today?: boolean | null;
   l5_values?: (number | null)[];
+  l10_values?: (number | null)[];
   chart_windows?: Record<string, { values: (number | null)[]; labels: string[] }>;
   // Research fields (null/absent on research-shortlist and cached rows).
   books?: BookQuote[];
@@ -174,6 +175,12 @@ export interface ChartRecord {
   hit:      boolean | null;
   season?:  string | null;
   is_home?: boolean | null;
+  // Per-game context; absent when the history cannot say.
+  minutes?: number | null;
+  margin?:  number | null;   // team points for minus against
+  won?:     boolean | null;
+  rest?:    number | null;   // full days since the player's previous game
+  out?:     string[];        // rotation teammates who sat this game out
 }
 
 export interface PlayerChartData {

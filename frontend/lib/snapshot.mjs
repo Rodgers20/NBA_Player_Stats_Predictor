@@ -9,7 +9,14 @@ export function scheduledPlayersSnapshot(data, league, gameDate) {
   return data;
 }
 
-export function filterProps(data, params = {}) {
+import { isPastSlate } from './slate-freshness.mjs';
+
+/** The snapshot is rebuilt once a day; between games ending and that build it still holds yesterday's slate. */
+export function filterProps(data, params = {}, now = new Date()) {
+  if (isPastSlate(data.target_date, now)) {
+    return { ...data, count: 0, props: [], stat_counts: {}, game_matchups: [], status: 'stale',
+      message: "Today's picks aren't published yet. New picks appear after the morning data refresh, around 7:15 AM ET." };
+  }
   const eligible = data.props.filter(p =>
     (!params.direction || params.direction === 'all' || p.direction.toLowerCase() === String(params.direction).toLowerCase()) &&
     (!params.game || p.game_matchup.toLowerCase().includes(String(params.game).toLowerCase())) &&
@@ -34,14 +41,18 @@ export function windowChart(data, count) {
 }
 
 /** Rebuild the API chart response from the compact, per-player history export. */
+// Per-game context the series carries beside the stats; the game filters read it. Missing means unknown.
+const GAME_CONTEXT = ['minutes', 'margin', 'won', 'rest', 'out'];
+
 export function seriesChart(player, series, stat, count = 20) {
   const columns = stat.toUpperCase().split('+');
   const rows = series.games.slice(-count).map(row => {
     const values = columns.map(column => row[column.toLowerCase()]);
     const value = values.every(item => typeof item === 'number' && Number.isFinite(item))
       ? values.reduce((sum, item) => sum + item, 0) : null;
+    const context = Object.fromEntries(GAME_CONTEXT.filter(key => row[key] !== undefined).map(key => [key, row[key]]));
     return { date: row.date, opponent: row.opponent, season: row.season,
-      is_home: row.is_home, value, hit: null };
+      is_home: row.is_home, value, hit: null, ...context };
   });
   const mean = values => {
     const numbers = values.map(row => row.value).filter(value => value !== null);
