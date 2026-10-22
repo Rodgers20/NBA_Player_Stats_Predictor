@@ -2,9 +2,9 @@ name: Refresh data and deploy Vercel snapshot
 
 on:
   schedule:
-    # 11:17 UTC is after the previous day's NBA/WNBA games in North America.
-    # GitHub scheduled workflows may start later than the requested minute.
-    - cron: "17 11 * * *"
+    # 06:17 UTC is after the previous day's NBA/WNBA games in North America.
+    # GitHub scheduled workflows start late, observed up to 4.5 hours, so this leaves room to land before morning.
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -70,8 +70,9 @@ jobs:
           set -euo pipefail
           # Only the explicit export refresh spends credits. The restored ledger
           # keeps daily/monthly allowances across otherwise ephemeral runners.
-          python scripts/refresh_nba_history.py
-          python scripts/refresh_wnba_history.py
+          # stats.nba.com often times out from GitHub's IP range; ship fresh odds on the existing history instead of failing the whole run.
+          python scripts/refresh_nba_history.py || echo "::warning::NBA history refresh failed; exporting with the committed history"
+          python scripts/refresh_wnba_history.py || echo "::warning::WNBA history refresh failed; exporting with the committed history"
           python -m uvicorn api.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/snapshot-api.log" 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
