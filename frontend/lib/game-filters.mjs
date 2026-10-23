@@ -3,6 +3,9 @@ export const MARGIN_CAP = 20;
 
 export const DEFAULT_GAME_FILTERS = Object.freeze({
   homeOnly: false,
+  awayOnly: false,
+  opponent: '',           // opponent abbreviation, e.g. 'BOS'
+  season: '',             // e.g. '2025-26'
   rest: 'any',            // 'any' | '0' | '1' | '2' | '3+' days of rest
   withPlayer: '',         // a teammate who played
   withoutPlayer: '',      // a teammate who sat out
@@ -17,6 +20,9 @@ const marginOn = ([low, high]) => low > 0 || high < MARGIN_CAP;
 export function activeFilterCount(filters) {
   return [
     filters.homeOnly,
+    filters.awayOnly,
+    Boolean(filters.opponent),
+    Boolean(filters.season),
     filters.rest !== 'any',
     Boolean(filters.withPlayer),
     Boolean(filters.withoutPlayer),
@@ -37,6 +43,9 @@ export function applyGameFilters(games, filters = DEFAULT_GAME_FILTERS) {
   const limited = marginOn([low, high]);
   return games.filter(game => {
     if (filters.homeOnly && game.is_home !== true) return false;
+    if (filters.awayOnly && game.is_home !== false) return false;
+    if (filters.opponent && opponentOf(game) !== filters.opponent) return false;
+    if (filters.season && game.season !== filters.season) return false;
     if (filters.rest !== 'any' && !restMatches(game.rest, filters.rest)) return false;
     const out = game.out ?? [];
     if (filters.withPlayer && out.includes(filters.withPlayer)) return false;
@@ -50,6 +59,14 @@ export function applyGameFilters(games, filters = DEFAULT_GAME_FILTERS) {
     if (filters.minutes && (game.minutes == null || game.minutes < filters.minutes[0] || game.minutes > filters.minutes[1])) return false;
     return true;
   });
+}
+
+/** Histories hold either the opponent ("BOS") or the whole matchup ("CHI @ BOS"); the opponent is always last. */
+export const opponentOf = game => (game.opponent ?? '').trim().split(/\s+/).at(-1) ?? '';
+
+/** Opponents in this sample, alphabetical. */
+export function opponentOptions(games) {
+  return [...new Set(games.map(opponentOf).filter(Boolean))].sort();
 }
 
 /** Teammates who actually sat out at least one of these games, most often first: the only ones a with/without split can tell apart. */

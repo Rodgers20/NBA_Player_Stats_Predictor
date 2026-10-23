@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DEFAULT_GAME_FILTERS, MARGIN_CAP, applyGameFilters, activeFilterCount, teammateOptions, histogram, minutesRange,
+  DEFAULT_GAME_FILTERS, MARGIN_CAP, applyGameFilters, activeFilterCount, teammateOptions, histogram, minutesRange, opponentOptions,
 } from './game-filters.mjs';
 
 const game = (over = {}) => ({ date: '2026-01-01', is_home: true, rest: 1, out: [], margin: 5, won: true, minutes: 30, ...over });
@@ -17,6 +17,19 @@ test('the default filters keep every game, including ones with unknown context',
 test('home only drops away games and games with no venue', () => {
   const games = [game({ date: 'h' }), game({ date: 'a', is_home: false }), game({ date: 'u', is_home: null })];
   assert.deepEqual(dates(applyGameFilters(games, filter({ homeOnly: true }))), ['h']);
+});
+
+test('away only, opponent and season narrow the games, and each counts as an active filter', () => {
+  const games = [
+    game({ date: 'h', opponent: 'CHI vs. BOS', season: '2025-26' }),
+    game({ date: 'a', is_home: false, opponent: 'CHI @ BOS', season: '2024-25' }),
+    game({ date: 'n', is_home: false, opponent: 'NYK', season: '2025-26' }),
+  ];
+  assert.deepEqual(dates(applyGameFilters(games, filter({ awayOnly: true }))), ['a', 'n']);
+  assert.deepEqual(dates(applyGameFilters(games, filter({ opponent: 'BOS' }))), ['h', 'a']);
+  assert.deepEqual(dates(applyGameFilters(games, filter({ season: '2025-26' }))), ['h', 'n']);
+  assert.equal(activeFilterCount(filter({ awayOnly: true, opponent: 'BOS', season: '2025-26' })), 3);
+  assert.deepEqual(opponentOptions(games), ['BOS', 'NYK']);
 });
 
 test('days of rest match exactly, with 3+ open ended, and unknown rest never matches', () => {

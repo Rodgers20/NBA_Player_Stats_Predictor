@@ -24,3 +24,9 @@
 - When odds fixes exist locally, verify the production snapshot and refresh workflow too. Persisting quotes in the API does not update a static deployment; export must explicitly refresh quotes within the credit budget, and a player-level deduplication must not hide separate stat markets.
 
 - When the user requests the NFL matchup artwork across the slate, apply it to every game card as well as the featured matchup; verify multiple games rather than just the selected banner. Model Performance must distinguish current-version prospective results, legacy calls and fixed holdouts.
+
+- Visual QA must cover 390, 820, 1024 and 1440 px. The props table looked fine at 1440 and 390 but overlapped at iPad/laptop widths; a dense grid needs its card breakpoint where the fixed columns stop fitting (~1200px), not at 768.
+- An avatar showing initials is a bug signal, not a style. cdn.nba.com refuses cross-site browser loads (curl works, browsers get HTTP2 errors), so headshots must be served from our own snapshot (`export_api.py` localizes them).
+- An empty section ("No graded games yet") reads as leftover clutter to the user. Hide a panel until it has data instead of showing an empty state.
+- Swapping a list for a loading skeleton on "Load more" collapses the page and jumps to the top; keep previous data on screen (`placeholderData: keepPreviousData`).
+- Touch has no hover and fires pointerleave on lift: chart tooltips need tap-to-pin on touch, hover on mouse.

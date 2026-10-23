@@ -82,9 +82,9 @@ export const api = {
     ? (await snapshot<{ stats: PlayerStats }>(league, `player/${playerKey(player)}`)).stats
     : get<PlayerStats>(`/api/player/${encodeURIComponent(player)}/stats`, { league }),
   players: async (q = '', league = 'nba') => {
-    if (!STATIC) return get<{players: string[]}>('/api/players', { q, league });
-    const data = await snapshot<{players: string[]}>(league, 'players');
-    return { players: data.players.filter(name => name.toLowerCase().includes(q.toLowerCase())) };
+    if (!STATIC) return get<{players: string[]; headshots?: Record<string, string>}>('/api/players', { q, league });
+    const data = await snapshot<{players: string[]; headshots?: Record<string, string>}>(league, 'players');
+    return { players: data.players.filter(name => name.toLowerCase().includes(q.toLowerCase())), headshots: data.headshots ?? {} };
   },
 };
 

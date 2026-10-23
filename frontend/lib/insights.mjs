@@ -17,6 +17,9 @@ export function summarize(values) {
 export function scopeLabel(filters) {
   const parts = [
     filters.homeOnly && 'at home',
+    filters.awayOnly && 'on the road',
+    filters.opponent && `against ${filters.opponent}`,
+    filters.season && `in ${filters.season}`,
     filters.withPlayer && `with ${filters.withPlayer}`,
     filters.withoutPlayer && `without ${filters.withoutPlayer}`,
     filters.result === 'W' && 'in wins',

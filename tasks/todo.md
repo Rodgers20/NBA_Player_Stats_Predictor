@@ -360,3 +360,18 @@ Done: 1, 2, 3, 4, 4b, 5. Not built: 6 (no legitimate data source), Outlier's cro
 Verification: 453 Python tests pass (one pre-existing failure, `test_startup_does_not_import_dash_or_fetch`, fails the same without these changes), 212 frontend tests, tsc, eslint and a static production build pass; every feature was also looked at in a browser. Nothing is committed or deployed.
 
 Caveats: fresh picks still arrive only with the 11:17 UTC snapshot build (the site now says so instead of showing yesterday); the existing snapshot has no `l10_values`/game context until the next export; static player series grow ~49% before compression; sportsbook-filtered EV is recomputed only on half-point lines.
+
+## 2026-10-23 · Props fixes + full-screen player analysis
+
+- [x] Only 2 games of props: Odds API free tier (7 credits per game, ~35/day budget, 280 left this month). Not a code bug; needs a paid plan or fewer markets per game. Awaiting user decision.
+- [x] Headshots: served from the snapshot (`scripts/export_api.py --headshots-only`, run automatically on export); test `tests/test_export_headshots.py`.
+- [x] Props rows: card layout below 1200px, no overlap at 390/820/1024/1440.
+- [x] Players filter shows headshots.
+- [x] Load more keeps position (keepPreviousData).
+- [x] Performance: empty season-record panel hidden until a game is graded.
+- [x] Chart: animated hover/tap tooltip; Outlier-style hit/miss colours, tinted zones, line tag, date + opponent labels; draws at real width.
+- [x] Full-screen PlayerAnalysisSheet from Props (spring from tap point, Back to Props, Esc/browser back, focus return, reduced motion); /analysis kept and shares the component.
+- [x] New game filters: Home/Away, opponent, season.
+
+### Review
+Verified with headless Chromium on local static build and production: sheet open/close at 1440 and 390, scroll preserved, no page errors; tap tooltip on touch; tsc/eslint clean; 214 frontend tests, 454 Python tests pass (1 pre-existing failure in tests/test_rest_api.py::test_startup_does_not_import_dash_or_fetch, untouched code). Deployed to production twice (court-vision-basketball.vercel.app). Not committed.

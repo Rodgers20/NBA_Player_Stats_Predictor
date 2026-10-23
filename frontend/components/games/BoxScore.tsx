@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import type { BoxPlayer, BoxScore as BoxScoreData, BoxTeam } from '@/lib/boxscore-types';
 import { TeamLogo } from '@/components/teams/TeamLogo';
+import { PlayerName } from '@/components/analysis/PlayerName';
 import styles from './boxscore.module.css';
 
 const HEADLINE = new Set(['PTS', 'REB', 'AST']);
@@ -84,12 +85,15 @@ function LineScore({data}: {data: BoxScoreData}) {
   </table></div>;
 }
 
+const fullName = (team: BoxTeam, leader: {id: string; name: string}) => team.players.find(p => p.id === leader.id)?.name ?? leader.name;
+
 function Leaders({teams}: {teams: BoxTeam[]}) {
   return <div className={styles.leaders}>{teams.map((team, t) => <div key={team.side} className={styles.leaderTeam}>
     <p><TeamLogo team={teamBadge(team)} size={20}/>{team.abbrev} leaders</p>
     <ul>{team.leaders.map((leader, i) => <li key={leader.label} style={{animationDelay: `${(t * 3 + i) * 40}ms`}}>
-      <Avatar name={leader.name} src={leader.image} size={44}/>
-      <div><strong>{leader.value}</strong><span>{leader.label}</span><small>{leader.name}</small></div>
+      {/* Leaders carry ESPN's short name ("D. Mitchell"); the analysis needs the full one, found by player id. */}
+      <PlayerName name={fullName(team, leader)}><Avatar name={leader.name} src={leader.image} size={44}/></PlayerName>
+      <div><strong>{leader.value}</strong><span>{leader.label}</span><small><PlayerName name={fullName(team, leader)}>{leader.name}</PlayerName></small></div>
     </li>)}</ul>
   </div>)}</div>;
 }
@@ -121,11 +125,11 @@ function PlayerTable({team}: {team: BoxTeam}) {
       <caption className="sr-only">{team.name} player statistics</caption>
       <thead><tr><th scope="col">Player</th>{team.columns.map(c => <th key={c} scope="col" data-headline={HEADLINE.has(c)}>{c}</th>)}</tr></thead>
       <tbody>{played.map((p, i) => <tr key={p.id} data-bench-start={i === firstBench && i > 0}>
-        <th scope="row"><div className={styles.who}><Avatar name={p.name} src={p.image} size={30}/><div><span>{p.short}</span><small>{p.position}{p.starter ? ' · S' : ''}</small></div></div></th>
+        <th scope="row"><PlayerName name={p.name} className={styles.who}><Avatar name={p.name} src={p.image} size={30}/><div><span>{p.short}</span><small>{p.position}{p.starter ? ' · S' : ''}</small></div></PlayerName></th>
         {team.columns.map(c => <td key={c} data-headline={HEADLINE.has(c)} data-top={c === 'PTS' && p === topScorer}>{p.stats[c] ?? '—'}</td>)}
       </tr>)}</tbody>
       <tfoot><tr><th scope="row">Team</th>{team.columns.map(c => <td key={c} data-headline={HEADLINE.has(c)}>{team.totals[c] || ''}</td>)}</tr></tfoot>
     </table></div>
-    {out.length > 0 && <p className={styles.dnp}><strong>Did not play</strong>{out.map(p => <span key={p.id}>{p.name}{p.reason ? ` (${p.reason.toLowerCase()})` : ''}</span>)}</p>}
+    {out.length > 0 && <p className={styles.dnp}><strong>Did not play</strong>{out.map(p => <span key={p.id}><PlayerName name={p.name} />{p.reason ? ` (${p.reason.toLowerCase()})` : ''}</span>)}</p>}
   </div>;
 }

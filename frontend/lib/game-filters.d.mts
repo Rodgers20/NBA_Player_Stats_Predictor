@@ -3,6 +3,9 @@ import type { ChartRecord } from './types';
 export type RestFilter = 'any' | '0' | '1' | '2' | '3+';
 export type GameFilters = {
   homeOnly: boolean;
+  awayOnly: boolean;
+  opponent: string;
+  season: string;
   rest: RestFilter;
   withPlayer: string;
   withoutPlayer: string;
@@ -10,7 +13,9 @@ export type GameFilters = {
   result: 'any' | 'W' | 'L';
   minutes: [number, number] | null;
 };
-type GameContext = Pick<ChartRecord, 'is_home' | 'minutes' | 'margin' | 'won' | 'rest' | 'out'>;
+type GameContext = Pick<ChartRecord, 'is_home' | 'minutes' | 'margin' | 'won' | 'rest' | 'out' | 'opponent' | 'season'>;
+export function opponentOf(game: Pick<ChartRecord, 'opponent'>): string;
+export function opponentOptions(games: Pick<ChartRecord, 'opponent'>[]): string[];
 
 export const MARGIN_CAP: number;
 export const DEFAULT_GAME_FILTERS: GameFilters;

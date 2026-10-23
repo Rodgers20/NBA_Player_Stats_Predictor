@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Prop } from "@/lib/types";
+import { PlayerName, focusFromProp } from "@/components/analysis/PlayerName";
 
 const SHOWN = 15;
 const fmt = (value: number | null | undefined) => (value == null ? "—" : value.toFixed(1));
@@ -27,7 +28,7 @@ export function ResearchList({ rows, league }: { rows: Prop[]; league: "nba" | "
     <div className="ql-panel overflow-hidden">
       {shown.map(row => <div key={`${row.player}-${row.stat}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-white/[0.07] px-4 py-3 last:border-b-0 sm:px-5">
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-text-pri">{row.player}</p>
+          <PlayerName name={row.player} league={league} focus={focusFromProp(row)} className="block max-w-full truncate text-sm font-bold text-text-pri" />
           <p className="truncate text-xs text-text-sec">{row.game_matchup || `${row.team} vs ${row.opponent}`}</p>
         </div>
         <div className="text-right">

@@ -98,10 +98,18 @@ def _player(player_name, league):
 
 @router.get('/players')
 def list_players(q: str | None = None, league: League = 'nba'):
-    names = sorted(history(league)['PLAYER_NAME'].dropna().unique().tolist())
+    frame = history(league)
+    names = sorted(frame['PLAYER_NAME'].dropna().unique().tolist())
     if q:
         names = [name for name in names if q.casefold() in name.casefold()]
-    return {'players': names}
+    # One photo per name for search lists, from the player's most recent game id (same CDN as the player page).
+    id_column = next((column for column in ('Player_ID', 'PLAYER_ID') if column in frame), None)
+    headshots = {}
+    if id_column:
+        ids = frame.assign(_id=pd.to_numeric(frame[id_column], errors='coerce')).dropna(subset=['_id']).groupby('PLAYER_NAME')['_id'].last()
+        template = get_config(league).headshot_cdn_template
+        headshots = {name: template.format(player_id=int(ids[name])) for name in names if name in ids}
+    return {'players': names, 'headshots': headshots}
 
 
 @router.get('/players/scheduled')

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { PlayerName } from "@/components/analysis/PlayerName";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
@@ -15,7 +15,6 @@ const STATS = [
   ["all", "All"], ["PTS", "PTS"], ["REB", "REB"], ["AST", "AST"], ["FG3M", "3PM"], ["STL", "STL"], ["BLK", "BLK"],
   ["PTS+REB", "P+R"], ["PTS+AST", "P+A"], ["REB+AST", "R+A"], ["PTS+REB+AST", "PRA"],
 ] as const;
-const focus = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]";
 
 function Stars({ count }: { count: number }) {
   return <span role="img" aria-label={`${count} of 5 stars`} className="text-sm tracking-tight text-[#f5ba64]">{"★".repeat(count)}<span className="text-white/15">{"★".repeat(5 - count)}</span></span>;
@@ -26,7 +25,7 @@ function TrendItem({ card, league }: { card: TrendCard; league: "nba" | "wnba" }
   return <li className="ql-panel flex flex-col gap-3 p-4">
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <Link href={`/analysis?league=${league}&player=${encodeURIComponent(card.player)}`} className={`block truncate font-bold text-text-pri hover:text-teal-300 ${focus}`}>{card.player}</Link>
+        <PlayerName name={card.player} league={league} className="block max-w-full truncate font-bold text-text-pri" />
         <p className="ql-data-label mt-0.5">{card.team}{card.opponent ? ` vs ${card.opponent}` : ""} · {stat}</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">

@@ -1,13 +1,14 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
-import type { Prop, PropsResponse } from "@/lib/types";
+import type { PropsResponse } from "@/lib/types";
 import { PropHeader, PropRow } from "@/components/props/PropRow";
-import { PropAnalysisPanel } from "@/components/props/PropAnalysisPanel";
+import { usePlayerSheet } from "@/store/player-sheet";
+import { focusFromProp } from "@/components/analysis/PlayerName";
 import { PropFilters, isLineMarket, type Filters } from "@/components/props/PropFilters";
 import { GameLinesBoard } from "@/components/props/GameLinesBoard";
 import { filterMinStars, sortByEdge } from "@/lib/prop-research.mjs";
@@ -39,8 +40,10 @@ function PropsBoard() {
   const filters: Filters = parseFilters(search.toString(), defaults);
   const [page, setPage] = useState(1);
   const [view, setView] = useState<"props" | "alt" | "record">("props");
-  const [selected, setSelected] = useState<{ league: "nba" | "wnba"; prop: Prop } | null>(null);
+  const sheet = usePlayerSheet((state) => state.request);
+  const openPlayer = usePlayerSheet((state) => state.open);
   const client = useQueryClient();
+  const tapOrigin = useRef<{ x: number; y: number } | null>(null);
   const isStatic = process.env.NEXT_PUBLIC_DATA_MODE === "static";
   const budget = useQuery({ queryKey: ["budget", league], queryFn: () => api.budget(league), enabled: !isStatic });
   const altLines = useQuery({ queryKey: ["alt-lines", league], queryFn: () => api.altLines(league) });
@@ -74,6 +77,8 @@ function PropsBoard() {
     queryFn: () => api.props(params),
     refetchInterval: 120_000,
     enabled: !lineMarket,
+    // Keep the rows on screen while "Load more" or a filter fetches; swapping to the skeleton collapses the page and jumps to the top.
+    placeholderData: keepPreviousData,
   });
 
   function handleChange(update: Partial<Filters>) {
@@ -100,13 +105,12 @@ function PropsBoard() {
   const shownProps = filters.sort === "edge" ? sortByEdge(starred) : filters.sort === "hit_rate" ? sortByWindow(starred, filters.window) : starred;
   const byGame = Object.groupBy(shownProps, (prop) => prop.game_matchup || "Other matchups");
   const verifiedCount = shownProps.filter((prop) => (prop.pick_type ?? (prop.recommendation_eligible ? "pick" : "research")) !== "research").length;
-  const selectedProp = selected?.league === league ? selected.prop : null;
   // The static snapshot withholds a past slate (status "stale") instead of showing yesterday's picks.
   const pastSlate = data?.status === "stale";
   const showPlayers = activeView === "props" && !lineMarket && !pastSlate;
 
   return (
-    <main className="ql-page mx-auto max-w-[1440px] px-4 pb-12 pt-7 sm:px-8">
+    <main className="ql-page mx-auto max-w-[1440px] px-4 pb-12 pt-7 sm:px-8" onPointerDownCapture={(event) => { tapOrigin.current = { x: event.clientX, y: event.clientY }; }}>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="ql-kicker">03 / PLAYER MARKETS</p>
@@ -146,7 +150,8 @@ function PropsBoard() {
       )}
 
       {activeView === "props" && <PropFilters filters={filters} matchups={data?.game_matchups ?? []} statCounts={data?.stat_counts} onChange={handleChange}
-        bookOptions={availableBooks(loaded)} books={books} onBooksChange={setBooks} playerOptions={availablePlayers(loaded)} />}
+        bookOptions={availableBooks(loaded)} books={books} onBooksChange={setBooks} playerOptions={availablePlayers(loaded)}
+        playerImages={Object.fromEntries(loaded.map(prop => [prop.player, prop.headshot_url]))} />}
 
       {!isStatic && (refresh.error || refresh.data || budget.data?.configured === false) && (
         <p role="status" className="mb-4 text-xs text-[#a9bec0]">
@@ -196,7 +201,6 @@ function PropsBoard() {
       )}
 
       {showPlayers && !isPending && data && shownProps.length > 0 && (
-        <div className={selectedProp ? "grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px] 2xl:items-start" : ""}>
         <div className="min-w-0 space-y-5">
           <p className="ql-data-label text-[#a9bec0]">{data.status === "research" ? "MODEL RESEARCH · NO PRICED PICKS" : `${verifiedCount} VERIFIED PRICED ${verifiedCount === 1 ? "MARKET" : "MARKETS"} SHOWN`} · SELECT A PLAYER FOR GAME HISTORY</p>
           <PropHeader window={filters.window} />
@@ -207,14 +211,13 @@ function PropsBoard() {
                 <span className="ql-data-label text-[#a9bec0]">{props?.length ?? 0} PROPS</span>
               </div>
               <div className="ql-panel overflow-hidden">
-                {props?.map((prop) => <PropRow key={`${prop.player}-${prop.stat}-${prop.direction}-${prop.line}`} prop={prop} targetDate={data.target_date} selected={selectedProp === prop} record={record.data} window={filters.window} onAnalyze={(next) => setSelected({ league, prop: next })} />)}
+                {props?.map((prop) => <PropRow key={`${prop.player}-${prop.stat}-${prop.direction}-${prop.line}`} prop={prop} targetDate={data.target_date} selected={sheet?.player === prop.player && sheet.focus?.stat === prop.stat} record={record.data} window={filters.window} onAnalyze={(next) => openPlayer({ player: next.player, league, origin: tapOrigin.current, focus: focusFromProp(next) })} />)}
               </div>
             </section>
           ))}
         </div>
-        {selectedProp && <PropAnalysisPanel key={`${league}-${selectedProp.player}-${selectedProp.stat}`} prop={selectedProp} league={league} onClose={() => setSelected(null)} />}
-        </div>
       )}
+
 
       {showPlayers && data && data.props.length > 0 && data.props.length < data.count && (
         <button

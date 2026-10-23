@@ -5,6 +5,7 @@ no overwrite after tipoff, and no mixing model versions in performance summaries
 """
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 import json
 import os
 import tempfile
@@ -62,24 +63,32 @@ def grade_forecasts(league, team_games=None, path=None, now=None):
     if team_games is None:
         from utils.game_data import load_game_team_history
         team_games=load_game_team_history(league)
+    # Forecasts carry the schedule provider's id (ESPN) and box scores the league's (NBA.com), so a game is
+    # identified by its Eastern date and its two teams; the id only joins when both sides share a provider.
     pairs={str(g).zfill(10):pair for g,pair in team_games.groupby('game_id')}
-    graded=0
+    by_day={(pair.iloc[0].date.date(),frozenset(pair.team)):pair for pair in pairs.values() if len(pair)==2}
+    covered=team_games.date.max().date() if len(team_games) else None
+    graded=changed=0
     for entry in ledger['forecasts']:
-        if entry.get('actual'):continue
+        if entry.get('actual') or entry.get('void'):continue
         try:
             if not _utc(entry['generated_at']) < _utc(entry['tipoff']) < now:continue
         except (ValueError,KeyError):continue
+        tipday=_utc(entry['tipoff']).astimezone(ZoneInfo('America/New_York')).date()
         pair=pairs.get(str(entry['game_id']).zfill(10))
-        if pair is None:continue
+        if pair is None or pair.iloc[0].date.date()!=tipday:  # guard id collisions with the advertised date
+            pair=by_day.get((tipday,frozenset((entry['home_team'],entry['away_team']))))
+        if pair is None:
+            # Scores already run past this date without the game: an exhibition or a cancellation, never gradable.
+            if covered and covered>tipday:
+                entry['void']='no official regular-season or playoff result';changed+=1
+            continue
         home=pair[pair.team==entry['home_team']];away=pair[pair.team==entry['away_team']]
         if len(home)!=1 or len(away)!=1:continue
-        # Guard ID/provider collisions with the originally advertised event date.
-        tipday=_utc(entry['tipoff']).astimezone(__import__('zoneinfo').ZoneInfo('America/New_York')).date()
-        if home.iloc[0].date.date()!=tipday:continue
         entry['actual']=dict(home_score=float(home.iloc[0].PTS),away_score=float(away.iloc[0].PTS),
                             graded_at=now.isoformat(),source='validated completed team box scores')
         graded+=1
-    if graded:
+    if graded or changed:
         fd,temp=tempfile.mkstemp(dir=path.parent,suffix='.tmp')
         try:
             with os.fdopen(fd,'w') as f:json.dump(ledger,f,indent=2,allow_nan=False)

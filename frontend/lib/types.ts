@@ -257,9 +257,21 @@ export interface ModelEvaluation {
   candidates: Record<string, {margin: {mae: number; rmse: number}; total: {mae: number; rmse: number}}>;
   features: string[]; limits: string[];
 }
+export interface PickTally {n: number; correct: number; rate: number | null}
 export interface ModelRecord {
-  games: number; winner: {n: number; correct: number; rate: number | null};
+  games: number; winner: PickTally;
+  /** Against the saved sportsbook line; only games where the model took a side. */
+  spread?: PickTally; total_ou?: PickTally;
   margin_mae: number | null; total_mae: number | null;
+}
+/** A first-published forecast graded against the final score and the lines saved with it. */
+export interface LedgerGame {
+  date: string; game_id: string; home_team: string; away_team: string; home_score: number; away_score: number;
+  predicted_home_score: number | null; predicted_away_score: number | null; predicted_total: number | null;
+  predicted_winner: string | null; winner_correct: boolean | null;
+  margin_error: number | null; total_error: number | null;
+  market_spread: number | null; spread_pick: 'HOME' | 'AWAY' | null; spread_correct: boolean | null;
+  market_total: number | null; total_pick: 'OVER' | 'UNDER' | null; total_correct: boolean | null;
 }
 export interface SavedGameForecast {
   date: string; season: number; game_id: string;
@@ -274,7 +286,7 @@ export interface PerformanceResponse {
   live: {current_season: number; excluded_unverified: number; message: string;
     seasons: {season: number; record: ModelRecord; games: SavedGameForecast[];
       by_month: (ModelRecord & {month: string})[]}[]};
-  prospective?: {model_version: string | null; saved: number; pending: number; record?: ModelRecord; message: string};
+  prospective?: {model_version: string | null; saved: number; pending: number; void?: number; record?: ModelRecord; games?: LedgerGame[]; message: string};
   market_record: {available: boolean; message: string};
 }
 

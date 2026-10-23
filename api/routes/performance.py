@@ -35,15 +35,25 @@ def _stamp(value):
         return None
 
 
+def _tally(games, key):
+    picked = [g[key] for g in games if g.get(key) is not None]
+    return dict(n=len(picked), correct=sum(picked), rate=sum(picked) / len(picked) if picked else None)
+
+
 def _summary(games):
-    picked = [g for g in games if g['winner_correct'] is not None]
-    correct = sum(g['winner_correct'] for g in picked)
     margins = [g['margin_error'] for g in games if g['margin_error'] is not None]
     totals = [g['total_error'] for g in games if g['total_error'] is not None]
-    return dict(games=len(games), winner=dict(n=len(picked), correct=correct,
-                rate=correct / len(picked) if picked else None),
+    return dict(games=len(games), winner=_tally(games, 'winner_correct'),
+                spread=_tally(games, 'spread_correct'), total_ou=_tally(games, 'total_correct'),
                 margin_mae=sum(margins) / len(margins) if margins else None,
                 total_mae=sum(totals) / len(totals) if totals else None)
+
+
+def _against(value, line, pick, sides):
+    """Did the pick beat the saved sportsbook line? None for no pick, no line or a push."""
+    if pick not in sides or line is None:
+        return None
+    return None if value == line else (value > line) == (pick == sides[0])
 
 
 def _live_history(league):
@@ -93,7 +103,9 @@ def get_performance(league: League = 'nba'):
     evaluation = report if isinstance(report, dict) and report.get('holdout') else None
     ledger = _read(get_config(league).data_dir / 'game_forecast_ledger.json')
     version = evaluation.get('version') if evaluation else None
-    entries = [entry for entry in ledger.get('forecasts', []) if entry.get('model_version') == version] if isinstance(ledger, dict) else []
+    # "v1+market-prior" is the live, market-assisted variant of the evaluated model "v1": same family, same record.
+    family = [entry for entry in ledger.get('forecasts', []) if str(entry.get('model_version') or '').split('+')[0] == version] if isinstance(ledger, dict) and version else []
+    entries = [entry for entry in family if not entry.get('void')]  # preseason/cancelled games can never be graded
     graded = []
     for entry in entries:
         actual = entry.get('actual') or {}
@@ -101,16 +113,27 @@ def get_performance(league: League = 'nba'):
         generated, tip = _stamp(entry.get('generated_at')), _stamp(entry.get('tipoff'))
         if hs is None or aws is None or not generated or not tip or generated >= tip:
             continue
-        prediction = entry.get('prediction') or {}
+        prediction, market = entry.get('prediction') or {}, entry.get('market') or {}
         ph, pa = _number(prediction.get('predicted_home_score')), _number(prediction.get('predicted_away_score'))
         pt = _number(prediction.get('total'))
         winner = prediction.get('predicted_winner')
-        graded.append(dict(winner_correct=winner == (entry['home_team'] if hs > aws else entry['away_team'])
+        spread, line_total = _number(market.get('spread')), _number(market.get('total'))  # spread is the home team's line
+        graded.append(dict(date=tip.astimezone(ZoneInfo('America/New_York')).date().isoformat(), game_id=entry.get('game_id'),
+            home_team=entry['home_team'], away_team=entry['away_team'], home_score=hs, away_score=aws,
+            predicted_home_score=ph, predicted_away_score=pa, predicted_total=pt, predicted_winner=winner,
+            winner_correct=winner == (entry['home_team'] if hs > aws else entry['away_team'])
             if winner in (entry.get('home_team'), entry.get('away_team')) and hs != aws else None,
             margin_error=abs((ph-pa)-(hs-aws)) if ph is not None and pa is not None else None,
-            total_error=abs(pt-hs-aws) if pt is not None else None))
-    prospective = dict(model_version=version, saved=len(entries), pending=sum(not entry.get('actual') for entry in entries), record=_summary(graded),
-                       message='First-published forecasts for this model version. Results are separate from legacy saved calls and fixed holdout metrics.')
+            total_error=abs(pt-hs-aws) if pt is not None else None,
+            market_spread=spread, spread_pick=prediction.get('spread_pick'),
+            spread_correct=_against(hs - aws, -spread if spread is not None else None, prediction.get('spread_pick'), ('HOME', 'AWAY')),
+            market_total=line_total, total_pick=prediction.get('total_pick'),
+            total_correct=_against(hs + aws, line_total, prediction.get('total_pick'), ('OVER', 'UNDER')),
+            model_version=entry.get('model_version')))
+    graded.sort(key=lambda g: (g['date'], str(g['game_id'])), reverse=True)
+    prospective = dict(model_version=version, saved=len(entries), pending=sum(not entry.get('actual') for entry in entries),
+                       void=len(family) - len(entries), record=_summary(graded), games=graded,
+                       message='First-published forecasts for this model version, saved before tipoff with the sportsbook lines of that moment. Results are separate from legacy saved calls and fixed holdout metrics.')
     return dict(league=league, prospective=prospective, checked_at=datetime.now(ZoneInfo('America/New_York')).isoformat(),
                 evaluation=evaluation, live=_live_history(league),
                 market_record=dict(available=False, message='No historical sportsbook quote archive: spread, over/under profitability and closing-line value have not been evaluated.'))

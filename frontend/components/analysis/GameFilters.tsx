@@ -1,10 +1,10 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Home, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { RangeSlider } from "@/components/ui/RangeSlider";
 import {
-  DEFAULT_GAME_FILTERS, MARGIN_CAP, activeFilterCount, histogram, minutesRange, teammateOptions,
+  DEFAULT_GAME_FILTERS, MARGIN_CAP, activeFilterCount, histogram, minutesRange, opponentOptions, teammateOptions,
   type GameFilters, type RestFilter,
 } from "@/lib/game-filters.mjs";
 import type { ChartRecord } from "@/lib/types";
@@ -22,12 +22,14 @@ interface Props {
   matching: number;
 }
 
-/** Narrow the games the chart and hit rates are computed from: venue, rest, teammates, margin, result and minutes. */
+/** Narrow the games the chart and hit rates are computed from: venue, opponent, season, rest, teammates, margin, result and minutes. */
 export function GameFilterPanel({ games, value, onChange, matching }: Props) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const active = activeFilterCount(value);
   const teammates = teammateOptions(games);
+  const opponents = opponentOptions(games);
+  const seasons = [...new Set(games.map(game => game.season).filter((season): season is string => !!season))].sort().reverse();
   const [minLow, minHigh] = minutesRange(games);
   const minutes = value.minutes ?? [minLow, minHigh];
   const set = (patch: Partial<GameFilters>) => onChange({ ...value, ...patch });
@@ -47,14 +49,28 @@ export function GameFilterPanel({ games, value, onChange, matching }: Props) {
         <div id={panelId} className="mt-4 grid gap-5 md:grid-cols-2">
           <div>
             <span className={label}>VENUE</span>
-            <button type="button" role="switch" aria-checked={value.homeOnly} onClick={() => set({ homeOnly: !value.homeOnly })}
-              className="ql-control inline-flex min-h-9 w-full items-center justify-between gap-2 px-3 py-2 text-sm text-text-pri focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]">
-              <span className="inline-flex items-center gap-2"><Home size={16} aria-hidden="true" /> Show only home games</span>
-              <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${value.homeOnly ? "bg-[#59e0c8]" : "bg-white/15"}`} aria-hidden="true">
-                <span className={`block h-4 w-4 rounded-full bg-[#eaf8f6] transition-transform ${value.homeOnly ? "translate-x-4" : ""}`} />
-              </span>
-            </button>
+            <div className="grid grid-cols-3 gap-1" role="group" aria-label="Venue">
+              {([["all", "All"], ["home", "Home"], ["away", "Away"]] as const).map(([key, text]) => {
+                const on = key === "home" ? value.homeOnly : key === "away" ? value.awayOnly : !value.homeOnly && !value.awayOnly;
+                return <button key={key} type="button" aria-pressed={on} onClick={() => set({ homeOnly: key === "home", awayOnly: key === "away" })}
+                  className={`ql-chip min-h-9 justify-center ${on ? "ql-chip-active" : ""}`}>{text}</button>;
+              })}
+            </div>
           </div>
+          <label>
+            <span className={label}>OPPONENT</span>
+            <select className={select} value={value.opponent} onChange={event => set({ opponent: event.target.value })}>
+              <option value="">Any opponent</option>
+              {opponents.map(team => <option key={team} value={team}>{team}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className={label}>SEASON</span>
+            <select className={select} value={value.season} disabled={seasons.length < 2} onChange={event => set({ season: event.target.value })}>
+              <option value="">All seasons</option>
+              {seasons.map(season => <option key={season} value={season}>{season}</option>)}
+            </select>
+          </label>
           <label>
             <span className={label}>DAYS OF REST</span>
             <select className={select} value={value.rest} onChange={event => set({ rest: event.target.value as RestFilter })}>

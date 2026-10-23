@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { PlayerName, focusFromProp } from "@/components/analysis/PlayerName";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { formatOdds } from "@/lib/prop-research.mjs";
@@ -31,7 +31,7 @@ function InsightCard({ prop, text, league }: { prop: Prop; text: string; league:
           <p className="inline-block rounded-md border border-white/10 bg-white/[0.06] px-2 py-1 font-mono text-sm font-semibold tabular-nums text-text-pri">{side} {prop.line} {formatOdds(prop.price)}</p>
           <p className="mt-1 text-[10px] uppercase tracking-wide text-text-sec">{prop.book ?? "Sportsbook"}</p>
         </div>
-        <Link href={`/analysis?league=${league}&player=${encodeURIComponent(prop.player)}`} className="text-xs font-bold text-[#59e0c8] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]">Analyze →</Link>
+        <PlayerName name={prop.player} league={league} focus={focusFromProp(prop)} className="text-xs font-bold text-[#59e0c8] hover:underline">Analyze →</PlayerName>
       </div>
     </li>
   );

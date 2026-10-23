@@ -49,9 +49,11 @@ interface Props {
   onBooksChange: (books: string[]) => void;
   /** Players on the loaded board, for the checklist. */
   playerOptions: string[];
+  /** Headshot per player name, shown in the checklist. */
+  playerImages?: Record<string, string | null | undefined>;
 }
 
-export function PropFilters({ filters, matchups, statCounts, onChange, bookOptions, books, onBooksChange, playerOptions }: Props) {
+export function PropFilters({ filters, matchups, statCounts, onChange, bookOptions, books, onBooksChange, playerOptions, playerImages }: Props) {
   const isOn = (value: string) => (value === "" ? filters.stat === "" : selectedStats(filters.stat).includes(value));
   const [draft, setDraft] = useState(filters.q);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -185,7 +187,7 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
             >
               Only +EV
             </button>
-            <MultiPick label="Players" options={playerOptions} selected={filters.players ? filters.players.split("|") : []} searchable max={MAX_PLAYERS}
+            <MultiPick label="Players" options={playerOptions} selected={filters.players ? filters.players.split("|") : []} searchable max={MAX_PLAYERS} images={playerImages}
               onChange={(next) => onChange({ players: next.join("|") })} emptyText="Players appear once the board loads." />
             <MultiPick label="Sportsbooks" options={bookOptions} selected={books} onChange={onBooksChange}
               emptyText="No sportsbook quotes on the loaded picks." />

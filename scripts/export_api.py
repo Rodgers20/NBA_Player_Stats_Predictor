@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 import json
 from pathlib import Path
+import re
 import tempfile
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -77,6 +78,45 @@ def export_boxscores_only(base, out):
         manifest.write_text(json.dumps(data, ensure_ascii=False, allow_nan=False))
 
 
+HEADSHOT_URL = re.compile(r'https://cdn\.nba\.com/headshots/nba/latest/\d+x\d+/(\d+)\.png')
+
+
+def download_headshot(person_id):
+    """cdn.nba.com refuses browser loads from other sites, so headshots are served from the snapshot."""
+    url = f'https://cdn.nba.com/headshots/nba/latest/260x190/{person_id}.png'
+    request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.nba.com/'})
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return response.read() if response.headers.get_content_type() == 'image/png' else None
+    except OSError:
+        return None
+
+
+def localize_headshots(stage, previous, download=download_headshot):
+    """Copy every referenced NBA headshot into the snapshot and point the JSON at the local copy."""
+    texts = {path: path.read_text() for path in stage.rglob('*.json')}
+    ids = {match for text in texts.values() for match in HEADSHOT_URL.findall(text)}
+    folder = stage / 'headshots'
+    folder.mkdir(exist_ok=True)
+
+    def one(person_id):
+        old = previous / 'headshots' / f'{person_id}.png'
+        data = old.read_bytes() if old.exists() else download(person_id)
+        if data:
+            (folder / f'{person_id}.png').write_bytes(data)
+            return person_id
+        return None
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        saved = {person_id for person_id in pool.map(one, sorted(ids)) if person_id}
+    # A headshot that could not be fetched keeps its CDN URL; the UI falls back to initials.
+    def swap(match):
+        return f'/data/headshots/{match[1]}.png' if match[1] in saved else match[0]
+    for path, text in texts.items():
+        if HEADSHOT_URL.search(text):
+            path.write_text(HEADSHOT_URL.sub(swap, text))
+    print(f'headshots: {len(saved)}/{len(ids)} served from the snapshot')
+
+
 def export(base, out, refresh_odds=False):
     out = Path(out).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -145,6 +185,7 @@ def export(base, out, refresh_odds=False):
                 })
             print(f'{league}: exported {len(players["players"])} players')
         save(stage, 'props-record', fetch(base, '/api/props/record'))
+        localize_headshots(stage, out)
         files = [path for path in stage.rglob('*') if path.is_file()]
         save(stage, 'manifest', {
             'schema_version': 3,
@@ -171,7 +212,11 @@ def main():
     parser.add_argument('--api', default='http://127.0.0.1:8000')
     parser.add_argument('--refresh-odds', action='store_true', help='Buy quotes within the persistent API credit budget before exporting.')
     parser.add_argument('--boxscores-only', action='store_true', help='Only add game box scores to the existing snapshot.')
+    parser.add_argument('--headshots-only', action='store_true', help='Only localize player headshots in the existing snapshot.')
     args = parser.parse_args()
+    if args.headshots_only:
+        localize_headshots(Path(args.out).resolve(), Path(args.out).resolve())
+        return
     if args.boxscores_only:
         export_boxscores_only(args.api.rstrip('/'), args.out)
         return

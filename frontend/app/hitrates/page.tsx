@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { PlayerName } from "@/components/analysis/PlayerName";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -28,7 +28,7 @@ export default function HitRatesPage() {
       </div>
       <div className="divide-y divide-[#2b4248]">{game.entries.map((entry, index) => <div key={`${entry.player_name}-${entry.stat}-${entry.threshold}-${index}`} className="grid items-center gap-3 px-5 py-3.5 sm:grid-cols-[54px_minmax(160px,1fr)_minmax(100px,2fr)_70px]">
         <span className="rounded border border-[#2b4248] px-2 py-1 text-center font-mono text-[10px] font-bold text-teal-300">{entry.team}</span>
-        <div className="min-w-0"><Link href={`/analysis?league=wnba&player=${encodeURIComponent(entry.player_name)}`} className="font-semibold text-text-pri hover:text-teal-300">{entry.player_name}</Link><p className="text-xs text-text-sec"><strong className="text-teal-300">{entry.threshold}+</strong> {labels[entry.stat] || entry.stat}</p></div>
+        <div className="min-w-0"><PlayerName name={entry.player_name} league="wnba" className="font-semibold text-text-pri" /><p className="text-xs text-text-sec"><strong className="text-teal-300">{entry.threshold}+</strong> {labels[entry.stat] || entry.stat}</p></div>
         <div className="hidden h-2 rounded-sm bg-[#20363a] sm:block" role="img" aria-label={`${entry.hits} hits in ${entry.games} games`}><span className="block h-full rounded-sm bg-teal-400" style={{ width: `${entry.games ? Math.min(100, entry.hits / entry.games * 100) : 0}%` }} /></div>
         <strong className="font-mono text-lg tabular-nums text-teal-300 sm:text-right">{entry.hits}/{entry.games}</strong>
       </div>)}</div>

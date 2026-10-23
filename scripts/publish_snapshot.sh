@@ -34,6 +34,10 @@ log "start"
 # Stale history still yields today's props, so a history failure warns instead of stopping the run.
 retry python3 scripts/refresh_nba_history.py || { log "WARNING: NBA history refresh failed"; notify "NBA history refresh failed; publishing with existing history"; }
 retry python3 scripts/refresh_wnba_history.py || log "WARNING: WNBA history refresh failed"
+# Final team scores grade the saved game forecasts (the Model tab's live record); the season label flips in July.
+season_year=$(date +%Y); [ "$(date +%-m)" -lt 7 ] && season_year=$((season_year - 1))
+nba_season="$season_year-$(printf %02d $(( (season_year + 1) % 100 )))"
+retry python3 scripts/refresh_game_history.py --league nba --seasons "$nba_season" --timeout 30 || log "WARNING: NBA game results refresh failed; game forecasts stay ungraded"
 
 python3 -m uvicorn api.main:app --host 127.0.0.1 --port "$PORT" > "${TMPDIR:-/tmp}/courtvision-api.log" 2>&1 &
 server_pid=$!

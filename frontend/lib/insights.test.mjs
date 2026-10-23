@@ -82,6 +82,7 @@ test('the scope of any active filters is part of the sentence', () => {
 test('scope labels describe the filters in plain words', () => {
   assert.equal(scopeLabel(DEFAULT_GAME_FILTERS), '');
   assert.equal(scopeLabel({ ...DEFAULT_GAME_FILTERS, homeOnly: true }), ' at home');
+  assert.equal(scopeLabel({ ...DEFAULT_GAME_FILTERS, awayOnly: true, opponent: 'BOS' }), ' on the road against BOS');
   assert.equal(scopeLabel({ ...DEFAULT_GAME_FILTERS, homeOnly: true, withoutPlayer: 'Big Man' }), ' at home without Big Man');
   assert.equal(scopeLabel({ ...DEFAULT_GAME_FILTERS, withPlayer: 'Wing', result: 'W', rest: '0' }), ' with Wing in wins on a back-to-back');
 });

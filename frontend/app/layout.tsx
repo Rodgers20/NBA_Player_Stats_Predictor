@@ -6,6 +6,7 @@ import { AppRail }    from "@/components/layout/AppRail";
 import { BottomNav }  from "@/components/layout/BottomNav";
 import { Navbar }     from "@/components/layout/Navbar";
 import { FloatingSlip } from "@/components/slip/FloatingSlip";
+import { PlayerSheetHost } from "@/components/analysis/PlayerSheetHost";
 
 export const metadata: Metadata = {
   title:       "NBA Props AI",
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main id="main-content" className="app-main min-h-dvh">{children}</main>
           <BottomNav />
           <FloatingSlip />
+          <PlayerSheetHost />
         </Providers>
       </body>
     </html>

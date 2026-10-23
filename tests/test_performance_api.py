@@ -55,3 +55,23 @@ def test_current_model_ledger_grades_are_separate(tmp_path,monkeypatch):
     assert result['prospective']['record']['total_mae']==3
     assert result['prospective']['pending']==0
     assert result['live']['seasons'][0]['record']['games']==0
+
+
+def test_market_assisted_variant_grades_moneyline_spread_and_total_against_saved_lines(tmp_path,monkeypatch):
+    (tmp_path/'nba-evaluation.json').write_text(json.dumps({'version':'current','holdout':{'winner':{'accuracy':.7}}}))
+    base=dict(model_version='current+market-prior',generated_at='2026-10-21T20:00Z',tipoff='2026-10-21T23:00Z',home_team='BOS',away_team='NYK',
+        prediction=dict(predicted_winner='BOS',predicted_home_score=110,predicted_away_score=103,total=213,spread_pick='HOME',total_pick='OVER'),
+        market=dict(spread=-6.5,total=205.5),actual=dict(home_score=110,away_score=100))
+    no_pick=dict(base,prediction=dict(base['prediction'],spread_pick=None,total_pick=None))
+    preseason=dict(base,actual=None,void='no official regular-season or playoff result')
+    (tmp_path/'game_forecast_ledger.json').write_text(json.dumps({'forecasts':[base,no_pick,preseason]}))
+    monkeypatch.setattr(performance,'REPORT_DIR',tmp_path)
+    monkeypatch.setattr(performance,'get_config',lambda league:SimpleNamespace(data_dir=tmp_path))
+    prospective=performance.get_performance('nba')['prospective']
+    record=prospective['record']
+    assert record['games']==2 and record['winner']=={'n':2,'correct':2,'rate':1}
+    # BOS -6.5 won by 10: the HOME pick covered; 210 points went over 205.5. Games without a pick are not graded on that market.
+    assert record['spread']=={'n':1,'correct':1,'rate':1}
+    assert record['total_ou']=={'n':1,'correct':1,'rate':1}
+    assert prospective['pending']==0 and prospective['void']==1 and prospective['saved']==2
+    assert prospective['games'][0]['market_spread']==-6.5 and prospective['games'][0]['spread_correct'] is True

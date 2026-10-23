@@ -77,13 +77,23 @@
 .actions { display: flex; gap: 8px; }
 .actions a, .actions button { min-height: 0; padding: 6px 10px; font-size: 12px; font-weight: 600; border-radius: 8px; color: var(--color-teal-400); background: transparent; border: 1px solid var(--color-border-card); }
 
-@media (max-width: 767px) {
+/* The table needs ~1200px; below that each row becomes a card: who | line, then opp + hit windows + EV, then details. */
+@media (max-width: 1199px) {
   .header { display: none; }
-  .grid { grid-template-columns: repeat(5, 1fr); row-gap: 10px; }
-  .who { grid-column: 1 / 4; }
-  .line { grid-column: 4 / 6; text-align: right; }
+  .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 6px; row-gap: 10px; }
+  .who { grid-column: 1 / 5; }
+  .line { grid-column: 5 / 7; justify-items: end; text-align: right; }
+  .book { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .num { font-size: 26px; }
   .opp { grid-column: 1; }
+  .ev { grid-column: 6; }
+  .ev strong { font-size: 16px; }
   .cellLabel { display: block; }
   .toggle { grid-column: 1 / -1; justify-self: stretch; justify-content: center; }
+}
+@media (max-width: 479px) {
+  .price { margin-left: 4px; padding: 2px 6px; font-size: 11px; }
+  .cell { padding: 5px 2px; }
+  .cell b { font-size: 16px; }
+  .opp strong { font-size: 16px; }
 }

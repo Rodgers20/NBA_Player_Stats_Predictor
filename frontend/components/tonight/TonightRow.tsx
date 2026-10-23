@@ -8,6 +8,7 @@ import { decimalOdds, formatOdds } from "@/lib/bet-slip.mjs";
 import { breakEven, quoteAge, recordFor } from "@/lib/tonight.mjs";
 import type { Prop } from "@/lib/types";
 import { PropBooks, PropResearchChips } from "@/components/props/PropResearch";
+import { PlayerName, focusFromProp } from "@/components/analysis/PlayerName";
 
 interface Props {
   prop: Prop;
@@ -50,13 +51,14 @@ export function TonightRow({ prop, league, date, record }: Props) {
   const initial = prop.player.trim().split(/\s+/).at(-1)?.[0]?.toUpperCase() || "?";
 
   return <article className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 border-b border-white/[0.07] px-4 py-4 last:border-b-0 sm:px-5 md:grid-cols-[auto_minmax(0,1.3fr)_minmax(0,1.4fr)_auto]">
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-[#59e0c8]/10 text-sm font-bold text-[#59e0c8]" aria-hidden="true">
+    <PlayerName name={prop.player} league={league} focus={focusFromProp(prop)}
+      className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-[#59e0c8]/10 text-sm font-bold text-[#59e0c8]">
       {prop.headshot_url && !photoFailed
         ? <Image src={prop.headshot_url} alt="" width={44} height={44} unoptimized onError={() => setPhotoFailed(true)} className="h-11 w-11 object-cover object-top" />
         : initial}
-    </div>
+    </PlayerName>
     <div className="min-w-0">
-      <p className="truncate text-sm font-bold text-text-pri">{prop.player}</p>
+      <PlayerName name={prop.player} league={league} focus={focusFromProp(prop)} className="block max-w-full truncate text-sm font-bold text-text-pri" />
       <p className="truncate text-xs text-text-sec">{prop.game_matchup || `${prop.team} vs ${prop.opponent}`}</p>
       <p className="mt-1.5 text-base font-extrabold text-[#59e0c8]">{side} {prop.line} {prop.stat_label || prop.stat}</p>
       <p className="text-xs tabular-nums text-text-sec">

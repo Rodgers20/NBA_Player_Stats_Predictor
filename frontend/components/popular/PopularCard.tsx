@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { PlayerName, focusFromProp } from "@/components/analysis/PlayerName";
 import { Check, Plus } from "lucide-react";
 import { useSlip } from "@/store/slip";
 import { decimalOdds, formatOdds } from "@/lib/bet-slip.mjs";
@@ -54,7 +54,7 @@ export function PopularCard({ prop, rank, league, date, game }: Props) {
       <div className="min-w-0">
         <p className="truncate text-xs text-text-sec">{prop.game_matchup}{tip && ` · ${tip}`}</p>
         <p className="truncate text-sm font-bold text-text-pri">
-          <Link href={`/analysis?league=${league}&player=${encodeURIComponent(prop.player)}`} className="hover:text-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]">{prop.player}</Link>
+          <PlayerName name={prop.player} league={league} focus={focusFromProp(prop)} />
           {` · ${prop.stat_label || prop.stat} ${side} ${prop.line}`}
         </p>
       </div>
