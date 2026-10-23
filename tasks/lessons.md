@@ -30,3 +30,4 @@
 - An empty section ("No graded games yet") reads as leftover clutter to the user. Hide a panel until it has data instead of showing an empty state.
 - Swapping a list for a loading skeleton on "Load more" collapses the page and jumps to the top; keep previous data on screen (`placeholderData: keepPreviousData`).
 - Touch has no hover and fires pointerleave on lift: chart tooltips need tap-to-pin on touch, hover on mouse.
+- A scheduled refresh must never publish an emptier board for the same slate. When the free credits are spent and morning quotes expire (6 h), the evening export rebuilt an empty board and blanked Props right before tip-off. The export now keeps the same-date board, and a restarted API reads quotes saved on disk.

@@ -104,7 +104,9 @@ def get_live_odds(force_refresh: bool = False, target_date: str | None = None, m
     target = target_date or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     fallback = _cache if _cache_date == target and 0 <= time.time() - _cache_ts < _CACHE_TTL else {}
     if not force_refresh:
-        return fallback
+        # A restarted process (every scheduled snapshot) has an empty memory cache; the quotes paid for earlier
+        # are on disk. Stale or started-game quotes are rejected later by prop_quality.quote_problem.
+        return fallback or odds_store.load('nba')
     if not API_KEY:
         odds_budget.report('Odds API key is not configured. Add THE_ODDS_API_KEY to refresh.')
         return fallback

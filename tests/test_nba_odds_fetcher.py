@@ -68,3 +68,13 @@ def test_fetch_filters_slate_and_records_cache_date(monkeypatch):
     result = odds.get_live_odds(force_refresh=True, target_date='2026-09-17')
     assert result['A']['PTS']['event_id'] == 'target'
     assert odds._cache_date == '2026-09-17'
+
+
+def test_cache_read_after_restart_uses_quotes_saved_on_disk(monkeypatch):
+    """A fresh process has an empty memory cache; quotes bought earlier today must still price the board.
+    Expiry and game-start checks happen later in prop_quality.quote_problem."""
+    saved = {'A': {'PTS': {'line': 22.5}}}
+    monkeypatch.setattr(odds, '_cache', {})
+    monkeypatch.setattr(odds, '_cache_date', None)
+    monkeypatch.setattr(odds.odds_store, 'load', lambda league: saved if league == 'nba' else {})
+    assert odds.get_live_odds() == saved

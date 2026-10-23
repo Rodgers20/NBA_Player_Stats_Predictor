@@ -117,6 +117,20 @@ def localize_headshots(stage, previous, download=download_headshot):
     print(f'headshots: {len(saved)}/{len(ids)} served from the snapshot')
 
 
+def keep_board_if_emptied(root, previous):
+    """A refresh that buys no quotes (credits spent, prices expired) must not blank a slate that already had
+    picks: keep the earlier board for the same date. Each row still shows how old its price is."""
+    new_path, old_path = root / 'props.json', previous / 'props.json'
+    if not old_path.exists():
+        return False
+    new, old = json.loads(new_path.read_text()), json.loads(old_path.read_text())
+    if new.get('count') or not old.get('count') or new.get('target_date') != old.get('target_date'):
+        return False
+    new_path.write_text(old_path.read_text())
+    print(f'{root.name}: refresh produced no priced props; kept the {old["count"]}-prop board for {old["target_date"]}')
+    return True
+
+
 def export(base, out, refresh_odds=False):
     out = Path(out).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -130,6 +144,7 @@ def export(base, out, refresh_odds=False):
                 result = fetch(base, f'/api/props/refresh?league={league}&fetch_odds=true', method='POST')
                 print(f'{league}: quote refresh evaluated {result.get("count", 0)} markets; {result.get("message", "")}')
             save(root, 'props', fetch(base, f'/api/props?league={league}&direction=all&include_research=true&limit=500'))
+            keep_board_if_emptied(root, out / league)
             save(root, 'defense', fetch(base, f'/api/defense?league={league}'))
             save(root, 'trends', fetch(base, f'/api/trends?league={league}&limit=400'))
             save(root, 'alt-lines', fetch(base, f'/api/props/alt-lines?league={league}'))
