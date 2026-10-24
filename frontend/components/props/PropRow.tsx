@@ -7,6 +7,7 @@ import { Check, ChevronDown, Plus } from "lucide-react";
 import { useSlip } from "@/store/slip";
 import { usePrefs } from "@/store/prefs";
 import { decimalOdds } from "@/lib/bet-slip.mjs";
+import { propLeg } from "@/lib/parlay-builder.mjs";
 import { quoteAge, recordFor } from "@/lib/tonight.mjs";
 import { formatOdds } from "@/lib/prop-research.mjs";
 import { rowCells, rowDashes, windowCell } from "@/lib/prop-rows.mjs";
@@ -64,8 +65,7 @@ export function PropRow({ prop, targetDate, onAnalyze, selected = false, record,
   const inSlip = legs.some(leg => leg.league === league && leg.date === targetDate && leg.player === prop.player && leg.stat === prop.stat && leg.line === prop.line && leg.direction.toLowerCase() === prop.direction.toLowerCase());
   const toggleSlip = () => {
     if (!canAdd || !targetDate || prop.line == null || prop.price == null) return;
-    toggle({ league, date: targetDate, player: prop.player, stat: prop.stat, direction: prop.direction, line: prop.line, price: prop.price,
-      probability: prop.model_prob ?? null, matchup: prop.game_matchup, team: prop.team, addedAt: new Date().toISOString() });
+    toggle(propLeg(prop, league, targetDate));
   };
 
   const side = prop.direction.toLowerCase() === "under" ? "Under" : "Over";

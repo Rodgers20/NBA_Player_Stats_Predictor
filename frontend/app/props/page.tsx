@@ -11,6 +11,7 @@ import { usePlayerSheet } from "@/store/player-sheet";
 import { focusFromProp } from "@/components/analysis/PlayerName";
 import { PropFilters, isLineMarket, type Filters } from "@/components/props/PropFilters";
 import { GameLinesBoard } from "@/components/props/GameLinesBoard";
+import { ParlayBuilder } from "@/components/props/ParlayBuilder";
 import { filterMinStars, sortByEdge } from "@/lib/prop-research.mjs";
 import { searchProps, sortByWindow } from "@/lib/prop-rows.mjs";
 import { applyBoardFilters, availableBooks, availablePlayers, selectedStats } from "@/lib/prop-filters.mjs";
@@ -79,6 +80,14 @@ function PropsBoard() {
     enabled: !lineMarket,
     // Keep the rows on screen while "Load more" or a filter fetches; swapping to the skeleton collapses the page and jumps to the top.
     placeholderData: keepPreviousData,
+  });
+
+  // The builder picks from the whole slate, not the filtered, paged rows on screen.
+  const fullBoard = useQuery<PropsResponse>({
+    queryKey: ["props", { league, include_research: true, limit: 500 }],
+    queryFn: () => api.props({ league, include_research: true, limit: 500 }),
+    refetchInterval: 120_000,
+    enabled: !lineMarket,
   });
 
   function handleChange(update: Partial<Filters>) {
@@ -170,6 +179,9 @@ function PropsBoard() {
           <p className="text-sm text-[#eaf8f6]">{"Today's picks aren't published yet."}</p>
           <p className="mt-2 text-xs text-[#a9bec0]">The board last refreshed for {slateDate(data?.target_date)}. New picks appear after the morning data refresh, around 7:15 AM ET.</p>
         </div>
+      )}
+      {showPlayers && fullBoard.data?.status === "ready" && fullBoard.data.target_date && (
+        <ParlayBuilder props={fullBoard.data.props} league={league} date={fullBoard.data.target_date} />
       )}
       {showPlayers && isPending && (
         <div className="ql-panel overflow-hidden" aria-busy="true" aria-label="Loading props">
