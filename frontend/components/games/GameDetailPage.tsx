@@ -8,6 +8,8 @@ import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
 import { gameState } from "@/lib/game-board.mjs";
+import { withLive } from "@/lib/espn-live.mjs";
+import { useLiveScoreboard } from "@/lib/live";
 import { gameMarkets } from "@/lib/game-markets.mjs";
 import { quoteAge } from "@/lib/tonight.mjs";
 import { modelContext } from "@/lib/model-context.mjs";
@@ -71,8 +73,10 @@ export function GameDetailPage() {
   const games = useQuery({ queryKey: ["games", league, date], queryFn: () => api.games(league, date), enabled: validId || !!matchup });
   const predictions = useQuery({ queryKey: ["game-predictions", league, date], queryFn: () => api.predictions(league, date), staleTime: 300_000 });
   const { teamMap: teams, ready } = useTeamMap(league);
+  const live = useLiveScoreboard(league, date ?? games.data?.target_date ?? undefined);
 
-  const game = games.data?.games.find(item => (validId ? item.game_id === id : item.matchup === matchup));
+  const found = games.data?.games.find(item => (validId ? item.game_id === id : item.matchup === matchup));
+  const game = found && withLive(found, live[found.game_id ?? ""]);
   const prediction = game && predictions.data?.target_date === games.data?.target_date ? predictions.data?.predictions.find(item => item.matchup === game.matchup) : undefined;
   const status = predictions.isPending ? "Loading model estimate…" : predictions.data?.message || predictions.data?.errors.find(item => item.matchup === game?.matchup)?.message || "Model estimate unavailable for this game.";
 

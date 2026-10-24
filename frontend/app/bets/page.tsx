@@ -1,15 +1,16 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowUpRight, NotebookPen } from "lucide-react";
 import { GameDayPlayerPicker } from "@/components/bets/GameDayPlayerPicker";
 import { BetBreakdowns } from "@/components/bets/BetBreakdowns";
+import { LiveBets } from "@/components/bets/LiveBets";
 import { averageClv } from "@/lib/journal-clv.mjs";
 import { usePrefs } from "@/store/prefs";
-import { JournalError, STATIC, autoSettle, request, type Journal, type Mode, type Result } from "@/lib/journal-client";
+import { JournalError, STATIC, autoSettle, request, type Bet, type Journal, type Mode, type Result } from "@/lib/journal-client";
 
 const control = "ql-control w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 disabled:opacity-40";
 const button = "rounded bg-teal-400 px-5 py-3 text-sm font-bold text-[#0d151b] disabled:opacity-40 disabled:cursor-not-allowed";
@@ -61,6 +62,17 @@ function BetsContent() {
       } else if (failed) setSettleNotice("Some bets could not be auto-graded. Settle them by hand.");
     });
   }, [data, cache]);
+
+  const settleFromLive = useCallback(async (bet: Bet, outcome: Result) => {
+    const label = `${bet.player} ${bet.side} ${bet.line} ${bet.stat}`;
+    try {
+      await request(`/${encodeURIComponent(bet.id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ result: outcome }) });
+      setSettleNotice(`Final: ${label} graded ${outcome} from ESPN's box score. Correct it if your book settled differently.`);
+      await cache.invalidateQueries({ queryKey: ["journal"] });
+    } catch (error) {
+      setSettleNotice(`Could not grade ${label}: ${error instanceof Error ? error.message : "save failed"}. Settle it by hand.`);
+    }
+  }, [cache]);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,6 +134,8 @@ function BetsContent() {
         <button className="text-sm font-semibold text-teal-400" onClick={() => void refetch()}>Try connecting again</button>
       </div>}
 
+
+      {data && <LiveBets bets={data.bets} onFinal={(bet, outcome) => void settleFromLive(bet, outcome)} />}
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <section className="ql-panel p-5 md:p-6" aria-labelledby="entry-title">

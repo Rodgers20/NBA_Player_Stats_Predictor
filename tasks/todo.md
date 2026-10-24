@@ -1,3 +1,27 @@
+## Live ESPN scores, play-by-play, box score and tracked bets — October 24
+
+The hosted site is a static snapshot, so live data must come from the visitor's browser (ESPN sends
+`access-control-allow-origin: *`), as the NFL app does. Rate-limit safety: each visitor polls from their
+own IP; one shared React Query cache entry per ESPN feed (box score, plays and bets reuse one request);
+poll only while a game is live (scoreboard 20s, summary 15s; ESPN caches for 8s), pause in hidden tabs,
+stop on Final, back off to 60s on errors.
+
+- [x] `lib/espn-live.mjs`: parse scoreboard + summary (box score, plays), stat value, name match, overlay; tests.
+- [x] `lib/live.ts`: `useLiveScoreboard`, `useLiveSummary` hooks with the polling rules.
+- [x] Game cards + game page: live score/clock overlay.
+- [x] Box score: live from ESPN (snapshot fallback) + play-by-play feed (scoring / all).
+- [x] My Bets: live tracker for pending bets (current value vs line, clock, hit/needs N), auto-grades at the final.
+- [x] Verify: unit tests, typecheck, lint, static build, browser check against a live/final game.
+
+### Review
+221 frontend tests (7 new), tsc and eslint clean, static export builds. Production-build browser check on Oct 23
+finals: LAC@LAL box score + 125 scoring / 471 total plays straight from ESPN; seeded bets graded Doncic O5.5 REB
+win, Reaves U10.5 PRA loss; Jokić O11.5 REB tonight shows the 9:00 PM tip and fetches nothing until tip-off. A
+mapped bet fetches only its own game. No overflow at 390px. Not yet exercised against an in-progress game
+(first tip tonight 6 PM ET). Known limits: ESPN 403s "HeadlessChrome" user agents (real browsers fine); a
+player whose profile has no team on a date the roster file doesn't cover makes that date scan every started
+game once (finals never poll). Not committed or deployed.
+
 ## Restore production domain — October 4
 
 - [x] Inspect the production domain and Vercel deployment aliases.

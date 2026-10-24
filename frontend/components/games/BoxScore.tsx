@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useLiveSummary } from '@/lib/live';
+import type { Play } from '@/lib/espn-live.mjs';
 import type { BoxPlayer, BoxScore as BoxScoreData, BoxTeam } from '@/lib/boxscore-types';
 import { TeamLogo } from '@/components/teams/TeamLogo';
 import { PlayerName } from '@/components/analysis/PlayerName';
@@ -37,29 +39,29 @@ function periodLabel(index: number) {
 }
 
 export function BoxScore({league, gameId}: {league: string; gameId: string}) {
-  const isStatic = process.env.NEXT_PUBLIC_DATA_MODE === 'static';
-  const box = useQuery({
-    queryKey: ['boxscore', league, gameId],
-    queryFn: () => api.boxscore(league, gameId),
-    refetchInterval: query => query.state.data?.state === 'in' && !isStatic ? 20_000 : false,
-    staleTime: 10_000,
-  });
+  // ESPN live first; the snapshot copy only when ESPN can't be reached.
+  const live = useLiveSummary(league, gameId);
+  const saved = useQuery({queryKey: ['boxscore', league, gameId], queryFn: () => api.boxscore(league, gameId), enabled: live.isError, staleTime: 60_000});
   const [picked, setPicked] = useState<{gameId: string; side: 'away' | 'home'} | null>(null);
-  const data = box.data;
-  const live = data?.state === 'in';
+  const data: BoxScoreData | undefined = live.data ?? saved.data;
+  const pending = live.isPending || (live.isError && saved.isPending);
+  const failed = live.isError && saved.isError;
+  const retry = () => { void live.refetch(); void saved.refetch(); };
+  const isLive = data?.state === 'in';
   const side = picked?.gameId === gameId ? picked.side : undefined;
   const active = data?.teams.find(t => t.side === side) ?? data?.teams[0];
 
-  return <section className={styles.box} aria-label="Box score" aria-busy={box.isFetching && !data}>
+  return <section className={styles.box} aria-label="Box score" aria-busy={pending}>
     <div className={styles.heading}>
       <div><p className="ql-kicker">BOX SCORE</p><h2>{data?.available ? data.status || 'Game stats' : 'Game stats'}</h2></div>
-      {live && <span className={styles.live}><i aria-hidden /> Live · updates every 20s</span>}
+      {isLive && <span className={styles.live}><i aria-hidden /> {live.data ? 'Live · updates every 15s' : 'Live feed unreachable · retrying'}</span>}
     </div>
-    {box.isPending && <div className={styles.skeleton} role="status" aria-label="Loading box score"/>}
-    {box.isError && <div role="alert" className={styles.note}>Box score could not be loaded. <button onClick={() => void box.refetch()}>Try again</button></div>}
+    {pending && <div className={styles.skeleton} role="status" aria-label="Loading box score"/>}
+    {failed && <div role="alert" className={styles.note}>Box score could not be loaded. <button onClick={retry}>Try again</button></div>}
     {data && !data.available && <p className={styles.note}>{data.message || 'The box score appears once the game tips off.'}</p>}
     {data?.available && active && <>
       <LineScore data={data}/>
+      {live.data && live.data.plays.length > 0 && <PlayByPlay plays={live.data.plays} teams={data.teams}/>}
       <Leaders teams={data.teams}/>
       <TeamComparison teams={data.teams}/>
       <div className={styles.switcher} role="group" aria-label="Choose team box score">
@@ -83,6 +85,32 @@ function LineScore({data}: {data: BoxScoreData}) {
       <td><strong>{team.score ?? '—'}</strong></td>
     </tr>)}</tbody>
   </table></div>;
+}
+
+function PlayByPlay({plays, teams}: {plays: Play[]; teams: BoxTeam[]}) {
+  const [all, setAll] = useState(false);
+  const shown = all ? plays : plays.filter(p => p.scoring);
+  const players = new Map(teams.flatMap(t => t.players.map(p => [p.id, p] as const)));
+  const team = (side: Play['side']) => teams.find(t => t.side === side);
+  return <div className={styles.plays}>
+    <div className={styles.playsHead}>
+      <p>Play-by-play</p>
+      <div role="group" aria-label="Which plays">
+        <button aria-pressed={!all} onClick={() => setAll(false)}>Scoring</button>
+        <button aria-pressed={all} onClick={() => setAll(true)}>All plays</button>
+      </div>
+    </div>
+    <ol aria-live="polite" aria-relevant="additions">{shown.map(play => {
+      const who = play.athlete ? players.get(play.athlete) : undefined;
+      const side = team(play.side);
+      return <li key={play.id} data-scoring={play.scoring}>
+        <span className={styles.playClock}>{play.period ? periodLabel(play.period - 1) : ''}<small>{play.clock}</small></span>
+        {who ? <Avatar name={who.name} src={who.image} size={30}/> : side ? <TeamLogo team={teamBadge(side)} size={26}/> : <span className={styles.playDot} aria-hidden/>}
+        <span className={styles.playText}>{play.text}{play.scoring && play.points > 0 && <b> +{play.points}</b>}</span>
+        {play.scoring && play.away != null && <span className={styles.playScore}>{play.away}–{play.home}</span>}
+      </li>;
+    })}</ol>
+  </div>;
 }
 
 const fullName = (team: BoxTeam, leader: {id: string; name: string}) => team.players.find(p => p.id === leader.id)?.name ?? leader.name;
