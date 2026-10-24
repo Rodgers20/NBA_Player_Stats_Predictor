@@ -78,3 +78,13 @@ def test_cache_read_after_restart_uses_quotes_saved_on_disk(monkeypatch):
     monkeypatch.setattr(odds, '_cache_date', None)
     monkeypatch.setattr(odds.odds_store, 'load', lambda league: saved if league == 'nba' else {})
     assert odds.get_live_odds() == saved
+
+
+def test_refresh_buys_only_the_top_prop_types_in_priority_order(monkeypatch):
+    bought = []
+    monkeypatch.setattr(odds, 'API_KEY', 'test')
+    monkeypatch.setattr(odds, '_player_props_unavailable', False)
+    monkeypatch.setattr(odds, '_fetch_event_ids', lambda target: ['e1', 'e2', 'e3'])
+    monkeypatch.setattr(odds, '_fetch_event_odds', lambda event_id, markets: bought.append((event_id, markets)))
+    odds.get_live_odds(force_refresh=True, target_date='2026-10-23', max_events=2, markets=2)
+    assert bought == [('e1', 'player_points,player_rebounds'), ('e2', 'player_points,player_rebounds')]

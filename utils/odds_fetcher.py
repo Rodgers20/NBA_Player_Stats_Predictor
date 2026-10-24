@@ -9,7 +9,7 @@ Setup:
   2. Add to your .env file:
        THE_ODDS_API_KEY=your_key_here
 
-Player-prop refresh is explicit and limited to two events / three markets.
+Player-prop refresh is explicit; the planner decides how many games and prop types each refresh buys.
 All requests use the persistent shared credit budget; ordinary reads are cache-only.
 
 Return shape:
@@ -53,8 +53,10 @@ MARKET_TO_STAT = {
     "player_points_rebounds_assists": "PTS+REB+AST",
 }
 # Bought per event on an explicit refresh; each market costs one credit (enforced by odds_budget).
-REFRESH_MARKETS = ",".join(["player_points", "player_rebounds", "player_assists", "player_points_rebounds",
-                            "player_points_assists", "player_rebounds_assists", "player_points_rebounds_assists"])
+# When credits are short only the first N are bought (see utils.odds_planner.allocate), so order matters.
+MARKET_PRIORITY = ["player_points", "player_rebounds", "player_assists", "player_points_rebounds_assists",
+                   "player_points_rebounds", "player_points_assists", "player_rebounds_assists"]
+REFRESH_MARKETS = ",".join(MARKET_PRIORITY)
 
 # Cache TTL: 30 minutes
 _CACHE_TTL = 30 * 60
@@ -98,8 +100,9 @@ _TEAM_NAME_TO_ABBR: dict = {
 
 # ── Public API ──────────────────────────────────────────────────────────────
 
-def get_live_odds(force_refresh: bool = False, target_date: str | None = None, max_events: int = 2) -> dict:
-    """Read cache by default. Explicit refresh buys one credit per market per event (7), up to max_events."""
+def get_live_odds(force_refresh: bool = False, target_date: str | None = None, max_events: int = 2,
+                  markets: int = len(MARKET_PRIORITY)) -> dict:
+    """Read cache by default. Explicit refresh buys the top `markets` prop types (one credit each) for up to max_events games."""
     global _cache, _cache_ts, _cache_date
     target = target_date or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     fallback = _cache if _cache_date == target and 0 <= time.time() - _cache_ts < _CACHE_TTL else {}
@@ -119,7 +122,7 @@ def get_live_odds(force_refresh: bool = False, target_date: str | None = None, m
             return fallback
         fresh, successes = {}, 0
         for event_id in event_ids:
-            payload = _fetch_event_odds(event_id, REFRESH_MARKETS)
+            payload = _fetch_event_odds(event_id, ",".join(MARKET_PRIORITY[:markets]))
             if payload:
                 successes += 1
                 _parse_event_odds(payload, fresh, target_date=target)

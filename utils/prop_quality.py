@@ -6,7 +6,9 @@ import pandas as pd
 
 ET = ZoneInfo('America/New_York')
 # Refreshes run morning and ~2h before tip, so a quote may be hours old; the age is shown to the user.
-QUOTE_MAX_AGE_SECONDS = 6 * 3600
+# The free plan buys the slate once a day, so a morning price has to last until tonight's tip-off. Each row
+# shows how old its price is; a quote for a started game or another date is still rejected below.
+QUOTE_MAX_AGE_SECONDS = 16 * 3600
 
 
 def quote_problem(quote, target_date=None):
