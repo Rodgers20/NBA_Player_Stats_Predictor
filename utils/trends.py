@@ -50,6 +50,7 @@ def _card(player, team, opponent, stat, side, line, values, source, live):
     cushion = ((avg - line) if side == 'over' else (line - avg)) / max(abs(line), 1)
     return dict(player=player, team=team, opponent=opponent, stat=stat, side=side, line=line,
                 hits=hits, games=len(values), results=results, avg=round(avg, 1), cushion=round(cushion, 3),
+                values=[round(float(v), 1) for v in values],   # oldest to newest, so the card can chart each game against the line
                 text=f'{side.capitalize()} {line:g} {NOUNS[stat]} in {hits} of last {len(values)}',
                 stars=STARS_BY_HITS.get(hits, 3), line_source=source, live=live)
 

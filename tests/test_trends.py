@@ -130,3 +130,8 @@ def test_equal_streaks_rank_by_cushion_not_by_name():
     quotes = {'Aaron Thin': {'PTS': {'line': 7.5, 'over_price': -110}}, 'Zed Wide': {'PTS': {'line': 12.5, 'over_price': -110}}}
     order = [c['player'] for c in cards(pd.concat([thin, wide]), quotes=quotes) if c['side'] == 'over']
     assert order[:2] == ['Zed Wide', 'Aaron Thin']
+
+
+def test_cards_carry_each_game_value_for_the_chart():
+    card = next(c for c in cards(frame([2, 3, 4, 5, 3, 4, 2, 5, 9, 4])) if c['side'] == 'over')
+    assert card['values'] == [2, 3, 4, 5, 3, 4, 2, 5, 9, 4]

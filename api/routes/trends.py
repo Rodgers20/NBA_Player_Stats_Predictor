@@ -45,6 +45,9 @@ def slate_matchups(league):
 @router.get('/trends')
 def get_trends(league: League = 'nba', limit: int = Query(60, ge=1, le=500)):
     slate_date, teams = slate_matchups(league)
+    from api.routes.props import _headshot_urls
     cards = trends.build_trends(history(league), live_quotes(league), today(), slate=teams or None)[:limit]
+    headshots = _headshot_urls(league) if cards else {}
+    cards = [dict(card, headshot_url=headshots.get(card['player'])) for card in cards]
     return dict(league=league, count=len(cards), trends=cards,
                 slate=dict(date=slate_date, teams=sorted(teams)))

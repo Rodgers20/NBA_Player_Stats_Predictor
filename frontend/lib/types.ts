@@ -300,6 +300,9 @@ export interface TrendCard {
   hits: number;
   games: number;
   results: boolean[];              // oldest to newest; true = the side hit
+  values?: number[];               // oldest to newest: the stat in each game, charted against the line
+  headshot_url?: string | null;
+  cushion?: number;                // how far the average clears the line, relative to it
   avg: number;
   text: string;
   stars: number;                   // 3-5
