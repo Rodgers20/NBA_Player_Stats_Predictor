@@ -254,19 +254,29 @@ def _normalize_espn_abbrev(abbrev: str) -> str:
     return _ESPN_ABBREV_MAP.get(abbrev, abbrev)
 
 
-def _get_games_from_espn(date_str: str) -> pd.DataFrame:
+def _get_games_from_espn(date_str: str, raise_errors: bool = False) -> pd.DataFrame:
     """Fetch games from ESPN's public scoreboard API for the given date (no auth).
 
     Args:
         date_str: Date in "YYYY-MM-DD" format. ESPN accepts ?dates=YYYYMMDD.
+        raise_errors: re-raise a failed fetch instead of returning an empty frame, so callers
+            can tell "ESPN is down" apart from "no games that day".
     """
     import requests as _requests
     try:
         url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
         # ESPN uses YYYYMMDD format; omit param for today (defaults to current date)
         espn_date = date_str.replace("-", "")
-        resp = _requests.get(url, headers=CUSTOM_HEADERS, params={"dates": espn_date}, timeout=10)
-        resp.raise_for_status()
+        # ESPN occasionally drops a connection; one dropped request must not read as an empty slate.
+        for attempt in range(3):
+            try:
+                resp = _requests.get(url, headers=CUSTOM_HEADERS, params={"dates": espn_date}, timeout=10)
+                resp.raise_for_status()
+                break
+            except _requests.RequestException:
+                if attempt == 2:
+                    raise
+                time.sleep(1 + attempt)
         data = resp.json()
 
         rows = []
@@ -298,6 +308,8 @@ def _get_games_from_espn(date_str: str) -> pd.DataFrame:
         return pd.DataFrame(rows)
     except Exception as e:
         print(f"[Games] ESPN fetch failed for {date_str}: {e}")
+        if raise_errors:
+            raise
         return pd.DataFrame()
 
 
@@ -372,8 +384,12 @@ def get_upcoming_games() -> tuple[pd.DataFrame, str]:
     ):
         return _upcoming_games_cache["data"], _upcoming_games_cache["target_date"]
 
-    # ESPN is the primary (and only) source — fast, no auth, always works
-    today_games = _get_games_from_espn(today)
+    # A failed fetch is not "no games today": jumping to tomorrow then publishes the wrong slate.
+    # Stay on today, uncached, so the next call retries.
+    try:
+        today_games = _get_games_from_espn(today, raise_errors=True)
+    except Exception:
+        return pd.DataFrame(), today
 
     if not today_games.empty:
         # Prefer unplayed / in-progress games for ordering purposes,

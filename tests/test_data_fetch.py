@@ -104,3 +104,28 @@ def test_load_team_stats_empty(mock_path, tmp_path):
 
     df = load_team_stats(num_seasons=1)
     assert df.empty
+
+
+def test_upcoming_games_stays_on_today_when_espn_fails(monkeypatch):
+    """A dropped ESPN request for today must not move the slate to tomorrow."""
+    import requests
+    from utils import data_fetch
+
+    calls = []
+
+    def flaky_get(url, params=None, **kwargs):
+        calls.append(params["dates"])
+        raise requests.ConnectionError("Remote end closed connection without response")
+
+    monkeypatch.setattr(requests, "get", flaky_get)
+    monkeypatch.setattr(data_fetch.time, "sleep", lambda _: None)
+    monkeypatch.setattr(data_fetch, "_upcoming_games_cache", {"data": None, "target_date": None, "timestamp": None})
+
+    frame, target = data_fetch.get_upcoming_games()
+
+    today = data_fetch.datetime.now().strftime("%Y-%m-%d")
+    assert target == today
+    assert frame.empty
+    assert set(calls) == {today.replace("-", "")}   # never asked for tomorrow
+    assert len(calls) == 3                          # retried
+    assert data_fetch._upcoming_games_cache["data"] is None   # failure not cached
