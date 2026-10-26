@@ -1,5 +1,8 @@
 """Price only actual quoted markets, with explicit push accounting."""
 import math
+
+import numpy as np
+
 from models.validation import residual_probability
 
 
@@ -11,9 +14,14 @@ def valid_price(price):
 
 
 # Tunable priors, not fitted values: replace them with a fit once graded priced picks exist.
-SHRINK_PRIOR_GAMES = 10   # the market counts as this many games of evidence against the model's recent sample
+# The market counts as this many games of evidence against the model's recent sample. At 10 it
+# rated 180 of 249 NBA markets +EV (median +4.7%): the model can't see role changes, returns
+# from injury or trades, and the book can. At 40 (model weight 0.2 on 10 games) about 1 market
+# in 8 clears +2% and the median sits just below zero, where the book's margin puts it.
+SHRINK_PRIOR_GAMES = 40
 MIN_SAMPLE = 8            # fewer recent games than this and no play is shown
-MAX_CREDIBLE_EV = 0.20    # a larger edge against a live book is far likelier a model error than a real one
+MIN_PICK_EV = 0.02        # below this a priced edge is inside the model's own pricing error: a lean, not a play
+MAX_CREDIBLE_EV = 0.20   # a larger edge against a live book is far likelier a model error than a real one
 
 
 def _profit(price):
@@ -41,14 +49,28 @@ def credibility_problem(sample, ev):
     return None
 
 
-def evaluate_market(prediction, line, price, residuals, direction='over', *, other_price=None, sample=None):
+def player_residuals(residuals, spread):
+    """Pooled held-out residuals rescaled to one player's own spread.
+
+    The pooled set is dominated by low-minute players, so its spread is far too narrow for a
+    starter: a one-rebound gap on a 10.5 line priced as a 70%+ edge. Keep the pooled shape,
+    take the scale from the player."""
+    residuals = np.asarray(residuals, dtype=float)
+    pooled = float(residuals.std())
+    if spread is None or not math.isfinite(float(spread)) or spread <= 0 or pooled <= 0:
+        return residuals
+    return (residuals - residuals.mean()) * (float(spread) / pooled) + residuals.mean()
+
+
+def evaluate_market(prediction, line, price, residuals, direction='over', *, other_price=None, sample=None, spread=None):
     """Price a quoted market. With the opposite side's price and a sample size, the model's
-    probability is shrunk toward the market's no-vig probability by `shrink_weight(sample)`."""
+    probability is shrunk toward the market's no-vig probability by `shrink_weight(sample)`.
+    `spread` is the player's recent standard deviation for this stat; see `player_residuals`."""
     if not valid_price(price) or residuals is None or len(residuals) < 30:
         return None
     if not math.isfinite(float(prediction)) or not math.isfinite(float(line)):
         return None
-    probability, push = residual_probability(prediction, line, residuals, direction)
+    probability, push = residual_probability(prediction, line, player_residuals(residuals, spread), direction)
     profit = _profit(price)
     implied = 1 / (profit + 1)
     result = {'push_prob': push, 'implied_prob': implied,

@@ -7,10 +7,18 @@ from utils.market_evaluation import (MAX_CREDIBLE_EV, MIN_SAMPLE, credibility_pr
 RESIDUALS = np.zeros(40)   # the model has never been wrong, so the raw probability is extreme
 
 
-def test_shrink_weight_grows_with_sample_and_is_half_at_ten_games():
+def test_shrink_weight_grows_with_sample_and_trusts_the_market_more_than_ten_games():
     assert shrink_weight(0) == 0
-    assert shrink_weight(10) == pytest.approx(0.5)
+    assert shrink_weight(10) == pytest.approx(0.2)
     assert shrink_weight(3) < shrink_weight(10) < shrink_weight(30) < 1
+
+
+def test_a_typical_disagreement_is_not_a_big_edge_after_shrinking():
+    # The model says 70% on a fair -110/-110 market with 10 games of evidence: that is a lean, not +20%.
+    residuals = np.concatenate([np.full(70, 3.0), np.full(30, -3.0)])
+    result = evaluate_market(10, 9.5, -110, residuals, 'over', other_price=-110, sample=10)
+    assert result['raw_model_prob'] == pytest.approx(0.70, abs=0.01)
+    assert 0 < result['ev'] < 0.05
 
 
 def test_no_vig_probability_removes_the_book_margin():
@@ -48,3 +56,21 @@ def test_credibility_hides_thin_samples_and_implausible_edges():
     assert 'not credible' in credibility_problem(10, MAX_CREDIBLE_EV + 0.01)
     assert credibility_problem(10, MAX_CREDIBLE_EV) is None
     assert credibility_problem(MIN_SAMPLE, 0.08) is None
+
+
+def test_player_spread_widens_pooled_residuals_for_a_volatile_player():
+    # Pooled residuals come mostly from low-minute players (sd ~1.5). A star whose rebounds swing by
+    # 3.5 a game, projected one under a 10.5 line, is not a 70%+ under.
+    pooled = np.random.default_rng(0).normal(0, 1.5, 2000)
+    narrow = evaluate_market(9.5, 10.5, -110, pooled, 'under')
+    wide = evaluate_market(9.5, 10.5, -110, pooled, 'under', spread=3.5)
+    assert narrow['model_prob'] > 0.70
+    assert 0.55 < wide['model_prob'] < 0.65
+
+
+def test_spread_is_ignored_when_missing_or_degenerate():
+    pooled = np.random.default_rng(1).normal(0, 2, 500)
+    plain = evaluate_market(12, 10.5, -110, pooled, 'over')
+    assert evaluate_market(12, 10.5, -110, pooled, 'over', spread=None) == plain
+    assert evaluate_market(12, 10.5, -110, pooled, 'over', spread=0) == plain
+    assert evaluate_market(12, 10.5, -110, np.zeros(40), 'over', spread=3) == evaluate_market(12, 10.5, -110, np.zeros(40), 'over')

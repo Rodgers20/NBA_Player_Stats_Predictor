@@ -17,10 +17,28 @@ def number(value):
         return None
 
 
+REAL_SEASON_PREFIXES = ('2', '4', '5')   # nba_api SEASON_ID: 1 preseason, 2 regular, 3 All-Star, 4 playoffs, 5 play-in
+
+
+def played_games(df):
+    """Only real-season games the player took the floor in.
+
+    Preseason minutes and did-not-play rows (blank or zero minutes, zero stats) dragged every
+    average, hit rate and projection toward zero: 18% of NBA rows were DNPs."""
+    keep = pd.Series(True, index=df.index)
+    if 'SEASON_ID' in df:
+        keep &= df['SEASON_ID'].astype(str).str.startswith(REAL_SEASON_PREFIXES)
+    if 'MIN' in df:
+        minutes = pd.to_numeric(df['MIN'], errors='coerce')
+        stats = df[[c for c in ('PTS', 'REB', 'AST') if c in df]].apply(pd.to_numeric, errors='coerce').fillna(0).sum(axis=1)
+        keep &= (minutes > 0) | (minutes.isna() & (stats > 0))
+    return df[keep]
+
+
 @lru_cache(maxsize=4)
 def _load_history(league, modified):
     path = get_config(league).data_dir / 'player_game_logs.csv'
-    df = pd.read_csv(path, low_memory=False)
+    df = played_games(pd.read_csv(path, low_memory=False))
     df['_date'] = pd.to_datetime(df['GAME_DATE'], format='mixed', errors='coerce')
     df = df.dropna(subset=['_date', 'PLAYER_NAME'])
     from utils.pregame_features import prefer_identified_games
