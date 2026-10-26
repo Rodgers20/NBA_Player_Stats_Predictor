@@ -30,18 +30,18 @@ body {
   letter-spacing: .01em;
   text-transform: uppercase;
 }
+/* One logo: the rail's ring. Phones have no rail, so the header carries it there; on desktop the rail already does. */
 .site-brand::before {
-  content: "BP";
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-right: 9px;
-  color: var(--color-bg-root);
-  background: var(--color-teal-400);
-  border-radius: 4px;
-  font: 800 12px var(--font-display);
+  content: "";
+  width: 26px;
+  height: 26px;
+  margin-right: 10px;
+  border-radius: 9999px;
+  background: conic-gradient(from 210deg, var(--color-teal-400), var(--color-lock-gold), var(--color-teal-500), var(--color-teal-400));
+  -webkit-mask: radial-gradient(circle, transparent 7px, #000 8px);
+          mask: radial-gradient(circle, transparent 7px, #000 8px);
 }
+@media (min-width: 901px) { .site-brand::before { display: none; } }
 .site-league-toggle {
   background: var(--color-bg-root);
   border-color: var(--color-border-card);

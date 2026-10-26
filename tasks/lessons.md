@@ -31,3 +31,7 @@
 - Swapping a list for a loading skeleton on "Load more" collapses the page and jumps to the top; keep previous data on screen (`placeholderData: keepPreviousData`).
 - Touch has no hover and fires pointerleave on lift: chart tooltips need tap-to-pin on touch, hover on mouse.
 - A scheduled refresh must never publish an emptier board for the same slate. When the free credits are spent and morning quotes expire (6 h), the evening export rebuilt an empty board and blanked Props right before tip-off. The export now keeps the same-date board, and a restarted API reads quotes saved on disk.
+
+- A failed fetch is not an empty result. `get_upcoming_games` read one dropped ESPN request as "no games today" and published tomorrow's slate. Retry, then tell "the call failed" apart from "zero rows", and never cache the failure.
+- If every priced market comes out +EV, the model is broken, not lucky. Books keep a 4-5% margin, so a sound model rates most markets negative. Check the input history first: preseason games and did-not-play zero rows (18% of NBA rows) were dragging every projection down. Keep a market-share sanity check in mind whenever pricing changes.
+- Read the code before critiquing a feature. The UX teardown called My Bets "manual bookkeeping" when live tracking and auto-grading already existed; the real problem was that the page led with the hand-entry form.

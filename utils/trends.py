@@ -45,8 +45,11 @@ def _card(player, team, opponent, stat, side, line, values, source, live):
     hits = sum(results)
     if hits < MIN_HITS:
         return None
+    avg = sum(values) / len(values)
+    # How far the average clears the line, relative to it: 10/10 over 4.5 averaging 9 beats 10/10 averaging 5.
+    cushion = ((avg - line) if side == 'over' else (line - avg)) / max(abs(line), 1)
     return dict(player=player, team=team, opponent=opponent, stat=stat, side=side, line=line,
-                hits=hits, games=len(values), results=results, avg=round(sum(values) / len(values), 1),
+                hits=hits, games=len(values), results=results, avg=round(avg, 1), cushion=round(cushion, 3),
                 text=f'{side.capitalize()} {line:g} {NOUNS[stat]} in {hits} of last {len(values)}',
                 stars=STARS_BY_HITS.get(hits, 3), line_source=source, live=live)
 
@@ -111,4 +114,5 @@ def build_trends(history, quotes=None, today=None, recent_days=RECENT_DAYS, slat
             continue
         cards += _player_cards(name, rows, quotes or {})
     cards = _tag_slate(cards, slate)
-    return sorted(cards, key=lambda c: (c['playing_today'] is not True, -c['stars'], -c['hits'], c['player'], c['stat']))
+    # Tonight's players, then lines a book actually offers, then the most hits, then the biggest cushion.
+    return sorted(cards, key=lambda c: (c['playing_today'] is not True, c['line_source'] != 'live', -c['hits'], -c['cushion'], c['player'], c['stat']))

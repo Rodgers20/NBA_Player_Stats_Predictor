@@ -16,8 +16,23 @@ import { filterMinStars, sortByEdge } from "@/lib/prop-research.mjs";
 import { searchProps, sortByWindow } from "@/lib/prop-rows.mjs";
 import { applyBoardFilters, availableBooks, availablePlayers, selectedStats } from "@/lib/prop-filters.mjs";
 import { filtersToSearch, isStaleGame, parseFilters, type BoardFilters } from "@/lib/props-url.mjs";
+import { PopularBoard } from "@/components/popular/PopularBoard";
+import { TrendsBoard } from "@/components/trends/TrendsBoard";
+
+/** How many filters differ from "show everything", for the phone's collapsed filter button. */
+function activeFilterCount(filters: Filters) {
+  return [!!filters.stat && filters.stat !== "All", filters.direction !== "All", filters.location !== "All", !!filters.game, filters.ev, !!filters.players, filters.minStars > 0].filter(Boolean).length;
+}
 
 const PAGE = 30;
+const VIEWS = [
+  { key: "props", label: "Edge" },
+  { key: "hot", label: "Hot" },
+  { key: "streaks", label: "Streaks" },
+  { key: "alt", label: "100% Alt Lines" },
+  { key: "record", label: "Record" },
+] as const;
+type View = (typeof VIEWS)[number]["key"];
 
 function slateDate(value: string | null | undefined) {
   if (!value) return "Upcoming games";
@@ -40,7 +55,15 @@ function PropsBoard() {
   const defaults: BoardFilters = { stat: defaultStat, direction: "All", location: "All", sort: defaultSort, game: "", locksOnly: false, minStars: 0, window: "L10", ev: false, players: "" };
   const filters: Filters = parseFilters(search.toString(), defaults);
   const [page, setPage] = useState(1);
-  const [view, setView] = useState<"props" | "alt" | "record">("props");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // Popular and Trends used to be their own pages ranking these same props; they are views of this board now.
+  const view = (VIEWS.find(item => item.key === search.get("view"))?.key ?? "props") as View;
+  const setView = (next: View) => {
+    const params = new URLSearchParams(search.toString());
+    if (next === "props") params.delete("view"); else params.set("view", next);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
   const sheet = usePlayerSheet((state) => state.request);
   const openPlayer = usePlayerSheet((state) => state.open);
   const client = useQueryClient();
@@ -122,25 +145,17 @@ function PropsBoard() {
     <main className="ql-page mx-auto max-w-[1440px] px-4 pb-12 pt-7 sm:px-8" onPointerDownCapture={(event) => { tapOrigin.current = { x: event.clientX, y: event.clientY }; }}>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="ql-kicker">03 / PLAYER MARKETS</p>
-          <h1 className="ql-heading mt-1">Best Props</h1>
-          <p className="ql-subtitle mt-2 max-w-[80ch]">Find your edge, inspect a player, and add priced picks to your slip.</p>
-        </div>
-        <div className="text-left sm:text-right">
-          <p className="ql-data-label text-[#a9bec0]">SLATE / {league.toUpperCase()}</p>
-          <p className="mt-1 text-sm text-[#eaf8f6]">{slateDate(data?.target_date)}</p>
-          <p className="mt-1 text-xs font-semibold text-[#59e0c8]">{data?.count ?? 0} {data?.status === "research" ? "players in research" : "props"}</p>
+          <p className="ql-kicker">PROPS / {league.toUpperCase()}</p>
+          <h1 className="ql-heading mt-1">Props</h1>
+          <p className="ql-subtitle mt-2 max-w-[80ch]">{slateDate(data?.target_date)} · every priced market, ranked by edge, form or streak.</p>
         </div>
       </header>
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-white/10">
-        <div className="flex items-center gap-1" role="group" aria-label="Prop board views">
-          <button type="button" onClick={() => setView("props")} aria-pressed={activeView === "props"}
-            className={`border-b-2 px-3 py-2.5 text-xs font-bold uppercase tracking-[.08em] ${activeView === "props" ? "border-[#59e0c8] text-[#59e0c8]" : "border-transparent text-[#a9bec0] hover:text-white"}`}>Props</button>
-          {!!altLines.data?.count && <button type="button" onClick={() => setView("alt")} aria-pressed={activeView === "alt"}
-            className={`border-b-2 px-3 py-2.5 text-xs font-bold uppercase tracking-[.08em] ${activeView === "alt" ? "border-[#59e0c8] text-[#59e0c8]" : "border-transparent text-[#a9bec0] hover:text-white"}`}>100% Alt Lines</button>}
-          {!!record.data?.total && <button type="button" onClick={() => setView("record")} aria-pressed={activeView === "record"}
-            className={`border-b-2 px-3 py-2.5 text-xs font-bold uppercase tracking-[.08em] ${activeView === "record" ? "border-[#59e0c8] text-[#59e0c8]" : "border-transparent text-[#a9bec0] hover:text-white"}`}>Record ✓</button>}
+        <div className="flex max-w-full items-center gap-1 overflow-x-auto" role="tablist" aria-label="Prop board views">
+          {VIEWS.filter(item => (item.key !== "alt" || !!altLines.data?.count) && (item.key !== "record" || !!record.data?.total)).map(item =>
+            <button key={item.key} type="button" role="tab" onClick={() => setView(item.key)} aria-selected={activeView === item.key}
+              className={`shrink-0 border-b-2 px-3 py-2.5 text-xs font-bold uppercase tracking-[.08em] ${activeView === item.key ? "border-[#59e0c8] text-[#59e0c8]" : "border-transparent text-[#a9bec0] hover:text-white"}`}>{item.label}</button>)}
         </div>
         {!isStatic && budget.data?.configured && (
           <button
@@ -158,9 +173,19 @@ function PropsBoard() {
         <p className="mb-4 text-xs text-[#a9bec0]">NBA and WNBA share one free Odds API pool. Quotes refresh each morning and about two hours before tip-off, and credits go to whichever league has games, so off-season credits fund the other league. In-progress games do not produce pregame picks.</p>
       )}
 
-      {activeView === "props" && <PropFilters filters={filters} matchups={data?.game_matchups ?? []} statCounts={data?.stat_counts} onChange={handleChange}
-        bookOptions={availableBooks(loaded)} books={books} onBooksChange={setBooks} playerOptions={availablePlayers(loaded)}
-        playerImages={Object.fromEntries(loaded.map(prop => [prop.player, prop.headshot_url]))} />}
+      {activeView === "hot" && <PopularBoard league={league} />}
+      {activeView === "streaks" && <TrendsBoard league={league} />}
+
+      {/* On a phone the filters used to fill the whole first screen; the list comes first and filters open on demand. */}
+      {activeView === "props" && <button type="button" onClick={() => setFiltersOpen(open => !open)} aria-expanded={filtersOpen} aria-controls="prop-filters"
+        className="ql-control mb-3 flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-text-pri sm:hidden">
+        <span>Filters{activeFilterCount(filters) ? ` · ${activeFilterCount(filters)} on` : ""}</span><span aria-hidden="true">{filtersOpen ? "−" : "+"}</span>
+      </button>}
+      {activeView === "props" && <div id="prop-filters" className={filtersOpen ? "" : "hidden sm:block"}>
+        <PropFilters filters={filters} matchups={data?.game_matchups ?? []} statCounts={data?.stat_counts} onChange={handleChange}
+          bookOptions={availableBooks(loaded)} books={books} onBooksChange={setBooks} playerOptions={availablePlayers(loaded)}
+          playerImages={Object.fromEntries(loaded.map(prop => [prop.player, prop.headshot_url]))} />
+      </div>}
 
       {!isStatic && (refresh.error || refresh.data || budget.data?.configured === false) && (
         <p role="status" className="mb-4 text-xs text-[#a9bec0]">

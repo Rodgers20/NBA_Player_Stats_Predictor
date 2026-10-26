@@ -1,0 +1,95 @@
+"use client";
+
+import { useState } from "react";
+import { PlayerName } from "@/components/analysis/PlayerName";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { fmtOdds } from "@/lib/utils";
+import { formatOdds } from "@/lib/prop-research.mjs";
+import { TrendSlipButton } from "@/components/trends/TrendSlipButton";
+import type { TrendCard } from "@/lib/types";
+
+const PAGE = 24;   // 330 streak cards rendered at once made a 26,000px page
+const SIDES = [["all", "All"], ["over", "Overs"], ["under", "Unders"]] as const;
+const STATS = [
+  ["all", "All"], ["PTS", "PTS"], ["REB", "REB"], ["AST", "AST"], ["FG3M", "3PM"], ["STL", "STL"], ["BLK", "BLK"],
+  ["PTS+REB", "P+R"], ["PTS+AST", "P+A"], ["REB+AST", "R+A"], ["PTS+REB+AST", "PRA"],
+] as const;
+
+function Stars({ count }: { count: number }) {
+  return <span role="img" aria-label={`${count} of 5 stars`} className="text-sm tracking-tight text-[#f5ba64]">{"★".repeat(count)}<span className="text-white/15">{"★".repeat(5 - count)}</span></span>;
+}
+
+function TrendItem({ card, league }: { card: TrendCard; league: "nba" | "wnba" }) {
+  const stat = card.stat === "FG3M" ? "3PM" : card.stat;
+  return <li className="ql-panel flex flex-col gap-3 p-4">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <PlayerName name={card.player} league={league} className="block max-w-full truncate font-bold text-text-pri" />
+        <p className="ql-data-label mt-0.5">{card.team}{card.opponent ? ` vs ${card.opponent}` : ""} · {stat}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Stars count={card.stars} />
+        {/* Only a sportsbook line can go on a slip; a research line has no price to bet. */}
+        {card.live && <TrendSlipButton card={card} league={league} />}
+      </div>
+    </div>
+    <p className="text-base font-extrabold leading-snug text-text-pri">{card.text}</p>
+    <div className="flex gap-1" role="img" aria-label={`Last ${card.games} games, oldest to newest: ${card.results.map(hit => hit ? "hit" : "miss").join(", ")}`}>
+      {card.results.map((hit, index) => <span key={index} className={`h-5 flex-1 rounded-sm ${hit ? "bg-teal-400" : "bg-rose-400/70"}`} />)}
+    </div>
+    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-sec">
+      <span className="tabular-nums"><strong className="text-sm text-teal-400">{card.hits}/{card.games}</strong> hit · avg {card.avg}</span>
+      {card.live
+        ? <span className="ql-data-label rounded border border-teal-400/30 px-2 py-1 text-teal-300">BOOK {card.live.line} {formatOdds(card.live.price) ?? fmtOdds(card.live.price)}{card.live.book ? ` · ${card.live.book}` : ""}</span>
+        : <span className="ql-data-label">RESEARCH LINE {card.line}</span>}
+    </div>
+  </li>;
+}
+
+/** Players clearing the same line in at least eight of their last ten games: the Props page's "Streaks" view. */
+export function TrendsBoard({ league }: { league: "nba" | "wnba" }) {
+  const [side, setSide] = useState<(typeof SIDES)[number][0]>("all");
+  const [stat, setStat] = useState<(typeof STATS)[number][0]>("all");
+  const [scope, setScope] = useState<"tonight" | "all">("tonight");
+  const [team, setTeam] = useState("");
+  const [shown, setShown] = useState(PAGE);
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["trends", league], queryFn: () => api.trends(league, { limit: 400 }), staleTime: 300_000 });
+  const slateTeams = data?.slate?.teams ?? [];
+  // Without a known slate there is nothing to narrow to, so show everyone rather than an empty board.
+  const tonight = scope === "tonight" && slateTeams.length > 0;
+  const cards = (data?.trends ?? []).filter(card => (side === "all" || card.side === side) && (stat === "all" || card.stat === stat)
+    && (!tonight || (card.playing_today === true && (!team || card.team === team))));
+  const chip = (active: boolean) => `ql-chip shrink-0 ${active ? "ql-chip-active" : ""}`;
+
+  return <>
+    <p className="mb-3 text-xs text-text-sec">Players clearing the same line in at least eight of their last ten games, biggest cushion first. History is not a forecast.</p>
+    {slateTeams.length > 0 && <div className="mb-3 flex flex-wrap items-center gap-3">
+      <div className="flex gap-1.5" role="group" aria-label="Players shown">
+        <button type="button" aria-pressed={tonight} onClick={() => setScope("tonight")} className={chip(tonight)}>Tonight&apos;s games</button>
+        <button type="button" aria-pressed={!tonight} onClick={() => setScope("all")} className={chip(!tonight)}>All players</button>
+      </div>
+      {tonight && <label className="ql-data-label flex items-center gap-2">TEAM
+        <select value={team} onChange={event => setTeam(event.target.value)} className="ql-control min-h-8 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-text-pri">
+          <option value="">All {slateTeams.length} teams playing</option>
+          {slateTeams.map(abbrev => <option key={abbrev} value={abbrev}>{abbrev}</option>)}
+        </select>
+      </label>}
+    </div>}
+
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-3">
+      <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Side">{SIDES.map(([value, label]) => <button key={value} type="button" aria-pressed={side === value} onClick={() => setSide(value)} className={chip(side === value)}>{label}</button>)}</div>
+      <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Statistic">{STATS.map(([value, label]) => <button key={value} type="button" aria-pressed={stat === value} onClick={() => setStat(value)} className={chip(stat === value)}>{label}</button>)}</div>
+    </div>
+
+    {isPending && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading streaks">{[0, 1, 2].map(index => <div key={index} className="ql-panel h-40 animate-pulse" />)}</div>}
+    {isError && <div role="alert" className="ql-panel p-5 text-sm text-red-300">Streaks are unavailable. <button type="button" onClick={() => void refetch()} className="underline">Try again</button></div>}
+    {!isPending && !isError && cards.length === 0 && <div role="status" className="ql-panel p-6">
+      <h2 className="ql-section-title">{data?.trends.length ? "No streaks match these filters" : "No qualifying streaks right now"}</h2>
+      <p className="mt-2 max-w-2xl text-sm text-text-sec">{data?.trends.length ? (tonight ? "No streaks among tonight's players match these filters. Try another side, stat or team, or switch to All players." : "Try another side or stat.") : "A streak needs a player with ten games inside the last 14 days, so this fills in once the season is underway."}</p>
+    </div>}
+    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{cards.slice(0, shown).map(card => <TrendItem key={`${card.player}-${card.stat}-${card.side}`} card={card} league={league} />)}</ul>
+    {cards.length > shown && <button type="button" onClick={() => setShown(count => count + PAGE)}
+      className="ql-control mt-4 w-full py-3 text-sm font-semibold text-[#59e0c8] hover:bg-[#59e0c8]/10">Show more ({cards.length - shown} remaining)</button>}
+  </>;
+}

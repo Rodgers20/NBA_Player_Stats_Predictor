@@ -94,7 +94,16 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
   const [sidePanel, setSidePanel] = useState<"matchup" | "availability" | "log">("matchup");
   const players = useQuery({ queryKey: ["players", "all", league], queryFn: () => api.players("", league), enabled: !embedded || !linkedPlayer });
   const names = players.data?.players ?? [];
-  const player = chosenPlayer || linkedPlayer || (league === "wnba" && names.includes("A'ja Wilson") ? "A'ja Wilson" : names[0]) || "";
+  // Open on tonight's top play (same query, so same cache, as the Tonight page), never on whoever sorts first:
+  // that was a 2-PPG bench player with seven-month-old data.
+  const tonight = useQuery({
+    queryKey: ["tonight", league],
+    queryFn: () => api.props({ league, include_research: true, sort: "ev", limit: 500 }),
+    enabled: !linkedPlayer && !embedded, staleTime: 120_000,
+  });
+  const featured = tonight.data?.props.find(prop => prop.pick_type === "pick")?.player ?? tonight.data?.props[0]?.player;
+  const fallback = league === "wnba" && names.includes("A'ja Wilson") ? "A'ja Wilson" : names[0];
+  const player = chosenPlayer || linkedPlayer || (tonight.isPending && !embedded ? "" : featured || fallback) || "";
   const options = (search.trim() ? names.filter(name => name.toLowerCase().includes(search.trim().toLowerCase())) : names).slice(0, 8);
   const chart = useQuery({ queryKey: ["chart", player, stat, 200, league], queryFn: () => api.playerChart(player, stat, 200, league), enabled: !!player });
   const summary = useQuery({ queryKey: ["stats", player, league], queryFn: () => api.playerStats(player, league), enabled: !!player });
@@ -188,8 +197,8 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
   return <div className={embedded ? "mx-auto max-w-[1500px] px-3 pb-16 pt-3 sm:px-6" : "ql-page ql-enter mx-auto max-w-[1700px] px-4 py-6 sm:px-8"}>
     {!embedded && <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <p className="ql-kicker">01 / PLAYER INTELLIGENCE</p>
-        <h1 className="ql-heading mt-1">Player Analysis</h1>
+        <p className="ql-kicker">PLAYERS / {league.toUpperCase()}</p>
+        <h1 className="ql-heading mt-1">Players</h1>
         <p className="ql-subtitle mt-1">Form, model outlook, and matchup context in one reading path.</p>
       </div>
       <div ref={searchBox} className="relative w-full sm:w-[300px]">

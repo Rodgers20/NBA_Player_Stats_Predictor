@@ -17,7 +17,6 @@ export function GameProps({ game, league, date }: { game: Game; league: "nba" | 
     queryFn: () => api.props({ league, game: game.matchup, include_research: true, sort: "ev", limit: 100 }),
     staleTime: 120_000,
   });
-  const record = useQuery({ queryKey: ["props-record"], queryFn: api.propsRecord });
 
   if (props.isPending) return <div className="ql-panel h-48 animate-pulse" aria-busy="true" aria-label="Loading props" />;
   if (props.isError) return <div role="alert" className="ql-panel p-5 text-sm text-text-sec">This game&apos;s props could not be loaded. <button type="button" className="underline" onClick={() => void props.refetch()}>Try again</button></div>;
@@ -38,12 +37,12 @@ export function GameProps({ game, league, date }: { game: Game; league: "nba" | 
         <span className="ql-data-label">{board.picks.length} {board.picks.length === 1 ? "PLAY" : "PLAYS"}</span>
       </div>
       {board.picks.length > 0
-        ? <div className="ql-panel overflow-hidden">{board.picks.map(prop => <TonightRow key={rowKey(prop)} prop={prop} league={league} date={slipDate} record={record.data} />)}</div>
+        ? <div className="ql-panel overflow-hidden">{board.picks.map(prop => <TonightRow key={rowKey(prop)} prop={prop} league={league} date={slipDate} />)}</div>
         : <p role="status" className="ql-panel px-4 py-5 text-sm text-text-sec">No priced prop in this game has a positive edge. Passing is a result.</p>}
     </section>
     {board.leans.length > 0 && <details>
       <summary className="ql-data-label cursor-pointer py-2">PRICED, NO EDGE · {board.leans.length}</summary>
-      <div className="ql-panel mt-2 overflow-hidden">{board.leans.map(prop => <TonightRow key={rowKey(prop)} prop={prop} league={league} date={slipDate} record={record.data} />)}</div>
+      <div className="ql-panel mt-2 overflow-hidden">{board.leans.map(prop => <TonightRow key={rowKey(prop)} prop={prop} league={league} date={slipDate} />)}</div>
     </details>}
     {board.research.length > 0 && <ResearchList rows={board.research} league={league} />}
   </div>;

@@ -1,8 +1,6 @@
 .page {max-width:1320px;margin:0 auto;padding:32px 32px 64px;}
 .header {display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:26px;}
-.header h1 {font:800 clamp(34px,4vw,46px)/1.1 var(--font-display);margin:5px 0 8px;}
 .header p:last-child {font-size:14px;color:var(--color-text-sec);}
-.eyebrow {font:600 11px var(--font-mono);letter-spacing:.13em;color:var(--color-teal-400);}
 .seasonPicker {display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:13px;color:var(--color-text-sec);}
 .seasonPicker select {border:1px solid var(--color-border-card);background:var(--color-bg-card);border-radius:6px;padding:9px 12px;color:var(--color-text-pri);font-size:13px;}
 .stack {display:flex;flex-direction:column;gap:20px;}
@@ -65,6 +63,6 @@
 .retry {border:1px solid var(--color-border-card);padding:8px 12px;font-size:12px;border-radius:5px;margin-top:14px;}
 .page select:focus-visible,.page summary:focus-visible,.page button:focus-visible {outline:2px solid var(--color-teal-400);outline-offset:3px;}
 @media(max-width:900px) {.chartGrid {grid-template-columns:1fr;}.chart {max-height:390px;}.header {align-items:flex-start;flex-direction:column;gap:16px;}}
-@media(max-width:640px) {.page {padding:24px 16px 48px;}.panel {padding:20px 16px;}.panel h2 {font-size:25px;}.recordStats {display:grid;grid-template-columns:1fr 1fr;gap:18px;}.recordStats strong {font-size:28px;}.diagnostics {padding:0;}.diagnostics>summary {padding:18px 16px;}.diagnosticBody {padding:0 16px 20px;}.description {font-size:12px;}.seasonPicker {width:100%;justify-content:space-between;}.header h1 {font-size:38px;}}
+@media(max-width:640px) {.page {padding:24px 16px 48px;}.panel {padding:20px 16px;}.panel h2 {font-size:25px;}.recordStats {display:grid;grid-template-columns:1fr 1fr;gap:18px;}.recordStats strong {font-size:28px;}.diagnostics {padding:0;}.diagnostics>summary {padding:18px 16px;}.diagnosticBody {padding:0 16px 20px;}.description {font-size:12px;}.seasonPicker {width:100%;justify-content:space-between;}}
 
 .ledger {border-top:1px solid var(--color-border-card);margin-top:18px;padding-top:1px;}

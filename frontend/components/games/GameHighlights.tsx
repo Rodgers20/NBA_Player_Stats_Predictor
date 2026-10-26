@@ -12,7 +12,7 @@ export function GameHighlights({league, gameId, recent = false, showAll = false}
   const all = query.data?.games ?? [];
   const games = recent ? all.filter(game => game.clips.length) : all.filter(game => game.game_id === gameId);
   return <section className={styles.highlights} aria-label={recent ? 'Latest basketball highlights' : 'Matchup highlights'}>
-    <div className={styles.sectionHeading}><div><p className="ql-kicker">THE REPLAY ROOM</p><h2>{recent ? 'Latest highlights' : 'Game highlights'}</h2></div><span className="ql-data-label">ESPN · {league.toUpperCase()}</span></div>
+    <div className={styles.sectionHeading}><div><p className="ql-kicker">CLIPS</p><h2>{recent ? 'Latest highlights' : 'Game highlights'}</h2></div><span className="ql-data-label">ESPN · {league.toUpperCase()}</span></div>
     {query.isPending && <div className={styles.skeleton} aria-label="Loading highlights" />}
     {query.isError && <p role="alert" className={styles.empty}>Highlights could not be loaded. <button onClick={()=>void query.refetch()}>Try again</button></p>}
     {query.data && !games.some(game=>game.clips.length) && <div className={styles.empty}><p>{recent ? query.data.message || 'ESPN has not published recent clips for this league.' : 'No clips have been published for this matchup yet.'}</p><p className={styles.muted}>Highlights appear when the publisher releases them, usually during or after the game.</p></div>}

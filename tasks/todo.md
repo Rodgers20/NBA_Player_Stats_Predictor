@@ -399,3 +399,18 @@ Caveats: fresh picks still arrive only with the 11:17 UTC snapshot build (the si
 
 ### Review
 Verified with headless Chromium on local static build and production: sheet open/close at 1440 and 390, scroll preserved, no page errors; tap tooltip on touch; tsc/eslint clean; 214 frontend tests, 454 Python tests pass (1 pre-existing failure in tests/test_rest_api.py::test_startup_does_not_import_dash_or_fetch, untouched code). Deployed to production twice (court-vision-basketball.vercel.app). Not committed.
+
+## UX teardown fixes — October 26
+
+Teardown: https://claude.ai/artifact/2qGdARAxQ5ZgmaET2qP7VV (4/10). Build order follows its fix list.
+
+- [x] Edge audit: history keeps only real-season games played (`api.data.played_games`); residuals take the player's 20-game spread; market weighs 40 games; a play needs +2% EV.
+- [x] Nav 10 → 5 (Tonight, Props, Games, Players, My Bets), labels visible on desktop, no "More" sheet on phones.
+- [x] Popular, Trends and Hit Rates became Props views (Hot, Streaks); old routes redirect. Streaks sort by real book line, hits, then cushion; no Add on research lines; capped at 24 with Show more.
+- [x] Tonight: one count line, top 8 compact rows with a one-line reason, visible "model passed" list; old-model graded record removed from rows.
+- [x] My Bets: three-tap how-to, live tracker and progress first, hand entry collapsed.
+- [x] Players opens on tonight's top play; eyebrows unified as SECTION / LEAGUE; one logo.
+
+### Review
+Offline re-price of the same saved quotes: before 159/159 +EV, median +7.2%, 61 five-star; after 30 plays from 249 markets, best +8.9%, median -1.9%, no five-star. Tonight 24,909px → 2,215px. 470 Python + 230 frontend tests pass (the one REST failure predates this work); tsc and eslint clean; static build checked at 1440 and 390 with no overflow or console errors.
+Not done: a closing-line (CLV) check of the new pricing needs graded priced picks, which do not exist yet. The 40-game market weight is a reasoned prior, not a fitted value.

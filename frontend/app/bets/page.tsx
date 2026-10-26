@@ -120,13 +120,26 @@ function BetsContent() {
     <div className="ql-page max-w-[1360px] space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-5 border-b border-[#2b4248] pb-6">
         <div>
-        <p className="ql-kicker">Your personal betting desk</p>
+        <p className="ql-kicker">MY BETS / {currentLeague.toUpperCase()}</p>
         <h1 className="ql-heading mt-2">My Bets</h1>
-        <p className="ql-subtitle mt-2">Build your slip. Record your picks. Know where you stand.</p>
-        {STATIC && <p className="mt-2 text-xs text-amber-300">On the hosted free version, entries are saved in this browser only. They do not sync between devices or private browsing sessions.</p>}
+        <p className="ql-subtitle mt-2">Bets you track follow the game live and grade themselves from the box score.</p>
+        {STATIC && <p className="mt-2 text-xs text-text-sec">Saved in this browser.</p>}
         </div>
-        <Link href="/props" className="inline-flex items-center gap-2 rounded-md border border-teal-400/40 px-4 py-3 text-sm font-semibold text-teal-400 hover:bg-teal-400/10">Find props for your slip <ArrowUpRight size={16} /></Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/performance" className="inline-flex items-center gap-2 rounded-md border border-white/15 px-4 py-3 text-sm font-semibold text-text-pri hover:bg-white/5">Model record <ArrowUpRight size={16} /></Link>
+          <Link href="/" className="inline-flex items-center gap-2 rounded-md border border-teal-400/40 px-4 py-3 text-sm font-semibold text-teal-400 hover:bg-teal-400/10">Tonight&apos;s plays <ArrowUpRight size={16} /></Link>
+        </div>
       </header>
+
+      {data && data.bets.length === 0 && <section className="ql-panel p-5 md:p-6" aria-labelledby="how-title">
+        <h2 id="how-title" className="ql-section-title">Track a bet in three taps</h2>
+        <ol className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+          {[["Tap +", "on any play on Tonight or Props. The price and book come with it."],
+            ["Open the slip", "from the button at the bottom of the screen."],
+            ["Tap Track", "It shows up here, follows the game live and grades itself at the final."]].map(([step, detail], index) =>
+            <li key={step} className="flex gap-3 rounded-lg border border-white/10 p-4"><span className="font-mono text-lg font-bold text-teal-400">{index + 1}</span><span><strong className="text-text-pri">{step}</strong> <span className="text-text-sec">{detail}</span></span></li>)}
+        </ol>
+      </section>}
       {isPending && <p role="status" className="glass p-5 text-sm">Connecting to your journal…</p>}
       {isError && <div role="status" className="glass p-5 space-y-3">
         <h2 className="font-semibold">Journal unavailable · read-only view</h2>
@@ -137,8 +150,11 @@ function BetsContent() {
 
       {data && <LiveBets bets={data.bets} onFinal={(bet, outcome) => void settleFromLive(bet, outcome)} />}
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <section className="ql-panel p-5 md:p-6" aria-labelledby="entry-title">
+      {/* Hand entry is the exception now that the slip tracks bets; it stays one tap away for bets placed elsewhere. */}
+      <details className="ql-panel group" open={!!prefilledPlayer}>
+      <summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-text-pri md:px-6">Log or correct a bet by hand</summary>
+      <div className="grid items-start gap-5 border-t border-white/10 p-5 md:p-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <section aria-labelledby="entry-title">
         <p className="ql-kicker flex items-center gap-2"><NotebookPen size={14} /> Selection journal</p>
         <h2 id="entry-title" className="ql-section-title mt-2">Log a pick</h2>
         <p className="mt-2 text-sm text-[var(--color-text-sec)]">{prefilledPlayer ? `Selection loaded for ${prefilledPlayer}. Confirm the line and price, then add your stake.` : "Start with your game date and league, then search the players on that schedule. Record the line and odds accepted by your book."}</p>
@@ -169,7 +185,7 @@ function BetsContent() {
       </section>
 
       <div className="space-y-5">
-      <section className="ql-panel p-5 md:p-6" aria-labelledby="settle-title">
+      <section aria-labelledby="settle-title">
         <p className="ql-kicker">Settle your picks</p>
         <h2 id="settle-title" className="ql-section-title mt-2">Settle or correct a result</h2>
         <p className="mt-2 text-sm text-[var(--color-text-sec)]">Use your sportsbook receipt. Corrections replace the previous result. Void and pending stakes are excluded from settled ROI; pushes return the stake.</p>
@@ -184,6 +200,7 @@ function BetsContent() {
       </section>
       </div>
       </div>
+      </details>
       <section className="space-y-4" aria-labelledby="progress-title">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="progress-title" className="ql-section-title">Your progress</h2>
@@ -205,7 +222,7 @@ function BetsContent() {
               <p className="mt-2 text-xs text-[var(--color-text-sec)]">{clv ? `Across ${clv.count} ${clv.count === 1 ? "bet" : "bets"} with a closing line` : "Closing lines are saved when odds refresh before tip-off"}</p></div>
           </div>
           <BetBreakdowns summary={data.summary} />
-          {data.bets.length === 0 ? <div className="ql-panel p-7 text-sm text-[var(--color-text-sec)]">No {mode} entries yet. Only selections you explicitly save appear here.</div> :
+          {data.bets.length === 0 ? <div className="ql-panel p-7 text-sm text-[var(--color-text-sec)]">No {mode === "paper" ? "tracked" : "real"} bets yet. Tap + on a play, then Track from the slip.</div> :
             <div className="ql-panel overflow-x-auto"><table className="w-full whitespace-nowrap text-left text-sm">
               <caption className="sr-only">{mode === "paper" ? "Paper tests" : "Real wagers"} journal</caption>
               <thead className="bg-[#1a2930]"><tr className="border-b border-[#2b4248] text-[11px] font-mono uppercase tracking-wider text-[var(--color-text-sec)]">{["Date / league", "Selection", "Book / odds", "Stake", "Result", "Net"].map(label => <th key={label} scope="col" className="p-4 font-medium">{label}</th>)}</tr></thead>

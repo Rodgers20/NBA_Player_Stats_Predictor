@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { breakEven, quoteAge, tonightBoard, recordFor } from './tonight.mjs';
+import { breakEven, playReason, quoteAge, tonightBoard, recordFor } from './tonight.mjs';
 
 test('graded record is looked up by stat whatever order the combo parts are in', () => {
   const record = { by_stat: { PTS: { hit: 137, total: 247, pct: 55.5 }, 'PTS+AST+REB': { hit: 81, total: 140, pct: 57.9 }, BLK: { hit: 3, total: 12, pct: 25 } } };
@@ -41,4 +41,12 @@ test('board ranks priced picks by EV and keeps leans and research apart', () => 
   assert.deepEqual(board.picks.map(p => p.player), ['D', 'B']);
   assert.deepEqual(board.leans.map(p => p.player), ['A']);
   assert.deepEqual(board.research.map(p => p.player), ['C']);
+});
+
+test('a play explains itself in one sentence, and says so when recent form disagrees', () => {
+  const base = { direction: 'Over', line: 4.5, model_projection: 5.2, stat_label: 'AST', model_prob: 0.52, price: 118 };
+  assert.match(playReason({ ...base, hits: 3, total: 10 }), /^Against recent form: cleared 3 of 10, but the model projects 5\.2 on a 4\.5 line\.$/);
+  assert.match(playReason({ ...base, hits: 8, total: 10 }), /^Form agrees: cleared 8 of 10, and the model projects 5\.2 on a 4\.5 line\.$/);
+  assert.match(playReason({ ...base, hits: 5, total: 10 }), /^Model projects 5\.2 on a 4\.5 line: 52% for this side, the price needs 45\.9%\.$/);
+  assert.equal(playReason({ ...base, model_projection: null, hits: 5, total: 10 }), null);
 });

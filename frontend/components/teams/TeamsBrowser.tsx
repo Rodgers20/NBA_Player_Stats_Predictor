@@ -39,7 +39,7 @@ export function TeamsBrowser({ detail = false }: { detail?: boolean }) {
 
   return <main className="ql-page mx-auto max-w-[1440px] px-4 pb-16 pt-8 sm:px-8">
     <header className="mb-7 flex flex-wrap items-end justify-between gap-4">
-      <div><p className="ql-kicker">{league.toUpperCase()} / TEAM INTELLIGENCE</p><h1 className="ql-heading">{profile ? team?.name ?? "Team Profile" : "Teams"}</h1><p className="ql-subtitle mt-1">{profile ? `${team?.conference ?? league.toUpperCase()}${team?.division ? ` · ${team.division}` : ""} · ${seasonLabel(team?.season ?? data?.season, league)} season` : VIEW_BLURB[view]}</p></div>
+      <div><p className="ql-kicker">TEAMS / {league.toUpperCase()}</p><h1 className="ql-heading">{profile ? team?.name ?? "Team Profile" : "Teams"}</h1><p className="ql-subtitle mt-1">{profile ? `${team?.conference ?? league.toUpperCase()}${team?.division ? ` · ${team.division}` : ""} · ${seasonLabel(team?.season ?? data?.season, league)} season` : VIEW_BLURB[view]}</p></div>
       {profile && seasons.length > 1 && <label className="text-xs text-text-sec">Season<select aria-label="Team season" className="ql-control ml-3 min-h-10 px-3" value={String(season ?? team?.season ?? data?.season ?? seasons[0])} onChange={e => { const next = new URLSearchParams(params.toString()); next.set("season", e.target.value); next.set("league", league); router.push(`${detail ? "/teams/detail" : "/teams"}?${next}`); }}>{seasons.map(s => <option key={s} value={s}>{seasonLabel(s, league)}</option>)}</select></label>}
     </header>
     {!profile && <ViewTabs league={league} view={view} />}

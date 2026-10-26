@@ -121,3 +121,12 @@ def test_a_posted_combo_line_is_over_only_even_when_the_under_would_hit():
     quote = {'line': 25.5, 'over_price': -110, 'under_price': -110, 'bookmaker': 'DK', 'home_team': 'AAA', 'away_team': 'BBB'}
     result = cards(df, quotes={'Big Man': {'PTS+REB+AST': quote}})
     assert [c for c in result if c['stat'] == 'PTS+REB+AST' and c['line_source'] == 'live'] == []
+
+
+def test_equal_streaks_rank_by_cushion_not_by_name():
+    # Both clear their line 10 of 10; the one whose average sits further above it ranks first, A-Z be damned.
+    thin = frame([8] * 10, stat='PTS', player='Aaron Thin')
+    wide = frame([20] * 10, stat='PTS', player='Zed Wide')
+    quotes = {'Aaron Thin': {'PTS': {'line': 7.5, 'over_price': -110}}, 'Zed Wide': {'PTS': {'line': 12.5, 'over_price': -110}}}
+    order = [c['player'] for c in cards(pd.concat([thin, wide]), quotes=quotes) if c['side'] == 'over']
+    assert order[:2] == ['Zed Wide', 'Aaron Thin']

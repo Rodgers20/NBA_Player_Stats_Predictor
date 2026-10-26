@@ -6,4 +6,5 @@ export function recordFor(
   record: { by_stat?: Record<string, { hit: number; total: number; pct: number }> } | null | undefined,
   stat: string,
 ): { hit: number; total: number; pct: number; early: boolean } | null;
+export function playReason(prop: Prop): string | null;
 export function tonightBoard(props: Prop[]): { picks: Prop[]; leans: Prop[]; research: Prop[] };
