@@ -7,6 +7,7 @@ import { formatOdds, summarizeSlip, type SlipLeg, type SlipMode } from '@/lib/be
 import { useSlip } from '@/store/slip';
 import { copy, copySlipText, shareSlipImage } from './slip-actions';
 import { LegRow, SlipTotals } from './SlipParts';
+import { SendToBook } from './SendToBook';
 
 /** The shared slip: a ticket sized to screenshot on a phone, with the ways to send it on underneath. */
 export function SlipTicket({ legs, mode, stake, code }: { legs: SlipLeg[]; mode: SlipMode; stake: number | null; code: string }) {
@@ -44,6 +45,7 @@ export function SlipTicket({ legs, mode, stake, code }: { legs: SlipLeg[]; mode:
       <button type="button" className={btn} onClick={async () => say(await copy(`${window.location.origin}/slip?s=${code}`) ? 'Link copied.' : "Couldn't copy.")}><Link2 className="h-4 w-4" aria-hidden /> Copy link</button>
       <Link href="/props" className={btn} onClick={() => load(legs, mode, stake)}><PencilLine className="h-4 w-4" aria-hidden /> Edit slip</Link>
     </div>
+    <SendToBook legs={legs} />
     <p className="min-h-4 text-center text-[12.5px] text-text-sec" aria-live="polite">{flash ?? ''}</p>
     <p className="text-center text-[12px] leading-relaxed text-text-sec">This app doesn&apos;t take bets. Prices are the saved quotes collected with each pick and may have moved, or come from different books; confirm them at your sportsbook. Legs from the same game tend to land or miss together, so the model chance is a rough guide.</p>
   </div>;

@@ -12,4 +12,4 @@ export interface LegHandoff {
 }
 export function safeBookUrl(url: unknown, bookKey: string): string | null;
 export function handoffLeg(leg: SlipLeg, board: { props?: Prop[] } | null | undefined, bookKey: BookKey): LegHandoff;
-export function handoff(legs: SlipLeg[], boards: Partial<Record<string, { props?: Prop[] }>>, bookKey: BookKey): { legs: LegHandoff[]; combined: string | null };
+export function handoff(legs: SlipLeg[], boards: Partial<Record<string, { props?: Prop[] }>>, bookKey: BookKey): { legs: LegHandoff[]; combined: string | null; linked: number };

@@ -31,6 +31,20 @@ function note(h: LegHandoff, book: string): { text: string; warn: boolean } {
   }
 }
 
+/** One tap puts every linked leg in the book's bet slip, where the book builds the parlay; always shown, disabled with the reason when no leg can go. */
+function AddAll({ combined, linked, total, name }: { combined: string | null; linked: number; total: number; name: string }) {
+  const label = total === 1 ? `Add to ${name} bet slip` : linked === total ? `Add all ${total} legs to ${name} as a parlay` : `Add ${linked} of ${total} legs to ${name} bet slip`;
+  const cls = 'mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 text-[15px] font-extrabold';
+  if (!combined) return <>
+    <button type="button" disabled className={`${cls} cursor-not-allowed bg-ink/10 text-text-sec`}>{total === 1 ? `Add to ${name} bet slip` : `Add all ${total} legs to ${name}`}</button>
+    <p className="mt-1.5 text-[11.5px] leading-snug text-lock-gold">{name} hasn&apos;t sent bet-slip links for these lines yet. They arrive with the next quote refresh; until then use Open on each leg.</p>
+  </>;
+  return <>
+    <a href={combined} target="_blank" rel="noopener noreferrer" className={`${cls} bg-teal-400 text-bg-root hover:brightness-110`}>{label} <ExternalLink className="h-4 w-4" aria-hidden /></a>
+    {linked < total && <p className="mt-1.5 text-[11.5px] leading-snug text-lock-gold">The other {total - linked} {total - linked === 1 ? 'leg needs' : 'legs need'} adding by hand: see below.</p>}
+  </>;
+}
+
 /** Hand the slip to a sportsbook: the deepest link per leg, and what to check before betting. Nothing is placed here. */
 export function SendToBook({ legs }: { legs: SlipLeg[] }) {
   // The slip only renders once its persisted legs hydrate in the browser, so storage is readable here.
@@ -40,7 +54,7 @@ export function SendToBook({ legs }: { legs: SlipLeg[] }) {
   const choose = (next: BookKey) => { setBook(next); try { localStorage.setItem(BOOK_KEY, next); } catch { /* not remembered */ } };
 
   const boards = useBoards(legs.map(l => l.league));
-  const { legs: handoffs, combined } = handoff(legs, boards, book);
+  const { legs: handoffs, combined, linked } = handoff(legs, boards, book);
   const name = BOOKS[book].name;
 
   return <section aria-labelledby="send-to-book" className="rounded-xl border border-border-card p-3">
@@ -51,6 +65,7 @@ export function SendToBook({ legs }: { legs: SlipLeg[] }) {
           className={`min-h-9 rounded-md px-2.5 text-[12px] font-bold ${book === key ? 'bg-teal-400 text-bg-root' : 'text-text-sec hover:text-ink'}`}>{BOOKS[key].name}</button>)}
       </div>
     </div>
+    <AddAll combined={combined} linked={linked} total={legs.length} name={name} />
     <ul className="mt-2 divide-y divide-ink/10">
       {legs.map((leg, i) => {
         const h = handoffs[i];
@@ -65,8 +80,6 @@ export function SendToBook({ legs }: { legs: SlipLeg[] }) {
         </li>;
       })}
     </ul>
-    {combined && <a href={combined} target="_blank" rel="noopener noreferrer"
-      className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-teal-400 px-4 text-[14px] font-bold text-bg-root hover:brightness-110">Add all {legs.length} to {name} slip <ExternalLink className="h-4 w-4" aria-hidden /></a>}
     <p className="mt-2 text-[11px] leading-snug text-text-sec">Check every line and price at {name} before you bet. Links open the book; nothing is placed from here.</p>
   </section>;
 }

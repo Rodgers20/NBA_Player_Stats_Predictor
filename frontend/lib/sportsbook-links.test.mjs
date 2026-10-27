@@ -44,11 +44,26 @@ test('a book without the market, or a leg off the board, opens the book’s home
   assert.equal(handoffLeg(leg('Bam Adebayo', 'AST', 4.5, -110), board, 'fanduel').status, 'book');
 });
 
-test('FanDuel gets one combined slip link only when every leg opens a slip selection', () => {
+test('FanDuel: one link adds every linked leg to the bet slip, in the indexed form FanDuel shares parlays with', () => {
   const legs = [leg('Jayson Tatum', 'PTS', 27.5, -115), leg('Jaylen Brown', 'REB', 6.5, 120)];
-  const { combined } = handoff(legs, { nba: board }, 'fanduel');
-  assert.equal(combined, 'https://sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7&marketId[1]=42.2&selectionId[1]=11');
-  assert.equal(handoff([...legs, leg('Nobody', 'PTS', 9.5, -110)], { nba: board }, 'fanduel').combined, null);
-  assert.equal(handoff(legs.slice(0, 1), { nba: board }, 'fanduel').combined, null, 'one leg uses its own link');
-  assert.equal(handoff(legs, { nba: board }, 'draftkings').combined, null);
+  const all = handoff(legs, { nba: board }, 'fanduel');
+  assert.equal(all.combined, 'https://sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7&marketId[1]=42.2&selectionId[1]=11');
+  assert.equal(all.linked, 2);
+  const partial = handoff([...legs, leg('Nobody', 'PTS', 9.5, -110)], { nba: board }, 'fanduel');
+  assert.equal(partial.combined, all.combined, 'legs without a slip link are left for the person to add');
+  assert.equal(partial.linked, 2);
+  assert.equal(handoff(legs.slice(0, 1), { nba: board }, 'fanduel').combined, fdSlip('42.1', '7'));
+  assert.deepEqual(handoff(legs, { nba: board }, 'draftkings'), { ...handoff(legs, { nba: board }, 'draftkings'), combined: null, linked: 0 });
+});
+
+test('DraftKings: one link carries every linked outcome id', () => {
+  const dk = id => `https://sportsbook.draftkings.com/?outcomes=${encodeURIComponent(id)}`;
+  const dkBoard = { props: [
+    { player: 'Jayson Tatum', stat: 'PTS', books: [{ book: 'DraftKings', line: 26.5, over_price: -108, under_price: -118, over_link: dk('0QA382972274#2337722395_13L42648Q11742021793Q20') }] },
+    { player: 'Michael Porter Jr', stat: 'PTS', books: [{ book: 'DraftKings', line: 22.5, over_price: -103, under_price: -124, under_link: dk('0QA382971620#2337695081_13L42648Q12094929165Q20') }] },
+  ] };
+  const legs = [leg('Jayson Tatum', 'PTS', 26.5, -108), leg('Michael Porter Jr', 'PTS', 22.5, -124, 'Under')];
+  const { combined, linked } = handoff(legs, { nba: dkBoard }, 'draftkings');
+  assert.equal(linked, 2);
+  assert.equal(combined, 'https://sportsbook.draftkings.com/?outcomes=0QA382972274%232337722395_13L42648Q11742021793Q20+0QA382971620%232337695081_13L42648Q12094929165Q20');
 });

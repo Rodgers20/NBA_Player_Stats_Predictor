@@ -40,19 +40,32 @@ export function handoffLeg(leg, board, bookKey) {
   return { status: price === leg.price ? 'ready' : 'price', ...(slip ? { depth: 'slip', url: slip } : fallback), line: quote.line, price };
 }
 
+/** The selection ids inside a book's add-to-slip link, or null when the link is not one. */
+function selection(url, bookKey) {
+  const params = new URL(url).searchParams;
+  if (bookKey === 'fanduel') {
+    const market = params.get('marketId'), selection = params.get('selectionId');
+    return market && selection ? { market, selection } : null;
+  }
+  return params.get('outcomes') || null;
+}
+
+/** Each book's own multi-add format: FanDuel's indexed addToBetslip, DraftKings' '+'-joined outcomes. */
+const COMBINE = {
+  fanduel: ids => `${BOOKS.fanduel.home}addToBetslip?` + ids.map(({ market, selection }, i) =>
+    `marketId[${i}]=${encodeURIComponent(market)}&selectionId[${i}]=${encodeURIComponent(selection)}`).join('&'),
+  // ponytail: DraftKings' multi-outcome form is inferred from its single-outcome links; check it if DK adds only one leg.
+  draftkings: ids => `${BOOKS.draftkings.home}?outcomes=${ids.map(encodeURIComponent).join('+')}`,
+};
+
 /**
- * Every leg's hand-off, plus one FanDuel link that adds them all to the slip when every leg has its own slip link.
- * ponytail: combined format is FanDuel's indexed addToBetslip; unverified until real links arrive, per-leg links always shown.
+ * Every leg's hand-off, plus one link that adds every leg with a slip link to the book's bet slip at once.
+ * Legs without one (moved line, no quote) are left out of it, so the book never gets a selection the person did not pick.
  */
 export function handoff(legs, boards, bookKey) {
   const results = legs.map(leg => handoffLeg(leg, boards?.[leg.league], bookKey));
-  let combined = null;
-  if (bookKey === 'fanduel' && results.length > 1 && results.every(r => r.depth === 'slip')) {
-    const ids = results.map(r => new URL(r.url).searchParams);
-    if (ids.every(p => p.get('marketId') && p.get('selectionId'))) {
-      combined = `${BOOKS.fanduel.home}addToBetslip?` + ids.map((p, i) =>
-        `marketId[${i}]=${encodeURIComponent(p.get('marketId'))}&selectionId[${i}]=${encodeURIComponent(p.get('selectionId'))}`).join('&');
-    }
-  }
-  return { legs: results, combined };
+  const slips = results.filter(r => r.depth === 'slip');
+  const ids = slips.map(r => selection(r.url, bookKey)).filter(Boolean);
+  const combined = ids.length === 0 || !COMBINE[bookKey] ? null : ids.length === 1 ? slips[0].url : COMBINE[bookKey](ids);
+  return { legs: results, combined, linked: ids.length };
 }
