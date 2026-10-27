@@ -46,7 +46,7 @@ export type SendState = ReturnType<typeof useSendToBook>;
 /** Book picker plus one tap that puts every linked leg in that book's bet slip, where the book builds the parlay. Disabled with the reason when no leg can go. */
 export function BookButton({ state }: { state: SendState }) {
   const { book, choose, name, total, combined, linked } = state;
-  const label = total === 1 ? `Add to ${name} bet slip` : linked === total ? `Add all ${total} legs to ${name}` : `Add ${linked} of ${total} legs to ${name}`;
+  const label = total === 1 ? `Add to ${name} bet slip` : linked === total || linked === 0 ? `Add all ${total} legs to ${name}` : `Add ${linked} of ${total} legs to ${name}`;
   const cls = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 text-[15px] font-extrabold';
   return <div className="flex flex-col gap-1.5">
     <div role="radiogroup" aria-label="Sportsbook" className="flex rounded-lg bg-ink/[.06] p-0.5">
