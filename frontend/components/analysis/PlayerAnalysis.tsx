@@ -12,7 +12,9 @@ import { formatOdds } from "@/lib/prop-research.mjs";
 import type { ChartRecord } from "@/lib/types";
 import { PlayerBarChart } from "@/components/charts/PlayerBarChart";
 import { WindowChips } from "@/components/analysis/WindowChips";
+import Link from "next/link";
 import { GameLogTable } from "@/components/analysis/GameLogTable";
+import { useBoxLinks } from "@/components/analysis/useBoxLinks";
 import { gradeSide, hitSummary } from "@/lib/hit-rate.mjs";
 import { selectWindow, windowCounts, type WindowKey } from "@/lib/analysis-windows.mjs";
 import { analysisViewToSearch, parseAnalysisView, type AnalysisView } from "@/lib/analysis-url.mjs";
@@ -170,6 +172,7 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
     ? Math.round((recentAverage - seasonAverage) / seasonAverage * 100) : null;
   const historyValues = chart.data?.games.map(game => game.value).filter((value): value is number => value != null) ?? [];
   const historyAverage = historyValues.length ? historyValues.reduce((sum, value) => sum + value, 0) / historyValues.length : null;
+  const boxHref = useBoxLinks(league);
   const lastTen = chart.data?.games.slice(-10).filter(game => game.value != null).reverse() ?? [];
   const onFocusLine = focus && stat === focus.stat && thresholdOverride === focus.line;
   const matchup = nextGame?.matchup ?? focus?.matchup ?? null;
@@ -342,7 +345,7 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
             </div>
             {games.length > 0 && <div className="px-4 pb-5 sm:px-6">
               <p className="mb-3 text-xs text-text-sec">{games[0].date} to {games.at(-1)?.date} · Historical results{onFocusLine ? "" : " · The line is for analysis, not a live sportsbook line"}.</p>
-              <GameLogTable games={chartGames} line={threshold} stat={stat} />
+              <GameLogTable games={chartGames} line={threshold} stat={stat} boxHref={boxHref} />
             </div>}
           </section>
 
@@ -442,7 +445,9 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
             {lastTen.length ? <div className="divide-y divide-ink/10">{lastTen.map((game, index) => {
               const over = game.value != null && historyAverage != null && game.value >= historyAverage;
               return <div key={`${game.date}-${index}`} className="flex items-center justify-between gap-3 py-2.5 text-xs">
-                <span className="font-mono text-text-sec">{game.date.slice(5)} · {game.opponent.split(" ").at(-1)}</span>
+                {(href => href
+                  ? <Link href={href} className="font-mono text-teal-400 hover:underline" title="Full box score">{game.date.slice(5)} · {game.opponent.split(" ").at(-1)} <span aria-hidden>↗</span><span className="sr-only">box score</span></Link>
+                  : <span className="font-mono text-text-sec">{game.date.slice(5)} · {game.opponent.split(" ").at(-1)}</span>)(boxHref(game))}
                 <span className="flex items-center gap-2"><strong className={`min-w-7 text-right font-mono tabular-nums ${over ? "text-teal-400" : "text-rose-400"}`}>{fmt(game.value)}</strong>
                   <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${over ? "border-teal-400/25 bg-teal-400/10 text-teal-400" : "border-rose-400/25 bg-rose-400/10 text-rose-400"}`}>{over ? "OVER" : "UNDER"}</span>
                 </span>
