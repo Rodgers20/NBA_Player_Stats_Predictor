@@ -4,7 +4,7 @@ import type { Prop } from './types';
 export type BookKey = 'fanduel' | 'draftkings' | 'fanatics';
 export const BOOKS: Record<BookKey, { name: string; home: string }>;
 export interface LegHandoff {
-  status: 'ready' | 'price' | 'line' | 'book' | 'board';
+  status: 'ready' | 'price' | 'line' | 'book' | 'board' | 'quarter';
   depth: 'slip' | 'game' | 'home';
   url: string | null;
   line: number | null;

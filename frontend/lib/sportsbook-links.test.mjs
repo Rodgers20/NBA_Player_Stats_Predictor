@@ -81,3 +81,11 @@ test('Fanatics: no quote opens its home page; a single slip link is used as is, 
   const two = handoff([leg('Jayson Tatum', 'PTS', 27.5, -115), leg('Jaylen Brown', 'REB', 6.5, 120)], { nba: fxBoard }, 'fanatics');
   assert.deepEqual([two.combined, two.linked], [null, 0]);
 });
+
+test('a 1st-quarter leg opens the player’s game page at the book (no 1Q odds are bought), never a selection', () => {
+  const q1 = handoffLeg(leg('Jayson Tatum', 'PTS_1Q', 7.5, -110), board, 'fanduel');
+  assert.deepEqual([q1.status, q1.depth, q1.url], ['quarter', 'game', FD_GAME]);
+  const unknown = handoffLeg(leg('Nobody', 'PTS_1Q', 3.5, -110), board, 'fanduel');
+  assert.deepEqual([unknown.status, unknown.depth, unknown.url], ['quarter', 'home', 'https://sportsbook.fanduel.com/']);
+  assert.equal(handoff([leg('Jayson Tatum', 'PTS_1Q', 7.5, -110)], { nba: board }, 'fanduel').combined, null);
+});

@@ -1,3 +1,5 @@
+import { isQuarterLeg } from './team-legs.mjs';
+
 /** Books a slip can be sent to, keyed the way the Odds API names them. */
 export const BOOKS = {
   fanduel: { name: 'FanDuel', home: 'https://sportsbook.fanduel.com/' },
@@ -22,10 +24,17 @@ const bookKeyOf = name => String(name ?? '').toLowerCase().replace(/[^a-z]/g, ''
 /**
  * Where to send one slip leg at one book, deepest first (slip > game > home), and what the person should check.
  * status: ready | price (price moved, same selection) | line (line moved: the game page, never another selection)
+ *         | quarter (a 1st-quarter leg: no 1Q odds are bought, so the game page)
  *         | book (this book has no quote) | board (the leg is not on tonight's board)
  */
 export function handoffLeg(leg, board, bookKey) {
   const home = BOOKS[bookKey]?.home ?? null;
+  if (isQuarterLeg(leg)) {
+    // No 1Q odds are bought, so there is no selection to add: open the game the player's full-game quotes point at.
+    const game = board?.props?.filter(p => p.player === leg.player).flatMap(p => p.books ?? [])
+      .filter(b => bookKeyOf(b.book) === bookKey).map(b => safeBookUrl(b.event_link, bookKey)).find(Boolean);
+    return { status: 'quarter', depth: game ? 'game' : 'home', url: game ?? home, line: null, price: null };
+  }
   const prop = board?.props?.find(p => p.player === leg.player && p.stat === leg.stat);
   if (!prop) return { status: 'board', depth: 'home', url: home, line: null, price: null };
   const quote = prop.books?.find(b => bookKeyOf(b.book) === bookKey);
