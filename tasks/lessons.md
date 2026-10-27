@@ -38,3 +38,9 @@
 - "Black and white theme where it can be dark or a white background" meant a light/dark toggle, not grayscale. When a design word has a literal and a colloquial reading, take the one that matches how apps are built (themes are light/dark), or show both in one preview.
 - A training script nobody has run lately is not evidence the models are current. `train_improved_models.py` crashed (outcome weights are forbidden; the untuned path hits an sklearn/xgboost tags clash), and training kept the preseason and did-not-play rows that serving had dropped. Compare old and new models on the same rows, with the features serving builds.
 - Grading code with no caller grades nothing. `save_daily_props` had no caller after Sep 28, so the Record tab showed an older model's unpriced September lines. Check that the writer of a record actually runs before trusting the record.
+
+## 2026-10-27 — slip and Analysis corrections
+- A new stat dimension (1st quarter) belongs in the existing stat tab row, not behind a mode toggle. Add tabs, not modes.
+- On a phone, a scrolling tab row hides its later tabs: the user thought PRA/P+A didn't exist. Wrap the row.
+- A book's multi-leg deep link must be copied from a real shared parlay *including its host*: FanDuel reads indexed legs only on account.sportsbook.fanduel.com/sportsbook/addToBetslip.
+- The main action in a slip (send to book) goes in the always-visible footer, never inside the scroll area.
