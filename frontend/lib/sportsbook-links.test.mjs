@@ -47,7 +47,7 @@ test('a book without the market, or a leg off the board, opens the book’s home
 test('FanDuel: one link adds every linked leg to the bet slip, in the indexed form FanDuel shares parlays with', () => {
   const legs = [leg('Jayson Tatum', 'PTS', 27.5, -115), leg('Jaylen Brown', 'REB', 6.5, 120)];
   const all = handoff(legs, { nba: board }, 'fanduel');
-  assert.equal(all.combined, 'https://account.sportsbook.fanduel.com/sportsbook/addToBetslip?marketId[0]=42.1&selectionId[0]=7&marketId[1]=42.2&selectionId[1]=11');
+  assert.equal(all.combined, 'https://account.sportsbook.fanduel.com/sportsbook/addToBetslip?marketId[0]=42.1&selectionId[0]=7&marketId[1]=42.2&selectionId[1]=11&shareBetId=partner_courtvision');
   assert.equal(all.linked, 2);
   const partial = handoff([...legs, leg('Nobody', 'PTS', 9.5, -110)], { nba: board }, 'fanduel');
   assert.equal(partial.combined, all.combined, 'legs without a slip link are left for the person to add');
@@ -93,7 +93,7 @@ test('a 1st-quarter leg opens the player’s game page at the book (no 1Q odds a
 test('FanDuel with a state: every leg goes to that state’s site in the indexed form, exactly as Gambly’s working links do', () => {
   const legs = [leg('Jayson Tatum', 'PTS', 27.5, -115), leg('Jaylen Brown', 'REB', 6.5, 120)];
   assert.equal(handoff(legs, { nba: board }, 'fanduel', 'va').combined,
-    'https://va.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7&marketId[1]=42.2&selectionId[1]=11');
-  assert.equal(handoff(legs.slice(0, 1), { nba: board }, 'fanduel', 'va').combined, 'https://va.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7');
+    'https://va.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7&marketId[1]=42.2&selectionId[1]=11&shareBetId=partner_courtvision');
+  assert.equal(handoff(legs.slice(0, 1), { nba: board }, 'fanduel', 'va').combined, 'https://va.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7&shareBetId=partner_courtvision');
   assert.equal(handoff(legs, { nba: board }, 'fanduel', 'evil.com/x').combined, handoff(legs, { nba: board }, 'fanduel').combined, 'an unknown state is ignored');
 });
