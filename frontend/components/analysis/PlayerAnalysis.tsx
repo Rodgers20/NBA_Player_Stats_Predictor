@@ -30,7 +30,11 @@ export const STATS = [
   ["BLK", "BLK"], ["STL", "STL"], ["PTS+AST", "P+A"],
   ["PTS+REB", "P+R"], ["REB+AST", "A+R"], ["PTS+REB+AST", "PRA"], ["STL+BLK", "S+B"],
 ] as const;
+/** First-quarter tabs: the same chart, hit rates and line slider, on the player's first quarters. */
+const Q1_TABS = [["PTS_1Q", "PTS"], ["REB_1Q", "REB"], ["AST_1Q", "AST"], ["FG3M_1Q", "3PM"]] as const;
+const isQuarter = (stat: string) => stat.endsWith("_1Q");
 const STAT_NAMES: Record<string, string> = {
+  PTS_1Q: "1st-Quarter Points", REB_1Q: "1st-Quarter Rebounds", AST_1Q: "1st-Quarter Assists", FG3M_1Q: "1st-Quarter 3-Pointers",
   PTS: "Points", AST: "Assists", REB: "Rebounds", FG3M: "3-Pointers", BLK: "Blocks", STL: "Steals",
   "PTS+AST": "Points + Assists", "PTS+REB": "Points + Rebounds", "REB+AST": "Rebounds + Assists",
   "PTS+REB+AST": "Pts + Reb + Ast", "STL+BLK": "Steals + Blocks",
@@ -85,6 +89,7 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
   // On the page, stat, window and line come from the URL so a view can be shared; in the sheet they come from the prop.
   const initial = embedded ? { ...DEFAULT_VIEW, stat: focus?.stat ?? "PTS", line: focus?.line ?? null } : parseAnalysisView(params.toString(), DEFAULT_VIEW);
   const [stat, setStat] = useState(initial.stat);
+  const statTabs: readonly (readonly [string, string])[] = isQuarter(stat) ? Q1_TABS : STATS;
   const [periodChoice, setPeriod] = useState<WindowKey>(initial.period);
   const [side, setSide] = useState<"Over" | "Under">(focus?.side ?? "Over");
   const syncTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -181,6 +186,12 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
     // Back on the prop's own market, its line returns; any other stat starts from the player's recent average.
     const line = focus && value === focus.stat ? focus.line : null;
     setStat(value); setThresholdOverride(line); sync({ stat: value, line });
+  }
+  /** Full game ↔ first quarter keeps the stat when both have it (PTS ↔ PTS_1Q), else starts on points. */
+  function selectGamePeriod(quarter: boolean) {
+    if (quarter === isQuarter(stat)) return;
+    const base = stat.replace(/_1Q$/, "");
+    selectStat(quarter ? (Q1_TABS.some(([value]) => value === `${base}_1Q`) ? `${base}_1Q` : "PTS_1Q") : base);
   }
   function selectPeriod(value: WindowKey) { setPeriod(value); sync({ period: value }); }
   function changeThreshold(value: number) {
@@ -285,8 +296,13 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
     {!player && !players.isError && <div className={card}>Loading player data…</div>}
     {player && <>
       {/* Stat tabs, Outlier style: a scrolling underline row */}
+      <div className="mb-3 flex gap-1.5" role="group" aria-label="Game period">
+        {([[false, "Full game"], [true, "1st quarter"]] as const).map(([quarter, label]) => <button key={label} type="button" aria-pressed={isQuarter(stat) === quarter}
+          onClick={() => selectGamePeriod(quarter)} className={`ql-chip shrink-0 ${isQuarter(stat) === quarter ? "ql-chip-active" : ""}`}>{label}</button>)}
+      </div>
+      {isQuarter(stat) && <p className="mb-3 text-xs text-text-sec">First quarters only (this season and last). Books&apos; 1Q lines aren&apos;t bought yet: set the line to your sportsbook&apos;s.</p>}
       <nav className="mb-4 flex gap-1 overflow-x-auto border-b border-ink/10" aria-label="Statistic">
-        {STATS.map(([value, label]) => <button key={value} type="button" aria-pressed={stat === value} onClick={() => selectStat(value)}
+        {statTabs.map(([value, label]) => <button key={value} type="button" aria-pressed={stat === value} onClick={() => selectStat(value)}
           className={`relative shrink-0 px-3 pb-3 pt-1 text-sm font-bold tracking-wide transition-colors ${stat === value ? "text-text-pri" : "text-text-sec hover:text-text-pri"}`}>
           {label}
           {stat === value && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-teal-400" />}
@@ -357,7 +373,7 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
           </section>
 
           {games.length > 0 && <PlayerPropLines key={`${player}:${stat}`} league={league} player={player} stat={stat}
-            statLabel={STATS.find(([value]) => value === stat)?.[1] ?? stat} stats={STATS} onStatChange={selectStat} games={games} defaultLine={Math.max(0, defaultThreshold)}
+            statLabel={statTabs.find(([value]) => value === stat)?.[1] ?? stat} stats={statTabs} onStatChange={selectStat} games={games} defaultLine={Math.max(0, defaultThreshold)}
             date={profile?.projection_context?.game_date ?? schedule.data?.target_date ?? new Date().toISOString().slice(0, 10)}
             matchup={nextGame?.matchup ?? (nextOpponent ? `${team} vs ${nextOpponent}` : `${team || player}`)} accent={accent} />}
 

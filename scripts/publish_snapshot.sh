@@ -34,6 +34,8 @@ log "start"
 # Stale history still yields today's props, so a history failure warns instead of stopping the run.
 retry python3 scripts/refresh_nba_history.py || { log "WARNING: NBA history refresh failed"; notify "NBA history refresh failed; publishing with existing history"; }
 retry python3 scripts/refresh_wnba_history.py || log "WARNING: WNBA history refresh failed"
+# First-quarter lines feed the 1Q streaks and analysis; without them those views keep the previous quarters.
+retry python3 scripts/refresh_q1_history.py || log "WARNING: NBA first-quarter refresh failed"
 # Final team scores grade the saved game forecasts (the Model tab's live record); the season label flips in July.
 season_year=$(date +%Y); [ "$(date +%-m)" -lt 7 ] && season_year=$((season_year - 1))
 nba_season="$season_year-$(printf %02d $(( (season_year + 1) % 100 )))"

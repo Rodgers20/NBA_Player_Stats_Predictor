@@ -14,9 +14,11 @@ COMBOS = ('PTS+REB', 'PTS+AST', 'REB+AST', 'PTS+REB+AST')
 STATS = ('PTS', 'REB', 'AST', 'FG3M', 'STL', 'BLK') + COMBOS
 NOUNS = {'PTS': 'points', 'REB': 'rebounds', 'AST': 'assists', 'FG3M': 'threes', 'STL': 'steals', 'BLK': 'blocks',
          'PTS+REB': 'points + rebounds', 'PTS+AST': 'points + assists', 'REB+AST': 'rebounds + assists',
-         'PTS+REB+AST': 'points + rebounds + assists'}
+         'PTS+REB+AST': 'points + rebounds + assists',
+         'PTS_1Q': '1st-quarter points', 'REB_1Q': '1st-quarter rebounds', 'AST_1Q': '1st-quarter assists', 'FG3M_1Q': '1st-quarter threes'}
 MIN_AVG = {'PTS': 8, 'REB': 3, 'AST': 2, 'FG3M': 1, 'STL': 1, 'BLK': 1,   # skip players whose stat is negligible
-           'PTS+REB': 12, 'PTS+AST': 12, 'REB+AST': 6, 'PTS+REB+AST': 16}
+           'PTS+REB': 12, 'PTS+AST': 12, 'REB+AST': 6, 'PTS+REB+AST': 16,
+           'PTS_1Q': 3, 'REB_1Q': 1.5, 'AST_1Q': 1, 'FG3M_1Q': 0.5}
 MIN_MINUTES = 15
 RECENT_DAYS = 14
 # ponytail: derived lines stay within 60%-140% of the average so "Over 0.5" never headlines; tune if too loose.
@@ -65,10 +67,10 @@ def _opponent(quote, team):
     return quote.get('away_team') if quote.get('home_team') == team else quote.get('home_team') if quote.get('away_team') == team else None
 
 
-def _player_cards(name, rows, quotes):
+def _player_cards(name, rows, quotes, stats=STATS):
     team = str(rows['TEAM_ABBREVIATION'].iloc[-1]) if 'TEAM_ABBREVIATION' in rows else ''
     cards = []
-    for stat in STATS:
+    for stat in stats:
         parts = stat.split('+')
         if not all(part in rows for part in parts):
             continue
@@ -102,7 +104,7 @@ def _tag_slate(cards, slate):
     return cards
 
 
-def build_trends(history, quotes=None, today=None, recent_days=RECENT_DAYS, slate=None):
+def build_trends(history, quotes=None, today=None, recent_days=RECENT_DAYS, slate=None, stats=STATS):
     """Cards for players with a full window of recent games. Players on tonight's slate first, then strongest."""
     today = pd.Timestamp.now().normalize() if today is None else pd.Timestamp(today).normalize()
     past = history[history['_date'] < today].sort_values('_date')
@@ -113,7 +115,7 @@ def build_trends(history, quotes=None, today=None, recent_days=RECENT_DAYS, slat
             continue
         if 'MIN' in rows and pd.to_numeric(rows['MIN'], errors='coerce').mean() < MIN_MINUTES:
             continue
-        cards += _player_cards(name, rows, quotes or {})
+        cards += _player_cards(name, rows, quotes or {}, stats)
     cards = _tag_slate(cards, slate)
     # Tonight's players, then lines a book actually offers, then the most hits, then the biggest cushion.
     return sorted(cards, key=lambda c: (c['playing_today'] is not True, c['line_source'] != 'live', -c['hits'], -c['cushion'], c['player'], c['stat']))

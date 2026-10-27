@@ -31,6 +31,7 @@ const VIEWS = [
   { key: "props", label: "Edge" },
   { key: "hot", label: "Hot" },
   { key: "streaks", label: "Streaks" },
+  { key: "q1", label: "1st Quarter" },
   { key: "alt", label: "100% Alt Lines" },
   { key: "record", label: "Record" },
 ] as const;
@@ -179,6 +180,7 @@ function PropsBoard() {
 
       {activeView === "hot" && <PopularBoard league={league} />}
       {activeView === "streaks" && <TrendsBoard league={league} />}
+      {activeView === "q1" && <TrendsBoard key="q1" league={league} initialPeriod="1q" />}
 
       {/* On a phone the filters used to fill the whole first screen; the list comes first and filters open on demand. */}
       {activeView === "props" && <button type="button" onClick={() => setFiltersOpen(open => !open)} aria-expanded={filtersOpen} aria-controls="prop-filters"

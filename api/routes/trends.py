@@ -2,10 +2,12 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import pandas as pd
+from typing import Literal
 from fastapi import APIRouter, Query
-from api.data import League, history
+from api.data import League, history, with_q1
 from utils import trends
 from utils.prop_quality import quote_problem
+from utils.quarter_stats import Q1_STATS
 
 router = APIRouter(tags=['trends'])
 
@@ -43,11 +45,14 @@ def slate_matchups(league):
 
 
 @router.get('/trends')
-def get_trends(league: League = 'nba', limit: int = Query(60, ge=1, le=500)):
+def get_trends(league: League = 'nba', limit: int = Query(60, ge=1, le=500), period: Literal['game', '1q'] = 'game'):
     slate_date, teams = slate_matchups(league)
     from api.routes.props import _headshot_urls
-    cards = trends.build_trends(history(league), live_quotes(league), today(), slate=teams or None)[:limit]
+    if period == '1q':  # no first-quarter prices are bought, so every 1Q line is derived from the games
+        cards = trends.build_trends(with_q1(history(league), league), {}, today(), slate=teams or None, stats=Q1_STATS)[:limit]
+    else:
+        cards = trends.build_trends(history(league), live_quotes(league), today(), slate=teams or None)[:limit]
     headshots = _headshot_urls(league) if cards else {}
     cards = [dict(card, headshot_url=headshots.get(card['player'])) for card in cards]
-    return dict(league=league, count=len(cards), trends=cards,
+    return dict(league=league, period=period, count=len(cards), trends=cards,
                 slate=dict(date=slate_date, teams=sorted(teams)))

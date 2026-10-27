@@ -449,3 +449,14 @@ User: "are you able to view this and implement that" (ChatGPT plan: Playbook-sty
 - 12 new frontend tests (links + importer); 242 frontend pass, tsc and eslint clean. Python: 478 pass; `test_startup_does_not_import_dash_or_fetch` fails with or without this change (refresh returns today's cached 148-prop board, the test expects 0).
 - QA at 390 and 1440 on the static snapshot: paste → exact pick pre-ticked, different line offered unticked, unknown player flagged; Send to sportsbook lists each leg. No overflow, no page errors.
 - Today's board predates `includeLinks`, so every leg opens the book's home page until the next quote refresh; the FanDuel combined-slip format is unverified until real links arrive.
+
+## First-quarter player props (hit rates, no prices) + slip photos — October 27
+
+User: "I need to have first quarter bets there as well … as a filter the analysis page and also in the props page, Have them in trends as well. In the bet slip, players needs their profile pictures". Chosen: player 1Q PTS/REB/AST/3PM, hit rates only (no 1Q odds credits). Also: spent 7 credits so tonight's first game has slip links.
+
+- [x] Slip legs show the player's photo (players.json headshots, looked up by name, so old slips get them too).
+- [ ] `scripts/refresh_q1_history.py`: stats.nba.com PlayerGameLogs period=1 (one call per season, last 2 seasons) → `data/nba/player_q1_logs.csv`; atomic write; in publish_snapshot.sh (warn-only).
+- [ ] `utils/quarter_stats.py` (pure, tested): join Q1 lines onto history as PTS_1Q/REB_1Q/AST_1Q/FG3M_1Q; a covered game the player missed in Q1 counts 0, an uncovered game stays empty.
+- [ ] API: player series carries pts_1q…; chart-data accepts the _1Q stats; `/api/trends?period=1q` builds cards from the 1Q columns; export saves trends-1q.json.
+- [ ] Analysis: Full game / 1st quarter toggle; Trends: same toggle; Props: 1st-quarter view of tonight's players (hit rates vs derived lines, labelled "no 1Q price").
+- [ ] Tests, QA 390/1440, deploy.

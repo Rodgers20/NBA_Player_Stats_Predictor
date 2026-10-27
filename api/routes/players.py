@@ -4,14 +4,17 @@ from typing import Literal
 import logging
 import pandas as pd
 from fastapi import APIRouter, Query, HTTPException
-from api.data import League, history, predictor, number
+from api.data import League, history, with_q1, predictor, number
 from functools import lru_cache
 from utils.game_context import annotate, build_league_context
 from utils.league_config import get_config
 
+from utils.quarter_stats import Q1_STATS
+
 router = APIRouter(tags=['players'])
 logger = logging.getLogger(__name__)
-STATS = {'PTS', 'AST', 'REB', 'FG3M', 'STL', 'BLK', 'PTS+REB', 'PTS+AST', 'REB+AST', 'PTS+REB+AST', 'STL+BLK'}
+STATS = {'PTS', 'AST', 'REB', 'FG3M', 'STL', 'BLK', 'PTS+REB', 'PTS+AST', 'REB+AST', 'PTS+REB+AST', 'STL+BLK',
+         'PTS_1Q', 'REB_1Q', 'AST_1Q', 'FG3M_1Q'}
 
 
 def _headshot_url(frame: pd.DataFrame, league: League) -> str | None:
@@ -92,6 +95,8 @@ def _player(player_name, league):
     frame = df[df['PLAYER_NAME'].str.casefold() == player_name.casefold()].copy()
     if frame.empty:
         raise HTTPException(404, f"Player '{player_name}' not found")
+    if {'Game_ID', 'Player_ID'} <= set(frame):  # older or test logs without ids simply have no first quarters
+        frame = with_q1(frame, league)
     today = pd.Timestamp(datetime.now(ZoneInfo('America/New_York')).date())
     return frame[frame['_date'] < today].sort_values('_date')
 
@@ -140,7 +145,7 @@ def get_player_series(player_name: str, games: int = Query(200, ge=5, le=200),
         season = row.get('SEASON')
         records.append(dict(date=row['_date'].date().isoformat(), opponent=matchup,
                             season=None if pd.isna(season) else str(season), is_home=is_home,
-                            **{stat.lower(): number(row.get(stat)) for stat in base_stats}, **extra))
+                            **{stat.lower(): number(row.get(stat)) for stat in base_stats + Q1_STATS}, **extra))
     return dict(player=player_name, games=records)
 
 

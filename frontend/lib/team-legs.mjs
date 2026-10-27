@@ -5,6 +5,9 @@ export const ASSUMED_PRICE = -110;
 
 const TEAM_STATS = new Set(['ML', 'SPREAD', 'TOTAL']);
 export const isTeamLeg = leg => TEAM_STATS.has(leg?.stat);
+/** First-quarter player legs (PTS_1Q …): no box score grades a quarter yet, so they are not tracked. */
+export const isQuarterLeg = leg => typeof leg?.stat === 'string' && leg.stat.endsWith('_1Q');
+export const statLabel = stat => (typeof stat === 'string' && stat.endsWith('_1Q') ? `1Q ${stat === 'FG3M_1Q' ? '3PM' : stat.slice(0, -3)}` : stat);
 export const priceIsAssumed = leg => leg?.stat === 'SPREAD' || leg?.stat === 'TOTAL' || leg?.assumedPrice === true;
 
 const base = (game, league, date) => ({ league, date, matchup: game.matchup, addedAt: new Date().toISOString() });
@@ -43,7 +46,7 @@ export function legDetail(leg) {
   if (leg.stat === 'ML') return 'To win';
   if (leg.stat === 'SPREAD') return 'Spread';
   if (leg.stat === 'TOTAL') return 'Total points';
-  return `${leg.direction} ${leg.line} ${leg.stat}`;
+  return `${leg.direction} ${leg.line} ${statLabel(leg.stat)}`;
 }
 
 /** One line for plain-text slips: what the bet is and its price, flagged when the price is assumed. */
@@ -52,5 +55,5 @@ export function legText(leg) {
   if (leg.stat === 'ML') return `${legTitle(leg)} (${price})`;
   if (leg.stat === 'SPREAD') return `${legTitle(leg)} spread (${price})`;
   if (leg.stat === 'TOTAL') return `${legTitle(leg)} total (${price})`;
-  return `${leg.player} ${leg.direction} ${leg.line} ${leg.stat} (${price})`;
+  return `${leg.player} ${leg.direction} ${leg.line} ${statLabel(leg.stat)} (${price})`;
 }

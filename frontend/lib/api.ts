@@ -43,7 +43,7 @@ export const api = {
   trends: async (league = 'nba', params: Params = {}): Promise<TrendsResponse> => {
     if (!STATIC) return get<TrendsResponse>('/api/trends', { league, ...params });
     try {
-      return filterTrends(await snapshot<TrendsResponse>(league, 'trends'), params);
+      return filterTrends(await snapshot<TrendsResponse>(league, params.period === '1q' ? 'trends-1q' : 'trends'), params);
     } catch {
       return { league, count: 0, trends: [] };
     }

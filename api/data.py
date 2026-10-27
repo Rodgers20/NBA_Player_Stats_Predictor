@@ -60,6 +60,23 @@ def history(league):
         raise HTTPException(503, f'{league.upper()} player history is unavailable') from exc
 
 
+def q1_lines(league):
+    """First-quarter player lines (scripts/refresh_q1_history.py); empty when none have been fetched."""
+    path = get_config(league).data_dir / 'player_q1_logs.csv'
+    return _load_q1(path, path.stat().st_mtime_ns) if path.exists() else pd.DataFrame()
+
+
+@lru_cache(maxsize=2)
+def _load_q1(path, modified):
+    return pd.read_csv(path, dtype={'GAME_ID': str})
+
+
+def with_q1(frame, league):
+    """`frame` (history or a slice of it) plus PTS_1Q/REB_1Q/AST_1Q/FG3M_1Q."""
+    from utils.quarter_stats import with_q1 as join
+    return join(frame, q1_lines(league))
+
+
 @lru_cache(maxsize=12)
 def _load_model(league, stat, modified):
     from models.predictor import StatPredictor

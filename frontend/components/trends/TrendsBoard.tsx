@@ -17,7 +17,12 @@ const STATS = [
   ["PTS+REB", "P+R"], ["PTS+AST", "P+A"], ["REB+AST", "R+A"], ["PTS+REB+AST", "PRA"],
 ] as const;
 
-const STAT_LABEL: Record<string, string> = { FG3M: "3PM", "PTS+REB": "P+R", "PTS+AST": "P+A", "REB+AST": "R+A", "PTS+REB+AST": "PRA" };
+const Q1_STATS = [["all", "All"], ["PTS_1Q", "PTS"], ["REB_1Q", "REB"], ["AST_1Q", "AST"], ["FG3M_1Q", "3PM"]] as const;
+const PERIODS = [["game", "Full game"], ["1q", "1st quarter"]] as const;
+export type Period = (typeof PERIODS)[number][0];
+
+const STAT_LABEL: Record<string, string> = { FG3M: "3PM", "PTS+REB": "P+R", "PTS+AST": "P+A", "REB+AST": "R+A", "PTS+REB+AST": "PRA",
+  PTS_1Q: "1Q PTS", REB_1Q: "1Q REB", AST_1Q: "1Q AST", FG3M_1Q: "1Q 3PM" };
 
 /** Each of the last games as a bar of its real value against a dashed line at the betting line: the cushion is visible, not just a tick. */
 function GameBars({ card }: { card: TrendCard }) {
@@ -95,13 +100,17 @@ function TrendItem({ card, league }: { card: TrendCard; league: "nba" | "wnba" }
 }
 
 /** Players clearing the same line in at least eight of their last ten games: the Props page's "Streaks" view. */
-export function TrendsBoard({ league }: { league: "nba" | "wnba" }) {
+export function TrendsBoard({ league, initialPeriod = "game" }: { league: "nba" | "wnba"; initialPeriod?: Period }) {
   const [side, setSide] = useState<(typeof SIDES)[number][0]>("all");
-  const [stat, setStat] = useState<(typeof STATS)[number][0]>("all");
+  const [period, setPeriodState] = useState<Period>(initialPeriod);
+  const [stat, setStat] = useState<string>("all");
+  // Full-game and first-quarter stats are different keys, so a stat filter does not carry across.
+  const setPeriod = (next: Period) => { setPeriodState(next); setStat("all"); setShown(PAGE); };
+  const stats = period === "1q" ? Q1_STATS : STATS;
   const [scope, setScope] = useState<"tonight" | "all">("tonight");
   const [team, setTeam] = useState("");
   const [shown, setShown] = useState(PAGE);
-  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["trends", league], queryFn: () => api.trends(league, { limit: 400 }), staleTime: 300_000 });
+  const { data, isPending, isError, refetch } = useQuery({ queryKey: ["trends", league, period], queryFn: () => api.trends(league, { limit: 400, ...(period === "1q" && { period }) }), staleTime: 300_000 });
   const slateTeams = data?.slate?.teams ?? [];
   // Without a known slate there is nothing to narrow to, so show everyone rather than an empty board.
   const tonight = scope === "tonight" && slateTeams.length > 0;
@@ -110,7 +119,12 @@ export function TrendsBoard({ league }: { league: "nba" | "wnba" }) {
   const chip = (active: boolean) => `ql-chip shrink-0 ${active ? "ql-chip-active" : ""}`;
 
   return <>
-    <p className="mb-3 text-xs text-text-sec">Players clearing the same line in at least eight of their last ten games, biggest cushion first. History is not a forecast.</p>
+    <div className="mb-3 flex gap-1.5" role="group" aria-label="Game period">
+      {PERIODS.map(([value, label]) => <button key={value} type="button" aria-pressed={period === value} onClick={() => setPeriod(value)} className={chip(period === value)}>{label}</button>)}
+    </div>
+    <p className="mb-3 text-xs text-text-sec">{period === "1q"
+      ? "First-quarter points, rebounds, assists and threes: players clearing the same line in at least eight of their last ten first quarters. These lines come from the games, not a sportsbook; 1Q prices aren't bought yet, so enter your book's price when you add one."
+      : "Players clearing the same line in at least eight of their last ten games, biggest cushion first. History is not a forecast."}</p>
     {slateTeams.length > 0 && <div className="mb-3 flex flex-wrap items-center gap-3">
       <div className="flex gap-1.5" role="group" aria-label="Players shown">
         <button type="button" aria-pressed={tonight} onClick={() => setScope("tonight")} className={chip(tonight)}>Tonight&apos;s games</button>
@@ -126,7 +140,7 @@ export function TrendsBoard({ league }: { league: "nba" | "wnba" }) {
 
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-y border-ink/10 py-3">
       <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Side">{SIDES.map(([value, label]) => <button key={value} type="button" aria-pressed={side === value} onClick={() => setSide(value)} className={chip(side === value)}>{label}</button>)}</div>
-      <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Statistic">{STATS.map(([value, label]) => <button key={value} type="button" aria-pressed={stat === value} onClick={() => setStat(value)} className={chip(stat === value)}>{label}</button>)}</div>
+      <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Statistic">{stats.map(([value, label]) => <button key={value} type="button" aria-pressed={stat === value} onClick={() => setStat(value)} className={chip(stat === value)}>{label}</button>)}</div>
     </div>
 
     {isPending && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading streaks">{[0, 1, 2].map(index => <div key={index} className="ql-panel h-40 animate-pulse" />)}</div>}

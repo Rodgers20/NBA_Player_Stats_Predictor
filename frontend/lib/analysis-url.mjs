@@ -1,4 +1,5 @@
-const STATS = new Set(['PTS', 'AST', 'REB', 'FG3M', 'BLK', 'STL', 'PTS+AST', 'PTS+REB', 'REB+AST', 'PTS+REB+AST', 'STL+BLK']);
+const STATS = new Set(['PTS', 'AST', 'REB', 'FG3M', 'BLK', 'STL', 'PTS+AST', 'PTS+REB', 'REB+AST', 'PTS+REB+AST', 'STL+BLK',
+  'PTS_1Q', 'REB_1Q', 'AST_1Q', 'FG3M_1Q']);
 const NAMED = new Set(['h2h', 'home', 'away', 'current', 'previous']);
 
 /** Stat, window and line from a URL query. Anything unrecognised keeps the default. */

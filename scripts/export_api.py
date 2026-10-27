@@ -148,6 +148,7 @@ def export(base, out, refresh_odds=False):
             keep_board_if_emptied(root, out / league)
             save(root, 'defense', fetch(base, f'/api/defense?league={league}'))
             save(root, 'trends', fetch(base, f'/api/trends?league={league}&limit=400'))
+            save(root, 'trends-1q', fetch(base, f'/api/trends?league={league}&limit=400&period=1q'))
             save(root, 'alt-lines', fetch(base, f'/api/props/alt-lines?league={league}'))
             games = fetch(base, f'/api/games?league={league}')
             save(root, 'games', games)
