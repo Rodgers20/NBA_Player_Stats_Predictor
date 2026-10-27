@@ -8,11 +8,13 @@ import { useSlip } from '@/store/slip';
 import { copy, copySlipText, shareSlipImage } from './slip-actions';
 import { LegRow, SlipTotals } from './SlipParts';
 import { SendToBook } from './SendToBook';
+import { useHeadshots } from './useHeadshots';
 
 /** The shared slip: a ticket sized to screenshot on a phone, with the ways to send it on underneath. */
 export function SlipTicket({ legs, mode, stake, code }: { legs: SlipLeg[]; mode: SlipMode; stake: number | null; code: string }) {
   const [flash, setFlash] = useState<string | null>(null);
   const load = useSlip(s => s.load);
+  const photos = useHeadshots(legs.map(l => l.league));
   const say = (m: string) => { setFlash(m); setTimeout(() => setFlash(null), 2400); };
   const parlay = mode === 'parlay' && legs.length > 1;
   const american = summarizeSlip(legs).american;
@@ -29,7 +31,7 @@ export function SlipTicket({ legs, mode, stake, code }: { legs: SlipLeg[]; mode:
           {parlay && <p className={`mt-1 font-mono text-xl font-extrabold leading-none ${american === null ? 'text-text-sec' : 'text-lock-gold'}`}>{american === null ? 'Odds at your book' : formatOdds(american)}</p>}
         </div>
       </header>
-      <ul className="divide-y divide-ink/10 px-5">{legs.map((l, i) => <LegRow key={`${l.league}${l.date}${l.player}${l.stat}`} leg={l} index={parlay ? i : undefined} />)}</ul>
+      <ul className="divide-y divide-ink/10 px-5">{legs.map((l, i) => <LegRow key={`${l.league}${l.date}${l.player}${l.stat}`} leg={l} photo={photos[l.league]?.[l.player]} index={parlay ? i : undefined} />)}</ul>
       <div className="border-t border-dashed border-border-card px-5 py-4">
         {stake && <p className="mb-3 text-[13px] text-text-sec">Stake <b className="text-text-pri">${stake}</b>{mode === 'singles' && legs.length > 1 ? ' each' : ''}</p>}
         <SlipTotals legs={legs} mode={parlay || legs.length === 1 ? 'parlay' : 'singles'} stake={stake} />

@@ -13,6 +13,7 @@ import { LegRow, ModeSwitch, SlipTotals, StakeInput } from './SlipParts';
 import { CorrelationSummary, KellyBox } from './SlipInsights';
 import { useSlipPrice } from './useSlipPrice';
 import { SendToBook } from './SendToBook';
+import { useHeadshots } from './useHeadshots';
 import { PastePicks } from './PastePicks';
 
 const EASE = [0.4, 0, 0.2, 1] as const;
@@ -42,6 +43,7 @@ export function FloatingSlip() {
 
   const parlayMode = legs.length > 1 ? mode : 'parlay';
   const priced = useSlipPrice(legs, open && parlayMode === 'parlay');
+  const photos = useHeadshots(legs.map(l => l.league));
 
   // The slip's own page already shows it in full.
   if (pathname?.startsWith('/slip')) return null;
@@ -93,7 +95,7 @@ export function FloatingSlip() {
             <AnimatePresence initial={false}>
               {legs.map((l, i) => <motion.div key={legKey(l)} layout={!reduced} initial={reduced ? false : { opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
                 exit={reduced ? undefined : { opacity: 0, x: -12, height: 0 }} transition={{ duration: 0.18, ease: EASE }}>
-                <LegRow leg={l} index={legs.length > 1 && !singles ? i : undefined} onRemove={() => remove(legKey(l))}
+                <LegRow leg={l} photo={photos[l.league]?.[l.player]} index={legs.length > 1 && !singles ? i : undefined} onRemove={() => remove(legKey(l))}
                   suggested={l.probability != null ? stakes.perLeg[i] : undefined}
                   correlation={effMode === 'parlay' ? describeCorrelation(priced?.per_leg_corr.find(item => item.leg === i + 1)) : null} />
               </motion.div>)}

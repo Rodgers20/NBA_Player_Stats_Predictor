@@ -1,15 +1,28 @@
 "use client";
 
+import { useState } from 'react';
+import Image from 'next/image';
 import { X } from 'lucide-react';
 import { formatOdds, summarizeSingles, summarizeSlip, payout, type SlipLeg, type SlipMode } from '@/lib/bet-slip.mjs';
 import { isTeamLeg, legDetail, legTitle, priceIsAssumed } from '@/lib/team-legs.mjs';
 
 const money = (v: number) => `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+/** The player's photo, or their initial while it loads or when there is none. */
+function Avatar({ name, photo }: { name: string; photo?: string | null }) {
+  const [failed, setFailed] = useState(false);
+  return <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-ink/10 text-[15px] font-bold text-text-sec" aria-hidden>
+    {photo && !failed
+      ? <Image src={photo} alt="" width={44} height={44} unoptimized onError={() => setFailed(true)} className="h-11 w-11 object-cover object-top" />
+      : name.charAt(0)}
+  </span>;
+}
+
 /** One leg: who, the pick, the saved price, and what backs it. */
-export function LegRow({ leg, index, onRemove, suggested, correlation }: { leg: SlipLeg; index?: number; onRemove?: () => void; suggested?: number; correlation?: string | null }) {
+export function LegRow({ leg, index, onRemove, suggested, correlation, photo }: { leg: SlipLeg; index?: number; onRemove?: () => void; suggested?: number; correlation?: string | null; photo?: string | null }) {
   return <li className="flex items-start gap-3 py-3">
     {index !== undefined && <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink/10 text-[11px] font-bold text-text-sec">{index + 1}</span>}
+    {!isTeamLeg(leg) && <Avatar name={leg.player} photo={photo} />}
     <div className="min-w-0 flex-1">
       <p className="truncate text-sm font-bold text-text-pri">{isTeamLeg(leg) ? legDetail(leg) : leg.player}</p>
       <p className="text-[15px] font-bold text-teal-400">{isTeamLeg(leg) ? legTitle(leg) : legDetail(leg)}</p>
