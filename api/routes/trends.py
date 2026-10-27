@@ -7,7 +7,7 @@ from fastapi import APIRouter, Query
 from api.data import League, history, with_q1
 from utils import trends
 from utils.prop_quality import quote_problem
-from utils.quarter_stats import Q1_STATS
+from utils.quarter_stats import Q1_MIN_HITS, Q1_TREND_STATS
 
 router = APIRouter(tags=['trends'])
 
@@ -49,7 +49,8 @@ def get_trends(league: League = 'nba', limit: int = Query(60, ge=1, le=500), per
     slate_date, teams = slate_matchups(league)
     from api.routes.props import _headshot_urls
     if period == '1q':  # no first-quarter prices are bought, so every 1Q line is derived from the games
-        cards = trends.build_trends(with_q1(history(league), league), {}, today(), slate=teams or None, stats=Q1_STATS)[:limit]
+        cards = trends.build_trends(with_q1(history(league), league), {}, today(), slate=teams or None,
+                                    stats=Q1_TREND_STATS, min_hits=Q1_MIN_HITS)[:limit]
     else:
         cards = trends.build_trends(history(league), live_quotes(league), today(), slate=teams or None)[:limit]
     headshots = _headshot_urls(league) if cards else {}

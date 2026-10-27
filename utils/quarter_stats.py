@@ -3,6 +3,15 @@ import pandas as pd
 
 BASE = ('PTS', 'REB', 'AST', 'FG3M')
 Q1_STATS = tuple(f'{stat}_1Q' for stat in BASE)
+# Combos sum the quarter's parts per game; named whole ('PTS+REB_1Q') so trends read the column, not its pieces.
+Q1_COMBOS = ('PTS+REB+AST_1Q', 'PTS+REB_1Q', 'PTS+AST_1Q', 'REB+AST_1Q')
+Q1_TREND_STATS = Q1_STATS + Q1_COMBOS
+# A quarter swings more than a game, so its streaks count from 7 of 10 (2 stars) instead of the full-game 8.
+Q1_MIN_HITS = 7
+
+
+def _with_combos(frame: pd.DataFrame) -> pd.DataFrame:
+    return frame.assign(**{combo: sum(frame[f'{part}_1Q'] for part in combo[:-3].split('+')) for combo in Q1_COMBOS})
 
 
 def with_q1(history: pd.DataFrame, q1: pd.DataFrame) -> pd.DataFrame:
@@ -13,7 +22,7 @@ def with_q1(history: pd.DataFrame, q1: pd.DataFrame) -> pd.DataFrame:
     """
     out = history.copy()
     if q1.empty or not {'PLAYER_ID', 'GAME_ID'} <= set(q1):
-        return out.assign(**{column: float('nan') for column in Q1_STATS})
+        return _with_combos(out.assign(**{column: float('nan') for column in Q1_STATS}))
     lines = q1.assign(_game=pd.to_numeric(q1['GAME_ID'], errors='coerce'), _player=pd.to_numeric(q1['PLAYER_ID'], errors='coerce'))
     lines = lines.rename(columns={stat: f'{stat}_1Q' for stat in BASE})[['_game', '_player', *Q1_STATS]]
     keys = out.assign(_game=pd.to_numeric(out['Game_ID'], errors='coerce'), _player=pd.to_numeric(out['Player_ID'], errors='coerce'))
@@ -22,4 +31,4 @@ def with_q1(history: pd.DataFrame, q1: pd.DataFrame) -> pd.DataFrame:
     for column in Q1_STATS:
         values = pd.to_numeric(joined[column], errors='coerce').to_numpy()
         out[column] = pd.Series(values, index=out.index).where(~(covered & pd.isna(values)), 0)
-    return out
+    return _with_combos(out)

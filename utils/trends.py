@@ -15,15 +15,18 @@ STATS = ('PTS', 'REB', 'AST', 'FG3M', 'STL', 'BLK') + COMBOS
 NOUNS = {'PTS': 'points', 'REB': 'rebounds', 'AST': 'assists', 'FG3M': 'threes', 'STL': 'steals', 'BLK': 'blocks',
          'PTS+REB': 'points + rebounds', 'PTS+AST': 'points + assists', 'REB+AST': 'rebounds + assists',
          'PTS+REB+AST': 'points + rebounds + assists',
-         'PTS_1Q': '1st-quarter points', 'REB_1Q': '1st-quarter rebounds', 'AST_1Q': '1st-quarter assists', 'FG3M_1Q': '1st-quarter threes'}
+         'PTS_1Q': '1st-quarter points', 'REB_1Q': '1st-quarter rebounds', 'AST_1Q': '1st-quarter assists', 'FG3M_1Q': '1st-quarter threes',
+         'PTS+REB+AST_1Q': '1st-quarter points + rebounds + assists', 'PTS+REB_1Q': '1st-quarter points + rebounds',
+         'PTS+AST_1Q': '1st-quarter points + assists', 'REB+AST_1Q': '1st-quarter rebounds + assists'}
 MIN_AVG = {'PTS': 8, 'REB': 3, 'AST': 2, 'FG3M': 1, 'STL': 1, 'BLK': 1,   # skip players whose stat is negligible
            'PTS+REB': 12, 'PTS+AST': 12, 'REB+AST': 6, 'PTS+REB+AST': 16,
-           'PTS_1Q': 3, 'REB_1Q': 1.5, 'AST_1Q': 1, 'FG3M_1Q': 0.5}
+           'PTS_1Q': 3, 'REB_1Q': 1.5, 'AST_1Q': 1, 'FG3M_1Q': 0.5,
+           'PTS+REB+AST_1Q': 6, 'PTS+REB_1Q': 4.5, 'PTS+AST_1Q': 4, 'REB+AST_1Q': 2.5}
 MIN_MINUTES = 15
 RECENT_DAYS = 14
 # ponytail: derived lines stay within 60%-140% of the average so "Over 0.5" never headlines; tune if too loose.
 OVER_FLOOR, UNDER_CEILING = 0.6, 1.4
-STARS_BY_HITS = {10: 5, 9: 4, 8: 3}
+STARS_BY_HITS = {10: 5, 9: 4, 8: 3, 7: 2}
 
 
 def _hits(values, line, side):
@@ -42,10 +45,10 @@ def _derived_line(values, avg, side):
     return max(band, key=pick) if band else None
 
 
-def _card(player, team, opponent, stat, side, line, values, source, live):
+def _card(player, team, opponent, stat, side, line, values, source, live, min_hits=MIN_HITS):
     results = _hits(values, line, side)
     hits = sum(results)
-    if hits < MIN_HITS:
+    if hits < min_hits:
         return None
     avg = sum(values) / len(values)
     # How far the average clears the line, relative to it: 10/10 over 4.5 averaging 9 beats 10/10 averaging 5.
@@ -67,11 +70,11 @@ def _opponent(quote, team):
     return quote.get('away_team') if quote.get('home_team') == team else quote.get('home_team') if quote.get('away_team') == team else None
 
 
-def _player_cards(name, rows, quotes, stats=STATS):
+def _player_cards(name, rows, quotes, stats=STATS, min_hits=MIN_HITS):
     team = str(rows['TEAM_ABBREVIATION'].iloc[-1]) if 'TEAM_ABBREVIATION' in rows else ''
     cards = []
     for stat in stats:
-        parts = stat.split('+')
+        parts = [stat] if stat in rows else stat.split('+')   # a whole column (PTS+REB_1Q) wins over summing its name's pieces
         if not all(part in rows for part in parts):
             continue
         values = sum(pd.to_numeric(rows[part], errors='coerce') for part in parts).tolist()
@@ -84,13 +87,13 @@ def _player_cards(name, rows, quotes, stats=STATS):
         if quote and quote.get('line') is not None:
             line = float(quote['line'])
             # Combos are over-only; a single stat gets both sides on the posted line.
-            cards += [_card(name, team, _opponent(quote, team), stat, side, line, values, 'live', _live(quote, side))
+            cards += [_card(name, team, _opponent(quote, team), stat, side, line, values, 'live', _live(quote, side), min_hits)
                       for side in (('over',) if stat in COMBOS else ('over', 'under'))]
         else:
             # Books sell unders only on the posted line, so a derived (alternate) line is over-only.
             line = _derived_line(values, avg, 'over')
             if line is not None:
-                cards.append(_card(name, team, None, stat, 'over', line, values, 'derived', None))
+                cards.append(_card(name, team, None, stat, 'over', line, values, 'derived', None, min_hits))
     return [c for c in cards if c]
 
 
@@ -104,7 +107,7 @@ def _tag_slate(cards, slate):
     return cards
 
 
-def build_trends(history, quotes=None, today=None, recent_days=RECENT_DAYS, slate=None, stats=STATS):
+def build_trends(history, quotes=None, today=None, recent_days=RECENT_DAYS, slate=None, stats=STATS, min_hits=MIN_HITS):
     """Cards for players with a full window of recent games. Players on tonight's slate first, then strongest."""
     today = pd.Timestamp.now().normalize() if today is None else pd.Timestamp(today).normalize()
     past = history[history['_date'] < today].sort_values('_date')
@@ -115,7 +118,7 @@ def build_trends(history, quotes=None, today=None, recent_days=RECENT_DAYS, slat
             continue
         if 'MIN' in rows and pd.to_numeric(rows['MIN'], errors='coerce').mean() < MIN_MINUTES:
             continue
-        cards += _player_cards(name, rows, quotes or {}, stats)
+        cards += _player_cards(name, rows, quotes or {}, stats, min_hits)
     cards = _tag_slate(cards, slate)
     # Tonight's players, then lines a book actually offers, then the most hits, then the biggest cushion.
     return sorted(cards, key=lambda c: (c['playing_today'] is not True, c['line_source'] != 'live', -c['hits'], -c['cushion'], c['player'], c['stat']))

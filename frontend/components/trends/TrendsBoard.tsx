@@ -17,12 +17,14 @@ const STATS = [
   ["PTS+REB", "P+R"], ["PTS+AST", "P+A"], ["REB+AST", "R+A"], ["PTS+REB+AST", "PRA"],
 ] as const;
 
-const Q1_STATS = [["all", "All"], ["PTS_1Q", "PTS"], ["REB_1Q", "REB"], ["AST_1Q", "AST"], ["FG3M_1Q", "3PM"]] as const;
+const Q1_STATS = [["all", "All"], ["PTS_1Q", "PTS"], ["REB_1Q", "REB"], ["AST_1Q", "AST"], ["PTS+REB+AST_1Q", "PRA"],
+  ["PTS+REB_1Q", "P+R"], ["PTS+AST_1Q", "P+A"], ["REB+AST_1Q", "R+A"], ["FG3M_1Q", "3PM"]] as const;
 const PERIODS = [["game", "Full game"], ["1q", "1st quarter"]] as const;
 export type Period = (typeof PERIODS)[number][0];
 
 const STAT_LABEL: Record<string, string> = { FG3M: "3PM", "PTS+REB": "P+R", "PTS+AST": "P+A", "REB+AST": "R+A", "PTS+REB+AST": "PRA",
-  PTS_1Q: "1Q PTS", REB_1Q: "1Q REB", AST_1Q: "1Q AST", FG3M_1Q: "1Q 3PM" };
+  PTS_1Q: "1Q PTS", REB_1Q: "1Q REB", AST_1Q: "1Q AST", FG3M_1Q: "1Q 3PM",
+  "PTS+REB+AST_1Q": "1Q PRA", "PTS+REB_1Q": "1Q P+R", "PTS+AST_1Q": "1Q P+A", "REB+AST_1Q": "1Q R+A" };
 
 /** Each of the last games as a bar of its real value against a dashed line at the betting line: the cushion is visible, not just a tick. */
 function GameBars({ card }: { card: TrendCard }) {
@@ -123,7 +125,7 @@ export function TrendsBoard({ league, initialPeriod = "game" }: { league: "nba" 
       {PERIODS.map(([value, label]) => <button key={value} type="button" aria-pressed={period === value} onClick={() => setPeriod(value)} className={chip(period === value)}>{label}</button>)}
     </div>
     <p className="mb-3 text-xs text-text-sec">{period === "1q"
-      ? "First-quarter points, rebounds, assists and threes: players clearing the same line in at least eight of their last ten first quarters. These lines come from the games, not a sportsbook; 1Q prices aren't bought yet, so enter your book's price when you add one."
+      ? "First-quarter points, rebounds, assists, threes and combos: players clearing the same line in at least seven of their last ten first quarters (a quarter swings more than a game). These lines come from the games, not a sportsbook; 1Q prices aren't bought yet, so enter your book's price when you add one."
       : "Players clearing the same line in at least eight of their last ten games, biggest cushion first. History is not a forecast."}</p>
     {slateTeams.length > 0 && <div className="mb-3 flex flex-wrap items-center gap-3">
       <div className="flex gap-1.5" role="group" aria-label="Players shown">

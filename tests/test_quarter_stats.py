@@ -46,3 +46,26 @@ def test_first_quarter_trend_cards_use_the_1q_columns():
     points = next(card for card in cards if card['stat'] == 'PTS_1Q')
     assert points['values'] == [8, 9, 7, 8, 10, 9, 8, 7, 9, 8]
     assert '1st-quarter points' in points['text']
+
+
+def test_first_quarter_combos_are_summed_per_game_and_stay_empty_when_unknown():
+    joined = quarter_stats.with_q1(_history(), _q1())
+    assert list(joined['PTS+REB+AST_1Q'])[:3] == [10, 13, 0]
+    assert list(joined['PTS+REB_1Q'])[:2] == [9, 10]
+    assert pd.isna(joined['PTS+REB+AST_1Q'].iloc[3])
+
+
+def test_first_quarter_streaks_count_seven_of_ten_and_include_combos():
+    dates = pd.date_range('2026-10-01', periods=10)
+    q1_pts = [8, 2, 7, 8, 10, 3, 8, 7, 9, 2]   # 7 of 10 over 6.5: below the full-game 8-of-10 bar
+    history = quarter_stats.with_q1(pd.DataFrame({'PLAYER_NAME': 'A', '_date': dates, 'MIN': 34, 'Player_ID': 1,
+                                                  'Game_ID': range(1, 11), 'PTS': 25}),
+                                    pd.DataFrame({'PLAYER_ID': 1, 'GAME_ID': [str(g) for g in range(1, 11)],
+                                                  'PTS': q1_pts, 'REB': 2, 'AST': 2, 'FG3M': 0}))
+    today = pd.Timestamp('2026-10-12')
+    assert not [c for c in trends.build_trends(history, today=today, stats=('PTS_1Q',)) if c['line'] == 6.5]
+    cards = trends.build_trends(history, today=today, stats=quarter_stats.Q1_TREND_STATS, min_hits=quarter_stats.Q1_MIN_HITS)
+    seven = next(c for c in cards if c['stat'] == 'PTS_1Q' and c['line'] == 6.5)
+    assert (seven['hits'], seven['stars']) == (7, 2)
+    combo = next(c for c in cards if c['stat'] == 'PTS+REB+AST_1Q')
+    assert combo['values'][:2] == [12, 6] and '1st-quarter points + rebounds + assists' in combo['text']
