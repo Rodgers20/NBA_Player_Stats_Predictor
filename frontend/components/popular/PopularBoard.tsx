@@ -27,7 +27,7 @@ export function PopularBoard({ league }: { league: "nba" | "wnba" }) {
     </div>}
 
     {props.isPending && <div className="ql-panel overflow-hidden" aria-busy="true" aria-label="Loading hot plays">
-      {Array.from({ length: 5 }).map((_, index) => <div key={index} className="h-24 animate-pulse border-b border-white/5" />)}
+      {Array.from({ length: 5 }).map((_, index) => <div key={index} className="h-24 animate-pulse border-b border-ink/5" />)}
     </div>}
 
     {props.data && board.length > 0 && <section aria-label="Hot plays" className="ql-panel overflow-hidden">

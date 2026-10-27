@@ -71,9 +71,9 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
       <label className="mb-3 block">
         <span className="sr-only">Search players or teams</span>
         <input type="search" value={draft} onChange={(event) => typeSearch(event.target.value)} placeholder="Search player or team"
-          maxLength={40} className="ql-control min-h-9 w-full px-3 py-2 text-sm text-[#eaf8f6] placeholder:text-[#a9bec0]" />
+          maxLength={40} className="ql-control min-h-9 w-full px-3 py-2 text-sm text-text-pri placeholder:text-text-sec" />
       </label>
-      <p className="ql-data-label mb-2 text-[#a9bec0]">STATISTIC</p>
+      <p className="ql-data-label mb-2 text-text-sec">STATISTIC</p>
       <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Filter by stat">
         {STATS.map(([value, label]) => (
           <button
@@ -82,10 +82,10 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
             aria-pressed={isOn(value)}
             onClick={() => onChange({ stat: toggleStat(filters.stat, value) })}
             className={cn(
-              "ql-chip min-h-8 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]",
+              "ql-chip min-h-8 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400",
               isOn(value)
                 ? "ql-chip-active"
-                : "text-[#a9bec0] hover:border-[#59e0c8]/45 hover:text-white"
+                : "text-text-sec hover:border-teal-400/45 hover:text-ink"
             )}
           >
             {label}
@@ -96,17 +96,17 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
       {statCounts && Object.keys(statCounts).length > 0 && (
         <div className="mb-3 flex flex-wrap gap-1.5" aria-label="Available props by stat">
           {STATS.filter(([value]) => value && statCounts[value]).map(([value, label]) => (
-            <span key={value} className="ql-data-label rounded border border-white/10 px-2.5 py-0.5 text-[10px] text-[#a9bec0]">
+            <span key={value} className="ql-data-label rounded border border-ink/10 px-2.5 py-0.5 text-[10px] text-text-sec">
               {label} {statCounts[value]}
             </span>
           ))}
         </div>
       )}
 
-      {isLineMarket(filters.stat) && <p className="border-t border-white/10 pt-3 text-xs text-[#a9bec0]">Whole-game lines from the game model. Side, location and star filters apply to player props only.</p>}
-      {!isLineMarket(filters.stat) && <div className="flex flex-wrap items-end gap-x-5 gap-y-3 border-t border-white/10 pt-3">
+      {isLineMarket(filters.stat) && <p className="border-t border-ink/10 pt-3 text-xs text-text-sec">Whole-game lines from the game model. Side, location and star filters apply to player props only.</p>}
+      {!isLineMarket(filters.stat) && <div className="flex flex-wrap items-end gap-x-5 gap-y-3 border-t border-ink/10 pt-3">
         <div role="group" aria-label="Filter by direction">
-          <p className="ql-data-label mb-1.5 text-[#a9bec0]">SIDE</p>
+          <p className="ql-data-label mb-1.5 text-text-sec">SIDE</p>
           <div className="flex items-center gap-1.5">
           {(["All", "Over", "Under"] as const).map((direction) => (
             <button
@@ -115,10 +115,10 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
               aria-pressed={filters.direction === direction}
               onClick={() => onChange({ direction })}
               className={cn(
-                "ql-chip min-h-8 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]",
+                "ql-chip min-h-8 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400",
                 filters.direction === direction
                   ? "ql-chip-active"
-                  : "text-[#a9bec0] hover:border-[#59e0c8]/45 hover:text-white"
+                  : "text-text-sec hover:border-teal-400/45 hover:text-ink"
               )}
             >
               {direction === "Over" ? "Overs ↑" : direction === "Under" ? "Unders ↓" : "All"}
@@ -128,7 +128,7 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
         </div>
 
         <div role="group" aria-label="Filter by location">
-          <p className="ql-data-label mb-1.5 text-[#a9bec0]">LOCATION</p>
+          <p className="ql-data-label mb-1.5 text-text-sec">LOCATION</p>
           <div className="flex items-center gap-1.5">
           {(["All", "Home", "Away"] as const).map((location) => (
             <button
@@ -137,10 +137,10 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
               aria-pressed={filters.location === location}
               onClick={() => onChange({ location })}
               className={cn(
-                "ql-chip min-h-8 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]",
+                "ql-chip min-h-8 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400",
                 filters.location === location
                   ? "ql-chip-active"
-                  : "text-[#a9bec0] hover:border-[#59e0c8]/45 hover:text-white"
+                  : "text-text-sec hover:border-teal-400/45 hover:text-ink"
               )}
             >
               {location}
@@ -150,7 +150,7 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
         </div>
 
         <div role="group" aria-label="Hit rate window">
-          <p className="ql-data-label mb-1.5 text-[#a9bec0]">HIT WINDOW</p>
+          <p className="ql-data-label mb-1.5 text-text-sec">HIT WINDOW</p>
           <div className="flex items-center gap-1.5">
           {HIT_WINDOWS.map(([value, label]) => (
             <button
@@ -160,10 +160,10 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
               onClick={() => onChange({ window: value })}
               title={`Rank and show hit rate over ${label === "H2H" ? "head-to-head games" : label === "Season" ? "this season" : `the last ${label.slice(1)} games`}`}
               className={cn(
-                "ql-chip min-h-8 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]",
+                "ql-chip min-h-8 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400",
                 filters.window === value
                   ? "ql-chip-active"
-                  : "text-[#a9bec0] hover:border-[#59e0c8]/45 hover:text-white"
+                  : "text-text-sec hover:border-teal-400/45 hover:text-ink"
               )}
             >
               {label}
@@ -173,7 +173,7 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
         </div>
 
         <div role="group" aria-label="More filters">
-          <p className="ql-data-label mb-1.5 text-[#a9bec0]">NARROW</p>
+          <p className="ql-data-label mb-1.5 text-text-sec">NARROW</p>
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
@@ -181,8 +181,8 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
               onClick={() => onChange({ ev: !filters.ev })}
               title="Only picks with a positive expected value at the shown price"
               className={cn(
-                "ql-chip min-h-8 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]",
-                filters.ev ? "ql-chip-active" : "text-[#a9bec0] hover:border-[#59e0c8]/45 hover:text-white"
+                "ql-chip min-h-8 px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400",
+                filters.ev ? "ql-chip-active" : "text-text-sec hover:border-teal-400/45 hover:text-ink"
               )}
             >
               Only +EV
@@ -195,35 +195,35 @@ export function PropFilters({ filters, matchups, statCounts, onChange, bookOptio
         </div>
 
         <div className="ml-auto flex flex-wrap items-end gap-3">
-          <label className="ql-data-label flex flex-col gap-1.5 text-[#a9bec0]">
+          <label className="ql-data-label flex flex-col gap-1.5 text-text-sec">
             GAME
             <select
               value={filters.game}
               onChange={(event) => onChange({ game: event.target.value })}
-              className="ql-control min-h-8 min-w-36 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-[#eaf8f6]"
+              className="ql-control min-h-8 min-w-36 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-text-pri"
             >
               <option value="">All Games</option>
               {matchups.map((matchup) => <option key={matchup} value={matchup}>{matchup}</option>)}
             </select>
           </label>
-          <label className="ql-data-label flex flex-col gap-1.5 text-[#a9bec0]">
+          <label className="ql-data-label flex flex-col gap-1.5 text-text-sec">
             SORT
             <select
               value={filters.sort}
               onChange={(event) => onChange({ sort: event.target.value })}
-              className="ql-control min-h-8 min-w-40 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-[#eaf8f6]"
+              className="ql-control min-h-8 min-w-40 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-text-pri"
             >
               <option value="hit_rate">Highest Hit Rate</option>
               <option value="ev">Highest EV</option>
               <option value="edge">Biggest Edge</option>
             </select>
           </label>
-          <label className="ql-data-label flex flex-col gap-1.5 text-[#a9bec0]">
+          <label className="ql-data-label flex flex-col gap-1.5 text-text-sec">
             MIN STARS
             <select
               value={filters.minStars}
               onChange={(event) => onChange({ minStars: Number(event.target.value) })}
-              className="ql-control min-h-8 min-w-24 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-[#eaf8f6]"
+              className="ql-control min-h-8 min-w-24 px-2.5 py-1.5 text-xs font-medium normal-case tracking-normal text-text-pri"
             >
               <option value={0}>Any</option>
               {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}+ ★</option>)}

@@ -11,10 +11,10 @@ function BreakdownTable({ title, rows }: { title: string; rows: BreakdownRow[] }
     <h3 className="ql-data-label px-4 pt-4">ROI by {title}</h3>
     <table className="mt-2 w-full whitespace-nowrap text-left text-sm">
       <caption className="sr-only">Settled bets grouped by {title.toLowerCase()}</caption>
-      <thead><tr className="border-b border-[#2b4248] text-[11px] font-mono uppercase tracking-wider text-[var(--color-text-sec)]">
+      <thead><tr className="border-b border-border-card text-[11px] font-mono uppercase tracking-wider text-[var(--color-text-sec)]">
         {["", "Bets", "W-L-P", "ROI", "Net"].map(label => <th key={label} scope="col" className={`px-4 py-2 font-medium ${label ? "text-right" : ""}`}>{label || title}</th>)}
       </tr></thead>
-      <tbody>{rows.map(row => <tr key={row.key} className="border-b border-[#2b4248] last:border-0 hover:bg-[#20363a]">
+      <tbody>{rows.map(row => <tr key={row.key} className="border-b border-border-card last:border-0 hover:bg-surface-hover">
         <td className="px-4 py-2.5 font-semibold">{row.key}</td>
         <td className="px-4 py-2.5 text-right tabular-nums">{row.bets}</td>
         <td className="px-4 py-2.5 text-right tabular-nums text-[var(--color-text-sec)]">{row.wins}-{row.losses}-{row.pushes}</td>
@@ -42,8 +42,8 @@ function ProfitCurve({ summary }: { summary: JournalSummary }) {
       <p className="text-xs text-[var(--color-text-sec)]">Max drawdown <b className="tabular-nums text-[var(--color-text-pri)]">{money(summary.max_drawdown)}</b> · {points.length} settled</p>
     </div>
     <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 h-40 w-full" role="img" aria-label={`Profit curve ending at ${money(last)}`} preserveAspectRatio="none">
-      <line x1={PAD} x2={W - PAD} y1={y(0)} y2={y(0)} stroke="#2b4248" strokeDasharray="4 4" />
-      <path d={line} fill="none" stroke={last >= 0 ? "#59e0c8" : "#f87171"} strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <line x1={PAD} x2={W - PAD} y1={y(0)} y2={y(0)} stroke="var(--color-border-card)" strokeDasharray="4 4" />
+      <path d={line} fill="none" stroke={last >= 0 ? "var(--color-teal-400)" : "#f87171"} strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
     </svg>
   </section>;
 }

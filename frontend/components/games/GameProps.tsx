@@ -32,7 +32,7 @@ export function GameProps({ game, league, date }: { game: Game; league: "nba" | 
 
   return <div className="space-y-4">
     <section aria-label={`${game.matchup} plays`}>
-      <div className="mb-2 flex items-baseline justify-between border-b border-white/10 pb-2">
+      <div className="mb-2 flex items-baseline justify-between border-b border-ink/10 pb-2">
         <h3 className="ql-section-title">Model plays · ranked by edge</h3>
         <span className="ql-data-label">{board.picks.length} {board.picks.length === 1 ? "PLAY" : "PLAYS"}</span>
       </div>

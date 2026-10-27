@@ -34,7 +34,7 @@ export function PlayerName({ name, league, focus, className = "", children }: Pr
     open({ player: name, league: league ?? siteLeague, focus, origin });
   }
   return <button type="button" onClick={show} title={`Open ${name}'s analysis`}
-    className={`cursor-pointer text-left hover:text-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8] ${className}`}>
+    className={`cursor-pointer text-left hover:text-teal-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 ${className}`}>
     {children ?? name}
   </button>;
 }

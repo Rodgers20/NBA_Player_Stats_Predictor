@@ -47,10 +47,10 @@ export function GameDayPlayerPicker({ league, date, value, onChange }: {
       {selected && <Check aria-hidden="true" size={18} className="absolute right-3 top-3.5 text-teal-400" />}
     </div>
     {open && matches.length > 0 && <ul id={`${id}-options`} role="listbox" aria-label="Players scheduled for the selected date"
-      className="absolute inset-x-0 top-[76px] z-30 max-h-64 overflow-y-auto rounded-lg border border-border-card bg-[#152128] p-1 shadow-2xl">
+      className="absolute inset-x-0 top-[76px] z-30 max-h-64 overflow-y-auto rounded-lg border border-border-card bg-bg-card p-1 shadow-2xl">
       {matches.map((player, index) => <li key={`${player.name}-${player.team}`} id={`${id}-option-${index}`} role="option" aria-selected={value === player.name}
         onMouseDown={event => event.preventDefault()} onClick={() => { onChange(player.name); setOpen(false); setActive(-1); }}
-        className={`flex cursor-pointer items-center justify-between gap-3 rounded px-3 py-3 text-sm hover:bg-[#263d43] ${active === index ? "bg-[#263d43]" : ""}`}>
+        className={`flex cursor-pointer items-center justify-between gap-3 rounded px-3 py-3 text-sm hover:bg-surface-raised ${active === index ? "bg-surface-raised" : ""}`}>
         <span className="font-medium">{player.name}</span><span className="text-xs text-text-sec">{player.team}{player.opponent ? ` · vs ${player.opponent}` : ""}</span>
       </li>)}
     </ul>}

@@ -9,6 +9,6 @@ export function MovedTo({ href, label }: { href: string; label: string }) {
   const router = useRouter();
   useEffect(() => { router.replace(href); }, [href, router]);
   return <main className="ql-page mx-auto max-w-[1100px] px-4 py-10 sm:px-8">
-    <p className="text-sm text-text-sec">This page moved to <Link href={href} className="font-semibold text-[#59e0c8] underline">{label}</Link>.</p>
+    <p className="text-sm text-text-sec">This page moved to <Link href={href} className="font-semibold text-teal-400 underline">{label}</Link>.</p>
   </main>;
 }

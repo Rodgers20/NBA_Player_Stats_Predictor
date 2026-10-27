@@ -26,7 +26,7 @@ export function MinutesBars({ games }: { games: ChartRecord[] }) {
         <div className="flex gap-1" role="group" aria-label="Minutes summary">
           {(["average", "median"] as const).map(option => (
             <button key={option} type="button" aria-pressed={mode === option} onClick={() => setMode(option)}
-              className={`ql-chip min-h-8 px-3 py-1 text-xs font-semibold capitalize focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8] ${mode === option ? "ql-chip-active" : "text-[#a9bec0]"}`}>{option}</button>
+              className={`ql-chip min-h-8 px-3 py-1 text-xs font-semibold capitalize focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 ${mode === option ? "ql-chip-active" : "text-text-sec"}`}>{option}</button>
           ))}
         </div>
       </div>
@@ -35,7 +35,7 @@ export function MinutesBars({ games }: { games: ChartRecord[] }) {
           {rows.map((game, index) => (
             <li key={`${game.date}-${index}`} className="flex h-full min-w-0 flex-1 flex-col justify-end text-center">
               <span className="text-[10px] font-semibold tabular-nums text-text-sec">{label(game.minutes)}</span>
-              <span className="mt-1 block rounded-t bg-white/15" style={{ height: `${Math.max(4, (game.minutes / top) * 100)}%` }}
+              <span className="mt-1 block rounded-t bg-ink/15" style={{ height: `${Math.max(4, (game.minutes / top) * 100)}%` }}
                 title={`${game.date} · ${game.opponent} · ${label(game.minutes)} min`} />
               <span className="mt-1 text-[10px] tabular-nums text-text-sec">{shortDate(game.date)}</span>
             </li>

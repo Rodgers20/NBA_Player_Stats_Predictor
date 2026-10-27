@@ -42,7 +42,7 @@
 .compareRow b {font-variant-numeric:tabular-nums;font-weight:600;}
 .compareRow b:last-child {text-align:right;}
 .compareRow span {display:grid;gap:6px;text-align:center;font-size:11px;color:var(--color-text-sec);}
-.compareRow i {display:block;height:5px;border-radius:3px;background:#67858f;overflow:hidden;}
+.compareRow i {display:block;height:5px;border-radius:3px;background:var(--color-track);overflow:hidden;}
 .compareRow em {display:block;height:100%;width:100%;background:var(--color-teal-400);transform-origin:left;animation:grow 420ms var(--ease-out) both;}
 
 .switcher {display:flex;gap:8px;margin:26px 0 12px;}

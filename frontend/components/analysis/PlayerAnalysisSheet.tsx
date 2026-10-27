@@ -60,14 +60,14 @@ export function PlayerAnalysisSheet({ player, league, focus, origin, backLabel =
         className="fixed inset-0 z-[91] overflow-y-auto overscroll-contain bg-[var(--color-bg-root)] will-change-transform"
         style={{ transformOrigin: reduce ? undefined : transformOrigin }}
         initial={hidden} animate={shown} exit={hidden} transition={reduce ? { duration: 0.2 } : SPRING}>
-        <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-white/10 bg-[#0d151b]/80 px-3 py-2.5 backdrop-blur-xl sm:px-6">
+        <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-ink/10 bg-bg-root/80 px-3 py-2.5 backdrop-blur-xl sm:px-6">
           <button ref={backButton} type="button" onClick={() => window.history.back()}
-            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-text-pri transition-transform hover:bg-white/5 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]">
+            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-text-pri transition-transform hover:bg-ink/5 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400">
             <ArrowLeft size={18} aria-hidden="true" /> {backLabel}
           </button>
           <p className="truncate text-sm font-bold text-text-sec">{player}</p>
           <Link href={`/analysis?league=${league}&player=${encodeURIComponent(player)}`} prefetch={false}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs font-semibold text-text-sec hover:text-text-pri">
+            className="inline-flex items-center gap-2 rounded-full border border-ink/10 px-3 py-2 text-xs font-semibold text-text-sec hover:text-text-pri">
             <Maximize2 size={14} aria-hidden="true" /> <span className="hidden sm:inline">Open as page</span>
           </Link>
         </div>

@@ -1,20 +1,20 @@
 /* Dual-handle range over a histogram: two native range inputs stacked, only their thumbs take pointer events. */
 .root { position: relative; padding-top: 4px; }
 .bars { display: flex; align-items: flex-end; gap: 2px; height: 44px; }
-.bar { flex: 1 1 0; min-width: 0; border-radius: 2px 2px 0 0; background: rgba(89, 224, 200, 0.16); transition: background-color 150ms ease; }
-.bar[data-in="true"] { background: rgba(89, 224, 200, 0.5); }
+.bar { flex: 1 1 0; min-width: 0; border-radius: 2px 2px 0 0; background: color-mix(in srgb, var(--color-teal-400) 16%, transparent); transition: background-color 150ms ease; }
+.bar[data-in="true"] { background: color-mix(in srgb, var(--color-teal-400) 50%, transparent); }
 .track { position: relative; height: 22px; margin-top: 2px; }
-.rail { position: absolute; left: 0; right: 0; top: 9px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); }
+.rail { position: absolute; left: 0; right: 0; top: 9px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--color-ink) 12%, transparent); }
 .fill { position: absolute; top: 9px; height: 4px; border-radius: 2px; background: var(--color-teal-400); }
 .input { position: absolute; inset: 0; width: 100%; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; }
 .input::-webkit-slider-runnable-track { background: none; height: 22px; }
 .input::-moz-range-track { background: none; height: 22px; }
 .input::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none; pointer-events: auto; cursor: grab; width: 18px; height: 18px; margin-top: 2px;
-  border-radius: 50%; background: #eaf8f6; border: 2px solid var(--color-teal-400); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  border-radius: 50%; background: var(--color-text-pri); border: 2px solid var(--color-teal-400); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 .input::-moz-range-thumb {
-  pointer-events: auto; cursor: grab; width: 14px; height: 14px; border-radius: 50%; background: #eaf8f6;
+  pointer-events: auto; cursor: grab; width: 14px; height: 14px; border-radius: 50%; background: var(--color-text-pri);
   border: 2px solid var(--color-teal-400); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 .input:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--color-teal-400); outline-offset: 2px; }

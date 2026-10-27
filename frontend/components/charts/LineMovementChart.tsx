@@ -22,12 +22,12 @@ export function LineMovementChart({ points, book }: { points: LineSnapshot[]; bo
 
   return <svg role="img" viewBox={`0 0 ${W} ${H}`} className="w-full" aria-label={`${book} line from ${points[0].line} to ${points[points.length - 1].line} over ${points.length} snapshots`}>
     {geometry.ticks.map(t => <g key={t}>
-      <line x1={M.left} x2={W - M.right} y1={geometry.y(t)} y2={geometry.y(t)} stroke="rgba(255,255,255,0.06)" />
-      <text x={M.left - 6} y={geometry.y(t) + 3} textAnchor="end" fontSize={9} fill="#8ca0c0">{t}</text>
+      <line x1={M.left} x2={W - M.right} y1={geometry.y(t)} y2={geometry.y(t)} stroke="color-mix(in srgb, var(--color-ink) 6%, transparent)" />
+      <text x={M.left - 6} y={geometry.y(t) + 3} textAnchor="end" fontSize={9} fill="var(--color-text-dim)">{t}</text>
     </g>)}
-    <path d={geometry.path} fill="none" stroke="#59e0c8" strokeWidth={2} strokeLinejoin="round" />
-    {points.map(p => <circle key={p.ts} cx={geometry.x(p.ts)} cy={geometry.y(p.line)} r={3} fill="#59e0c8"><title>{`${clock(p.ts)}: ${p.line}`}</title></circle>)}
-    <text x={M.left} y={H - 6} fontSize={9} fill="#8ca0c0">{clock(points[0].ts)}</text>
-    <text x={W - M.right} y={H - 6} textAnchor="end" fontSize={9} fill="#8ca0c0">{clock(points[points.length - 1].ts)}</text>
+    <path d={geometry.path} fill="none" stroke="var(--color-teal-400)" strokeWidth={2} strokeLinejoin="round" />
+    {points.map(p => <circle key={p.ts} cx={geometry.x(p.ts)} cy={geometry.y(p.line)} r={3} fill="var(--color-teal-400)"><title>{`${clock(p.ts)}: ${p.line}`}</title></circle>)}
+    <text x={M.left} y={H - 6} fontSize={9} fill="var(--color-text-dim)">{clock(points[0].ts)}</text>
+    <text x={W - M.right} y={H - 6} textAnchor="end" fontSize={9} fill="var(--color-text-dim)">{clock(points[points.length - 1].ts)}</text>
   </svg>;
 }

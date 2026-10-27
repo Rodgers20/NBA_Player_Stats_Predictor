@@ -17,6 +17,18 @@
   --color-border-card:  #2b4248;
   --color-lock-gold:    #f5ba64;
   --color-danger:       #fa837b;
+  /* Every surface and text colour is a token, so a second theme only redefines these. */
+  --color-ink:            #ffffff;   /* translucent overlays: bg-ink/5, border-ink/10 */
+  --color-bg-panel:       #1a2930;
+  --color-bg-badge:       #0f171c;
+  --color-surface-sunk:   #13232a;
+  --color-surface-hover:  #20363a;
+  --color-surface-raised: #263d43;
+  --color-text-soft:      #d0e0df;
+  --color-text-dim:       #8ca0c0;
+  --color-track:          #67858f;
+  --color-rail-top:       #101c22;
+  --color-rail-bottom:    #0a1116;
 
   --color-stat-pts:  #14b8a6;
   --color-stat-ast:  #f97066;

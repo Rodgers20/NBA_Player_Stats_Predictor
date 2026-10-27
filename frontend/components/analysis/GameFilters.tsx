@@ -10,7 +10,7 @@ import {
 import type { ChartRecord } from "@/lib/types";
 
 const REST: [RestFilter, string][] = [["any", "Any rest"], ["0", "Back to back"], ["1", "1 day"], ["2", "2 days"], ["3+", "3+ days"]];
-const select = "ql-control min-h-9 w-full px-3 py-2 text-sm text-text-pri focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]";
+const select = "ql-control min-h-9 w-full px-3 py-2 text-sm text-text-pri focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400";
 const label = "ql-data-label mb-1.5 block";
 
 interface Props {
@@ -38,9 +38,9 @@ export function GameFilterPanel({ games, value, onChange, matching }: Props) {
     <section className="ql-panel p-4 sm:p-5" aria-label="Game filters">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button type="button" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(current => !current)}
-          className="ql-control inline-flex min-h-9 items-center gap-2 px-3 py-2 text-sm font-semibold text-text-pri focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]">
+          className="ql-control inline-flex min-h-9 items-center gap-2 px-3 py-2 text-sm font-semibold text-text-pri focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400">
           <SlidersHorizontal size={16} aria-hidden="true" /> Game filters
-          {active > 0 && <span className="rounded-full bg-[#59e0c8] px-1.5 text-[11px] font-bold text-[#0d151b]" aria-label={`${active} active`}>{active}</span>}
+          {active > 0 && <span className="rounded-full bg-teal-400 px-1.5 text-[11px] font-bold text-bg-root" aria-label={`${active} active`}>{active}</span>}
         </button>
         <p className="text-xs text-text-sec" role="status">{active > 0 ? `${matching} of ${games.length} games match` : `${games.length} games`}</p>
       </div>
@@ -118,7 +118,7 @@ export function GameFilterPanel({ games, value, onChange, matching }: Props) {
 
           <div className="md:col-span-2 md:text-center">
             <button type="button" disabled={active === 0} onClick={() => onChange(DEFAULT_GAME_FILTERS)}
-              className="text-xs font-bold tracking-[.14em] text-text-sec enabled:hover:text-text-pri disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]">RESET ALL</button>
+              className="text-xs font-bold tracking-[.14em] text-text-sec enabled:hover:text-text-pri disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400">RESET ALL</button>
           </div>
         </div>
       )}

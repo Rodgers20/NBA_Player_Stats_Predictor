@@ -24,7 +24,7 @@ function HeadToHead({ data }: { data: MatchupResponse }) {
     {total === 0 ? <p className="text-sm text-text-sec">{data.away} and {data.home} have not met in the games we hold.</p> : <>
       <p className="mb-2 text-sm font-bold text-text-pri">{data.away} {h2h!.record[data.away]} – {h2h!.record[data.home]} {data.home}
         <span className="ml-2 text-xs font-normal text-text-sec">last {total} {total === 1 ? "meeting" : "meetings"}</span></p>
-      <ul className="ql-panel divide-y divide-white/[0.07] overflow-hidden">
+      <ul className="ql-panel divide-y divide-ink/[0.07] overflow-hidden">
         {h2h!.games.map(game => <li key={`${game.date}-${game.home}`} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
           <span className="w-28 shrink-0 text-xs text-text-sec">{day(game.date)}{game.kind === "Playoffs" ? " · playoffs" : ""}</span>
           <span className="min-w-0 flex-1 tabular-nums text-text-pri">
@@ -67,7 +67,7 @@ function Profile({ team, profile }: { team: string; profile: MatchupProfile | nu
     <details className="mt-3">
       <summary className="ql-data-label cursor-pointer py-1">ALL RANKED STATS</summary>
       <table className="mt-1 w-full text-xs"><tbody>
-        {profile.metrics.map(metric => <tr key={metric.label} className="border-t border-white/[0.06]">
+        {profile.metrics.map(metric => <tr key={metric.label} className="border-t border-ink/[0.06]">
           <td className="py-1.5 text-text-sec">{metric.label}</td>
           <td className="py-1.5 text-right tabular-nums text-text-pri">{metric.display}</td>
           <td className="w-16 py-1.5 text-right tabular-nums text-text-sec">#{metric.rank}/{metric.of}</td>
@@ -107,7 +107,7 @@ export function MatchupPanel({ game, league }: { game: Game; league: string }) {
     </section>
     {edges.length > 0 && <section aria-label="Where the game could turn">
       <h3 className={heading}>WHERE THE GAME COULD TURN</h3>
-      <ul className="ql-panel divide-y divide-white/[0.07] overflow-hidden">
+      <ul className="ql-panel divide-y divide-ink/[0.07] overflow-hidden">
         {edges.map(edge => <li key={`${edge.team}-${edge.label}`} className="px-4 py-2.5 text-sm text-text-pri">
           <strong>{edge.team}</strong> {edge.label.toLowerCase()} (#{edge.attack_rank}) against {edge.against}&apos;s {edge.defense_label.toLowerCase()} (#{edge.defense_rank}).
         </li>)}

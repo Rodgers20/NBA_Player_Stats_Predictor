@@ -19,8 +19,8 @@ interface Props {
 
 const MARGIN = { top: 18, right: 8, bottom: 36, left: 36 };
 // Outlier's reading, in our colours: teal cleared the line, red did not.
-const HIT = "#59e0c8";
-const MISS = "#fa837b";
+const HIT = "var(--color-teal-400)";
+const MISS = "var(--color-danger)";
 const PUSH = "rgba(169,190,192,0.55)";
 const TIP_HEIGHT = 120; // px the tooltip needs above a bar
 
@@ -35,19 +35,19 @@ function GameTip({ game, stat, line, color }: { game: ChartRecord; stat: string;
   const result = game.won == null ? null : `${game.won ? "W" : "L"}${game.margin != null ? ` ${game.margin > 0 ? "+" : ""}${game.margin}` : ""}`;
   const verdict = game.hit === true ? "Hit" : game.hit === false ? "Miss" : line !== null && game.value === line ? "Push" : null;
   return (
-    <div className="w-44 overflow-hidden rounded-xl border border-white/10 bg-[#0d151b]/95 text-xs text-[#eaf8f6] shadow-xl backdrop-blur">
+    <div className="w-44 overflow-hidden rounded-xl border border-ink/10 bg-bg-root/95 text-xs text-text-pri shadow-xl backdrop-blur">
       <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-2">
         <span className="font-semibold">{shortDate(game.date)} · {where}{game.opponent}</span>
-        {result && <span className={`font-bold ${game.won ? "text-[#59e0c8]" : "text-[#fa837b]"}`}>{result}</span>}
+        {result && <span className={`font-bold ${game.won ? "text-teal-400" : "text-danger"}`}>{result}</span>}
       </div>
-      <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
-        <span className="flex items-center gap-2 text-[#a9bec0]"><i className="h-3 w-0.5 rounded" style={{ background: color }} />{stat}</span>
+      <div className="flex items-center justify-between border-t border-ink/10 px-3 py-2">
+        <span className="flex items-center gap-2 text-text-sec"><i className="h-3 w-0.5 rounded" style={{ background: color }} />{stat}</span>
         <span className="text-base font-bold" style={{ fontFamily: "var(--font-display)" }}>{game.value != null ? fmt(game.value) : "—"}</span>
       </div>
       {(game.minutes != null || verdict) && (
-        <div className="flex items-center justify-between border-t border-white/10 px-3 py-2 text-[#a9bec0]">
+        <div className="flex items-center justify-between border-t border-ink/10 px-3 py-2 text-text-sec">
           <span>{game.minutes != null ? `${Math.round(game.minutes)} min` : ""}</span>
-          {verdict && line !== null && <span className={verdict === "Hit" ? "font-semibold text-[#59e0c8]" : verdict === "Miss" ? "font-semibold text-[#fa837b]" : ""}>{verdict} · line {line}</span>}
+          {verdict && line !== null && <span className={verdict === "Hit" ? "font-semibold text-teal-400" : verdict === "Miss" ? "font-semibold text-danger" : ""}>{verdict} · line {line}</span>}
         </div>
       )}
     </div>
@@ -121,12 +121,12 @@ export function PlayerBarChart({ games, stat, line, side = "Over", height = 200 
 
           {/* Grid lines */}
           {yTicks.map((t) => (
-            <line key={t} x1={0} x2={inner.w} y1={yScale(t)} y2={yScale(t)} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
+            <line key={t} x1={0} x2={inner.w} y1={yScale(t)} y2={yScale(t)} stroke="color-mix(in srgb, var(--color-ink) 5%, transparent)" strokeWidth={1} />
           ))}
 
           {/* Y axis labels */}
           {yTicks.filter((t) => line === null || Math.abs(yScale(t) - yScale(line)) > 12).map((t) => (
-            <text key={t} x={-6} y={yScale(t) + 4} textAnchor="end" fontSize={9} fill="#8ca0c0">{t}</text>
+            <text key={t} x={-6} y={yScale(t) + 4} textAnchor="end" fontSize={9} fill="var(--color-text-dim)">{t}</text>
           ))}
 
           {/* Hover column behind the active bar */}
@@ -138,7 +138,7 @@ export function PlayerBarChart({ games, stat, line, side = "Over", height = 200 
                 width={step}
                 height={inner.h}
                 rx={4}
-                fill="rgba(255,255,255,0.05)"
+                fill="color-mix(in srgb, var(--color-ink) 5%, transparent)"
                 initial={{ opacity: 0, x: (xScale(String(hovered)) ?? 0) - (step - bw) / 2 }}
                 animate={{ opacity: 1, x: (xScale(String(hovered)) ?? 0) - (step - bw) / 2 }}
                 exit={{ opacity: 0 }}
@@ -194,7 +194,7 @@ export function PlayerBarChart({ games, stat, line, side = "Over", height = 200 
           {/* Value labels — only when bars are wide enough to stay legible */}
           {bw >= 18 && data.map((d, i) => d.value != null && (
             <text key={i} x={(xScale(String(i)) ?? 0) + bw / 2} y={yScale(d.value) - 5} textAnchor="middle" fontSize={bw >= 40 ? 13 : 10} fontWeight={700}
-              fill={d.hit === true ? HIT : d.hit === false ? MISS : "#eaf8f6"} opacity={hovered !== null && hovered !== i ? 0.4 : 1}
+              fill={d.hit === true ? HIT : d.hit === false ? MISS : "var(--color-text-pri)"} opacity={hovered !== null && hovered !== i ? 0.4 : 1}
               style={{ transition: "opacity 150ms", pointerEvents: "none", fontFamily: "var(--font-display)" }}>
               {fmt(d.value)}
             </text>
@@ -203,7 +203,7 @@ export function PlayerBarChart({ games, stat, line, side = "Over", height = 200 
           {/* X axis: date, and the opponent underneath when there is room; sparse charts thin the dates out */}
           {data.map((d, i) => (bw >= 26 || i % 2 === 0 || i === hovered) && (
             <text key={i} x={(xScale(String(i)) ?? 0) + bw / 2} y={inner.h + 14} textAnchor="middle" fontSize={bw >= 40 ? 10 : 8}
-              fill={i === hovered ? "#eaf8f6" : "#8ca0c0"} style={{ pointerEvents: "none" }}>
+              fill={i === hovered ? "var(--color-text-pri)" : "var(--color-text-dim)"} style={{ pointerEvents: "none" }}>
               {shortDate(d.date)}
               {bw >= 40 && <tspan x={(xScale(String(i)) ?? 0) + bw / 2} dy={12}>{matchupLabel(d)}</tspan>}
             </text>
@@ -212,10 +212,10 @@ export function PlayerBarChart({ games, stat, line, side = "Over", height = 200 
           {/* Reference line */}
           {line !== null && (
             <g pointerEvents="none">
-              <line x1={0} x2={inner.w} y1={yScale(line)} y2={yScale(line)} stroke="rgba(245,186,100,0.85)" strokeWidth={1.5} strokeDasharray="6 4" />
+              <line x1={0} x2={inner.w} y1={yScale(line)} y2={yScale(line)} stroke="color-mix(in srgb, var(--color-lock-gold) 85%, transparent)" strokeWidth={1.5} strokeDasharray="6 4" />
               {/* The line's value sits on the axis, like a price tag */}
-              <rect x={-MARGIN.left + 2} y={yScale(line) - 9} width={MARGIN.left - 4} height={18} rx={9} fill="#0d151b" stroke="rgba(245,186,100,0.6)" />
-              <text x={-MARGIN.left / 2} y={yScale(line) + 4} textAnchor="middle" fontSize={10} fontWeight={700} fill="#f5ba64">{fmt(line)}</text>
+              <rect x={-MARGIN.left + 2} y={yScale(line) - 9} width={MARGIN.left - 4} height={18} rx={9} fill="var(--color-bg-root)" stroke="color-mix(in srgb, var(--color-lock-gold) 60%, transparent)" />
+              <text x={-MARGIN.left / 2} y={yScale(line) + 4} textAnchor="middle" fontSize={10} fontWeight={700} fill="var(--color-lock-gold)">{fmt(line)}</text>
             </g>
           )}
         </g>

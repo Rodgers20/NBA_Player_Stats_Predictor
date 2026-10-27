@@ -14,7 +14,7 @@ body {
 }
 
 .site-header {
-  background: #152128;
+  background: var(--color-bg-card);
   border-bottom: 1px solid var(--color-border-card);
   box-shadow: none;
   backdrop-filter: none;
@@ -52,7 +52,7 @@ body {
   border-radius: 3px;
   font: 700 11px var(--font-mono);
 }
-.site-league-pill:hover { color: var(--color-text-pri); background: #20363a; }
+.site-league-pill:hover { color: var(--color-text-pri); background: var(--color-surface-hover); }
 .site-league-pill.active {
   color: var(--color-bg-root);
   background: var(--color-teal-400);

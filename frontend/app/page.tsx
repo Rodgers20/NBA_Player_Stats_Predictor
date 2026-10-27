@@ -52,9 +52,9 @@ export default function TonightPage() {
       <p className="ql-subtitle mt-2">{slateDate(date)} · a play needs a fresh sportsbook price and at least +2% edge after the model weighs the market.</p>
     </header>
 
-    {props.data && !stale && <p className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-y border-white/10 py-3 text-sm text-text-sec" role="status">
+    {props.data && !stale && <p className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-y border-ink/10 py-3 text-sm text-text-sec" role="status">
       <span><strong className="text-lg font-extrabold tabular-nums text-text-pri">{plays}</strong> {plays === 1 ? "play" : "plays"} from <strong className="tabular-nums text-text-pri">{priced}</strong> priced markets</span>
-      <Link href="/performance" className="ml-auto text-xs font-semibold text-[#59e0c8] hover:underline">Model record ↗</Link>
+      <Link href="/performance" className="ml-auto text-xs font-semibold text-teal-400 hover:underline">Model record ↗</Link>
     </p>}
 
     {props.isError && <div role="alert" className="ql-panel p-8 text-center text-sm text-red-300">
@@ -63,11 +63,11 @@ export default function TonightPage() {
     </div>}
 
     {props.isPending && <div className="ql-panel overflow-hidden" aria-busy="true" aria-label="Loading tonight's plays">
-      {Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-20 animate-pulse border-b border-white/5" />)}
+      {Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-20 animate-pulse border-b border-ink/5" />)}
     </div>}
 
     {props.data && board.picks.length > 0 && <section aria-label="Bettable plays">
-      <div className="mb-2 flex items-baseline justify-between border-b border-white/10 pb-2">
+      <div className="mb-2 flex items-baseline justify-between border-b border-ink/10 pb-2">
         <h2 className="ql-section-title">Ranked by edge</h2>
         {board.picks.length > TOP_PLAYS && <Link href="/props?ev=true" className="ql-data-label hover:text-text-pri">ALL {board.picks.length} IN PROPS ↗</Link>}
       </div>
@@ -87,13 +87,13 @@ export default function TonightPage() {
       <h2 className="ql-section-title">No bettable edges right now</h2>
       <p className="mx-auto mt-2 max-w-[60ch] text-sm text-text-sec">{priced > 0 ? `The model priced ${priced} markets and none cleared +2% once the sportsbook's view is weighed in. Passing is a result.` : slate.length > 0 ? `There ${slate.length === 1 ? "is 1 game" : `are ${slate.length} games`} on the slate, but no sportsbook player props are posted yet. Props usually appear the morning of the game.` : "No priced market passed the price, history and model checks."}</p>
       <div className="mt-5 flex flex-wrap justify-center gap-2">
-        <Link href="/props" className="ql-chip text-[#59e0c8] hover:border-[#59e0c8]/50">All props</Link>
-        <Link href="/games" className="ql-chip hover:border-white/30">Tonight&apos;s games</Link>
+        <Link href="/props" className="ql-chip text-teal-400 hover:border-teal-400/50">All props</Link>
+        <Link href="/games" className="ql-chip hover:border-ink/30">Tonight&apos;s games</Link>
       </div>
     </section>}
 
     {board.leans.length > 0 && <section className="mt-7" aria-label="Plays the model passed on">
-      <div className="mb-2 flex items-baseline justify-between border-b border-white/10 pb-2">
+      <div className="mb-2 flex items-baseline justify-between border-b border-ink/10 pb-2">
         <h2 className="ql-section-title">The model passed</h2>
         <span className="ql-data-label">UNDER +2% EDGE · {board.leans.length}</span>
       </div>
@@ -111,7 +111,7 @@ export default function TonightPage() {
     {board.research.length > 0 && <ResearchList rows={board.research} league={league} />}
 
     {slate.length > 0 && <section className="mt-8" aria-label="Slate">
-      <div className="mb-2 flex items-baseline justify-between border-b border-white/10 pb-2">
+      <div className="mb-2 flex items-baseline justify-between border-b border-ink/10 pb-2">
         <h2 className="ql-section-title">The slate</h2>
         <Link href="/games" className="ql-data-label hover:text-text-pri">ALL GAMES</Link>
       </div>

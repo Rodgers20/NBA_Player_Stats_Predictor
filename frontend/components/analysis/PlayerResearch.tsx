@@ -32,7 +32,7 @@ export function PlayerResearch({ league, player, stat }: { league: "nba" | "wnba
       <p className="ql-kicker">SUPPORTING EVIDENCE</p>
       <h2 className="ql-section-title mt-1">Teammate Out</h2>
       <p className="mb-3 mt-1 text-xs text-text-sec">{stat} splits when a rotation teammate is unavailable, graded against the posted line.</p>
-      <div className="divide-y divide-white/10">{splits.map(item => {
+      <div className="divide-y divide-ink/10">{splits.map(item => {
         const delta = item.avg_without - item.avg_with;
         return <div key={item.teammate} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3 text-sm">
           <p className="text-text-sec">Without <strong className="text-text-pri">{item.teammate}</strong> <span className="font-mono text-[11px] text-amber-300">{item.status}</span></p>

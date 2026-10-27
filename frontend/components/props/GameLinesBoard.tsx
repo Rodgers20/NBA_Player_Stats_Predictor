@@ -46,19 +46,19 @@ function LineRow({ pick, market, league, date }: { pick: LinePick; market: "SPRE
   const slip = useGameSlip(pick.game, league, date || undefined, pick.prediction);
   const add = market === "SPREAD" ? (pick.side === "home" ? slip.spread.home : slip.spread.away) : (pick.side === "over" ? slip.total.over : slip.total.under);
   return (
-    <li className="flex items-start gap-3 border-b border-white/[0.07] px-4 py-3 last:border-b-0">
+    <li className="flex items-start gap-3 border-b border-ink/[0.07] px-4 py-3 last:border-b-0">
       <button type="button" disabled={!add} aria-pressed={add?.inSlip ?? false} onClick={add?.onToggle}
         aria-label={add ? `${add.inSlip ? "Remove" : "Add"} ${add.label} ${add.inSlip ? "from" : "to"} slip` : "No line to add"}
-        className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full border transition-colors disabled:opacity-30 ${add?.inSlip ? "border-[#59e0c8] bg-[#59e0c8] text-[#0d151b]" : "border-[#59e0c8]/45 text-[#59e0c8] hover:bg-[#59e0c8]/10"}`}>
+        className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full border transition-colors disabled:opacity-30 ${add?.inSlip ? "border-teal-400 bg-teal-400 text-bg-root" : "border-teal-400/45 text-teal-400 hover:bg-teal-400/10"}`}>
         {add?.inSlip ? <Check size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
       </button>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-[#eaf8f6]">{pick.title} <span className="ml-1 font-mono text-[#f5ba64]" title="ESPN publishes no spread or total price, so the standard price is assumed">{fmtPrice(ASSUMED_PRICE)}*</span></p>
-        <p className="mt-0.5 text-[11px] text-[#a9bec0]">{pick.game.matchup} · {pick.detail}</p>
-        {pick.reason && <p className="mt-1 text-[11px] leading-snug text-[#a9bec0]">{pick.reason}</p>}
+        <p className="truncate text-sm font-bold text-text-pri">{pick.title} <span className="ml-1 font-mono text-lock-gold" title="ESPN publishes no spread or total price, so the standard price is assumed">{fmtPrice(ASSUMED_PRICE)}*</span></p>
+        <p className="mt-0.5 text-[11px] text-text-sec">{pick.game.matchup} · {pick.detail}</p>
+        {pick.reason && <p className="mt-1 text-[11px] leading-snug text-text-sec">{pick.reason}</p>}
       </div>
-      <p className="shrink-0 text-right font-display text-2xl font-bold tabular-nums text-[#59e0c8]">{pick.gap.toFixed(1)}
-        <span className="block font-mono text-[10px] font-medium text-[#a9bec0]">PTS FROM MARKET{pick.confidence ? ` · ${pick.confidence.toUpperCase()}` : ""}</span></p>
+      <p className="shrink-0 text-right font-display text-2xl font-bold tabular-nums text-teal-400">{pick.gap.toFixed(1)}
+        <span className="block font-mono text-[10px] font-medium text-text-sec">PTS FROM MARKET{pick.confidence ? ` · ${pick.confidence.toUpperCase()}` : ""}</span></p>
     </li>
   );
 }
@@ -69,7 +69,7 @@ export function GameLinesBoard({ league, market }: { league: "nba" | "wnba"; mar
   const predictions = useQuery({ queryKey: ["game-predictions", league], queryFn: () => api.predictions(league), staleTime: 300_000 });
 
   if (games.isPending) return <div className="ql-panel h-40 animate-pulse" aria-busy="true" aria-label="Loading game lines" />;
-  if (games.isError) return <div role="alert" className="ql-panel p-6 text-center text-sm text-[#fa837b]">Game lines could not be loaded. <button type="button" className="underline" onClick={() => void games.refetch()}>Try again</button></div>;
+  if (games.isError) return <div role="alert" className="ql-panel p-6 text-center text-sm text-danger">Game lines could not be loaded. <button type="button" className="underline" onClick={() => void games.refetch()}>Try again</button></div>;
 
   const date = games.data.target_date ?? "";
   const slate = games.data.games.filter(game => gameState(game) === "pre");
@@ -80,7 +80,7 @@ export function GameLinesBoard({ league, market }: { league: "nba" | "wnba"; mar
     const edges = gameEdges(slate, forecasts);
     return edges.length > 0
       ? <GameEdges edges={edges} league={league} date={date} />
-      : <p role="status" className="ql-panel px-6 py-10 text-center text-sm text-[#a9bec0]">{predictions.isPending ? "Loading the game model…" : "No game has both a moneyline price and a model win chance right now."}</p>;
+      : <p role="status" className="ql-panel px-6 py-10 text-center text-sm text-text-sec">{predictions.isPending ? "Loading the game model…" : "No game has both a moneyline price and a model win chance right now."}</p>;
   }
 
   const build = market === "SPREAD" ? spreadPick : totalPick;
@@ -93,14 +93,14 @@ export function GameLinesBoard({ league, market }: { league: "nba" | "wnba"; mar
 
   return (
     <section aria-label={`${label} picks`} className="mb-6">
-      <div className="mb-2 flex items-baseline justify-between border-b border-white/10 pb-2">
+      <div className="mb-2 flex items-baseline justify-between border-b border-ink/10 pb-2">
         <h2 className="ql-section-title">{label}</h2>
         <span className="ql-data-label">{picks.length} {picks.length === 1 ? "PICK" : "PICKS"} · RANKED BY DISTANCE FROM THE MARKET</span>
       </div>
       {picks.length > 0
         ? <ul className="ql-panel overflow-hidden">{picks.map(pick => <LineRow key={pick.game.matchup} pick={pick} market={market} league={league} date={date} />)}</ul>
-        : <p role="status" className="ql-panel px-6 py-10 text-center text-sm text-[#a9bec0]">{predictions.isPending ? "Loading the game model…" : `No game has a model ${market === "SPREAD" ? "spread" : "total"} pick against a posted line right now. Passing is a result.`}</p>}
-      <p className="mt-2 text-[11px] leading-snug text-[#a9bec0]">* ESPN publishes spread and total lines but no price, so {fmtPrice(ASSUMED_PRICE)} is assumed. Check your book before betting. The gap is the model&apos;s number against the market&apos;s, an estimate, not a guarantee.</p>
+        : <p role="status" className="ql-panel px-6 py-10 text-center text-sm text-text-sec">{predictions.isPending ? "Loading the game model…" : `No game has a model ${market === "SPREAD" ? "spread" : "total"} pick against a posted line right now. Passing is a result.`}</p>}
+      <p className="mt-2 text-[11px] leading-snug text-text-sec">* ESPN publishes spread and total lines but no price, so {fmtPrice(ASSUMED_PRICE)} is assumed. Check your book before betting. The gap is the model&apos;s number against the market&apos;s, an estimate, not a guarantee.</p>
     </section>
   );
 }

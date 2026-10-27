@@ -8,7 +8,7 @@ import { easternToday, easternYesterday, summaryQuery, useLiveScoreboard } from 
 import type { Bet, Result } from "@/lib/journal-client";
 
 type Final = (bet: Bet, result: Result) => void;
-const TONE = { win: "border-green-400/40 text-green-300", loss: "border-red-400/40 text-red-300", push: "border-white/20 text-text-sec", live: "border-teal-400/40 text-teal-300" };
+const TONE = { win: "border-green-400/40 text-green-300", loss: "border-red-400/40 text-red-300", push: "border-ink/20 text-text-sec", live: "border-teal-400/40 text-teal-300" };
 
 /** Pending bets from today (and last night's late games) graded against ESPN's live box score. */
 export function LiveBets({ bets, onFinal }: { bets: Bet[]; onFinal: Final }) {
@@ -20,7 +20,7 @@ export function LiveBets({ bets, onFinal }: { bets: Bet[]; onFinal: Final }) {
     <p className="ql-kicker flex items-center gap-2"><i aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-red-500" /> Live tracker</p>
     <h2 id="live-bets-title" className="ql-section-title mt-2">Your open bets, live</h2>
     <p className="mt-2 text-sm text-[var(--color-text-sec)]">Updates from ESPN every 15 seconds while a game is on. Bets grade themselves at the final; correct any your book settled differently.</p>
-    <ul className="mt-4 divide-y divide-[#2b4248]">{groups.map(group => {
+    <ul className="mt-4 divide-y divide-border-card">{groups.map(group => {
       const [league, date] = group.split("|");
       return <LeagueDay key={group} league={league} date={date} bets={open.filter(bet => `${bet.league}|${bet.game_date}` === group)} onFinal={onFinal} />;
     })}</ul>
@@ -85,7 +85,7 @@ function LiveRow({ bet, box, game, grade }: { bet: Bet; box?: LiveBox; game?: Li
       <span className="font-mono text-2xl font-bold tabular-nums" aria-label={`${grade?.value ?? 0} of ${bet.line}`}>{grade?.value ?? "—"}<small className="text-xs text-[var(--color-text-sec)]"> / {bet.line}</small></span>
       <span role="status" className={`rounded border px-2 py-1 text-xs font-semibold ${TONE[grade?.status ?? "live"]}`}>{note}</span>
     </div>
-    <div className="col-span-2 h-1.5 overflow-hidden rounded bg-[#2b4248]" aria-hidden>
+    <div className="col-span-2 h-1.5 overflow-hidden rounded bg-border-card" aria-hidden>
       <div className={`h-full origin-left transition-transform duration-500 ${grade?.status === "loss" ? "bg-red-400" : grade?.status === "win" ? "bg-green-400" : "bg-teal-400"}`} style={{ transform: `scaleX(${share})` }} />
     </div>
   </li>;

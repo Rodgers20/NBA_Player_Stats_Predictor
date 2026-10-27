@@ -27,9 +27,9 @@ function GameBars({ card }: { card: TrendCard }) {
   const linePct = (card.line / top) * 100;
   return <figure className="m-0 pr-9" aria-label={`Last ${values.length} games, oldest to newest: ${values.join(", ")} against a ${card.line} line`}>
     <div className="relative h-16">
-      <div className="absolute inset-x-0 border-t border-dashed border-white/45" style={{ bottom: `${linePct}%` }} aria-hidden="true">
+      <div className="absolute inset-x-0 border-t border-dashed border-ink/45" style={{ bottom: `${linePct}%` }} aria-hidden="true">
         {/* The line's value sits in a right gutter so it never covers the latest game's bar. */}
-        <span className="absolute -right-9 -top-2 w-8 text-center font-mono text-[10px] font-semibold text-white/75">{card.line}</span>
+        <span className="absolute -right-9 -top-2 w-8 text-center font-mono text-[10px] font-semibold text-ink/75">{card.line}</span>
       </div>
       <div className="flex h-full items-end gap-1" aria-hidden="true">
         {values.map((value, index) => <span key={index} title={String(value)}
@@ -52,12 +52,12 @@ function Headshot({ card }: { card: TrendCard }) {
   const [failed, setFailed] = useState(false);
   const initial = card.player.trim().split(/\s+/).at(-1)?.[0]?.toUpperCase() || "?";
   return <div className="relative shrink-0">
-    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#59e0c8]/10 text-lg font-bold text-[#59e0c8]">
+    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-ink/10 bg-teal-400/10 text-lg font-bold text-teal-400">
       {card.headshot_url && !failed
         ? <Image src={card.headshot_url} alt="" width={56} height={56} unoptimized onError={() => setFailed(true)} className="h-14 w-14 object-cover object-top" />
         : initial}
     </div>
-    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded bg-[#0f171c] px-1.5 font-mono text-[9px] font-bold text-teal-300 ring-1 ring-white/10">{card.team}</span>
+    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded bg-bg-badge px-1.5 font-mono text-[9px] font-bold text-teal-300 ring-1 ring-ink/10">{card.team}</span>
   </div>;
 }
 
@@ -72,15 +72,15 @@ function TrendItem({ card, league }: { card: TrendCard; league: "nba" | "wnba" }
       <div className="min-w-0 flex-1">
         <PlayerName name={card.player} league={league} className="block max-w-full truncate font-bold text-text-pri" />
         <p className="text-xs text-text-sec">{card.opponent ? `vs ${card.opponent}` : card.team}{card.playing_today ? " · tonight" : ""}</p>
-        <p className="mt-1 text-lg font-extrabold leading-none text-text-pri">{side} {card.line} <span className="text-[#59e0c8]">{stat}</span></p>
+        <p className="mt-1 text-lg font-extrabold leading-none text-text-pri">{side} {card.line} <span className="text-teal-400">{stat}</span></p>
       </div>
-      <div className={`shrink-0 rounded-lg px-2.5 py-1.5 text-center ${perfect ? "bg-teal-400 text-[#0d151b]" : "border border-teal-400/40 text-teal-300"}`}>
+      <div className={`shrink-0 rounded-lg px-2.5 py-1.5 text-center ${perfect ? "bg-teal-400 text-bg-root" : "border border-teal-400/40 text-teal-300"}`}>
         <p className="font-mono text-lg font-bold leading-none tabular-nums">{card.hits}/{card.games}</p>
         <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wider">{perfect ? "perfect" : "hit"}</p>
       </div>
     </div>
     <GameBars card={card} />
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.07] pt-3 text-xs text-text-sec">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/[0.07] pt-3 text-xs text-text-sec">
       <span className="tabular-nums">avg <strong className="text-text-pri">{card.avg}</strong> · <strong className="text-teal-300">{margin}</strong> {card.side === "over" ? "over" : "under"} the line</span>
       {card.live
         ? <span className="flex items-center gap-2">
@@ -124,7 +124,7 @@ export function TrendsBoard({ league }: { league: "nba" | "wnba" }) {
       </label>}
     </div>}
 
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-3">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-y border-ink/10 py-3">
       <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Side">{SIDES.map(([value, label]) => <button key={value} type="button" aria-pressed={side === value} onClick={() => setSide(value)} className={chip(side === value)}>{label}</button>)}</div>
       <div className="flex max-w-full gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Statistic">{STATS.map(([value, label]) => <button key={value} type="button" aria-pressed={stat === value} onClick={() => setStat(value)} className={chip(stat === value)}>{label}</button>)}</div>
     </div>
@@ -137,6 +137,6 @@ export function TrendsBoard({ league }: { league: "nba" | "wnba" }) {
     </div>}
     <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{cards.slice(0, shown).map(card => <TrendItem key={`${card.player}-${card.stat}-${card.side}`} card={card} league={league} />)}</ul>
     {cards.length > shown && <button type="button" onClick={() => setShown(count => count + PAGE)}
-      className="ql-control mt-4 w-full py-3 text-sm font-semibold text-[#59e0c8] hover:bg-[#59e0c8]/10">Show more ({cards.length - shown} remaining)</button>}
+      className="ql-control mt-4 w-full py-3 text-sm font-semibold text-teal-400 hover:bg-teal-400/10">Show more ({cards.length - shown} remaining)</button>}
   </>;
 }

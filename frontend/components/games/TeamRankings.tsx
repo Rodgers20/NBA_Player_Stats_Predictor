@@ -34,12 +34,12 @@ export function TeamRankings({ away, home, profiles, season }: {
         <div className="flex items-center justify-between gap-3 text-sm font-bold text-text-pri">
           <span>{offenseTeam} offense</span>
           <button type="button" onClick={() => setFlipped(value => !value)} aria-label={`Swap: show ${defenseTeam} offense against ${offenseTeam} defense`}
-            className="ql-control grid h-8 w-8 place-items-center text-text-sec transition-transform duration-150 active:scale-95 hover:text-text-pri focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8]">
+            className="ql-control grid h-8 w-8 place-items-center text-text-sec transition-transform duration-150 active:scale-95 hover:text-text-pri focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400">
             <ArrowLeftRight size={15} aria-hidden="true" />
           </button>
           <span>{defenseTeam} defense</span>
         </div>
-        <ul className="mt-3 divide-y divide-white/[0.07]">
+        <ul className="mt-3 divide-y divide-ink/[0.07]">
           {rows.map(row => {
             const left = strength(row.offense), right = strength(row.defense);
             return (

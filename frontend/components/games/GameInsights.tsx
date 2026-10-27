@@ -16,8 +16,8 @@ function InsightCard({ prop, text, league }: { prop: Prop; text: string; league:
   const side = /^under$/i.test(prop.direction) ? "Under" : "Over";
   const initial = prop.player.trim().split(/\s+/).at(-1)?.[0]?.toUpperCase() || "?";
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-white/[0.07] px-4 py-4 last:border-b-0 sm:px-5">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/10 bg-[#59e0c8]/10 text-sm font-bold text-[#59e0c8]" aria-hidden="true">
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-ink/[0.07] px-4 py-4 last:border-b-0 sm:px-5">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-ink/10 bg-teal-400/10 text-sm font-bold text-teal-400" aria-hidden="true">
         {prop.headshot_url && !photoFailed
           ? <Image src={prop.headshot_url} alt="" width={44} height={44} unoptimized onError={() => setPhotoFailed(true)} className="h-11 w-11 object-cover object-top" />
           : initial}
@@ -28,10 +28,10 @@ function InsightCard({ prop, text, league }: { prop: Prop; text: string; league:
       </div>
       <div className="flex items-center gap-3 text-right">
         <div>
-          <p className="inline-block rounded-md border border-white/10 bg-white/[0.06] px-2 py-1 font-mono text-sm font-semibold tabular-nums text-text-pri">{side} {prop.line} {formatOdds(prop.price)}</p>
+          <p className="inline-block rounded-md border border-ink/10 bg-ink/[0.06] px-2 py-1 font-mono text-sm font-semibold tabular-nums text-text-pri">{side} {prop.line} {formatOdds(prop.price)}</p>
           <p className="mt-1 text-[10px] uppercase tracking-wide text-text-sec">{prop.book ?? "Sportsbook"}</p>
         </div>
-        <PlayerName name={prop.player} league={league} focus={focusFromProp(prop)} className="text-xs font-bold text-[#59e0c8] hover:underline">Analyze →</PlayerName>
+        <PlayerName name={prop.player} league={league} focus={focusFromProp(prop)} className="text-xs font-bold text-teal-400 hover:underline">Analyze →</PlayerName>
       </div>
     </li>
   );

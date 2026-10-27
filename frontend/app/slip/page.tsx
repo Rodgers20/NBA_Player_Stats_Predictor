@@ -11,9 +11,9 @@ function SlipView() {
   const slip = decodeSlip(code);
   if (!code || !slip || !slip.legs.length) {
     return <div className="ql-panel mx-auto max-w-[460px] p-8 text-center">
-      <h2 className="text-lg font-bold text-[#eaf8f6]">This slip is empty</h2>
-      <p className="mt-2 text-sm text-[#a9bec0]">Add priced picks from Best Props, then open the slip.</p>
-      <Link href="/props" className="mt-4 inline-block text-sm font-bold text-[#59e0c8]">Explore Best Props →</Link>
+      <h2 className="text-lg font-bold text-text-pri">This slip is empty</h2>
+      <p className="mt-2 text-sm text-text-sec">Add priced picks from Best Props, then open the slip.</p>
+      <Link href="/props" className="mt-4 inline-block text-sm font-bold text-teal-400">Explore Best Props →</Link>
     </div>;
   }
   return <SlipTicket legs={slip.legs} mode={slip.mode} stake={slip.stake} code={code} />;
