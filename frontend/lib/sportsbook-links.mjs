@@ -50,9 +50,12 @@ function selection(url, bookKey) {
   return params.get('outcomes') || null;
 }
 
-/** Each book's own multi-add format: FanDuel's indexed addToBetslip, DraftKings' '+'-joined outcomes. */
+/**
+ * Each book's own multi-add format: FanDuel's indexed addToBetslip, DraftKings' '+'-joined outcomes.
+ * FanDuel reads indexed legs only on its account host (where its own shared parlays point); sportsbook.fanduel.com/addToBetslip keeps the first.
+ */
 const COMBINE = {
-  fanduel: ids => `${BOOKS.fanduel.home}addToBetslip?` + ids.map(({ market, selection }, i) =>
+  fanduel: ids => 'https://account.sportsbook.fanduel.com/sportsbook/addToBetslip?' + ids.map(({ market, selection }, i) =>
     `marketId[${i}]=${encodeURIComponent(market)}&selectionId[${i}]=${encodeURIComponent(selection)}`).join('&'),
   // ponytail: DraftKings' multi-outcome form is inferred from its single-outcome links; check it if DK adds only one leg.
   draftkings: ids => `${BOOKS.draftkings.home}?outcomes=${ids.map(encodeURIComponent).join('+')}`,

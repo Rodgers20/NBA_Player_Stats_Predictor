@@ -12,7 +12,7 @@ import { describeCorrelation } from '@/lib/slip-price.mjs';
 import { LegRow, ModeSwitch, SlipTotals, StakeInput } from './SlipParts';
 import { CorrelationSummary, KellyBox } from './SlipInsights';
 import { useSlipPrice } from './useSlipPrice';
-import { SendToBook } from './SendToBook';
+import { BookButton, SendToBook, useSendToBook } from './SendToBook';
 import { useHeadshots } from './useHeadshots';
 import { PastePicks } from './PastePicks';
 
@@ -44,6 +44,7 @@ export function FloatingSlip() {
   const parlayMode = legs.length > 1 ? mode : 'parlay';
   const priced = useSlipPrice(legs, open && parlayMode === 'parlay');
   const photos = useHeadshots(legs.map(l => l.league));
+  const send = useSendToBook(legs);
 
   // The slip's own page already shows it in full.
   if (pathname?.startsWith('/slip')) return null;
@@ -104,13 +105,14 @@ export function FloatingSlip() {
           <div className="flex flex-col gap-2 pb-3 pt-1">
             {effMode === 'parlay' && legs.length > 1 && <CorrelationSummary price={priced} independent={summarizeSlip(legs).probability} />}
             {legs.every(l => l.probability != null) && <KellyBox total={stakes.total} bankroll={bankroll} onBankroll={setBankroll} onUse={setStake} each={singles} />}
-            <SendToBook legs={legs} />
+            <SendToBook legs={legs} state={send} button={false} />
             <PastePicks leagues={legs.map(l => l.league)} />
           </div>
           </div>
           <footer className="flex flex-col gap-3 border-t border-ink/10 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
             <StakeInput stake={stake} onChange={setStake} each={singles} />
             <SlipTotals legs={legs} mode={effMode} stake={stake} />
+            <BookButton state={send} />
             {correlated && <p className="text-[11.5px] leading-snug text-lock-gold">Same-game legs can be correlated; the model chance assumes they are not.</p>}
             {stale && <p className="text-[11.5px] leading-snug text-lock-gold">This slip has a past date. Replace old selections before using it.</p>}
             <button type="button" onClick={() => void track()} disabled={!canTrack}
@@ -119,7 +121,7 @@ export function FloatingSlip() {
               Track as paper bets
             </button>
             <div className="grid grid-cols-[1fr_auto_auto] gap-2">
-              <a href={slipPath(legs, effMode, stake)} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-teal-400 px-4 text-[14px] font-bold text-bg-root hover:brightness-110">Open slip <ExternalLink className="h-4 w-4" aria-hidden /></a>
+              <a href={slipPath(legs, effMode, stake)} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border-card px-4 text-[14px] font-bold text-teal-400 hover:border-teal-400/60">Open slip <ExternalLink className="h-4 w-4" aria-hidden /></a>
               <button type="button" title="Copy for Discord" aria-label="Copy slip as text for Discord" onClick={async () => setFlash(await copySlipText(legs, effMode, stake) ? 'Copied. Paste it into Discord.' : "Couldn't copy.")}
                 className="grid min-h-11 w-11 place-items-center rounded-lg border border-border-card text-text-sec hover:border-teal-400/60 hover:text-teal-400"><ClipboardCopy className="h-[18px] w-[18px]" aria-hidden /></button>
               <button type="button" title="Save as image" aria-label="Save slip as an image" onClick={async () => {
@@ -128,7 +130,7 @@ export function FloatingSlip() {
                 setFlash(r === 'failed' ? "Couldn't make the image." : r === 'saved' ? 'Image saved.' : null);
               }} className="grid min-h-11 w-11 place-items-center rounded-lg border border-border-card text-text-sec hover:border-teal-400/60 hover:text-teal-400"><ImageDown className="h-[18px] w-[18px]" aria-hidden /></button>
             </div>
-            <p className={`min-h-4 text-center text-[12px] ${flash ? 'text-text-sec' : 'text-text-sec/70'}`} aria-live="polite">{flash ?? 'Open slip gives a page to screenshot or share. Prices are saved quotes, not a confirmed parlay offer.'}</p>
+            <p className="text-center text-[12px] text-text-sec empty:hidden" aria-live="polite">{flash}</p>
           </footer>
         </motion.section>
       </>}
