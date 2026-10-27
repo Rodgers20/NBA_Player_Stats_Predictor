@@ -44,3 +44,4 @@
 - On a phone, a scrolling tab row hides its later tabs: the user thought PRA/P+A didn't exist. Wrap the row.
 - A book's multi-leg deep link must be copied from a real shared parlay *including its host*: FanDuel reads indexed legs only on account.sportsbook.fanduel.com/sportsbook/addToBetslip.
 - The main action in a slip (send to book) goes in the always-visible footer, never inside the scroll area.
+- When a reference product's deep link works and ours doesn't, copy *every* part of theirs (host, path, state, params) before reasoning about which part matters. Gambly's FanDuel link uses the person's state site ({state}.sportsbook.fanduel.com/addToBetslip); I changed only the host twice and the user re-reported the bug twice.
