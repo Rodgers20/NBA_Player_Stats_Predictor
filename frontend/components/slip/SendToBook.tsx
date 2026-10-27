@@ -39,7 +39,7 @@ export function useSendToBook(legs: SlipLeg[]) {
   });
   const choose = (next: BookKey) => { setBook(next); try { localStorage.setItem(BOOK_KEY, next); } catch { /* not remembered */ } };
   const boards = useBoards(legs.map(l => l.league));
-  return { book, choose, name: BOOKS[book].name, total: legs.length, ...handoff(legs, boards, book) };
+  return { book, choose, boards, name: BOOKS[book].name, total: legs.length, ...handoff(legs, boards, book) };
 }
 export type SendState = ReturnType<typeof useSendToBook>;
 

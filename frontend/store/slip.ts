@@ -14,6 +14,8 @@ interface SlipState {
   added: number;
   toggle: (leg: SlipLeg) => void;
   remove: (key: string) => void;
+  /** Swap a leg for its modified copy (same player and market, so the key holds). */
+  update: (leg: SlipLeg) => void;
   clear: () => void;
   load: (legs: SlipLeg[], mode: SlipMode, stake: number | null) => void;
   setMode: (mode: SlipMode) => void;
@@ -30,6 +32,7 @@ export const useSlip = create<SlipState>()(persist((set) => ({
     return { legs, added: legs.includes(leg) ? state.added + 1 : state.added };
   }),
   remove: (key) => set(state => ({ legs: state.legs.filter(leg => legKey(leg) !== key) })),
+  update: (leg) => set(state => ({ legs: state.legs.map(item => legKey(item) === legKey(leg) ? leg : item) })),
   clear: () => set({ legs: [], open: false }),
   load: (legs, mode, stake) => set({ legs, mode, stake, open: true }),
   setMode: (mode) => set({ mode }),

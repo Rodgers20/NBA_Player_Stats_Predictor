@@ -70,7 +70,7 @@ export function ModeSwitch({ mode, onChange, legs }: { mode: SlipMode; onChange:
   return <div role="group" aria-label="Bet type" className="grid grid-cols-2 rounded-lg bg-bg-root p-[3px]">
     {(['parlay', 'singles'] as const).map(m => <button key={m} type="button" aria-pressed={mode === m} onClick={() => onChange(m)}
       className={`min-h-9 rounded-md text-[13px] font-semibold transition-colors ${mode === m ? 'bg-teal-400 text-bg-root' : 'text-text-sec hover:text-ink'}`}>
-      {m === 'parlay' ? `Parlay · ${legs} legs` : `Singles · ${legs}`}</button>)}
+      {m === 'parlay' ? `Parlay · ${legs} legs` : 'Modify'}</button>)}
   </div>;
 }
 

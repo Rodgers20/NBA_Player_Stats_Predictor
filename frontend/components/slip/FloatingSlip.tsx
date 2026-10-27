@@ -15,6 +15,8 @@ import { useSlipPrice } from './useSlipPrice';
 import { BookButton, SendToBook, useSendToBook } from './SendToBook';
 import { useHeadshots } from './useHeadshots';
 import { PastePicks } from './PastePicks';
+import { ModifyLeg } from './ModifyLeg';
+import { isTeamLeg } from '@/lib/team-legs.mjs';
 
 const EASE = [0.4, 0, 0.2, 1] as const;
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -26,7 +28,7 @@ const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_Yo
 export function FloatingSlip() {
   const pathname = usePathname();
   const reduced = useReducedMotion();
-  const { legs, mode, stake, bankroll, open, added, remove, clear, setMode, setStake, setBankroll, setOpen } = useSlip();
+  const { legs, mode, stake, bankroll, open, added, remove, update, clear, setMode, setStake, setBankroll, setOpen } = useSlip();
   const [flash, setFlash] = useState<string | null>(null);
 
   useEffect(() => {
@@ -99,6 +101,8 @@ export function FloatingSlip() {
                 <LegRow leg={l} photo={photos[l.league]?.[l.player]} index={legs.length > 1 && !singles ? i : undefined} onRemove={() => remove(legKey(l))}
                   suggested={l.probability != null ? stakes.perLeg[i] : undefined}
                   correlation={effMode === 'parlay' ? describeCorrelation(priced?.per_leg_corr.find(item => item.leg === i + 1)) : null} />
+                {singles && !isTeamLeg(l) && <ModifyLeg leg={l} book={send.name} handoff={send.legs[i]} onChange={update}
+                  prop={send.boards[l.league]?.props?.find(p => p.player === l.player && p.stat === l.stat)} />}
               </motion.div>)}
             </AnimatePresence>
           </ul>
