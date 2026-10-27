@@ -313,6 +313,7 @@ def _fetch_event_odds(event_id: str, markets: str) -> dict | None:
         "regions":   "us",
         "markets":   markets,
         "oddsFormat": "american",
+        "includeLinks": "true",   # sportsbook game and bet-slip links; free (cost is markets x regions)
     }
     resp = _get(url, params)
     if resp is None:
@@ -320,6 +321,17 @@ def _fetch_event_odds(event_id: str, markets: str) -> dict | None:
 
     _track_quota(resp)
     return resp.json()
+
+
+def _book_link(url, book_key: str) -> str | None:
+    """A provider link kept only when it is https on the book's own domain (fanduel.com for 'fanduel')."""
+    from urllib.parse import urlparse
+    if not isinstance(url, str) or not book_key:
+        return None
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    domain = f"{book_key.lower()}.com"
+    return url if parsed.scheme == "https" and (host == domain or host.endswith("." + domain)) else None
 
 
 def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=None) -> None:
@@ -356,6 +368,7 @@ def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=No
                 by_player.setdefault(player, {})[direction] = {
                     "price": outcome.get("price"),
                     "point": outcome.get("point"),
+                    "link":  _book_link(outcome.get("link") or market.get("link"), book.get("key", "")),
                 }
 
             for player, sides in by_player.items():
@@ -372,6 +385,10 @@ def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=No
                 # book quoting the same event is also kept in `books` for line shopping.
                 book_quote = {"book": book_name, "line": float(line),
                               "over_price": over.get("price"), "under_price": under.get("price")}
+                # Deepest link first when the slip hands off to this book; absent keys mean the book sent none.
+                links = {"event_link": _book_link(book.get("link"), book.get("key", "")),
+                         "over_link": over.get("link"), "under_link": under.get("link")}
+                book_quote.update({key: url for key, url in links.items() if url})
                 player_dict = out.setdefault(player, {})
                 existing = player_dict.get(stat)
                 if existing is None:

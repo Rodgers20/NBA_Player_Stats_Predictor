@@ -52,7 +52,11 @@ export interface Prop {
   matchup_grade?: 'A' | 'B' | 'C' | 'D' | 'F' | null;
 }
 
-export interface BookQuote { book: string; line: number; over_price: number | null; under_price: number | null }
+export interface BookQuote {
+  book: string; line: number; over_price: number | null; under_price: number | null;
+  /** The book's own https links, when the odds feed sent them: the game page and each side's add-to-slip link. */
+  event_link?: string; over_link?: string; under_link?: string;
+}
 export interface BestPrice { book: string; price: number; line: number }
 export interface Consensus { line: number; over_price: number | null; under_price: number | null }
 export interface HitRate { hits: number; total: number; pct: number | null }  // pushes excluded from total

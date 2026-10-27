@@ -432,3 +432,20 @@ User: "ok do the now and the next steps" (now = colour tokens; next = empty Toni
 - Players opens on the top streak card when there is no pick (Paul George, history 4 days old, instead of A.J. Lawson at 237 days).
 - Tests: 477 Python pass; one fails only before the morning odds hour (`test_live_odds_refresh`, planner refuses pre-7 AM fetches) — time-of-day dependent, not this change. 230 frontend tests, tsc, eslint clean.
 - Not done: re-pricing a live board with the new models waits for today's quotes. Players at 390px is 412px wide (hit-rate chip row), also in the pre-change build. Light theme deferred.
+
+## Send the slip to a sportsbook + paste-your-picks importer — October 27
+
+User: "are you able to view this and implement that" (ChatGPT plan: Playbook-style import → match → sportsbook handoff). Chosen scope: links + paste importer (no AI, no server); FanDuel and DraftKings first. Screenshot import deferred (needs a serverless function, an Anthropic key, per-image cost).
+
+- [x] Odds fetch asks for `includeLinks=true` (cost is markets × regions only, so free). Each book quote keeps `event_link`, `over_link`, `under_link`; only https links on the book's own domain survive.
+- [x] `lib/sportsbook-links.mjs` (pure, tested): per slip leg and chosen book → deepest link (slip > game > home) and a review status (ready / line moved / price moved / not at this book / not on board). FanDuel: one combined add-to-slip link when every leg has a slip link (format unverified until real links arrive; per-leg buttons always shown).
+- [x] Slip panel: "Send to sportsbook" with a FanDuel / DraftKings choice (remembered), the review list, and Open buttons.
+- [x] `lib/pick-import.mjs` (pure, tested): text like "Brunson o27.5 pts, Ant over 4.5 ast, SGA 30+ points" → legs. Stat and direction shorthand, initials and last names matched against tonight's board; exact / different line (user approves) / not found. Never substitutes silently.
+- [x] "Paste picks" dialog on Props and in the slip; matched legs go into the same slip.
+- [x] Tests, QA at 390/1440.
+- [ ] Deploy, Brain vault.
+
+### Review
+- 12 new frontend tests (links + importer); 242 frontend pass, tsc and eslint clean. Python: 478 pass; `test_startup_does_not_import_dash_or_fetch` fails with or without this change (refresh returns today's cached 148-prop board, the test expects 0).
+- QA at 390 and 1440 on the static snapshot: paste → exact pick pre-ticked, different line offered unticked, unknown player flagged; Send to sportsbook lists each leg. No overflow, no page errors.
+- Today's board predates `includeLinks`, so every leg opens the book's home page until the next quote refresh; the FanDuel combined-slip format is unverified until real links arrive.

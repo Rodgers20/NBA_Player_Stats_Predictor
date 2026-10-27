@@ -12,6 +12,8 @@ import { describeCorrelation } from '@/lib/slip-price.mjs';
 import { LegRow, ModeSwitch, SlipTotals, StakeInput } from './SlipParts';
 import { CorrelationSummary, KellyBox } from './SlipInsights';
 import { useSlipPrice } from './useSlipPrice';
+import { SendToBook } from './SendToBook';
+import { PastePicks } from './PastePicks';
 
 const EASE = [0.4, 0, 0.2, 1] as const;
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -100,6 +102,8 @@ export function FloatingSlip() {
           <div className="flex flex-col gap-2 pb-3 pt-1">
             {effMode === 'parlay' && legs.length > 1 && <CorrelationSummary price={priced} independent={summarizeSlip(legs).probability} />}
             {legs.every(l => l.probability != null) && <KellyBox total={stakes.total} bankroll={bankroll} onBankroll={setBankroll} onUse={setStake} each={singles} />}
+            <SendToBook legs={legs} />
+            <PastePicks leagues={legs.map(l => l.league)} />
           </div>
           </div>
           <footer className="flex flex-col gap-3 border-t border-ink/10 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">

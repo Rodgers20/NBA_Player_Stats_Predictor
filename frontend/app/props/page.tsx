@@ -12,6 +12,7 @@ import { focusFromProp } from "@/components/analysis/PlayerName";
 import { PropFilters, isLineMarket, type Filters } from "@/components/props/PropFilters";
 import { GameLinesBoard } from "@/components/props/GameLinesBoard";
 import { ParlayBuilder } from "@/components/props/ParlayBuilder";
+import { PastePicks } from "@/components/slip/PastePicks";
 import { filterMinStars, sortByEdge } from "@/lib/prop-research.mjs";
 import { searchProps, sortByWindow } from "@/lib/prop-rows.mjs";
 import { applyBoardFilters, availableBooks, availablePlayers, selectedStats } from "@/lib/prop-filters.mjs";
@@ -159,6 +160,7 @@ function PropsBoard() {
             <button key={item.key} type="button" role="tab" onClick={() => setView(item.key)} aria-selected={activeView === item.key}
               className={`shrink-0 border-b-2 px-3 py-2.5 text-xs font-bold uppercase tracking-[.08em] ${activeView === item.key ? "border-teal-400 text-teal-400" : "border-transparent text-text-sec hover:text-ink"}`}>{item.label}</button>)}
         </div>
+        <PastePicks leagues={[league]} className="ql-control mb-1 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-teal-400 hover:bg-teal-400/10" />
         {!isStatic && budget.data?.configured && (
           <button
             type="button"
