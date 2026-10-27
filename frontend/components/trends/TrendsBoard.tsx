@@ -25,10 +25,11 @@ function GameBars({ card }: { card: TrendCard }) {
   if (!values.length) return null;
   const top = Math.max(...values, card.line) * 1.12 || 1;
   const linePct = (card.line / top) * 100;
-  return <figure className="m-0" aria-label={`Last ${values.length} games, oldest to newest: ${values.join(", ")} against a ${card.line} line`}>
+  return <figure className="m-0 pr-9" aria-label={`Last ${values.length} games, oldest to newest: ${values.join(", ")} against a ${card.line} line`}>
     <div className="relative h-16">
       <div className="absolute inset-x-0 border-t border-dashed border-white/45" style={{ bottom: `${linePct}%` }} aria-hidden="true">
-        <span className="absolute -top-2.5 right-0 rounded bg-[#0f171c] px-1 font-mono text-[10px] text-white/70">{card.line}</span>
+        {/* The line's value sits in a right gutter so it never covers the latest game's bar. */}
+        <span className="absolute -right-9 -top-2 w-8 text-center font-mono text-[10px] font-semibold text-white/75">{card.line}</span>
       </div>
       <div className="flex h-full items-end gap-1" aria-hidden="true">
         {values.map((value, index) => <span key={index} title={String(value)}
@@ -38,6 +39,11 @@ function GameBars({ card }: { card: TrendCard }) {
     </div>
     <div className="mt-1 flex gap-1 font-mono text-[10px] tabular-nums text-text-sec" aria-hidden="true">
       {values.map((value, index) => <span key={index} className="flex-1 text-center">{value}</span>)}
+    </div>
+    {/* Hit or miss against the prop line, game by game: the strip people scan first. */}
+    <div className="mt-2 flex gap-1" role="img"
+      aria-label={`Against ${card.side} ${card.line}, oldest to newest: ${card.results.map(hit => hit ? "hit" : "miss").join(", ")}`}>
+      {card.results.map((hit, index) => <span key={index} className={`h-2 flex-1 rounded-full ${hit ? "bg-teal-400" : "bg-rose-400"}`} />)}
     </div>
   </figure>;
 }
