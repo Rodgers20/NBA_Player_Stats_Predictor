@@ -89,3 +89,11 @@ test('a 1st-quarter leg opens the player’s game page at the book (no 1Q odds a
   assert.deepEqual([unknown.status, unknown.depth, unknown.url], ['quarter', 'home', 'https://sportsbook.fanduel.com/']);
   assert.equal(handoff([leg('Jayson Tatum', 'PTS_1Q', 7.5, -110)], { nba: board }, 'fanduel').combined, null);
 });
+
+test('FanDuel with a state: every leg goes to that state’s site in the indexed form, exactly as Gambly’s working links do', () => {
+  const legs = [leg('Jayson Tatum', 'PTS', 27.5, -115), leg('Jaylen Brown', 'REB', 6.5, 120)];
+  assert.equal(handoff(legs, { nba: board }, 'fanduel', 'va').combined,
+    'https://va.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7&marketId[1]=42.2&selectionId[1]=11');
+  assert.equal(handoff(legs.slice(0, 1), { nba: board }, 'fanduel', 'va').combined, 'https://va.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7');
+  assert.equal(handoff(legs, { nba: board }, 'fanduel', 'evil.com/x').combined, handoff(legs, { nba: board }, 'fanduel').combined, 'an unknown state is ignored');
+});

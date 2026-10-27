@@ -5,11 +5,14 @@ import { useQueries } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatOdds, legKey, type SlipLeg } from '@/lib/bet-slip.mjs';
-import { BOOKS, handoff, type BookKey, type LegHandoff } from '@/lib/sportsbook-links.mjs';
+import { BOOKS, FANDUEL_STATES, handoff, type BookKey, type LegHandoff } from '@/lib/sportsbook-links.mjs';
 import type { PropsResponse } from '@/lib/types';
 import { statLabel } from '@/lib/team-legs.mjs';
 
 const BOOK_KEY = 'slip-book';
+const STATE_KEY = 'slip-fanduel-state';
+const remembered = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
+const remember = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* not remembered */ } };
 
 /** Tonight's full board per league, on the same cache key the Props page's builder uses. */
 export function useBoards(leagues: string[]): Record<string, PropsResponse> {
@@ -40,14 +43,17 @@ export function useSendToBook(legs: SlipLeg[]) {
     try { const saved = localStorage.getItem(BOOK_KEY); return saved && saved in BOOKS ? saved as BookKey : 'fanduel'; } catch { return 'fanduel'; }
   });
   const choose = (next: BookKey) => { setBook(next); try { localStorage.setItem(BOOK_KEY, next); } catch { /* not remembered */ } };
+  // FanDuel adds every leg only through the person's state site, so its state is asked once and remembered.
+  const [state, setState] = useState<string>(() => { const saved = remembered(STATE_KEY) ?? ''; return FANDUEL_STATES.includes(saved) ? saved : ''; });
+  const chooseState = (next: string) => { setState(next); remember(STATE_KEY, next); };
   const boards = useBoards(legs.map(l => l.league));
-  return { book, choose, boards, name: BOOKS[book].name, total: legs.length, ...handoff(legs, boards, book) };
+  return { book, choose, state, chooseState, boards, name: BOOKS[book].name, total: legs.length, ...handoff(legs, boards, book, state) };
 }
 export type SendState = ReturnType<typeof useSendToBook>;
 
 /** Book picker plus one tap that puts every linked leg in that book's bet slip, where the book builds the parlay. Disabled with the reason when no leg can go. */
 export function BookButton({ state }: { state: SendState }) {
-  const { book, choose, name, total, combined, linked, legs } = state;
+  const { book, choose, name, total, combined, linked, legs, state: fdState, chooseState } = state;
   const quarters = legs.filter(h => h.status === 'quarter').length;
   const label = total === 1 ? `Add to ${name} bet slip` : linked === total || linked === 0 ? `Add all ${total} legs to ${name}` : `Add ${linked} of ${total} legs to ${name}`;
   const cls = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 text-[15px] font-extrabold';
@@ -56,6 +62,15 @@ export function BookButton({ state }: { state: SendState }) {
       {(Object.keys(BOOKS) as BookKey[]).map(key => <button key={key} type="button" role="radio" aria-checked={book === key} onClick={() => choose(key)}
         className={`min-h-9 flex-1 rounded-md px-2.5 text-[12.5px] font-bold ${book === key ? 'bg-teal-400 text-bg-root' : 'text-text-sec hover:text-ink'}`}>{BOOKS[key].name}</button>)}
     </div>
+    {book === 'fanduel' && <label className="flex items-center gap-2 text-[12px] text-text-sec">
+      <span className="shrink-0">Your FanDuel state</span>
+      <select value={fdState} onChange={e => chooseState(e.target.value)} aria-label="FanDuel state"
+        className={`min-h-9 flex-1 rounded-md border bg-bg-root px-2 text-[13px] font-bold uppercase text-text-pri ${fdState ? 'border-border-card' : 'border-lock-gold/70'}`}>
+        <option value="">Choose…</option>
+        {FANDUEL_STATES.map(code => <option key={code} value={code}>{code.toUpperCase()}</option>)}
+      </select>
+    </label>}
+    {book === 'fanduel' && !fdState && linked > 1 && <p className="text-[11.5px] leading-snug text-lock-gold">Pick your state: FanDuel only adds every leg through your state&apos;s site.</p>}
     {combined
       ? <a href={combined} target="_blank" rel="noopener noreferrer" className={`${cls} bg-teal-400 text-bg-root hover:brightness-110`}>{label} <ExternalLink className="h-4 w-4" aria-hidden /></a>
       : <button type="button" disabled className={`${cls} cursor-not-allowed bg-ink/10 text-text-sec`}>{label}</button>}
