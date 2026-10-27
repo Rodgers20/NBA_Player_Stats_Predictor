@@ -35,7 +35,7 @@ function note(h: LegHandoff, book: string): { text: string; warn: boolean } {
 export function useSendToBook(legs: SlipLeg[]) {
   // The slip only renders once its persisted legs hydrate in the browser, so storage is readable here.
   const [book, setBook] = useState<BookKey>(() => {
-    try { const saved = localStorage.getItem(BOOK_KEY); return saved === 'draftkings' ? saved : 'fanduel'; } catch { return 'fanduel'; }
+    try { const saved = localStorage.getItem(BOOK_KEY); return saved && saved in BOOKS ? saved as BookKey : 'fanduel'; } catch { return 'fanduel'; }
   });
   const choose = (next: BookKey) => { setBook(next); try { localStorage.setItem(BOOK_KEY, next); } catch { /* not remembered */ } };
   const boards = useBoards(legs.map(l => l.league));
@@ -57,7 +57,7 @@ export function BookButton({ state }: { state: SendState }) {
       ? <a href={combined} target="_blank" rel="noopener noreferrer" className={`${cls} bg-teal-400 text-bg-root hover:brightness-110`}>{label} <ExternalLink className="h-4 w-4" aria-hidden /></a>
       : <button type="button" disabled className={`${cls} cursor-not-allowed bg-ink/10 text-text-sec`}>{label}</button>}
     {linked < total && <p className="text-[11.5px] leading-snug text-lock-gold">
-      {linked === 0 ? `${name} hasn't sent bet-slip links for these lines yet; they arrive with the next quote refresh.` : `${total - linked} ${total - linked === 1 ? 'leg has' : 'legs have'} no ${name} slip link yet.`} Use Open on each leg under Send to sportsbook.
+      {linked === 0 ? `${name} hasn't sent bet-slip links for these lines yet.` : `${total - linked} ${total - linked === 1 ? 'leg has' : 'legs have'} no ${name} slip link yet.`} Use Open on each leg under Send to sportsbook.
     </p>}
   </div>;
 }

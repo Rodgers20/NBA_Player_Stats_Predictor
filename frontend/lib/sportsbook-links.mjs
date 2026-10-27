@@ -2,6 +2,7 @@
 export const BOOKS = {
   fanduel: { name: 'FanDuel', home: 'https://sportsbook.fanduel.com/' },
   draftkings: { name: 'DraftKings', home: 'https://sportsbook.draftkings.com/' },
+  fanatics: { name: 'Fanatics', home: 'https://sportsbook.fanatics.com/' },
 };
 
 /** A link is opened only when it is https on the book's own domain; anything else is null. */
@@ -47,7 +48,7 @@ function selection(url, bookKey) {
     const market = params.get('marketId'), selection = params.get('selectionId');
     return market && selection ? { market, selection } : null;
   }
-  return params.get('outcomes') || null;
+  return bookKey === 'draftkings' ? params.get('outcomes') || null : null;
 }
 
 /**
@@ -68,7 +69,8 @@ const COMBINE = {
 export function handoff(legs, boards, bookKey) {
   const results = legs.map(leg => handoffLeg(leg, boards?.[leg.league], bookKey));
   const slips = results.filter(r => r.depth === 'slip');
-  const ids = slips.map(r => selection(r.url, bookKey)).filter(Boolean);
-  const combined = ids.length === 0 || !COMBINE[bookKey] ? null : ids.length === 1 ? slips[0].url : COMBINE[bookKey](ids);
-  return { legs: results, combined, linked: ids.length };
+  if (slips.length === 1) return { legs: results, combined: slips[0].url, linked: 1 };
+  // ponytail: Fanatics has no known multi-leg format, so several linked legs open one by one; add it to COMBINE once seen.
+  const ids = COMBINE[bookKey] ? slips.map(r => selection(r.url, bookKey)).filter(Boolean) : [];
+  return { legs: results, combined: ids.length ? COMBINE[bookKey](ids) : null, linked: ids.length };
 }

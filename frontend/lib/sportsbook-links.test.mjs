@@ -67,3 +67,17 @@ test('DraftKings: one link carries every linked outcome id', () => {
   assert.equal(linked, 2);
   assert.equal(combined, 'https://sportsbook.draftkings.com/?outcomes=0QA382972274%232337722395_13L42648Q11742021793Q20+0QA382971620%232337695081_13L42648Q12094929165Q20');
 });
+
+test('Fanatics: no quote opens its home page; a single slip link is used as is, several wait for a known parlay format', () => {
+  const none = handoff([leg('Jayson Tatum', 'PTS', 27.5, -115)], { nba: board }, 'fanatics');
+  assert.deepEqual([none.legs[0].status, none.legs[0].url, none.combined], ['book', 'https://sportsbook.fanatics.com/', null]);
+  const fx = (id) => `https://sportsbook.fanatics.com/addToBetslip?selection=${id}`;
+  const fxBoard = { props: [
+    { player: 'Jayson Tatum', stat: 'PTS', books: [{ book: 'Fanatics', line: 27.5, over_price: -115, over_link: fx(1) }] },
+    { player: 'Jaylen Brown', stat: 'REB', books: [{ book: 'Fanatics', line: 6.5, over_price: 120, over_link: fx(2) }] },
+  ] };
+  const one = handoff([leg('Jayson Tatum', 'PTS', 27.5, -115)], { nba: fxBoard }, 'fanatics');
+  assert.deepEqual([one.combined, one.linked], [fx(1), 1]);
+  const two = handoff([leg('Jayson Tatum', 'PTS', 27.5, -115), leg('Jaylen Brown', 'REB', 6.5, 120)], { nba: fxBoard }, 'fanatics');
+  assert.deepEqual([two.combined, two.linked], [null, 0]);
+});

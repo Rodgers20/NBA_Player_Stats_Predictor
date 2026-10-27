@@ -1,7 +1,7 @@
 import type { SlipLeg } from './bet-slip.mjs';
 import type { Prop } from './types';
 
-export type BookKey = 'fanduel' | 'draftkings';
+export type BookKey = 'fanduel' | 'draftkings' | 'fanatics';
 export const BOOKS: Record<BookKey, { name: string; home: string }>;
 export interface LegHandoff {
   status: 'ready' | 'price' | 'line' | 'book' | 'board';
