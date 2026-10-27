@@ -455,8 +455,14 @@ User: "are you able to view this and implement that" (ChatGPT plan: Playbook-sty
 User: "I need to have first quarter bets there as well … as a filter the analysis page and also in the props page, Have them in trends as well. In the bet slip, players needs their profile pictures". Chosen: player 1Q PTS/REB/AST/3PM, hit rates only (no 1Q odds credits). Also: spent 7 credits so tonight's first game has slip links.
 
 - [x] Slip legs show the player's photo (players.json headshots, looked up by name, so old slips get them too).
-- [ ] `scripts/refresh_q1_history.py`: stats.nba.com PlayerGameLogs period=1 (one call per season, last 2 seasons) → `data/nba/player_q1_logs.csv`; atomic write; in publish_snapshot.sh (warn-only).
-- [ ] `utils/quarter_stats.py` (pure, tested): join Q1 lines onto history as PTS_1Q/REB_1Q/AST_1Q/FG3M_1Q; a covered game the player missed in Q1 counts 0, an uncovered game stays empty.
-- [ ] API: player series carries pts_1q…; chart-data accepts the _1Q stats; `/api/trends?period=1q` builds cards from the 1Q columns; export saves trends-1q.json.
-- [ ] Analysis: Full game / 1st quarter toggle; Trends: same toggle; Props: 1st-quarter view of tonight's players (hit rates vs derived lines, labelled "no 1Q price").
-- [ ] Tests, QA 390/1440, deploy.
+- [x] `scripts/refresh_q1_history.py`: stats.nba.com PlayerGameLogs period=1 (one call per season, last 2 seasons) → `data/nba/player_q1_logs.csv`; atomic write; in publish_snapshot.sh (warn-only).
+- [x] `utils/quarter_stats.py` (pure, tested): join Q1 lines onto history as PTS_1Q/REB_1Q/AST_1Q/FG3M_1Q; a covered game the player missed in Q1 counts 0, an uncovered game stays empty.
+- [x] API: player series carries pts_1q…; chart-data accepts the _1Q stats; `/api/trends?period=1q` builds cards from the 1Q columns; export saves trends-1q.json.
+- [x] Analysis: Full game / 1st quarter toggle; Trends: same toggle; Props: 1st-quarter view of tonight's players (hit rates vs derived lines, labelled "no 1Q price").
+- [x] Tests, QA 390/1440, deploy.
+
+### Review
+- Live: Add all 3 legs builds one FanDuel addToBetslip link (marketId[0..2]/selectionId[0..2]); 3/3 slip photos; Props 1st Quarter tab and Analysis 1st quarter (Tatum, stat=PTS_1Q in the URL) render on production; no page errors.
+- 482 Python + 246 frontend tests pass; `test_startup_does_not_import_dash_or_fetch` still fails as before (pre-existing).
+- Checked a suspicious 0: Tatum 2026-03-06 really scored 0 in Q1 (stats.nba.com row), so the join is right.
+- Known: Analysis at 390px is 412px wide from the L5/L10/L20 row (pre-existing). Early season: 26 players qualify for 1Q streaks, 4 tonight. DraftKings multi-outcome link form is inferred, not yet confirmed on DK.
