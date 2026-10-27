@@ -49,7 +49,7 @@ export const api = {
     }
   },
   altLines: (league = 'nba') => STATIC ? snapshot<AltLinesResponse>(league, 'alt-lines') : get<AltLinesResponse>('/api/props/alt-lines', { league }),
-  propsRecord: () => get<PropsRecordResponse>(STATIC ? '/data/props-record.json' : '/api/props/record'),
+  propsRecord: (league = 'nba') => STATIC ? snapshot<PropsRecordResponse>(league, 'props-record') : get<PropsRecordResponse>('/api/props/record', { league }),
   predictions: (league = 'nba', gameDate?: string) => STATIC ? snapshot<GamePredictionsResponse>(league, gameDate ? `schedule/${gameDate}-predictions` : 'predictions') : get<GamePredictionsResponse>('/api/games/predictions', { league, ...(gameDate ? {game_date: gameDate} : {}) }),
   budget: (league = 'nba') => get<{ configured: boolean; daily: number; daily_limit: number; monthly: number; monthly_limit: number; remaining: number | null; message: string }>('/api/props/budget', { league }),
   refreshProps: async (league = 'nba') => {
@@ -109,11 +109,20 @@ export interface AltLinesResponse {
   target_date: string | null;
 }
 
+/** Published picks at their first price, graded the morning after; pushes are outside hit/miss/total. */
 export interface PropsRecordResponse {
   hit: number;
   miss: number;
+  pushes?: number;
   total: number;
   pct: number;
   recent_7d: number;
+  units?: number;
+  roi_pct?: number;
+  clv?: { n: number; avg_pct: number | null; beat_pct: number };
+  pending?: number;
+  since?: string | null;
   by_stat: Record<string, { hit: number; total: number; pct: number }>;
+  recent?: { date: string; player: string; stat: string; direction: string; line: number; price: number; book: string | null;
+    actual: number | null; result: "win" | "loss" | "push"; units: number; close_line: number | null; clv_pct: number | null }[];
 }

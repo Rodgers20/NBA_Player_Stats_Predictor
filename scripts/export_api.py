@@ -143,13 +143,17 @@ def export(base, out, refresh_odds=False):
             if refresh_odds:
                 result = fetch(base, f'/api/props/refresh?league={league}&fetch_odds=true', method='POST')
                 print(f'{league}: quote refresh evaluated {result.get("count", 0)} markets; {result.get("message", "")}')
-            save(root, 'props', fetch(base, f'/api/props?league={league}&direction=all&include_research=true&limit=500'))
+            board = fetch(base, f'/api/props?league={league}&direction=all&include_research=true&limit=500')
+            save(root, 'props', board)
             keep_board_if_emptied(root, out / league)
             save(root, 'defense', fetch(base, f'/api/defense?league={league}'))
             save(root, 'trends', fetch(base, f'/api/trends?league={league}&limit=400'))
             save(root, 'alt-lines', fetch(base, f'/api/props/alt-lines?league={league}'))
             games = fetch(base, f'/api/games?league={league}')
             save(root, 'games', games)
+            from utils import prop_pick_ledger
+            count = prop_pick_ledger.record_picks(league, board, games)
+            print(f'{league}: saved {count} first-published prop picks')
             slate_date = games.get('target_date') or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
             save(root, 'scheduled-players', fetch(base, f'/api/players/scheduled?league={league}&game_date={slate_date}'))
             predictions = fetch(base, f'/api/games/predictions?league={league}')
@@ -171,6 +175,9 @@ def export(base, out, refresh_odds=False):
             save(root, 'standings', fetch(base, f'/api/standings?league={league}'))
             from utils.game_forecast_ledger import grade_forecasts
             grade_forecasts(league)
+            from api.data import history
+            print(f'{league}: graded {prop_pick_ledger.grade_picks(league, history(league))} prop picks')
+            save(root, 'props-record', fetch(base, f'/api/props/record?league={league}'))
             save(root, 'performance', fetch(base, f'/api/performance?league={league}'))
             today = datetime.now(ZoneInfo('America/New_York')).date()
             dates = sorted({(today + timedelta(days=offset)).isoformat() for offset in range(-2, 4)} | {slate_date})
@@ -199,7 +206,6 @@ def export(base, out, refresh_odds=False):
                     'series': fetch(base, endpoint + f'/series?league={league}&games=200'),
                 })
             print(f'{league}: exported {len(players["players"])} players')
-        save(stage, 'props-record', fetch(base, '/api/props/record'))
         localize_headshots(stage, out)
         files = [path for path in stage.rglob('*') if path.is_file()]
         save(stage, 'manifest', {

@@ -146,12 +146,8 @@ def train_model(
         best_params = predictor.tune_hyperparameters(df, target=target)
         print(f"Best params: {best_params}")
     else:
-        # For WNBA (and any league where MIN is present), weight rows by
-        # minutes played so starter performances have more training influence
-        # than garbage-time bench rows. This directly reduces the model's
-        # regression-to-low-usage-mean bias for top-usage players.
-        weight_col = "MIN" if "MIN" in df.columns else None
-        metrics = predictor.train(df, target=target, weight_column=weight_col)
+        # No minutes weighting: minutes are an outcome of the game, and the predictor rejects outcome weights.
+        predictor.train(df, target=target)
 
     # Get feature importance
     importance_df = predictor.get_feature_importance_df()
@@ -245,7 +241,13 @@ def main():
     print("\nEngineering features...")
     # Snapshot reference tables cannot establish what was known before each game.
     # Use lagged player statistics and schedule context only.
-    df = engineer_features(data["game_logs"])
+    # Serving computes rolling features from real-season games played (api.data.played_games);
+    # training on preseason and did-not-play zeros would teach the model different numbers.
+    from api.data import played_games
+    logs = data["game_logs"]
+    played = played_games(logs)
+    print(f"Real-season games played: {len(logs)} -> {len(played)} rows")
+    df = engineer_features(played)
 
     # Filter out garbage-time / DNP-like rows so the model isn't dragged
     # toward the low-minute mean. Sample weighting further amplifies this

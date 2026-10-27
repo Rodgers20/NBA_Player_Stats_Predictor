@@ -414,3 +414,21 @@ Teardown: https://claude.ai/artifact/2qGdARAxQ5ZgmaET2qP7VV (4/10). Build order 
 ### Review
 Offline re-price of the same saved quotes: before 159/159 +EV, median +7.2%, 61 five-star; after 30 plays from 249 markets, best +8.9%, median -1.9%, no five-star. Tonight 24,909px → 2,215px. 470 Python + 230 frontend tests pass (the one REST failure predates this work); tsc and eslint clean; static build checked at 1440 and 390 with no overflow or console errors.
 Not done: a closing-line (CLV) check of the new pricing needs graded priced picks, which do not exist yet. The 40-game market weight is a reasoned prior, not a fitted value.
+
+## Colour tokens, clean retrain, pick ledger with CLV — October 27
+
+User: "ok do the now and the next steps" (now = colour tokens; next = empty Tonight, retrain, closing-line tracking). Light theme itself is deferred.
+
+- [x] Colour tokens: hard-coded hex / `white/N` in ~56 files → theme tokens (`--color-*`, new `ink`). Dark must look identical: pixel-compare screenshots before/after.
+- [x] Empty Tonight overnight: board for yesterday after midnight is expected until 7:15 refresh; Players must not open on a stale player (237 days) when there is no pick.
+- [x] Retrain PTS/REB/AST on clean history (preseason 2,006 rows + DNP 16,420 rows feed the rolling features today, while serving uses clean history). Promote only if holdout MAE is no worse.
+- [x] Pick ledger: published picks were never logged since Sep 28 (`save_daily_props` has no caller). First-published price/line/book per pick, graded next morning with result, closing line and CLV; Record view shows hit rate, ROI at taken price, average CLV, share beating the close. Legacy September record hidden.
+- [x] Tests, build, deploy, Brain vault.
+
+### Review
+- Tokens: codemod rewrote 583 colours in 54 files to tokens with identical values (11 new: ink, surfaces, text-dim/soft, track, rail). Pixel diff of 10 pages at 1440 and 390 against a pre-change build: identical except load-timing noise, which the same diff of the old build against itself also shows. Canvas slip image, theme-color meta and design-lab keep hex on purpose; Tailwind's own teal-200/300 and rose are still palette colours.
+- Retrain: the script crashed twice before training (forbidden minute weights; untuned path hits an sklearn 1.6.1 / xgboost 2.1.3 tags clash, so `--tune` as before). Same 12,154 NBA test rows with serving's clean features: PTS 4.673→4.669 MAE, bias −0.52→+0.15; REB 1.954→1.945, −0.29→−0.02; AST 1.397→1.408, −0.11→+0.05. The old models had refit on most of that window, so their numbers are flattered. WNBA: 57 rows removed; same window within 0.02 MAE, PTS bias −0.61→−0.38. Old models backed up under models/<league>/backups.
+- Ledger: `utils/prop_pick_ledger.py` (6 tests). Export records picks before tip and grades after; `/api/props/record?league=` serves it. Seeded with the 30 picks the Oct 26 board published at 18:05 ET. First grades land with the 6 AM history refresh.
+- Players opens on the top streak card when there is no pick (Paul George, history 4 days old, instead of A.J. Lawson at 237 days).
+- Tests: 477 Python pass; one fails only before the morning odds hour (`test_live_odds_refresh`, planner refuses pre-7 AM fetches) — time-of-day dependent, not this change. 230 frontend tests, tsc, eslint clean.
+- Not done: re-pricing a live board with the new models waits for today's quotes. Players at 390px is 412px wide (hit-rate chip row), also in the pre-change build. Light theme deferred.

@@ -283,9 +283,11 @@ def get_parlays(league: League = 'nba'):
 
 
 @router.get('/props/record')
-def get_record():
-    from utils.prediction_tracker import get_props_record
-    return get_props_record()
+def get_record(league: League = 'nba'):
+    """Published picks at their first price, graded with closing-line value. The pre-ledger record
+    (utils.prediction_tracker) graded an older model's unpriced lines, so it is no longer served."""
+    from utils import prop_pick_ledger
+    return prop_pick_ledger.summary(prop_pick_ledger.load(league))
 
 
 def _serialise_prop(p, quality_reason=None):

@@ -39,7 +39,7 @@ const DEFAULT_VIEW: AnalysisView = { stat: "PTS", period: 10, line: null };
 const fmt = (value: number | null | undefined) => value == null ? "—" : value.toFixed(1);
 const card = "ql-panel p-4 sm:p-5";
 // Our teal and gold washed over the site's card colour, in place of Outlier's team-colour banner.
-const HERO_BG = "radial-gradient(120% 140% at 0% 0%, rgba(89,224,200,.22) 0%, rgba(21,33,40,0) 55%), radial-gradient(120% 140% at 100% 0%, rgba(245,186,100,.14) 0%, rgba(21,33,40,0) 50%), var(--color-bg-card)";
+const HERO_BG = "radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--color-teal-400) 22%, transparent) 0%, color-mix(in srgb, var(--color-bg-card) 0%, transparent) 55%), radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--color-lock-gold) 14%, transparent) 0%, color-mix(in srgb, var(--color-bg-card) 0%, transparent) 50%), var(--color-bg-card)";
 
 function median(values: number[]) {
   if (!values.length) return null;
@@ -102,8 +102,16 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
     enabled: !linkedPlayer && !embedded, staleTime: 120_000,
   });
   const featured = tonight.data?.props.find(prop => prop.pick_type === "pick")?.player ?? tonight.data?.props[0]?.player;
+  // No board overnight or off-season: the top streak card has played in the last 14 days; names[0] sorts alphabetically
+  // and opened on a player whose last game was 237 days old.
+  const streaks = useQuery({
+    queryKey: ["trends", league], queryFn: () => api.trends(league, { limit: 400 }),
+    enabled: !linkedPlayer && !embedded && tonight.isSuccess && !featured, staleTime: 300_000,
+  });
+  const recent = streaks.data?.trends[0]?.player;
   const fallback = league === "wnba" && names.includes("A'ja Wilson") ? "A'ja Wilson" : names[0];
-  const player = chosenPlayer || linkedPlayer || (tonight.isPending && !embedded ? "" : featured || fallback) || "";
+  const waiting = !embedded && (tonight.isPending || streaks.isLoading);
+  const player = chosenPlayer || linkedPlayer || (waiting ? "" : featured || recent || fallback) || "";
   const options = (search.trim() ? names.filter(name => name.toLowerCase().includes(search.trim().toLowerCase())) : names).slice(0, 8);
   const chart = useQuery({ queryKey: ["chart", player, stat, 200, league], queryFn: () => api.playerChart(player, stat, 200, league), enabled: !!player });
   const summary = useQuery({ queryKey: ["stats", player, league], queryFn: () => api.playerStats(player, league), enabled: !!player });
@@ -147,8 +155,8 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
   const windowTitle = period === "h2h" ? `vs ${nextOpponent}` : period === "home" ? "Home games" : period === "away" ? "Away games"
     : period === "current" ? `${currentSeason} season` : period === "previous" ? `${previousSeason} season` : `Last ${games.length}`;
   const followed = followedPlayers.includes(player);
-  const accent = STAT_COLORS[stat] ?? "#59e0c8";
-  const rateColor = hitRate == null ? "#a9bec0" : hitRate >= 60 ? "var(--color-over)" : hitRate <= 40 ? "var(--color-under)" : "#f5ba64";
+  const accent = STAT_COLORS[stat] ?? "var(--color-teal-400)";
+  const rateColor = hitRate == null ? "var(--color-text-sec)" : hitRate >= 60 ? "var(--color-over)" : hitRate <= 40 ? "var(--color-under)" : "var(--color-lock-gold)";
   const seasonParts = stat.split("+").map(part => summary.data?.season_avgs[part]);
   const seasonAverage = seasonParts.length && seasonParts.every(value => value != null)
     ? seasonParts.reduce<number>((sum, value) => sum + (value ?? 0), 0) : null;
@@ -211,11 +219,11 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
           {options.length ? options.map(name => {
             const photo = players.data?.headshots?.[name];
             return <button key={name} onClick={() => choosePlayer(name)}
-              className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-text-pri hover:bg-white/5">
+              className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-text-pri hover:bg-ink/5">
               {photo
                 // eslint-disable-next-line @next/next/no-img-element -- small static headshot; next/image adds nothing here
-                ? <img src={photo} alt="" width={32} height={32} loading="lazy" className="h-8 w-8 shrink-0 rounded-full border border-white/10 bg-[#13232a] object-cover object-top" />
-                : <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-[#13232a] text-[11px] font-bold text-[#59e0c8]">{name.trim().split(/\s+/).at(-1)?.[0]}</span>}
+                ? <img src={photo} alt="" width={32} height={32} loading="lazy" className="h-8 w-8 shrink-0 rounded-full border border-ink/10 bg-surface-sunk object-cover object-top" />
+                : <span aria-hidden="true" className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-ink/10 bg-surface-sunk text-[11px] font-bold text-teal-400">{name.trim().split(/\s+/).at(-1)?.[0]}</span>}
               <span className="truncate">{name}</span>
             </button>;
           })
@@ -231,15 +239,15 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
         <div className="relative xl:self-center">
           {profile?.headshot_url && !photoFailed
             ? <Image src={profile.headshot_url} alt={player} width={88} height={88} unoptimized onError={() => setPhotoFailed(true)}
-                className="h-[88px] w-[88px] rounded-full border border-white/15 bg-[#13232a] object-cover object-top" />
+                className="h-[88px] w-[88px] rounded-full border border-ink/15 bg-surface-sunk object-cover object-top" />
             : <div className="flex h-[88px] w-[88px] items-center justify-center rounded-full border border-teal-400/30 bg-teal-400/10 text-2xl font-bold text-teal-400" aria-hidden="true">
                 {player.split(" ").map(part => part[0]).slice(0, 2).join("")}
               </div>}
-          {team && <span className="absolute -bottom-1 -right-3 rounded-full border border-white/15 bg-[#0d151b] px-2 py-0.5 text-[11px] font-bold text-teal-300">{team}</span>}
+          {team && <span className="absolute -bottom-1 -right-3 rounded-full border border-ink/15 bg-bg-root px-2 py-0.5 text-[11px] font-bold text-teal-300">{team}</span>}
         </div>
         <div className="contents xl:block xl:min-w-0">
         {matchup && <p className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm text-text-sec xl:mt-0 xl:justify-start">
-          <span className="rounded-full bg-white/10 px-2.5 py-0.5 font-bold text-text-pri">{matchup}</span>
+          <span className="rounded-full bg-ink/10 px-2.5 py-0.5 font-bold text-text-pri">{matchup}</span>
           {nextGame && <span>{tipLabel(nextGame)}</span>}
         </p>}
         <div className="mt-2 flex flex-wrap items-center justify-center gap-2 xl:justify-start">
@@ -247,7 +255,7 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
           {summary.data?.position && <span className="text-sm text-text-sec">({summary.data.position})</span>}
           <button aria-label={followed ? `Unfollow ${player}` : `Follow ${player}`} aria-pressed={followed} className="p-1"
             onClick={() => followed ? unfollowPlayer(player) : followPlayer(player)}>
-            <Star size={18} color={followed ? "#f5ba64" : "#a9bec0"} fill={followed ? "#f5ba64" : "none"} />
+            <Star size={18} color={followed ? "var(--color-lock-gold)" : "var(--color-text-sec)"} fill={followed ? "var(--color-lock-gold)" : "none"} />
           </button>
         </div>
         <p className="mt-1 text-xl font-bold text-text-sec sm:text-2xl" style={{ fontFamily: "var(--font-display)" }}>
@@ -259,10 +267,10 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
         <div className="mt-5 flex w-full flex-wrap items-center justify-between gap-3 xl:mt-0 xl:w-auto xl:flex-col xl:items-end xl:justify-center">
           {focus?.line != null
             ? <button type="button" onClick={() => selectStat(focus.stat)} aria-pressed={!!onFocusLine}
-                className={`inline-flex items-center gap-3 rounded-2xl border px-4 py-2.5 text-sm font-bold ${onFocusLine ? "border-[#59e0c8] text-text-pri" : "border-white/15 text-text-sec"} bg-black/30`}>
+                className={`inline-flex items-center gap-3 rounded-2xl border px-4 py-2.5 text-sm font-bold ${onFocusLine ? "border-teal-400 text-text-pri" : "border-ink/15 text-text-sec"} bg-black/30`}>
                 <span className="flex h-4 items-end gap-0.5" aria-hidden="true"><i className="h-2 w-1 bg-current" /><i className="h-3 w-1 bg-current" /><i className="h-4 w-1 bg-current" /></span>
                 {focus.side} {focus.line}{focus.price != null && <span className="text-text-pri">{formatOdds(focus.price)}</span>}
-                {focus.book && <span className="text-[11px] font-semibold uppercase tracking-wider text-[#f5ba64]">{focus.book}</span>}
+                {focus.book && <span className="text-[11px] font-semibold uppercase tracking-wider text-lock-gold">{focus.book}</span>}
               </button>
             : <span />}
           <div className="grid grid-cols-4 gap-4 text-left sm:gap-6">
@@ -277,11 +285,11 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
     {!player && !players.isError && <div className={card}>Loading player data…</div>}
     {player && <>
       {/* Stat tabs, Outlier style: a scrolling underline row */}
-      <nav className="mb-4 flex gap-1 overflow-x-auto border-b border-white/10" aria-label="Statistic">
+      <nav className="mb-4 flex gap-1 overflow-x-auto border-b border-ink/10" aria-label="Statistic">
         {STATS.map(([value, label]) => <button key={value} type="button" aria-pressed={stat === value} onClick={() => selectStat(value)}
           className={`relative shrink-0 px-3 pb-3 pt-1 text-sm font-bold tracking-wide transition-colors ${stat === value ? "text-text-pri" : "text-text-sec hover:text-text-pri"}`}>
           {label}
-          {stat === value && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[#59e0c8]" />}
+          {stat === value && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-teal-400" />}
         </button>)}
       </nav>
 
@@ -295,8 +303,8 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
           {allGames.length > 0 && <GameFilterPanel games={allGames} value={gameFilters} onChange={setGameFilters} matching={filteredGames.length} />}
           <section className="ql-panel overflow-hidden">
             <div className="px-4 pt-5 sm:px-6">
-              <h2 className="flex items-center gap-2 text-lg font-bold text-text-pri"><Percent size={18} className="text-[#59e0c8]" aria-hidden="true" />{player} · {STAT_NAMES[stat] ?? stat}</h2>
-              <div className="mt-4 flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-4">
+              <h2 className="flex items-center gap-2 text-lg font-bold text-text-pri"><Percent size={18} className="text-teal-400" aria-hidden="true" />{player} · {STAT_NAMES[stat] ?? stat}</h2>
+              <div className="mt-4 flex flex-wrap items-end justify-between gap-4 border-b border-ink/10 pb-4">
                 <div>
                   <p className="text-sm font-semibold text-text-pri">{windowTitle}</p>
                   <p className="mt-0.5 flex items-baseline gap-2">
@@ -320,8 +328,8 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
                 </label>
               </div>
             </div>
-            <div className="border-t border-white/10 px-2 pb-4 pt-3 sm:px-4">
-              {chart.isPending && <div className="h-72 animate-pulse rounded-xl bg-white/5" />}
+            <div className="border-t border-ink/10 px-2 pb-4 pt-3 sm:px-4">
+              {chart.isPending && <div className="h-72 animate-pulse rounded-xl bg-ink/5" />}
               {chart.isError && <p role="alert" className="p-4 text-sm text-red-300">Game history is unavailable. <button className="underline" onClick={() => void chart.refetch()}>Try again</button></p>}
               {!chart.isPending && chart.data && games.length === 0 && <p className="py-12 text-center text-sm text-text-sec">{allGames.length > 0 ? "No games match these filters. Loosen or reset them." : "No completed games are available for this player."}</p>}
               {games.length > 0 && <div className="overflow-x-auto"><PlayerBarChart games={chartGames} stat={stat} line={threshold} side={side} height={320} /></div>}
@@ -334,18 +342,18 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
 
           {insight && <section className={card}>
             <h2 className="text-lg font-bold text-text-pri">Insights</h2>
-            <p className="mt-3 rounded-2xl border border-white/10 bg-white/[.03] p-4 text-base font-semibold text-text-pri">{insight}</p>
+            <p className="mt-3 rounded-2xl border border-ink/10 bg-ink/[.03] p-4 text-base font-semibold text-text-pri">{insight}</p>
           </section>}
 
           <section className={`${card} border-l-[3px] border-l-teal-400`}>
             <p className="ql-kicker">MODEL OUTLOOK</p>
             <h2 className="ql-section-title mt-1">{profile?.projection_context ? "Next Game Prediction" : "Model Projection"}</h2>
             {summary.data?.projections && Object.keys(summary.data.projections).length > 0
-              ? <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-white/10 bg-white/10 sm:grid-cols-3">{Object.entries(summary.data.projections).map(([key, value]) => <div key={key} className="bg-[#152128] p-3">
+              ? <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-ink/10 bg-ink/10 sm:grid-cols-3">{Object.entries(summary.data.projections).map(([key, value]) => <div key={key} className="bg-bg-card p-3">
                   <p className="text-2xl font-bold tabular-nums text-teal-400">{fmt(value)}</p><p className="ql-data-label mt-1">{key}</p>
                 </div>)}</div>
               : <p className="mt-3 text-sm text-text-sec">No model projection is available.</p>}
-            <p className="mt-4 border-t border-white/10 pt-3 text-xs text-text-sec">{summary.data?.projection_message || "Matchup context is unavailable."}</p>
+            <p className="mt-4 border-t border-ink/10 pt-3 text-xs text-text-sec">{summary.data?.projection_message || "Matchup context is unavailable."}</p>
           </section>
 
           {games.length > 0 && <PlayerPropLines key={`${player}:${stat}`} league={league} player={player} stat={stat}
@@ -361,9 +369,9 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
             <p className="mb-4 mt-1 text-xs text-text-sec">Season averages vs. recent five-game form · Select a stat to update the chart</p>
             {summary.isError && <p role="alert" className="text-sm text-red-300">Player summary is unavailable.</p>}
             {summary.data && <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-              {(["PTS", "REB", "AST", "FG3M", "STL", "BLK"] as const).map(key => <button key={key} type="button" aria-pressed={stat === key} onClick={() => selectStat(key)} className={`ql-metric border bg-white/[.025] p-3 text-left hover:border-teal-400/40 ${stat === key ? "border-teal-400/50" : "border-white/10"}`}>
+              {(["PTS", "REB", "AST", "FG3M", "STL", "BLK"] as const).map(key => <button key={key} type="button" aria-pressed={stat === key} onClick={() => selectStat(key)} className={`ql-metric border bg-ink/[.025] p-3 text-left hover:border-teal-400/40 ${stat === key ? "border-teal-400/50" : "border-ink/10"}`}>
                 <p className="ql-data-label">{key === "FG3M" ? "3PM" : key} / GAME</p>
-                <p className="mt-2 text-xl font-bold tabular-nums" style={{ color: STAT_COLORS[key] ?? "#59e0c8" }}>{fmt(summary.data?.season_avgs[key])}</p>
+                <p className="mt-2 text-xl font-bold tabular-nums" style={{ color: STAT_COLORS[key] ?? "var(--color-teal-400)" }}>{fmt(summary.data?.season_avgs[key])}</p>
                 <p className="mt-1 text-xs tabular-nums text-text-sec">L5 {fmt(summary.data?.l5_avgs[key])}</p>
               </button>)}
             </div>}
@@ -388,8 +396,8 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
                 return <div key={key}>
                   <div className="mb-2 flex justify-between text-xs"><span className="font-semibold text-text-pri">{key === "FG3M" ? "3PM" : key}</span><span className="text-text-sec">Season {fmt(season)} · L5 {fmt(recent)}</span></div>
                   <div className="space-y-1.5" role="img" aria-label={`${key}: season ${fmt(season)}, last 5 ${fmt(recent)}`}>
-                    <div className="h-2 bg-white/5"><div className="h-2 bg-slate-500" style={{ width: `${season / maximum * 100}%` }} /></div>
-                    <div className="h-2 bg-white/5"><div className="h-2" style={{ width: `${recent / maximum * 100}%`, background: STAT_COLORS[key] ?? "#59e0c8" }} /></div>
+                    <div className="h-2 bg-ink/5"><div className="h-2 bg-slate-500" style={{ width: `${season / maximum * 100}%` }} /></div>
+                    <div className="h-2 bg-ink/5"><div className="h-2" style={{ width: `${recent / maximum * 100}%`, background: STAT_COLORS[key] ?? "var(--color-teal-400)" }} /></div>
                   </div>
                 </div>;
               })}
@@ -403,7 +411,7 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
           <div className="ql-panel grid grid-cols-3 gap-1 p-1" role="tablist" aria-label="Context">
             {([["matchup", "Matchup"], ["availability", "Availability"], ["log", "Game log"]] as const).map(([key, label]) =>
               <button key={key} type="button" role="tab" aria-selected={sidePanel === key} onClick={() => setSidePanel(key)}
-                className={`rounded-md px-2 py-2 text-xs font-bold transition-colors ${sidePanel === key ? "bg-[#59e0c8]/15 text-text-pri" : "text-text-sec hover:text-text-pri"}`}>{label}</button>)}
+                className={`rounded-md px-2 py-2 text-xs font-bold transition-colors ${sidePanel === key ? "bg-teal-400/15 text-text-pri" : "text-text-sec hover:text-text-pri"}`}>{label}</button>)}
           </div>
           {sidePanel === "matchup" && <section className={card} role="tabpanel">
             <p className="ql-kicker">NEXT MATCHUP</p>
@@ -425,7 +433,7 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
               <div><p className="ql-kicker">GAME LOG</p><h2 className="ql-section-title mt-1">Bet History</h2></div>
               <span className="ql-data-label">AVG {fmt(historyAverage)} {stat}</span>
             </div>
-            {lastTen.length ? <div className="divide-y divide-white/10">{lastTen.map((game, index) => {
+            {lastTen.length ? <div className="divide-y divide-ink/10">{lastTen.map((game, index) => {
               const over = game.value != null && historyAverage != null && game.value >= historyAverage;
               return <div key={`${game.date}-${index}`} className="flex items-center justify-between gap-3 py-2.5 text-xs">
                 <span className="font-mono text-text-sec">{game.date.slice(5)} · {game.opponent.split(" ").at(-1)}</span>

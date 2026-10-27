@@ -63,8 +63,10 @@ def test_supporting_props_sections_are_available_without_fake_bet_claims(monkeyp
             dict(team='LAL', player='Player A', stat='PTS', stat_label='Points',
                  threshold=20, trend='5/L5', price=-110, ev=.2)
         ]})
-    from utils import prediction_tracker
-    monkeypatch.setattr(prediction_tracker, 'get_props_record', lambda: {'hit': 4, 'total': 5, 'pct': 80})
+    from utils import prop_pick_ledger
+    graded = [dict(date='2026-10-01', stat='PTS', result='win' if i < 4 else 'loss', units=1 if i < 4 else -1, clv_pct=None)
+              for i in range(5)]
+    monkeypatch.setattr(prop_pick_ledger, 'load', lambda league: {'league': league, 'picks': graded})
 
     alt = client.get('/api/props/alt-lines').json()
     assert alt['count'] == 1 and alt['recommendation_eligible'] is False
