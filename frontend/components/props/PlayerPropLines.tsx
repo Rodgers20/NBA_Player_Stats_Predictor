@@ -80,7 +80,7 @@ export function PlayerPropLines({ league, player, stat, statLabel, stats: market
     <p className="mb-4 mt-1 text-xs text-text-sec">Set a line to see how often {player} cleared it over the games selected above, then add Over or Under to your bet slip. Bars are games, oldest first.</p>
 
     {valid.length === 0 ? <p className="py-10 text-center text-sm text-text-sec">No completed games to measure a line against.</p>
-    : <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+    : <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
       <div className="space-y-3">
         <div className="border border-ink/10 bg-ink/[.025] p-4">
           <p className="ql-data-label">LINE · {statLabel}</p>

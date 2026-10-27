@@ -25,13 +25,13 @@ import { MinutesBars } from "@/components/analysis/MinutesBars";
 import { scopeLabel, streakInsight } from "@/lib/insights.mjs";
 import { tipLabel } from "@/components/games/MatchupCards";
 
+/** One row: full-game stats, first-quarter stats (1Q …: the same chart on the player's first quarters), then combos. */
 export const STATS = [
-  ["PTS", "PTS"], ["AST", "AST"], ["REB", "REB"], ["FG3M", "3PM"],
-  ["BLK", "BLK"], ["STL", "STL"], ["PTS+AST", "P+A"],
-  ["PTS+REB", "P+R"], ["REB+AST", "A+R"], ["PTS+REB+AST", "PRA"], ["STL+BLK", "S+B"],
+  ["PTS", "PTS"], ["REB", "REB"], ["AST", "AST"], ["FG3M", "3PM"],
+  ["PTS_1Q", "1Q PTS"], ["REB_1Q", "1Q REB"], ["AST_1Q", "1Q AST"],
+  ["PTS+REB+AST", "PRA"], ["PTS+REB", "P+R"], ["PTS+AST", "P+A"], ["REB+AST", "R+A"],
+  ["BLK", "BLK"], ["STL", "STL"], ["STL+BLK", "S+B"],
 ] as const;
-/** First-quarter tabs: the same chart, hit rates and line slider, on the player's first quarters. */
-const Q1_TABS = [["PTS_1Q", "PTS"], ["REB_1Q", "REB"], ["AST_1Q", "AST"], ["FG3M_1Q", "3PM"]] as const;
 const isQuarter = (stat: string) => stat.endsWith("_1Q");
 const STAT_NAMES: Record<string, string> = {
   PTS_1Q: "1st-Quarter Points", REB_1Q: "1st-Quarter Rebounds", AST_1Q: "1st-Quarter Assists", FG3M_1Q: "1st-Quarter 3-Pointers",
@@ -89,7 +89,7 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
   // On the page, stat, window and line come from the URL so a view can be shared; in the sheet they come from the prop.
   const initial = embedded ? { ...DEFAULT_VIEW, stat: focus?.stat ?? "PTS", line: focus?.line ?? null } : parseAnalysisView(params.toString(), DEFAULT_VIEW);
   const [stat, setStat] = useState(initial.stat);
-  const statTabs: readonly (readonly [string, string])[] = isQuarter(stat) ? Q1_TABS : STATS;
+  const statTabs: readonly (readonly [string, string])[] = STATS;
   const [periodChoice, setPeriod] = useState<WindowKey>(initial.period);
   const [side, setSide] = useState<"Over" | "Under">(focus?.side ?? "Over");
   const syncTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -187,12 +187,6 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
     const line = focus && value === focus.stat ? focus.line : null;
     setStat(value); setThresholdOverride(line); sync({ stat: value, line });
   }
-  /** Full game ↔ first quarter keeps the stat when both have it (PTS ↔ PTS_1Q), else starts on points. */
-  function selectGamePeriod(quarter: boolean) {
-    if (quarter === isQuarter(stat)) return;
-    const base = stat.replace(/_1Q$/, "");
-    selectStat(quarter ? (Q1_TABS.some(([value]) => value === `${base}_1Q`) ? `${base}_1Q` : "PTS_1Q") : base);
-  }
   function selectPeriod(value: WindowKey) { setPeriod(value); sync({ period: value }); }
   function changeThreshold(value: number) {
     setThresholdOverride(value);
@@ -275,7 +269,7 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
         {profile?.injury_status && !["ACTIVE", "UNKNOWN"].includes(profile.injury_status.toUpperCase()) &&
           <span className="ql-chip mt-3 border-amber-400/30 bg-amber-400/10 text-amber-300">{profile.injury_status}{profile.injury_reason ? ` · ${profile.injury_reason}` : ""}</span>}
         </div>
-        <div className="mt-5 flex w-full flex-wrap items-center justify-between gap-3 xl:mt-0 xl:w-auto xl:flex-col xl:items-end xl:justify-center">
+        <div className="mt-5 flex w-full flex-wrap items-center justify-center gap-4 xl:mt-0 xl:w-auto xl:flex-col xl:items-end">
           {focus?.line != null
             ? <button type="button" onClick={() => selectStat(focus.stat)} aria-pressed={!!onFocusLine}
                 className={`inline-flex items-center gap-3 rounded-2xl border px-4 py-2.5 text-sm font-bold ${onFocusLine ? "border-teal-400 text-text-pri" : "border-ink/15 text-text-sec"} bg-black/30`}>
@@ -283,8 +277,8 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
                 {focus.side} {focus.line}{focus.price != null && <span className="text-text-pri">{formatOdds(focus.price)}</span>}
                 {focus.book && <span className="text-[11px] font-semibold uppercase tracking-wider text-lock-gold">{focus.book}</span>}
               </button>
-            : <span />}
-          <div className="grid grid-cols-4 gap-4 text-left sm:gap-6">
+            : null}
+          <div className="grid grid-cols-4 gap-4 text-center sm:gap-6 xl:text-left">
             {(["PTS", "REB", "AST"] as const).map(key => <div key={key}><span className="ql-data-label">{key}</span><strong className="block text-lg font-bold tabular-nums text-text-pri">{fmt(summary.data?.season_avgs[key])}</strong></div>)}
             <div><span className="ql-data-label">FG%</span><strong className="block text-lg font-bold tabular-nums text-text-pri">{fmt(profile?.fg_pct)}</strong></div>
           </div>
@@ -295,19 +289,15 @@ export function PlayerAnalysis({ linkedPlayer, league, focus, embedded = false }
     {players.isError && <p role="alert" className="mb-4 rounded-xl border border-red-400/20 bg-red-400/10 p-4 text-sm text-red-300">Player list is unavailable. Try reloading the page.</p>}
     {!player && !players.isError && <div className={card}>Loading player data…</div>}
     {player && <>
-      {/* Stat tabs, Outlier style: a scrolling underline row */}
-      <div className="mb-3 flex gap-1.5" role="group" aria-label="Game period">
-        {([[false, "Full game"], [true, "1st quarter"]] as const).map(([quarter, label]) => <button key={label} type="button" aria-pressed={isQuarter(stat) === quarter}
-          onClick={() => selectGamePeriod(quarter)} className={`ql-chip shrink-0 ${isQuarter(stat) === quarter ? "ql-chip-active" : ""}`}>{label}</button>)}
-      </div>
-      {isQuarter(stat) && <p className="mb-3 text-xs text-text-sec">First quarters only (this season and last). Books&apos; 1Q lines aren&apos;t bought yet: set the line to your sportsbook&apos;s.</p>}
-      <nav className="mb-4 flex gap-1 overflow-x-auto border-b border-ink/10" aria-label="Statistic">
+      {/* Stat tabs, Outlier style: an underline row that wraps so every market shows on a phone */}
+      <nav className="mb-4 flex flex-wrap gap-x-1 border-b border-ink/10" aria-label="Statistic">
         {statTabs.map(([value, label]) => <button key={value} type="button" aria-pressed={stat === value} onClick={() => selectStat(value)}
           className={`relative shrink-0 px-3 pb-3 pt-1 text-sm font-bold tracking-wide transition-colors ${stat === value ? "text-text-pri" : "text-text-sec hover:text-text-pri"}`}>
           {label}
           {stat === value && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-teal-400" />}
         </button>)}
       </nav>
+      {isQuarter(stat) && <p className="-mt-2 mb-3 text-xs text-text-sec">First quarters only (this season and last). Books&apos; 1Q lines aren&apos;t bought yet: set the line to your sportsbook&apos;s.</p>}
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <WindowChips counts={counts} value={period} labels={windowLabels} onSelect={selectPeriod}
