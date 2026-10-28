@@ -65,16 +65,14 @@ function selection(url, bookKey) {
 
 /**
  * Each book's own multi-add format: FanDuel's indexed addToBetslip, DraftKings' '+'-joined outcomes.
- * FanDuel adds every leg when the link goes to the person's state site (va.sportsbook.fanduel.com/addToBetslip, as
- * Gambly's working links do); the stateless hosts lose all but the first on the way to a state, so they are only a fallback.
+ * FanDuel adds every leg when the link goes to the site of the state the person is in (co.sportsbook.fanduel.com/addToBetslip,
+ * checked on a phone in Colorado: 2 of 2 legs, with or without shareBetId); another state's site adds nothing, so the
+ * stateless account host is only a fallback until a state is picked.
  */
-const FANDUEL_SHARE_ID = 'partner_courtvision';
 const fanduelHost = state => (FANDUEL_STATES.includes(state) ? `https://${state}.sportsbook.fanduel.com/addToBetslip?` : 'https://account.sportsbook.fanduel.com/sportsbook/addToBetslip?');
 const COMBINE = {
-  // Every FanDuel link that adds several legs carries shareBetId (its own shares, Gambly's, Outlier's); without it the
-  // legs are read as single adds and only the last one stays. Ours names this site, never another partner.
   fanduel: (ids, state) => fanduelHost(state) + ids.map(({ market, selection }, i) =>
-    `marketId[${i}]=${encodeURIComponent(market)}&selectionId[${i}]=${encodeURIComponent(selection)}`).join('&') + `&shareBetId=${FANDUEL_SHARE_ID}`,
+    `marketId[${i}]=${encodeURIComponent(market)}&selectionId[${i}]=${encodeURIComponent(selection)}`).join('&'),
   // ponytail: DraftKings' multi-outcome form is inferred from its single-outcome links; check it if DK adds only one leg.
   draftkings: ids => `${BOOKS.draftkings.home}?outcomes=${ids.map(encodeURIComponent).join('+')}`,
 };

@@ -63,14 +63,14 @@ export function BookButton({ state }: { state: SendState }) {
         className={`min-h-9 flex-1 rounded-md px-2.5 text-[12.5px] font-bold ${book === key ? 'bg-teal-400 text-bg-root' : 'text-text-sec hover:text-ink'}`}>{BOOKS[key].name}</button>)}
     </div>
     {book === 'fanduel' && <label className="flex items-center gap-2 text-[12px] text-text-sec">
-      <span className="shrink-0">Your FanDuel state</span>
+      <span className="shrink-0">State you’re in</span>
       <select value={fdState} onChange={e => chooseState(e.target.value)} aria-label="FanDuel state"
         className={`min-h-9 flex-1 rounded-md border bg-bg-root px-2 text-[13px] font-bold uppercase text-text-pri ${fdState ? 'border-border-card' : 'border-lock-gold/70'}`}>
         <option value="">Choose…</option>
         {FANDUEL_STATES.map(code => <option key={code} value={code}>{code.toUpperCase()}</option>)}
       </select>
     </label>}
-    {book === 'fanduel' && !fdState && linked > 1 && <p className="text-[11.5px] leading-snug text-lock-gold">Pick your state: FanDuel only adds every leg through your state&apos;s site.</p>}
+    {book === 'fanduel' && !fdState && linked > 1 && <p className="text-[11.5px] leading-snug text-lock-gold">Pick the state you’re in right now: FanDuel only adds every leg through that state’s site.</p>}
     {combined
       ? <a href={combined} target="_blank" rel="noopener noreferrer" className={`${cls} bg-teal-400 text-bg-root hover:brightness-110`}>{label} <ExternalLink className="h-4 w-4" aria-hidden /></a>
       : <button type="button" disabled className={`${cls} cursor-not-allowed bg-ink/10 text-text-sec`}>{label}</button>}
