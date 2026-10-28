@@ -1,6 +1,7 @@
 import type { TeamsResponse } from './team-types';
 import type { StandingsResponse } from './standings-types';
 import type { BoxScore } from './boxscore-types';
+import type { QuarterQuote } from './sportsbook-links.mjs';
 import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse, HighlightsResponse, ScheduleIndex, PerformanceResponse, LineHistory, DefenseRankings, TrendsResponse, MatchupResponse } from "./types";
 import { playerKey, filterProps, seriesChart, scheduledPlayersSnapshot, filterDefense, filterTrends } from './snapshot.mjs';
 
@@ -66,6 +67,7 @@ export const api = {
   performance: (league = 'nba') => STATIC ? snapshot<PerformanceResponse>(league, 'performance') : get<PerformanceResponse>('/api/performance', {league}),
   standings: (league = 'nba') => STATIC ? snapshot<StandingsResponse>(league, 'standings') : get<StandingsResponse>('/api/standings', {league}),
   boxscore: (league: string, gameId: string) => STATIC ? snapshot<BoxScore>(league, `boxscore/${gameId}`) : get<BoxScore>(`/api/games/${encodeURIComponent(gameId)}/boxscore`, {league}),
+  q1Odds: (league = 'nba') => STATIC ? snapshot<{ league: string; quotes: QuarterQuote[] }>(league, 'q1-odds') : get<{ league: string; quotes: QuarterQuote[] }>('/api/props/q1-odds', {league}),
   highlights: (league = 'nba') => STATIC ? snapshot<HighlightsResponse>(league, 'highlights') : get<HighlightsResponse>('/api/highlights', {league}),
   scheduleIndex: (league = 'nba') => STATIC ? snapshot<ScheduleIndex>(league, 'schedule-index') : Promise.resolve(null),
   refreshGameLines: async (league: 'nba' | 'wnba') => {

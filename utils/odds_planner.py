@@ -124,6 +124,17 @@ def manual_refresh(league, now=None):
     return refresh(league, games, target, markets)
 
 
+def q1_refresh(now=None):
+    """First-quarter markets for today's NBA slate (its first games; see odds_fetcher.get_q1_odds), after MORNING_HOUR.
+    Never for tomorrow's slate: books post 1Q lines late, and an early look would spend one of each game's two tries."""
+    now = now or datetime.now(timezone.utc)
+    found = upcoming('nba')
+    if not found or event_date(found[0]) != today(now) or now.astimezone(ET).hour < MORNING_HOUR:
+        return {}
+    from utils import odds_fetcher
+    return odds_fetcher.get_q1_odds(today(now))
+
+
 # ── Scheduler ───────────────────────────────────────────────────────────────
 
 def _runs(day):

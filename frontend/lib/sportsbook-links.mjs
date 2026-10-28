@@ -32,8 +32,8 @@ const bookKeyOf = name => String(name ?? '').toLowerCase().replace(/[^a-z]/g, ''
  */
 export function handoffLeg(leg, board, bookKey) {
   const home = BOOKS[bookKey]?.home ?? null;
-  if (isQuarterLeg(leg)) {
-    // No 1Q odds are bought, so there is no selection to add: open the game the player's full-game quotes point at.
+  if (isQuarterLeg(leg) && !board?.props?.some(p => p.player === leg.player && p.stat === leg.stat)) {
+    // No 1Q quote was bought for this player, so there is no selection to add: open the game their full-game quotes point at.
     const game = board?.props?.filter(p => p.player === leg.player).flatMap(p => p.books ?? [])
       .filter(b => bookKeyOf(b.book) === bookKey).map(b => safeBookUrl(b.event_link, bookKey)).find(Boolean);
     return { status: 'quarter', depth: game ? 'game' : 'home', url: game ?? home, line: null, price: null };
@@ -51,6 +51,16 @@ export function handoffLeg(leg, board, bookKey) {
 
   const slip = safeBookUrl(under ? quote.under_link : quote.over_link, bookKey);
   return { status: price === leg.price ? 'ready' : 'price', ...(slip ? { depth: 'slip', url: slip } : fallback), line: quote.line, price };
+}
+
+/**
+ * A copy of tonight's board with the bought 1st-quarter quotes as props, so 1Q slip legs hand off (and reprice in
+ * Modify) exactly like full-game legs. They carry no model chance: 1Q has no model.
+ */
+export function boardWithQuarterQuotes(board, quotes) {
+  const extra = (quotes ?? []).map(q => ({ player: q.player, stat: q.stat, line: q.line, books: q.books ?? [], direction: 'Over',
+    model_prob: null, game_matchup: q.game_matchup }));
+  return { ...(board ?? {}), props: [...(board?.props ?? []), ...extra] };
 }
 
 /** The selection ids inside a book's add-to-slip link, or null when the link is not one. */

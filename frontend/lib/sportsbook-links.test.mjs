@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { handoff, handoffLeg, safeBookUrl } from './sportsbook-links.mjs';
+import { boardWithQuarterQuotes, handoff, handoffLeg, safeBookUrl } from './sportsbook-links.mjs';
 
 const FD_GAME = 'https://sportsbook.fanduel.com/basketball/nba/heat-@-celtics-1';
 const fdSlip = (market, selection) => `https://sportsbook.fanduel.com/addToBetslip?marketId=${market}&selectionId=${selection}`;
@@ -96,4 +96,18 @@ test('FanDuel with a state: every leg goes to that state’s site in the indexed
     'https://va.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7&marketId[1]=42.2&selectionId[1]=11');
   assert.equal(handoff(legs.slice(0, 1), { nba: board }, 'fanduel', 'va').combined, 'https://va.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7');
   assert.equal(handoff(legs, { nba: board }, 'fanduel', 'evil.com/x').combined, handoff(legs, { nba: board }, 'fanduel').combined, 'an unknown state is ignored');
+});
+
+test('bought 1st-quarter quotes put 1Q legs in the slip link at the book’s 1Q line', () => {
+  const q1 = [{ player: 'Jayson Tatum', stat: 'PTS_1Q', line: 7.5, game_matchup: 'MIA @ BOS',
+    books: [{ book: 'FanDuel', line: 7.5, over_price: -120, under_price: -110, event_link: FD_GAME, over_link: fdSlip('42.7', '70') }] }];
+  const merged = boardWithQuarterQuotes(board, q1);
+  assert.equal(board.props.length, 3, 'the board itself is untouched');
+  const at = handoffLeg(leg('Jayson Tatum', 'PTS_1Q', 7.5, -120), merged, 'fanduel');
+  assert.deepEqual([at.status, at.depth, at.url], ['ready', 'slip', fdSlip('42.7', '70')]);
+  const off = handoffLeg(leg('Jayson Tatum', 'PTS_1Q', 5.5, -110), merged, 'fanduel');
+  assert.deepEqual([off.status, off.depth, off.line], ['line', 'game', 7.5]);
+  const all = handoff([leg('Jayson Tatum', 'PTS_1Q', 7.5, -120), leg('Jaylen Brown', 'REB', 6.5, 120)], { nba: merged }, 'fanduel', 'co');
+  assert.equal(all.combined, 'https://co.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.7&selectionId[0]=70&marketId[1]=42.2&selectionId[1]=11');
+  assert.equal(boardWithQuarterQuotes(undefined, q1).props.length, 1);
 });

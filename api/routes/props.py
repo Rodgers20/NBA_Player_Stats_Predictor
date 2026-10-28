@@ -366,6 +366,26 @@ def get_defense(league: League = 'nba', stat: Literal['PTS', 'REB', 'AST'] | Non
 _evaluated_cache = {}
 
 
+@router.get('/props/q1-odds')
+def get_q1_odds(league: League = 'nba'):
+    """Saved first-quarter quotes for games that have not started: real 1Q prices and bet-slip links for slip legs."""
+    from datetime import timezone
+    from utils import odds_store
+    from utils.odds_fetcher import Q1_STORE
+    if league != 'nba':
+        return dict(league=league, quotes=[])
+    now = datetime.now(timezone.utc)
+    def unstarted(quote):
+        try:
+            return datetime.fromisoformat(str(quote.get('commence_time')).replace('Z', '+00:00')) > now
+        except ValueError:
+            return False
+    quotes = [dict(player=player, stat=stat, line=quote.get('line'), books=quote.get('books', []),
+                   game_matchup=quote.get('game_matchup'), commence_time=quote.get('commence_time'))
+              for player, markets in odds_store.load(Q1_STORE).items() for stat, quote in markets.items() if unstarted(quote)]
+    return dict(league=league, quotes=quotes)
+
+
 @router.post('/props/refresh')
 def refresh_props(league: League = 'nba', fetch_odds: bool = False):
     """Evaluate cache, optionally buying up to six credits on explicit request."""
@@ -378,6 +398,8 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
     if fetch_odds:
         from utils import odds_planner
         odds_planner.manual_refresh(league)
+        if league == 'nba':
+            odds_planner.q1_refresh()
     quotes = _cached_quotes(league)
     target = slate_date(league)
     output, skipped = [], []

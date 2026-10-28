@@ -5,7 +5,7 @@ import { useQueries } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatOdds, legKey, type SlipLeg } from '@/lib/bet-slip.mjs';
-import { BOOKS, FANDUEL_STATES, handoff, type BookKey, type LegHandoff } from '@/lib/sportsbook-links.mjs';
+import { BOOKS, FANDUEL_STATES, boardWithQuarterQuotes, handoff, type BookKey, type LegHandoff } from '@/lib/sportsbook-links.mjs';
 import type { PropsResponse } from '@/lib/types';
 import { statLabel } from '@/lib/team-legs.mjs';
 
@@ -14,14 +14,16 @@ const STATE_KEY = 'slip-fanduel-state';
 const remembered = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
 const remember = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* not remembered */ } };
 
-/** Tonight's full board per league, on the same cache key the Props page's builder uses. */
+/** Tonight's full board per league (same cache key as the Props page's builder), plus any bought 1st-quarter quotes. */
 export function useBoards(leagues: string[]): Record<string, PropsResponse> {
   const unique = [...new Set(leagues)];
   const results = useQueries({ queries: unique.map(league => {
     const params = { league, include_research: true, limit: 500 };
     return { queryKey: ['props', params], queryFn: () => api.props(params), staleTime: 60_000 };
   }) });
-  return Object.fromEntries(unique.flatMap((league, i) => (results[i]?.data ? [[league, results[i].data]] : [])));
+  // A missing 1Q file (none bought yet) just means 1Q legs open the game page.
+  const quarters = useQueries({ queries: unique.map(league => ({ queryKey: ['q1-odds', league], queryFn: () => api.q1Odds(league).catch(() => null), staleTime: 60_000 })) });
+  return Object.fromEntries(unique.flatMap((league, i) => (results[i]?.data ? [[league, boardWithQuarterQuotes(results[i].data, quarters[i]?.data?.quotes)]] : [])));
 }
 
 function note(h: LegHandoff, book: string): { text: string; warn: boolean } {

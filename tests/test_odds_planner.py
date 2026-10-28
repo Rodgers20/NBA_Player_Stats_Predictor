@@ -126,3 +126,18 @@ def test_scheduled_refresh_waits_for_props_to_be_posted_before_buying_today(monk
     assert calls == []
     planner.manual_refresh('nba', now=datetime(2026, 10, 24, 9, 5, tzinfo=et))   # 9 a.m. run buys every game
     assert calls == [(12, 2)]
+
+
+@pytest.mark.parametrize('tip_day, et_hour, buys', [
+    ('2026-10-27', 10, True),    # today's slate, after the morning hour
+    ('2026-10-27', 7, False),    # before books post player props
+    ('2026-10-28', 20, False),   # tomorrow's slate: 1Q lines are not up yet, so a try would be wasted
+])
+def test_first_quarter_odds_only_for_todays_slate_after_the_morning_hour(monkeypatch, tip_day, et_hour, buys):
+    from utils import odds_fetcher
+    calls = []
+    now = datetime(2026, 10, 27, et_hour, tzinfo=ZoneInfo('America/New_York')).astimezone(timezone.utc)
+    monkeypatch.setattr(planner, 'upcoming', lambda league, target=None: [{'commence_time': f'{tip_day}T23:30:00Z'}])
+    monkeypatch.setattr(odds_fetcher, 'get_q1_odds', lambda target: calls.append(target) or {})
+    planner.q1_refresh(now)
+    assert calls == (['2026-10-27'] if buys else [])
