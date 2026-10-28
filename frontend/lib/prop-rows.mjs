@@ -1,4 +1,28 @@
 import { hitChips, hitTone } from './prop-research.mjs';
+import { gradeSide } from './hit-rate.mjs';
+
+/** The last 10 results as graded per-game cells, oldest first. [] without a line or results, never a row of misses. */
+export function rowDashes(prop) {
+  const values = (prop.l10_values ?? []).filter(value => value != null).slice(0, 10); // newest first
+  if (prop.line == null || !values.length) return [];
+  const side = /^under$/i.test(prop.direction) ? 'Under' : 'Over';
+  return values.reverse().map(value => ({ value, result: gradeSide(value, prop.line, side) }));
+}
+
+/** One hit window (L5, L10, L20, h2h, season) as a chip; null when it has no games. */
+export function windowCell(prop, key) {
+  return hitChips(prop.hit_windows).find(chip => chip.key === key) ?? null;
+}
+
+/** Highest hit rate in the chosen window first, larger samples breaking ties, unknown windows last. Input is not mutated. */
+export function sortByWindow(props, key) {
+  const score = prop => windowCell(prop, key);
+  return [...props].sort((a, b) => {
+    const left = score(a), right = score(b);
+    if (!left || !right) return Number(Boolean(right)) - Number(Boolean(left));
+    return right.pct - left.pct || right.total - left.total;
+  });
+}
 
 /** Plain, case-insensitive substring match on player, team and opponent. Never builds a regex. */
 export function searchProps(props, query) {

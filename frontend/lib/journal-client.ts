@@ -1,6 +1,6 @@
 import { localJournalAdd, localJournalList, localJournalSettle } from "./local-journal.mjs";
 import { legKey, type SlipLeg } from "./bet-slip.mjs";
-import { isTeamLeg } from "./team-legs.mjs";
+import { isQuarterLeg, isTeamLeg } from "./team-legs.mjs";
 import type { JournalSummary } from "./local-journal.mjs";
 import { gradeBet } from "./hit-rate.mjs";
 import { api } from "./api";
@@ -58,7 +58,7 @@ export async function trackLegs(legs: SlipLeg[], stake: number): Promise<{ saved
   let skipped = 0;
   for (const leg of legs) {
     // The journal stores player stats only, so team markets (moneyline, spread, total) are not tracked yet.
-    if (isTeamLeg(leg)) { skipped += 1; continue; }
+    if (isTeamLeg(leg) || isQuarterLeg(leg)) { skipped += 1; continue; }
     try {
       await request<{ id: string }>("", { method: "POST", headers: JSON_HEADERS, body: JSON.stringify({
         token: `slip-${legKey(leg)}`, mode: "paper", league: leg.league, player: leg.player, game_date: leg.date,

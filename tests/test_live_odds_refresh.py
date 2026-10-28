@@ -40,12 +40,13 @@ def test_explicit_refresh_limits_events_markets_and_preserves_metadata(monkeypat
     assert getter() == {} and calls == []
     result = getter(force_refresh=True)
     assert len(result) == 2 and len(calls) == 3
-    assert all(call[1]['markets'] == 'player_points,player_rebounds,player_assists' for call in calls[1:])
+    markets = getattr(module, 'REFRESH_MARKETS', 'player_points,player_rebounds,player_assists')
+    assert all(call[1]['markets'] == markets for call in calls[1:])
     quote = result['Player 0']['PTS']
     assert quote['event_id'] == '0'
     assert quote['updated_at'] == now.isoformat() and quote['fetched_at'] > 0
     assert quote['event_date'] == now.astimezone(ZoneInfo('America/New_York')).date().isoformat()
-    assert odds_budget.status()['daily'] == 6
+    assert odds_budget.status()['daily'] == 2 * len(markets.split(','))
     getter()
     assert len(calls) == 3
 

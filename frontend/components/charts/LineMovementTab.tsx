@@ -17,20 +17,20 @@ export function LineMovementTab({ player, stat, league }: { player: string; stat
   const change = movement(points);
   const latest = points[points.length - 1];
 
-  if (history.isPending) return <div className="mt-3 h-40 animate-pulse rounded-lg bg-white/5" />;
+  if (history.isPending) return <div className="mt-3 h-40 animate-pulse rounded-lg bg-ink/5" />;
   if (history.isError) return <p role="alert" className="mt-3 text-sm text-red-300">Line history is unavailable. <button type="button" onClick={() => void history.refetch()} className="underline">Try again</button></p>;
-  if (!book || !change) return <p role="status" className="mt-3 text-sm text-[#a9bec0]">No history yet; snapshots are saved on each odds refresh.</p>;
+  if (!book || !change) return <p role="status" className="mt-3 text-sm text-text-sec">No history yet; snapshots are saved on each odds refresh.</p>;
 
   return <div className="mt-3">
     <div className="flex flex-wrap gap-1.5" role="group" aria-label="Sportsbook">
-      {[...series.keys()].map(name => <button key={name} type="button" aria-pressed={book === name} onClick={() => setChosen(name)} className={`ql-chip px-2.5 py-1 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#59e0c8] ${book === name ? "ql-chip-active" : "text-[#a9bec0] hover:text-[#eaf8f6]"}`}>{name}</button>)}
+      {[...series.keys()].map(name => <button key={name} type="button" aria-pressed={book === name} onClick={() => setChosen(name)} className={`ql-chip px-2.5 py-1 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-400 ${book === name ? "ql-chip-active" : "text-text-sec hover:text-text-pri"}`}>{name}</button>)}
     </div>
-    <p className="mt-3 text-xs text-[#a9bec0]">
-      Opened <strong className="tabular-nums text-[#eaf8f6]">{change.opening}</strong> → now <strong className="tabular-nums text-[#eaf8f6]">{change.current}</strong>
-      {change.change !== 0 && <span className={change.change > 0 ? "text-[#f5ba64]" : "text-[#59e0c8]"}> ({change.change > 0 ? "+" : ""}{change.change})</span>}
+    <p className="mt-3 text-xs text-text-sec">
+      Opened <strong className="tabular-nums text-text-pri">{change.opening}</strong> → now <strong className="tabular-nums text-text-pri">{change.current}</strong>
+      {change.change !== 0 && <span className={change.change > 0 ? "text-lock-gold" : "text-teal-400"}> ({change.change > 0 ? "+" : ""}{change.change})</span>}
       {" "}· {change.samples} snapshot{change.samples === 1 ? "" : "s"}
     </p>
     <div className="mt-2"><LineMovementChart points={points} book={book} /></div>
-    {latest && <p className="ql-data-label mt-1 text-[#a9bec0]">LATEST · OVER {fmtOdds(latest.over_price)} · UNDER {fmtOdds(latest.under_price)}</p>}
+    {latest && <p className="ql-data-label mt-1 text-text-sec">LATEST · OVER {fmtOdds(latest.over_price)} · UNDER {fmtOdds(latest.under_price)}</p>}
   </div>;
 }

@@ -29,3 +29,21 @@ def test_grading_never_creates_or_rewrites_forecasts(tmp_path):
     assert saved['prediction']['spread']==-2
     assert saved['actual']['home_score']==102
     assert grade_forecasts('nba',teams,path,datetime(2026,10,11,12,tzinfo=timezone.utc))==0
+
+
+def test_grading_matches_by_date_and_teams_across_provider_ids(tmp_path):
+    """Forecasts carry ESPN ids, official box scores carry NBA.com ids: the game is the same date and teams."""
+    import pandas as pd
+    from utils.game_forecast_ledger import grade_forecasts
+    path=tmp_path/'ledger.json'
+    pred=dict(matchup='ATL @ ORL',model_metadata={'version':'v1'})
+    games=[dict(game_id='401909834',matchup='ATL @ ORL',home_team='ORL',away_team='ATL',start_time='2026-10-21T23:00:00Z',status_state='pre'),
+           dict(game_id='401800001',matchup='ATL @ ORL',home_team='ORL',away_team='ATL',start_time='2026-10-10T23:00:00Z',status_state='pre')]
+    record_forecasts('nba',games,[pred],path,datetime(2026,10,10,12,tzinfo=timezone.utc))
+    teams=pd.DataFrame([dict(game_id='0022600005',team='ORL',PTS=111,date=pd.Timestamp('2026-10-21')),
+                        dict(game_id='0022600005',team='ATL',PTS=104,date=pd.Timestamp('2026-10-21'))])
+    assert grade_forecasts('nba',teams,path,datetime(2026,10,23,12,tzinfo=timezone.utc))==1
+    regular,preseason=sorted(json.loads(path.read_text())['forecasts'],key=lambda f:f['tipoff'],reverse=True)
+    assert regular['actual']['home_score']==111 and regular['actual']['away_score']==104
+    # The scores cover that date, and this game is not among them (a preseason exhibition): settled as no result, not pending forever.
+    assert preseason['actual'] is None and preseason['void']=='no official regular-season or playoff result'

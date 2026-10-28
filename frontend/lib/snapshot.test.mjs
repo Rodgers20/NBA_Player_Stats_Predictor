@@ -24,6 +24,29 @@ test('static home and away filters match live API location behavior', () => {
   assert.equal(filterProps(data,{location:'home'}).count,1);
   assert.equal(filterProps(data,{location:'away'}).count,1);
 });
+test("a snapshot dated before today is withheld, so yesterday's picks never show as today's", () => {
+  const prop = { direction: 'Over', game_matchup: 'A @ B', stat: 'PTS', ev: 3, is_lock: false };
+  const data = { target_date: '2026-10-21', game_matchups: ['A @ B'], count: 1, props: [prop] };
+  const result = filterProps(data, {}, new Date('2026-10-22T14:00:00Z'));
+  assert.equal(result.count, 0); assert.deepEqual(result.props, []);
+  assert.deepEqual(result.game_matchups, []); assert.equal(result.status, 'stale');
+  assert.equal(result.target_date, '2026-10-21'); assert.match(result.message, /aren.t published yet/);
+  assert.equal(data.props.length, 1);
+});
+test("today's snapshot is served unchanged", () => {
+  const prop = { direction: 'Over', game_matchup: 'A @ B', stat: 'PTS', ev: 3, is_lock: false };
+  const result = filterProps({ target_date: '2026-10-22', props: [prop] }, {}, new Date('2026-10-22T14:00:00Z'));
+  assert.equal(result.count, 1); assert.notEqual(result.status, 'stale');
+});
+test('a static series keeps the per-game context the game filters need, and omits what is missing', () => {
+  const series = { games: [
+    { date: '2026-01-01', opponent: 'A vs. B', season: '2025-26', is_home: true, pts: 20, reb: 5, ast: 4, minutes: 31.5, margin: -4, won: false, rest: 0, out: ['Big Man'] },
+    { date: '2026-01-03', opponent: 'A @ C', season: '2025-26', is_home: false, pts: 25, reb: 6, ast: 3 },
+  ] };
+  const [first, second] = seriesChart('Player', series, 'PTS', 2).games;
+  assert.deepEqual([first.minutes, first.margin, first.won, first.rest, first.out], [31.5, -4, false, 0, ['Big Man']]);
+  assert.equal('minutes' in second, false); assert.equal('out' in second, false);
+});
 test('chart windows recalculate means and skip missing values', () => {
   const result = windowChart({games:[{value:100},{value:null},{value:4},{value:8}]},3);
   assert.equal(result.avg,6); assert.equal(result.games.length,3);

@@ -30,3 +30,8 @@ test('junk falls back to the defaults', () => {
 test('lines snap to half points', () => {
   assert.equal(parseAnalysisView('line=24.3', defaults).line, 24.5);
 });
+
+test('first-quarter stats survive a shared analysis link', () => {
+  assert.equal(parseAnalysisView('stat=PTS_1Q&line=6.5', { stat: 'PTS', period: 10, line: null }).stat, 'PTS_1Q');
+  assert.equal(parseAnalysisView('stat=STL_1Q', { stat: 'PTS', period: 10, line: null }).stat, 'PTS', 'only quarters we collect');
+});

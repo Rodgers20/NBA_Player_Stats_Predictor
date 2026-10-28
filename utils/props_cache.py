@@ -368,7 +368,7 @@ def _compute_main_page_props(DF, PLAYER_POSITIONS, DEFENSE_VS_POS, game_info, av
                     live_over_price=quote.get("over_price"), live_under_price=quote.get("under_price"),
                     live_bookmaker=quote.get("bookmaker", ""), sim_book_line=None,
                     model_over_odds=None, model_under_odds=None, confidence="LOW", def_rank=None,
-                    l5_values=l5.tolist(), chart_windows=windows, value_score=0.0, injury_boost="",
+                    l5_values=l5.tolist(), l10_values=recent.tolist(), chart_windows=windows, value_score=0.0, injury_boost="",
                     blowout_risk=abs((game_spreads or {}).get(team, 0)) >= 10,
                     blowout_spread=abs((game_spreads or {}).get(team, 0)),
                     game_matchup=f"{opponent} @ {team}" if home else f"{team} @ {opponent}",

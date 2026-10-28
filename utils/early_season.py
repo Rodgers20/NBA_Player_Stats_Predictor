@@ -45,3 +45,4 @@ def shrink_early_season(forecast: dict, games: float, baseline: float) -> dict:
         out['prediction_intervals'] = dict(
             intervals, margin_80=[v + shift for v in intervals.get('margin_80', [])])
     return out
+

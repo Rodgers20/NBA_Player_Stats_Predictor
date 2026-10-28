@@ -26,6 +26,21 @@ export function recordFor(record, stat) {
   return { hit, total, pct, early: total < EARLY_RECORD };
 }
 
+/** One sentence on why a priced play is on the board; it names a disagreement with recent form instead of hiding it. */
+export function playReason(prop) {
+  const projection = prop.model_projection;
+  if (projection == null || prop.line == null) return null;
+  const onLine = `the model projects ${projection} on a ${prop.line} line`;
+  if (prop.total >= 8 && prop.hits != null) {
+    const share = prop.hits / prop.total;
+    if (share <= 0.4) return `Against recent form: cleared ${prop.hits} of ${prop.total}, but ${onLine}.`;
+    if (share >= 0.7) return `Form agrees: cleared ${prop.hits} of ${prop.total}, and ${onLine}.`;
+  }
+  const needed = breakEven(prop.price ?? NaN);
+  const model = prop.model_prob == null ? null : Math.round(prop.model_prob * 100);
+  return `Model projects ${projection} on a ${prop.line} line${model != null && needed != null ? `: ${model}% for this side, the price needs ${needed.toFixed(1)}%` : ''}.`;
+}
+
 /** Splits a props response into what can be bet (picks), priced-but-no-edge (leans), and unpriced model research. */
 export function tonightBoard(props) {
   const byEv = (a, b) => (b.ev ?? -Infinity) - (a.ev ?? -Infinity);

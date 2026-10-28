@@ -43,3 +43,20 @@ def test_parser_keeps_every_book_and_legacy_fields():
     assert quote['bookmaker'] == 'FanDuel' and quote['line'] == 20.5 and quote['over_price'] == -115
     assert {b['book'] for b in quote['books']} == {'FanDuel', 'DraftKings'}
     assert {'book', 'line', 'over_price', 'under_price'} == set(quote['books'][0])
+
+
+def test_parser_keeps_sportsbook_links_on_the_books_own_domain():
+    event = _event([('fanduel', 'FanDuel', 20.5, -115, -105), ('draftkings', 'DraftKings', 20.5, -110, -110)])
+    fanduel, draftkings = event['bookmakers']
+    fanduel['link'] = 'https://sportsbook.fanduel.com/basketball/nba/miami-heat-@-boston-celtics-123'
+    over, under = fanduel['markets'][0]['outcomes']
+    over['link'] = 'https://sportsbook.fanduel.com/addToBetslip?marketId=42.1&selectionId=7'
+    under['link'] = 'javascript:alert(1)'                       # never kept
+    draftkings['link'] = 'https://evil.example.com/draftkings'  # wrong domain, never kept
+    result = {}
+    odds._parse_event_odds(event, result, target_date='2026-09-17')
+    books = {b['book']: b for b in result['A']['PTS']['books']}
+    assert books['FanDuel']['over_link'].endswith('selectionId=7')
+    assert books['FanDuel']['event_link'].startswith('https://sportsbook.fanduel.com/')
+    assert 'under_link' not in books['FanDuel']
+    assert {'book', 'line', 'over_price', 'under_price'} == set(books['DraftKings'])

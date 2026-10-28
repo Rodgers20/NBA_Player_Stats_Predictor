@@ -1,18 +1,19 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowUpRight, NotebookPen } from "lucide-react";
 import { GameDayPlayerPicker } from "@/components/bets/GameDayPlayerPicker";
 import { BetBreakdowns } from "@/components/bets/BetBreakdowns";
+import { LiveBets } from "@/components/bets/LiveBets";
 import { averageClv } from "@/lib/journal-clv.mjs";
 import { usePrefs } from "@/store/prefs";
-import { JournalError, STATIC, autoSettle, request, type Journal, type Mode, type Result } from "@/lib/journal-client";
+import { JournalError, STATIC, autoSettle, request, type Bet, type Journal, type Mode, type Result } from "@/lib/journal-client";
 
 const control = "ql-control w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 disabled:opacity-40";
-const button = "rounded bg-teal-400 px-5 py-3 text-sm font-bold text-[#0d151b] disabled:opacity-40 disabled:cursor-not-allowed";
+const button = "rounded bg-teal-400 px-5 py-3 text-sm font-bold text-bg-root disabled:opacity-40 disabled:cursor-not-allowed";
 const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 const stats = [["PTS", "Points"], ["REB", "Rebounds"], ["AST", "Assists"], ["FG3M", "Threes"], ["STL", "Steals"], ["BLK", "Blocks"], ["PTS+REB", "Points + rebounds"], ["PTS+AST", "Points + assists"], ["REB+AST", "Rebounds + assists"], ["PTS+REB+AST", "PRA"], ["STL+BLK", "Steals + blocks"]] as const;
 
@@ -62,6 +63,17 @@ function BetsContent() {
     });
   }, [data, cache]);
 
+  const settleFromLive = useCallback(async (bet: Bet, outcome: Result) => {
+    const label = `${bet.player} ${bet.side} ${bet.line} ${bet.stat}`;
+    try {
+      await request(`/${encodeURIComponent(bet.id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ result: outcome }) });
+      setSettleNotice(`Final: ${label} graded ${outcome} from ESPN's box score. Correct it if your book settled differently.`);
+      await cache.invalidateQueries({ queryKey: ["journal"] });
+    } catch (error) {
+      setSettleNotice(`Could not grade ${label}: ${error instanceof Error ? error.message : "save failed"}. Settle it by hand.`);
+    }
+  }, [cache]);
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving || saved || unavailable) return;
@@ -106,15 +118,28 @@ function BetsContent() {
 
   return (
     <div className="ql-page max-w-[1360px] space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-5 border-b border-[#2b4248] pb-6">
+      <header className="flex flex-wrap items-end justify-between gap-5 border-b border-border-card pb-6">
         <div>
-        <p className="ql-kicker">Your personal betting desk</p>
+        <p className="ql-kicker">MY BETS / {currentLeague.toUpperCase()}</p>
         <h1 className="ql-heading mt-2">My Bets</h1>
-        <p className="ql-subtitle mt-2">Build your slip. Record your picks. Know where you stand.</p>
-        {STATIC && <p className="mt-2 text-xs text-amber-300">On the hosted free version, entries are saved in this browser only. They do not sync between devices or private browsing sessions.</p>}
+        <p className="ql-subtitle mt-2">Bets you track follow the game live and grade themselves from the box score.</p>
+        {STATIC && <p className="mt-2 text-xs text-text-sec">Saved in this browser.</p>}
         </div>
-        <Link href="/props" className="inline-flex items-center gap-2 rounded-md border border-teal-400/40 px-4 py-3 text-sm font-semibold text-teal-400 hover:bg-teal-400/10">Find props for your slip <ArrowUpRight size={16} /></Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/performance" className="inline-flex items-center gap-2 rounded-md border border-ink/15 px-4 py-3 text-sm font-semibold text-text-pri hover:bg-ink/5">Model record <ArrowUpRight size={16} /></Link>
+          <Link href="/" className="inline-flex items-center gap-2 rounded-md border border-teal-400/40 px-4 py-3 text-sm font-semibold text-teal-400 hover:bg-teal-400/10">Tonight&apos;s plays <ArrowUpRight size={16} /></Link>
+        </div>
       </header>
+
+      {data && data.bets.length === 0 && <section className="ql-panel p-5 md:p-6" aria-labelledby="how-title">
+        <h2 id="how-title" className="ql-section-title">Track a bet in three taps</h2>
+        <ol className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+          {[["Tap +", "on any play on Tonight or Props. The price and book come with it."],
+            ["Open the slip", "from the button at the bottom of the screen."],
+            ["Tap Track", "It shows up here, follows the game live and grades itself at the final."]].map(([step, detail], index) =>
+            <li key={step} className="flex gap-3 rounded-lg border border-ink/10 p-4"><span className="font-mono text-lg font-bold text-teal-400">{index + 1}</span><span><strong className="text-text-pri">{step}</strong> <span className="text-text-sec">{detail}</span></span></li>)}
+        </ol>
+      </section>}
       {isPending && <p role="status" className="glass p-5 text-sm">Connecting to your journal…</p>}
       {isError && <div role="status" className="glass p-5 space-y-3">
         <h2 className="font-semibold">Journal unavailable · read-only view</h2>
@@ -123,8 +148,13 @@ function BetsContent() {
       </div>}
 
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <section className="ql-panel p-5 md:p-6" aria-labelledby="entry-title">
+      {data && <LiveBets bets={data.bets} onFinal={(bet, outcome) => void settleFromLive(bet, outcome)} />}
+
+      {/* Hand entry is the exception now that the slip tracks bets; it stays one tap away for bets placed elsewhere. */}
+      <details className="ql-panel group" open={!!prefilledPlayer}>
+      <summary className="cursor-pointer px-5 py-4 text-sm font-semibold text-text-pri md:px-6">Log or correct a bet by hand</summary>
+      <div className="grid items-start gap-5 border-t border-ink/10 p-5 md:p-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <section aria-labelledby="entry-title">
         <p className="ql-kicker flex items-center gap-2"><NotebookPen size={14} /> Selection journal</p>
         <h2 id="entry-title" className="ql-section-title mt-2">Log a pick</h2>
         <p className="mt-2 text-sm text-[var(--color-text-sec)]">{prefilledPlayer ? `Selection loaded for ${prefilledPlayer}. Confirm the line and price, then add your stake.` : "Start with your game date and league, then search the players on that schedule. Record the line and odds accepted by your book."}</p>
@@ -155,7 +185,7 @@ function BetsContent() {
       </section>
 
       <div className="space-y-5">
-      <section className="ql-panel p-5 md:p-6" aria-labelledby="settle-title">
+      <section aria-labelledby="settle-title">
         <p className="ql-kicker">Settle your picks</p>
         <h2 id="settle-title" className="ql-section-title mt-2">Settle or correct a result</h2>
         <p className="mt-2 text-sm text-[var(--color-text-sec)]">Use your sportsbook receipt. Corrections replace the previous result. Void and pending stakes are excluded from settled ROI; pushes return the stake.</p>
@@ -170,6 +200,7 @@ function BetsContent() {
       </section>
       </div>
       </div>
+      </details>
       <section className="space-y-4" aria-labelledby="progress-title">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="progress-title" className="ql-section-title">Your progress</h2>
@@ -191,15 +222,15 @@ function BetsContent() {
               <p className="mt-2 text-xs text-[var(--color-text-sec)]">{clv ? `Across ${clv.count} ${clv.count === 1 ? "bet" : "bets"} with a closing line` : "Closing lines are saved when odds refresh before tip-off"}</p></div>
           </div>
           <BetBreakdowns summary={data.summary} />
-          {data.bets.length === 0 ? <div className="ql-panel p-7 text-sm text-[var(--color-text-sec)]">No {mode} entries yet. Only selections you explicitly save appear here.</div> :
+          {data.bets.length === 0 ? <div className="ql-panel p-7 text-sm text-[var(--color-text-sec)]">No {mode === "paper" ? "tracked" : "real"} bets yet. Tap + on a play, then Track from the slip.</div> :
             <div className="ql-panel overflow-x-auto"><table className="w-full whitespace-nowrap text-left text-sm">
               <caption className="sr-only">{mode === "paper" ? "Paper tests" : "Real wagers"} journal</caption>
-              <thead className="bg-[#1a2930]"><tr className="border-b border-[#2b4248] text-[11px] font-mono uppercase tracking-wider text-[var(--color-text-sec)]">{["Date / league", "Selection", "Book / odds", "Stake", "Result", "Net"].map(label => <th key={label} scope="col" className="p-4 font-medium">{label}</th>)}</tr></thead>
-              <tbody>{data.bets.map(bet => <tr key={bet.id} className="border-b border-[#2b4248] last:border-0 hover:bg-[#20363a]">
+              <thead className="bg-bg-panel"><tr className="border-b border-border-card text-[11px] font-mono uppercase tracking-wider text-[var(--color-text-sec)]">{["Date / league", "Selection", "Book / odds", "Stake", "Result", "Net"].map(label => <th key={label} scope="col" className="p-4 font-medium">{label}</th>)}</tr></thead>
+              <tbody>{data.bets.map(bet => <tr key={bet.id} className="border-b border-border-card last:border-0 hover:bg-surface-hover">
                 <td className="p-4">{bet.game_date}<p className="text-xs uppercase text-[var(--color-text-sec)]">{bet.league}</p></td>
                 <td className="p-4"><p className="font-semibold">{bet.player}</p><p className="text-xs text-[var(--color-text-sec)]">{bet.side} {bet.line} {bet.stat}</p>{bet.notes && <p className="mt-1 max-w-64 whitespace-normal text-xs text-[var(--color-text-sec)]">{bet.notes}</p>}</td>
                 <td className="p-4">{bet.book}<p className="text-xs text-[var(--color-text-sec)]">{bet.price > 0 ? "+" : ""}{bet.price}</p>{bet.clv?.clv_pct != null && <p title={`Closed ${bet.clv.close_line ?? "—"} at ${bet.clv.close_price ?? "—"}`} className={`mt-1 inline-block rounded border px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${bet.clv.clv_pct >= 0 ? "border-green-400/30 text-green-300" : "border-red-400/30 text-red-300"}`}>CLV {bet.clv.clv_pct > 0 ? "+" : ""}{bet.clv.clv_pct.toFixed(1)}%</p>}</td>
-                <td className="p-4 tabular-nums">{money(bet.stake_cents / 100)}</td><td className="p-4 capitalize">{bet.result}{bet.result === "pending" && <div className="mt-2 flex gap-2 normal-case"><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "win")} className="rounded border border-green-400/30 px-2 py-1 text-xs text-green-300 disabled:opacity-40">Win</button><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "loss")} className="rounded border border-red-400/30 px-2 py-1 text-xs text-red-300 disabled:opacity-40">Loss</button><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "push")} className="rounded border border-white/15 px-2 py-1 text-xs text-text-sec disabled:opacity-40">Push</button></div>}</td><td className="p-4 tabular-nums">{bet.profit_cents === null ? "—" : money(bet.profit_cents / 100)}</td>
+                <td className="p-4 tabular-nums">{money(bet.stake_cents / 100)}</td><td className="p-4 capitalize">{bet.result}{bet.result === "pending" && <div className="mt-2 flex gap-2 normal-case"><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "win")} className="rounded border border-green-400/30 px-2 py-1 text-xs text-green-300 disabled:opacity-40">Win</button><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "loss")} className="rounded border border-red-400/30 px-2 py-1 text-xs text-red-300 disabled:opacity-40">Loss</button><button type="button" disabled={settling} onClick={() => void settleBet(bet.id, "push")} className="rounded border border-ink/15 px-2 py-1 text-xs text-text-sec disabled:opacity-40">Push</button></div>}</td><td className="p-4 tabular-nums">{bet.profit_cents === null ? "—" : money(bet.profit_cents / 100)}</td>
               </tr>)}</tbody>
             </table></div>}
         </>}

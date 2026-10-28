@@ -7,13 +7,13 @@
 }
 .hit { background: var(--color-over); }
 .miss {
-  background: repeating-linear-gradient(135deg, var(--color-under) 0 3px, rgba(250, 131, 123, 0.35) 3px 6px);
+  background: repeating-linear-gradient(135deg, var(--color-under) 0 3px, color-mix(in srgb, var(--color-danger) 35%, transparent) 3px 6px);
 }
 .push { background: transparent; border: 1px dashed var(--color-text-sec); }
 .dim .bar:not(.on) { opacity: 0.45; }
 .line {
   position: absolute; left: 0; right: 0; height: 0; pointer-events: none;
-  border-top: 1px dashed rgba(234, 248, 246, 0.55);
+  border-top: 1px dashed color-mix(in srgb, var(--color-text-pri) 55%, transparent);
 }
 .caption { display: flex; justify-content: space-between; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--color-text-sec); }
 .caption strong { color: var(--color-text-pri); font-weight: 600; }

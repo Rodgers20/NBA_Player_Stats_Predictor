@@ -5,11 +5,11 @@
 }
 .card:active { transform: scale(0.985); }
 @media (hover: hover) and (pointer: fine) {
-  .card:hover { border-color: rgba(89, 224, 200, 0.5); }
+  .card:hover { border-color: color-mix(in srgb, var(--color-teal-400) 50%, transparent); }
 }
 .skeletonCard {
   min-height: 640px; border-radius: 16px; border: 1px solid var(--color-border-sub);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-ink) 4%, transparent), color-mix(in srgb, var(--color-ink) 1.5%, transparent));
   animation: pulse 1.4s ease-in-out infinite;
 }
 @keyframes pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
@@ -23,7 +23,7 @@
   padding: 2px 9px; border-radius: 9999px; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
   background: rgba(0, 0, 0, 0.35); border: 1px solid var(--color-border-card); color: var(--color-text-pri);
 }
-.live { color: var(--color-under); border-color: rgba(250, 131, 123, 0.5); }
+.live { color: var(--color-under); border-color: color-mix(in srgb, var(--color-danger) 50%, transparent); }
 .matchup { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; padding: 14px 0 12px; }
 .team { display: grid; justify-items: center; gap: 4px; text-align: center; min-width: 0; }
 .teamName { font-family: var(--font-display); font-size: 24px; font-weight: 700; line-height: 1; text-transform: uppercase; overflow-wrap: anywhere; }
@@ -31,7 +31,7 @@
 .score { font-family: var(--font-display); font-size: 40px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
 .at { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--color-text-sec); }
 .outlook { position: relative; padding: 0 16px 12px; display: grid; gap: 4px; }
-.track { display: flex; height: 6px; border-radius: 9999px; overflow: hidden; background: rgba(255, 255, 255, 0.06); }
+.track { display: flex; height: 6px; border-radius: 9999px; overflow: hidden; background: color-mix(in srgb, var(--color-ink) 6%, transparent); }
 .trackAway { background: var(--color-text-sec); opacity: 0.55; }
 .trackHome { background: var(--color-over); }
 .outlookLabels { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; color: var(--color-text-sec); }

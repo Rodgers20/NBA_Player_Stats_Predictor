@@ -3,6 +3,19 @@ from datetime import date
 import pandas as pd
 
 
+OFFSEASON_GAP_DAYS = 60
+OFFSEASON_REST = 2
+
+
+def _without_preseason(history):
+    """Exhibition games (SEASON_ID 1xxxx) run on reduced minutes, so they distort rolling and season averages.
+    Kept only when a player has nothing else."""
+    if 'SEASON_ID' not in history:
+        return history
+    regular = history[~history['SEASON_ID'].astype(str).str.startswith('1')]
+    return regular if not regular.empty else history
+
+
 def prefer_identified_games(history):
     """Prefer a full game-ID observation over a partial duplicate live-feed row."""
     if 'Game_ID' not in history or 'PLAYER_NAME' not in history:
@@ -26,10 +39,13 @@ def next_game_features(history, game_date=None, is_home=None):
     history = history.drop_duplicates('_pregame_date')
     if history.empty:
         raise ValueError('No completed games before the prediction date')
+    history = _without_preseason(history)
     row = history.iloc[0].to_dict()
     if is_home is not None:
         row['is_home'] = int(is_home)
-    row['days_rest'] = min(14, max(0, (when - history.iloc[0]['_pregame_date']).days))
+    gap = (when - history.iloc[0]['_pregame_date']).days
+    # An offseason is not a layoff: the model only saw 14 days as a long break, and read it as a reason to project low.
+    row['days_rest'] = OFFSEASON_REST if gap > OFFSEASON_GAP_DAYS else min(14, max(0, gap))
     row['is_back_to_back'] = int(row['days_rest'] <= 1)
     for stat in ('PTS', 'AST', 'REB', 'MIN', 'FGA', 'FG_PCT', 'FG3A', 'FG3_PCT'):
         if stat not in history:

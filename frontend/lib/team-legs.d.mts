@@ -11,4 +11,6 @@ export function spreadLeg(input: { game: GameLines; side: 'home' | 'away' } & Ct
 export function totalLeg(input: { game: GameLines; direction: 'Over' | 'Under' } & Ctx): SlipLeg | null;
 export function legTitle(leg: Pick<SlipLeg, 'stat' | 'player' | 'line' | 'direction'>): string;
 export function legDetail(leg: Pick<SlipLeg, 'stat' | 'line' | 'direction'>): string;
+export function isQuarterLeg(leg: { stat?: string } | null | undefined): boolean;
+export function statLabel(stat: string): string;
 export function legText(leg: Pick<SlipLeg, 'stat' | 'player' | 'line' | 'direction' | 'price'>): string;

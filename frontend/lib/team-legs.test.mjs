@@ -72,3 +72,14 @@ test('a slip of team legs still prices a parlay from its prices', () => {
   const legs = [mlLeg({ game, side: 'away', ...ctx }), totalLeg({ game, direction: 'Over', ...ctx })];
   assert.ok(summarizeSlip(legs).american > 0);
 });
+
+test('first-quarter legs read as 1Q stats and are kept out of box-score tracking', async () => {
+  const { statLabel, isQuarterLeg } = await import('./team-legs.mjs');
+  const leg = { player: 'Jayson Tatum', stat: 'PTS_1Q', direction: 'Over', line: 6.5, price: -115 };
+  assert.equal(legDetail(leg), 'Over 6.5 1Q PTS');
+  assert.equal(legText(leg), 'Jayson Tatum Over 6.5 1Q PTS (-115)');
+  assert.equal(statLabel('FG3M_1Q'), '1Q 3PM');
+  assert.equal(statLabel('PTS+REB'), 'PTS+REB');
+  assert.equal(isQuarterLeg(leg), true);
+  assert.equal(isQuarterLeg({ ...leg, stat: 'PTS' }), false);
+});

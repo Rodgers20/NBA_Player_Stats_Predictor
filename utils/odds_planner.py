@@ -1,7 +1,8 @@
 """Spend the shared Odds API credits on whichever league actually has games.
 
-The models only price PTS/REB/AST, so every event costs CORE_COST credits. When a league
-is off-season it has no events and its share flows to the league that is playing.
+Each prop type costs one credit per game; allocate() spreads the day's credits so every game is
+covered before any game gets deeper markets. When a league is off-season it has no events and its
+share flows to the league that is playing.
 """
 import asyncio
 import calendar
@@ -15,7 +16,10 @@ from utils.slate import next_slate
 
 logger = logging.getLogger(__name__)
 ET = ZoneInfo('America/New_York')
-CORE_COST = 3          # player_points + player_rebounds + player_assists
+# Prop types bought per game. NBA buys its markets in priority order (utils.odds_fetcher.MARKET_PRIORITY),
+# so 2 means points and rebounds; WNBA always buys its three. Raise MIN_MARKETS after upgrading the plan.
+MIN_MARKETS = {'nba': 2, 'wnba': 3}
+MAX_MARKETS = {'nba': 7, 'wnba': 3}
 RESERVE = 25           # never plan the provider account below this
 LEAGUES = ('nba', 'wnba')
 MORNING_HOUR = 9
@@ -55,22 +59,25 @@ def event_date(event):
     return datetime.fromisoformat(event['commence_time'].replace('Z', '+00:00')).astimezone(ET).date().isoformat()
 
 
-def split_events(counts, credits):
-    """Share credits fairly across leagues with games; a league's unused share goes to the others."""
-    left = credits // CORE_COST
-    alloc = dict.fromkeys(counts, 0)
-    active = [league for league, n in counts.items() if n]
-    while left and active:
-        share = max(1, left // len(active))
-        for league in list(active):
-            take = min(share, counts[league] - alloc[league], left)
-            alloc[league] += take
-            left -= take
-            if alloc[league] >= counts[league]:
-                active.remove(league)
-            if not left:
-                break
-    return alloc
+def allocate(counts, credits):
+    """{league: (games to price, prop types per game)}. Each prop type costs one credit per game.
+
+    Coverage first: every game gets the minimum number of prop types before any game gets more, so a
+    full slate is never cut to two games; on a light night the spare credits buy deeper markets.
+    Leagues with games share the credits in proportion to their slates; an idle league's share flows on.
+    """
+    total = sum(counts.values())
+    plan = {}
+    for league, games in counts.items():
+        share = credits * games // total if total else 0
+        least, most = MIN_MARKETS[league], MAX_MARKETS[league]
+        if not games or share < least:
+            plan[league] = (0, 0)
+        elif share // games >= least:
+            plan[league] = (games, min(most, share // games))
+        else:  # not enough for every game: as many games as possible, earliest tips first
+            plan[league] = (share // least, least)
+    return plan
 
 
 def headroom(kind, now=None):
@@ -87,27 +94,45 @@ def headroom(kind, now=None):
 
 
 def plan(kind='manual', events=None, now=None):
-    """{league: number of events to price}. `events` is injectable for tests."""
+    """{league: (games to price, prop types per game)}. `events` is injectable for tests."""
     target = today(now)
     events = events if events is not None else {league: upcoming(league, target) for league in LEAGUES}
-    return split_events({league: len(found) for league, found in events.items()}, headroom(kind, now))
+    return allocate({league: len(found) for league, found in events.items()}, headroom(kind, now))
 
 
-def refresh(league, events, target_date=None):
-    """Buy quotes for `events` games; returns the quote dict (empty if nothing was bought)."""
+def refresh(league, events, target_date=None, markets=None):
+    """Buy quotes for `events` games (`markets` prop types each); returns the quote dict (empty if nothing was bought)."""
     if not events:
         return {}
     module = _module(league)
-    fetch = module.get_live_wnba_odds if league == 'wnba' else module.get_live_odds
-    return fetch(force_refresh=True, target_date=target_date, max_events=events)
+    if league == 'wnba':
+        return module.get_live_wnba_odds(force_refresh=True, target_date=target_date, max_events=events)
+    return module.get_live_odds(force_refresh=True, target_date=target_date, max_events=events,
+                                **({'markets': markets} if markets else {}))
 
 
-def manual_refresh(league):
-    """Button press: spend today's allowance on this league's next slate, even the day before."""
+def manual_refresh(league, now=None):
+    """Snapshot or button press: spend today's allowance on this league's next slate, even the day before.
+    Today's slate waits for MORNING_HOUR: before it, books have rarely posted player props, and the first
+    purchase of the day now covers every game, so buying early could waste the whole day's credits."""
+    now = now or datetime.now(timezone.utc)
     found = {name: upcoming(name) for name in LEAGUES}
-    count = plan('manual', found).get(league, 0)
     target = event_date(found[league][0]) if found[league] else None
-    return refresh(league, count, target)
+    if target == today(now) and now.astimezone(ET).hour < MORNING_HOUR:
+        return {}
+    games, markets = plan('manual', found, now).get(league, (0, 0))
+    return refresh(league, games, target, markets)
+
+
+def q1_refresh(now=None):
+    """First-quarter markets for today's NBA slate (its first games; see odds_fetcher.get_q1_odds), after MORNING_HOUR.
+    Never for tomorrow's slate: books post 1Q lines late, and an early look would spend one of each game's two tries."""
+    now = now or datetime.now(timezone.utc)
+    found = upcoming('nba')
+    if not found or event_date(found[0]) != today(now) or now.astimezone(ET).hour < MORNING_HOUR:
+        return {}
+    from utils import odds_fetcher
+    return odds_fetcher.get_q1_odds(today(now))
 
 
 # ── Scheduler ───────────────────────────────────────────────────────────────
@@ -144,9 +169,9 @@ def tick(now=None):
         return None
     _mark(target, kind)
     from api.routes.props import refresh_props
-    for league, count in plan(kind, events, now).items():
+    for league, (count, markets) in plan(kind, events, now).items():
         if count:
-            refresh(league, count)
+            refresh(league, count, markets=markets)
             refresh_props(league=league, fetch_odds=False)
     return kind
 

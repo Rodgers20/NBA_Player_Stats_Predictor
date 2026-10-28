@@ -6,4 +6,4 @@ export type WindowCount = { key: WindowKey; n: number; hits: number; decided: nu
 
 export const WINDOW_KEYS: WindowKey[];
 export function selectWindow<T extends Pick<ChartRecord, 'opponent' | 'season' | 'is_home'>>(games: T[], period: WindowKey, ctx?: WindowContext): T[];
-export function windowCounts(games: Pick<ChartRecord, 'opponent' | 'season' | 'is_home' | 'value'>[], threshold: number, ctx?: WindowContext): WindowCount[];
+export function windowCounts(games: Pick<ChartRecord, 'opponent' | 'season' | 'is_home' | 'value'>[], threshold: number, ctx?: WindowContext, side?: 'Over' | 'Under'): WindowCount[];

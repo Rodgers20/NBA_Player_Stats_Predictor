@@ -5,12 +5,18 @@ import pytest
 from utils import odds_budget, odds_planner as planner, odds_store
 
 
-def test_off_season_league_hands_its_credits_to_the_active_one():
-    assert planner.split_events({'nba': 10, 'wnba': 0}, 30) == {'nba': 10, 'wnba': 0}
-    assert planner.split_events({'nba': 10, 'wnba': 3}, 18) == {'nba': 3, 'wnba': 3}
-    assert planner.split_events({'nba': 10, 'wnba': 1}, 18) == {'nba': 5, 'wnba': 1}
-    assert planner.split_events({'nba': 4, 'wnba': 0}, 6) == {'nba': 2, 'wnba': 0}
-    assert planner.split_events({'nba': 0, 'wnba': 0}, 40) == {'nba': 0, 'wnba': 0}
+def test_every_game_gets_two_prop_types_before_any_game_gets_more():
+    # 12 games, 35 credits: all 12 at 2 types (24); 35//12 = 2 per game.
+    assert planner.allocate({'nba': 12, 'wnba': 0}, 35) == {'nba': (12, 2), 'wnba': (0, 0)}
+    # A light night spends the spare credits on deeper markets, capped at all 7.
+    assert planner.allocate({'nba': 4, 'wnba': 0}, 35) == {'nba': (4, 7), 'wnba': (0, 0)}
+    assert planner.allocate({'nba': 6, 'wnba': 0}, 35) == {'nba': (6, 5), 'wnba': (0, 0)}
+    # Too few credits for every game: as many games as possible at the minimum.
+    assert planner.allocate({'nba': 12, 'wnba': 0}, 11) == {'nba': (5, 2), 'wnba': (0, 0)}
+    assert planner.allocate({'nba': 12, 'wnba': 0}, 1) == {'nba': (0, 0), 'wnba': (0, 0)}
+    # Both leagues playing share in proportion to their games; WNBA always buys its three markets.
+    assert planner.allocate({'nba': 10, 'wnba': 5}, 45) == {'nba': (10, 3), 'wnba': (5, 3)}
+    assert planner.allocate({'nba': 0, 'wnba': 0}, 40) == {'nba': (0, 0), 'wnba': (0, 0)}
 
 
 def test_headroom_respects_fair_share_reserve_and_daily_cap(monkeypatch):
@@ -27,7 +33,7 @@ def test_headroom_respects_fair_share_reserve_and_daily_cap(monkeypatch):
 def test_plan_sends_everything_to_nba_when_wnba_is_idle(monkeypatch):
     odds_budget.report('ok', 497)
     events = {'nba': [{}] * 12, 'wnba': []}
-    assert planner.plan('manual', events, datetime(2026, 10, 6, 15, tzinfo=timezone.utc)) == {'nba': 6, 'wnba': 0}
+    assert planner.plan('manual', events, datetime(2026, 10, 6, 15, tzinfo=timezone.utc)) == {'nba': (9, 2), 'wnba': (0, 0)}
 
 
 def test_due_kind_morning_then_pretip():
@@ -104,6 +110,34 @@ def test_manual_refresh_buys_the_next_slate_the_day_before(monkeypatch):
     tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=23, minute=30).isoformat()
     monkeypatch.setattr(planner, 'upcoming', lambda league, target=None: [{'commence_time': tomorrow}] * 2 if league == 'wnba' else [])
     calls = []
-    monkeypatch.setattr(planner, 'refresh', lambda league, count, target=None: calls.append((league, count, target)))
+    monkeypatch.setattr(planner, 'refresh', lambda league, count, target=None, markets=None: calls.append((league, count, target, markets)))
     planner.manual_refresh('wnba')
-    assert calls == [('wnba', 2, planner.event_date({'commence_time': tomorrow}))]
+    assert calls == [('wnba', 2, planner.event_date({'commence_time': tomorrow}), 3)]
+
+
+def test_scheduled_refresh_waits_for_props_to_be_posted_before_buying_today(monkeypatch):
+    et = ZoneInfo('America/New_York')
+    tip = datetime(2026, 10, 24, 19, tzinfo=et).astimezone(timezone.utc).isoformat()
+    monkeypatch.setattr(planner, 'upcoming', lambda league, target=None: [{'commence_time': tip}] * 12 if league == 'nba' else [])
+    monkeypatch.setattr(planner, 'plan', lambda kind, found, now=None: {'nba': (12, 2), 'wnba': (0, 0)})
+    calls = []
+    monkeypatch.setattr(planner, 'refresh', lambda league, count, target=None, markets=None: calls.append((count, markets)))
+    planner.manual_refresh('nba', now=datetime(2026, 10, 24, 6, tzinfo=et))      # 6 a.m.: lines not posted yet
+    assert calls == []
+    planner.manual_refresh('nba', now=datetime(2026, 10, 24, 9, 5, tzinfo=et))   # 9 a.m. run buys every game
+    assert calls == [(12, 2)]
+
+
+@pytest.mark.parametrize('tip_day, et_hour, buys', [
+    ('2026-10-27', 10, True),    # today's slate, after the morning hour
+    ('2026-10-27', 7, False),    # before books post player props
+    ('2026-10-28', 20, False),   # tomorrow's slate: 1Q lines are not up yet, so a try would be wasted
+])
+def test_first_quarter_odds_only_for_todays_slate_after_the_morning_hour(monkeypatch, tip_day, et_hour, buys):
+    from utils import odds_fetcher
+    calls = []
+    now = datetime(2026, 10, 27, et_hour, tzinfo=ZoneInfo('America/New_York')).astimezone(timezone.utc)
+    monkeypatch.setattr(planner, 'upcoming', lambda league, target=None: [{'commence_time': f'{tip_day}T23:30:00Z'}])
+    monkeypatch.setattr(odds_fetcher, 'get_q1_odds', lambda target: calls.append(target) or {})
+    planner.q1_refresh(now)
+    assert calls == (['2026-10-27'] if buys else [])

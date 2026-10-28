@@ -19,10 +19,10 @@ export function selectWindow(games, period, ctx = {}) {
  * Hit counts per window at one line, graded over the line like everywhere else: a tie is a push and
  * leaves the denominator. Games without a value are not games. `n` counts real results.
  */
-export function windowCounts(games, threshold, ctx = {}) {
+export function windowCounts(games, threshold, ctx = {}, side = 'Over') {
   return WINDOW_KEYS.map(key => {
     const values = selectWindow(games, key, ctx).map(game => game.value).filter(value => value != null);
-    const { n, hits, misses, pushes, rate } = hitSummary(values, threshold, 'Over');
+    const { n, hits, misses, pushes, rate } = hitSummary(values, threshold, side);
     return { key, n, hits, decided: hits + misses, pushes, rate };
   });
 }

@@ -53,12 +53,12 @@ export function TrendLineChart({ games, stat, line, height = 200 }: Props) {
         {/* Grid */}
         {yTicks.map((t) => (
           <line key={t} x1={0} x2={inner.w} y1={yScale(t)} y2={yScale(t)}
-            stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
+            stroke="color-mix(in srgb, var(--color-ink) 5%, transparent)" strokeWidth={1} />
         ))}
 
         {/* Y labels */}
         {yTicks.map((t) => (
-          <text key={t} x={-6} y={yScale(t) + 4} textAnchor="end" fontSize={9} fill="#8ca0c0">{t}</text>
+          <text key={t} x={-6} y={yScale(t) + 4} textAnchor="end" fontSize={9} fill="var(--color-text-dim)">{t}</text>
         ))}
 
         {/* Reference line */}
@@ -95,7 +95,7 @@ export function TrendLineChart({ games, stat, line, height = 200 }: Props) {
         {/* X labels */}
         {data.map((d, i) => i % 2 === 0 && (
           <text key={i} x={xScale(i)} y={inner.h + 14}
-            textAnchor="middle" fontSize={8} fill="#8ca0c0">
+            textAnchor="middle" fontSize={8} fill="var(--color-text-dim)">
             {d.date.slice(5)}
           </text>
         ))}

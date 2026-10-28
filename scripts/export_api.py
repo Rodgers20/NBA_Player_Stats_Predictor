@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 import json
 from pathlib import Path
+import re
 import tempfile
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -77,6 +78,59 @@ def export_boxscores_only(base, out):
         manifest.write_text(json.dumps(data, ensure_ascii=False, allow_nan=False))
 
 
+HEADSHOT_URL = re.compile(r'https://cdn\.nba\.com/headshots/nba/latest/\d+x\d+/(\d+)\.png')
+
+
+def download_headshot(person_id):
+    """cdn.nba.com refuses browser loads from other sites, so headshots are served from the snapshot."""
+    url = f'https://cdn.nba.com/headshots/nba/latest/260x190/{person_id}.png'
+    request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.nba.com/'})
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return response.read() if response.headers.get_content_type() == 'image/png' else None
+    except OSError:
+        return None
+
+
+def localize_headshots(stage, previous, download=download_headshot):
+    """Copy every referenced NBA headshot into the snapshot and point the JSON at the local copy."""
+    texts = {path: path.read_text() for path in stage.rglob('*.json')}
+    ids = {match for text in texts.values() for match in HEADSHOT_URL.findall(text)}
+    folder = stage / 'headshots'
+    folder.mkdir(exist_ok=True)
+
+    def one(person_id):
+        old = previous / 'headshots' / f'{person_id}.png'
+        data = old.read_bytes() if old.exists() else download(person_id)
+        if data:
+            (folder / f'{person_id}.png').write_bytes(data)
+            return person_id
+        return None
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        saved = {person_id for person_id in pool.map(one, sorted(ids)) if person_id}
+    # A headshot that could not be fetched keeps its CDN URL; the UI falls back to initials.
+    def swap(match):
+        return f'/data/headshots/{match[1]}.png' if match[1] in saved else match[0]
+    for path, text in texts.items():
+        if HEADSHOT_URL.search(text):
+            path.write_text(HEADSHOT_URL.sub(swap, text))
+    print(f'headshots: {len(saved)}/{len(ids)} served from the snapshot')
+
+
+def keep_board_if_emptied(root, previous):
+    """A refresh that buys no quotes (credits spent, prices expired) must not blank a slate that already had
+    picks: keep the earlier board for the same date. Each row still shows how old its price is."""
+    new_path, old_path = root / 'props.json', previous / 'props.json'
+    if not old_path.exists():
+        return False
+    new, old = json.loads(new_path.read_text()), json.loads(old_path.read_text())
+    if new.get('count') or not old.get('count') or new.get('target_date') != old.get('target_date'):
+        return False
+    new_path.write_text(old_path.read_text())
+    print(f'{root.name}: refresh produced no priced props; kept the {old["count"]}-prop board for {old["target_date"]}')
+    return True
+
+
 def export(base, out, refresh_odds=False):
     out = Path(out).resolve()
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -89,12 +143,19 @@ def export(base, out, refresh_odds=False):
             if refresh_odds:
                 result = fetch(base, f'/api/props/refresh?league={league}&fetch_odds=true', method='POST')
                 print(f'{league}: quote refresh evaluated {result.get("count", 0)} markets; {result.get("message", "")}')
-            save(root, 'props', fetch(base, f'/api/props?league={league}&direction=all&include_research=true&limit=500'))
+            board = fetch(base, f'/api/props?league={league}&direction=all&include_research=true&limit=500')
+            save(root, 'props', board)
+            keep_board_if_emptied(root, out / league)
             save(root, 'defense', fetch(base, f'/api/defense?league={league}'))
-            save(root, 'trends', fetch(base, f'/api/trends?league={league}&limit=200'))
+            save(root, 'trends', fetch(base, f'/api/trends?league={league}&limit=400'))
+            save(root, 'q1-odds', fetch(base, f'/api/props/q1-odds?league={league}'))
+            save(root, 'trends-1q', fetch(base, f'/api/trends?league={league}&limit=400&period=1q'))
             save(root, 'alt-lines', fetch(base, f'/api/props/alt-lines?league={league}'))
             games = fetch(base, f'/api/games?league={league}')
             save(root, 'games', games)
+            from utils import prop_pick_ledger
+            count = prop_pick_ledger.record_picks(league, board, games)
+            print(f'{league}: saved {count} first-published prop picks')
             slate_date = games.get('target_date') or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
             save(root, 'scheduled-players', fetch(base, f'/api/players/scheduled?league={league}&game_date={slate_date}'))
             predictions = fetch(base, f'/api/games/predictions?league={league}')
@@ -116,13 +177,21 @@ def export(base, out, refresh_odds=False):
             save(root, 'standings', fetch(base, f'/api/standings?league={league}'))
             from utils.game_forecast_ledger import grade_forecasts
             grade_forecasts(league)
+            from api.data import history
+            print(f'{league}: graded {prop_pick_ledger.grade_picks(league, history(league))} prop picks')
+            save(root, 'props-record', fetch(base, f'/api/props/record?league={league}'))
             save(root, 'performance', fetch(base, f'/api/performance?league={league}'))
             today = datetime.now(ZoneInfo('America/New_York')).date()
             dates = sorted({(today + timedelta(days=offset)).isoformat() for offset in range(-2, 4)} | {slate_date})
+            matchups = set()
             for day in dates:
                 day_games = fetch(base, f'/api/games?league={league}&game_date={day}')
                 save(root, f'schedule/{day}', day_games)
                 for game in day_games.get('games', []):
+                    pair = f'{game["away_team"]}-{game["home_team"]}'
+                    if pair not in matchups:  # a pairing is date-independent, so one file serves every day it appears
+                        matchups.add(pair)
+                        save(root, f'matchup/{pair}', fetch(base, f'/api/games/matchup?league={league}&home={game["home_team"]}&away={game["away_team"]}'))
                     if game.get('game_id') and game.get('status_state') in ('in', 'post'):
                         save(root, f'boxscore/{game["game_id"]}', fetch(base, f'/api/games/{game["game_id"]}/boxscore?league={league}'))
                 save(root, f'schedule/{day}-predictions', fetch(base, f'/api/games/predictions?league={league}&game_date={day}'))
@@ -139,7 +208,7 @@ def export(base, out, refresh_odds=False):
                     'series': fetch(base, endpoint + f'/series?league={league}&games=200'),
                 })
             print(f'{league}: exported {len(players["players"])} players')
-        save(stage, 'props-record', fetch(base, '/api/props/record'))
+        localize_headshots(stage, out)
         files = [path for path in stage.rglob('*') if path.is_file()]
         save(stage, 'manifest', {
             'schema_version': 3,
@@ -166,7 +235,11 @@ def main():
     parser.add_argument('--api', default='http://127.0.0.1:8000')
     parser.add_argument('--refresh-odds', action='store_true', help='Buy quotes within the persistent API credit budget before exporting.')
     parser.add_argument('--boxscores-only', action='store_true', help='Only add game box scores to the existing snapshot.')
+    parser.add_argument('--headshots-only', action='store_true', help='Only localize player headshots in the existing snapshot.')
     args = parser.parse_args()
+    if args.headshots_only:
+        localize_headshots(Path(args.out).resolve(), Path(args.out).resolve())
+        return
     if args.boxscores_only:
         export_boxscores_only(args.api.rstrip('/'), args.out)
         return

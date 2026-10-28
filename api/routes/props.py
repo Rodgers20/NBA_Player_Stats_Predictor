@@ -7,10 +7,13 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException, Query
 from api.data import League, history, number
 from api.routes import prop_extras
+from utils.combo_model import COMBOS, add_combo_columns
 from utils.edge_rating import edge_fields
+from utils.market_evaluation import MIN_PICK_EV
 
 router = APIRouter(tags=['props'])
 RESEARCH_STATS = ('PTS', 'REB', 'AST')
+SPREAD_GAMES = 20   # recent games behind a player's own spread for pricing; see utils.market_evaluation.player_residuals
 
 
 def _get_props_data():
@@ -145,7 +148,7 @@ def _wnba_research_shortlist(stat, game, location, direction, locks_only, combos
                 model_projection=round(projection, 1), avg=round(avg, 1),
                 l5_avg=round(sum(values[:5]) / len(values[:5]), 1),
                 hits=None, total=None, hit_rate=None, def_rank=None, is_lock=False, is_combo=False,
-                blowout_risk=False, l5_values=values[:5], chart_windows={}, **prop_extras.EXTRA_DEFAULTS,
+                blowout_risk=False, l5_values=values[:5], l10_values=values[:10], chart_windows={}, **prop_extras.EXTRA_DEFAULTS,
                 edge_pct=None, implied_prob=None, stars=None, high_edge=False,
                 insight=f'Model projects {projection:.1f} {research_stat} against {avg:.1f} over the last {len(values)} games. No betting edge or pick is claimed.'))
     if not shortlist:
@@ -280,9 +283,11 @@ def get_parlays(league: League = 'nba'):
 
 
 @router.get('/props/record')
-def get_record():
-    from utils.prediction_tracker import get_props_record
-    return get_props_record()
+def get_record(league: League = 'nba'):
+    """Published picks at their first price, graded with closing-line value. The pre-ledger record
+    (utils.prediction_tracker) graded an older model's unpriced lines, so it is no longer served."""
+    from utils import prop_pick_ledger
+    return prop_pick_ledger.summary(prop_pick_ledger.load(league))
 
 
 def _serialise_prop(p, quality_reason=None):
@@ -290,7 +295,7 @@ def _serialise_prop(p, quality_reason=None):
     narrative = insight.get('narrative', '') if isinstance(insight, dict) else str(insight)
     eligible = quality_reason is None   # a real, fresh sportsbook price backs this row
     ev = number(p.get('ev')) if eligible else None
-    pick_type = 'research' if not eligible else 'pick' if ev is not None and ev > 0 else 'lean'
+    pick_type = 'research' if not eligible else 'pick' if ev is not None and ev >= MIN_PICK_EV else 'lean'
     result = {key: p.get(key, '') for key in ('player', 'team', 'opponent', 'stat', 'game_matchup')}
     result.update({key: number(p.get(key)) for key in ('line', 'avg', 'l5_avg', 'hits', 'total', 'def_rank', 'live_line', 'model_projection')})
     result.update(stat_label=p.get('stat_label', p.get('stat', '')), direction=p.get('direction', 'Over'),
@@ -313,6 +318,7 @@ def _serialise_prop(p, quality_reason=None):
     result['def_rank_of'] = number(result['def_rank_of'])
     result['is_home_today'] = _home_status(p)
     result['l5_values'] = [number(value) for value in (p.get('l5_values') or [])[:5]]
+    result['l10_values'] = [number(value) for value in (p.get('l10_values') or [])[:10]]
     result['chart_windows'] = {
         key: {'values': [number(value) for value in window.get('values', [])],
               'labels': [str(label) for label in window.get('labels', [])]}
@@ -360,6 +366,26 @@ def get_defense(league: League = 'nba', stat: Literal['PTS', 'REB', 'AST'] | Non
 _evaluated_cache = {}
 
 
+@router.get('/props/q1-odds')
+def get_q1_odds(league: League = 'nba'):
+    """Saved first-quarter quotes for games that have not started: real 1Q prices and bet-slip links for slip legs."""
+    from datetime import timezone
+    from utils import odds_store
+    from utils.odds_fetcher import Q1_STORE
+    if league != 'nba':
+        return dict(league=league, quotes=[])
+    now = datetime.now(timezone.utc)
+    def unstarted(quote):
+        try:
+            return datetime.fromisoformat(str(quote.get('commence_time')).replace('Z', '+00:00')) > now
+        except ValueError:
+            return False
+    quotes = [dict(player=player, stat=stat, line=quote.get('line'), books=quote.get('books', []),
+                   game_matchup=quote.get('game_matchup'), commence_time=quote.get('commence_time'))
+              for player, markets in odds_store.load(Q1_STORE).items() for stat, quote in markets.items() if unstarted(quote)]
+    return dict(league=league, quotes=quotes)
+
+
 @router.post('/props/refresh')
 def refresh_props(league: League = 'nba', fetch_odds: bool = False):
     """Evaluate cache, optionally buying up to six credits on explicit request."""
@@ -372,16 +398,18 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
     if fetch_odds:
         from utils import odds_planner
         odds_planner.manual_refresh(league)
+        if league == 'nba':
+            odds_planner.q1_refresh()
     quotes = _cached_quotes(league)
     target = slate_date(league)
     output, skipped = [], []
-    df = history(league) if quotes else None
+    df = add_combo_columns(history(league)) if quotes else None
     opens = _open_lines(league) if quotes else {}
     injured_by_team = {}
     for player, markets in quotes.items():
         player_history = df[df['PLAYER_NAME'] == player].sort_values('_date', ascending=False)
         for stat, quote in markets.items():
-            if stat not in ('PTS', 'AST', 'REB'):
+            if stat not in ('PTS', 'AST', 'REB') + COMBOS:
                 continue
             reason = quote_problem(quote, target) or history_problem(player_history, target)
             if reason:
@@ -403,17 +431,19 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                 projection = result[f'predicted_{stat.lower()}']
                 recent = player_history[player_history['_date'] < target].head(10)
                 values = recent[stat]
+                spread = player_history[player_history['_date'] < target].head(SPREAD_GAMES)[stat].std()
                 shared = prop_extras.shared_fields(league, player, stat, quote, opponent, opens)
                 if team not in injured_by_team:
                     injured_by_team[team] = prop_extras.unavailable_teammates(league, team, _injuries_for)
                 impacts = prop_extras.teammate_impacts(player, stat, player_history, df, injured_by_team[team])
                 candidates = []
-                for direction in ('Over', 'Under'):
+                # Books sell combo unders rarely and never as the bet we want to promote: combos are over-only.
+                for direction in (('Over',) if stat in COMBOS else ('Over', 'Under')):
                     price = quote.get('over_price' if direction == 'Over' else 'under_price')
                     evaluation = evaluate_market(projection, quote['line'], price,
                                                  getattr(model, 'calibration_residuals', None), direction,
                                                  other_price=quote.get('under_price' if direction == 'Over' else 'over_price'),
-                                                 sample=len(values))
+                                                 sample=len(values), spread=spread)
                     if not evaluation:
                         continue
                     hits = int((values > quote['line']).sum() if direction == 'Over' else (values < quote['line']).sum())
@@ -424,6 +454,7 @@ def refresh_props(league: League = 'nba', fetch_odds: bool = False):
                         game_matchup=quote.get('game_matchup', ''), has_live_odds=True,
                         is_home_today=is_home,
                         l5_values=[float(value) for value in values.head(5)],
+                        l10_values=[float(value) for value in values.head(10)],
                         live_over_price=quote.get('over_price'), live_under_price=quote.get('under_price'),
                         bookmaker=quote.get('bookmaker'), quote_updated_at=quote.get('updated_at'),
                         insight={'narrative': f'Model projects {projection:.1f} {stat} against the {quote["line"]} line. '

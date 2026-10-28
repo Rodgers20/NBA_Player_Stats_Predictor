@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 import logging
 import re
 import pandas as pd
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from api.data import League, history, number
 from utils.league_config import get_config
 
@@ -165,6 +165,33 @@ def get_games(league: League = 'nba', game_date: str | None = None):
                           odds_source=quote.get('source'), odds_provider=quote.get('bookmaker'),
                           odds_updated_at=quote.get('fetched_at')))
     return dict(target_date=target, games=games, league=league)
+
+
+def matchup_frames(league):
+    """Game log, offensive and defensive team stats for a league (empty frames when a file is missing)."""
+    root = get_config(league).data_dir
+
+    def load(name):
+        path = root / name
+        return pd.read_csv(path) if path.exists() else pd.DataFrame()
+    return load('game_team_history.csv'), load('team_stats.csv'), load('team_defensive_stats.csv')
+
+
+@router.get('/games/matchup')
+def get_matchup(home: str = Query(pattern=r'^[A-Z]{2,4}$'), away: str = Query(pattern=r'^[A-Z]{2,4}$'), league: League = 'nba'):
+    """Head-to-head, home and road form, and league-ranked strengths and weaknesses for one game."""
+    from utils import matchup
+    log, stats, defense = matchup_frames(league)
+    if log.empty or stats.empty:
+        return dict(league=league, home=home, away=away, available=False, season=None,
+                    message='Team history is not available for this league.')
+    profiles = {team: matchup.team_profile(stats, defense, team) if not defense.empty else None for team in (home, away)}
+    face_offs = matchup.edges(stats, defense, away, home) + matchup.edges(stats, defense, home, away) if not defense.empty else []
+    return dict(league=league, home=home, away=away, available=True, season=str(matchup.latest_season(stats)['SEASON'].iloc[0]),
+                h2h=matchup.head_to_head(log, home, away),
+                splits=dict(home=dict(team=home, **(matchup.venue_form(log, home, True) or dict(games=0))),
+                            away=dict(team=away, **(matchup.venue_form(log, away, False) or dict(games=0)))),
+                profiles=profiles, edges=sorted(face_offs, key=lambda edge: -edge['gap']))
 
 
 @router.get('/games/predictions')

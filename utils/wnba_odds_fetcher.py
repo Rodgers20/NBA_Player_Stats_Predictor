@@ -115,6 +115,7 @@ def _fetch_event_odds(event_id: str, markets: str) -> Optional[dict]:
         "regions": "us",
         "markets": markets,
         "oddsFormat": "american",
+        "includeLinks": "true",   # sportsbook links; free (cost is markets x regions)
     }
     resp = _get(url, params)
     if resp is None:

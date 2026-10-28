@@ -9,7 +9,7 @@ Setup:
   2. Add to your .env file:
        THE_ODDS_API_KEY=your_key_here
 
-Player-prop refresh is explicit and limited to two events / three markets.
+Player-prop refresh is explicit; the planner decides how many games and prop types each refresh buys.
 All requests use the persistent shared credit budget; ordinary reads are cache-only.
 
 Return shape:
@@ -49,8 +49,20 @@ MARKET_TO_STAT = {
     "player_threes":           "FG3M",
     "player_points_rebounds":  "PTS+REB",
     "player_points_assists":   "PTS+AST",
+    "player_rebounds_assists": "REB+AST",
     "player_points_rebounds_assists": "PTS+REB+AST",
 }
+# Bought per event on an explicit refresh; each market costs one credit (enforced by odds_budget).
+# When credits are short only the first N are bought (see utils.odds_planner.allocate), so order matters.
+MARKET_PRIORITY = ["player_points", "player_rebounds", "player_assists", "player_points_rebounds_assists",
+                   "player_points_rebounds", "player_points_assists", "player_rebounds_assists"]
+REFRESH_MARKETS = ",".join(MARKET_PRIORITY)
+# First-quarter player markets, bought for the slate's first Q1_GAMES games only (3 credits a game) and stored apart
+# ('nba-q1') so the full-game board never prices them. They give 1Q slip legs real prices and bet-slip links.
+Q1_MARKET_TO_STAT = {"player_points_q1": "PTS_1Q", "player_rebounds_q1": "REB_1Q", "player_assists_q1": "AST_1Q"}
+Q1_GAMES = 2
+Q1_STORE = "nba-q1"
+Q1_MAX_TRIES = 2   # books post 1Q lines later than full-game ones; a second run gets one more look, never more
 
 # Cache TTL: 30 minutes
 _CACHE_TTL = 30 * 60
@@ -94,13 +106,16 @@ _TEAM_NAME_TO_ABBR: dict = {
 
 # ── Public API ──────────────────────────────────────────────────────────────
 
-def get_live_odds(force_refresh: bool = False, target_date: str | None = None, max_events: int = 2) -> dict:
-    """Read cache by default. Explicit refresh buys 3 market credits per event, up to max_events."""
+def get_live_odds(force_refresh: bool = False, target_date: str | None = None, max_events: int = 2,
+                  markets: int = len(MARKET_PRIORITY)) -> dict:
+    """Read cache by default. Explicit refresh buys the top `markets` prop types (one credit each) for up to max_events games."""
     global _cache, _cache_ts, _cache_date
     target = target_date or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
     fallback = _cache if _cache_date == target and 0 <= time.time() - _cache_ts < _CACHE_TTL else {}
     if not force_refresh:
-        return fallback
+        # A restarted process (every scheduled snapshot) has an empty memory cache; the quotes paid for earlier
+        # are on disk. Stale or started-game quotes are rejected later by prop_quality.quote_problem.
+        return fallback or odds_store.load('nba')
     if not API_KEY:
         odds_budget.report('Odds API key is not configured. Add THE_ODDS_API_KEY to refresh.')
         return fallback
@@ -113,7 +128,7 @@ def get_live_odds(force_refresh: bool = False, target_date: str | None = None, m
             return fallback
         fresh, successes = {}, 0
         for event_id in event_ids:
-            payload = _fetch_event_odds(event_id, 'player_points,player_rebounds,player_assists')
+            payload = _fetch_event_odds(event_id, ",".join(MARKET_PRIORITY[:markets]))
             if payload:
                 successes += 1
                 _parse_event_odds(payload, fresh, target_date=target)
@@ -124,6 +139,44 @@ def get_live_odds(force_refresh: bool = False, target_date: str | None = None, m
     except Exception:
         logger.warning('Odds refresh failed; only fresh same-slate cache may be used')
     return fallback
+
+
+def get_q1_odds(target_date: str | None = None, max_events: int = Q1_GAMES) -> dict:
+    """Buy the first-quarter player markets for the slate's first `max_events` games, once each (saved under Q1_STORE).
+
+    A game is skipped when it already has 1Q quotes for the day or has used its Q1_MAX_TRIES. Returns the new quotes.
+    """
+    if not API_KEY:
+        return {}
+    target = target_date or datetime.now(ZoneInfo('America/New_York')).date().isoformat()
+    bought = {q.get('event_id') for markets in odds_store.load(Q1_STORE).values() for q in markets.values()
+              if q.get('event_date') == target}
+    fresh = {}
+    try:
+        for event_id in _fetch_event_ids(target)[:max_events]:
+            if event_id in bought or _q1_attempts(event_id) >= Q1_MAX_TRIES:
+                continue
+            _note_q1_attempt(event_id)
+            payload = _fetch_event_odds(event_id, ",".join(Q1_MARKET_TO_STAT))
+            if payload:
+                _parse_event_odds(payload, fresh, target_date=target, stat_map=Q1_MARKET_TO_STAT)
+    except Exception:
+        logger.warning('First-quarter odds refresh failed; earlier 1Q quotes stay')
+    if fresh:
+        odds_store.save(Q1_STORE, fresh)
+    return fresh
+
+
+def _q1_attempts(event_id: str) -> int:
+    with odds_budget.connection() as db:
+        db.execute('CREATE TABLE IF NOT EXISTS q1_attempts (event_id TEXT, at TEXT)')
+        return db.execute('SELECT COUNT(*) FROM q1_attempts WHERE event_id=?', (event_id,)).fetchone()[0]
+
+
+def _note_q1_attempt(event_id: str) -> None:
+    with odds_budget.connection() as db:
+        db.execute('CREATE TABLE IF NOT EXISTS q1_attempts (event_id TEXT, at TEXT)')
+        db.execute('INSERT INTO q1_attempts VALUES (?, ?)', (event_id, datetime.now(timezone.utc).isoformat()))
 
 
 def get_player_odds(player_name: str, stat: str) -> dict | None:
@@ -304,6 +357,7 @@ def _fetch_event_odds(event_id: str, markets: str) -> dict | None:
         "regions":   "us",
         "markets":   markets,
         "oddsFormat": "american",
+        "includeLinks": "true",   # sportsbook game and bet-slip links; free (cost is markets x regions)
     }
     resp = _get(url, params)
     if resp is None:
@@ -313,7 +367,18 @@ def _fetch_event_odds(event_id: str, markets: str) -> dict | None:
     return resp.json()
 
 
-def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=None) -> None:
+def _book_link(url, book_key: str) -> str | None:
+    """A provider link kept only when it is https on the book's own domain (fanduel.com for 'fanduel')."""
+    from urllib.parse import urlparse
+    if not isinstance(url, str) or not book_key:
+        return None
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    domain = f"{book_key.lower()}.com"
+    return url if parsed.scheme == "https" and (host == domain or host.endswith("." + domain)) else None
+
+
+def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=None, stat_map=None) -> None:
     """
     Parse one event's odds payload into the flat {player: {stat: odds}} dict.
 
@@ -333,7 +398,7 @@ def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=No
     for book in sorted(bookmakers, key=_book_rank):
         book_name = book.get("title", book.get("key", "Unknown"))
         for market in book.get("markets", []):
-            stat = MARKET_TO_STAT.get(market.get("key", ""))
+            stat = (stat_map or MARKET_TO_STAT).get(market.get("key", ""))
             if not stat:
                 continue
 
@@ -347,6 +412,7 @@ def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=No
                 by_player.setdefault(player, {})[direction] = {
                     "price": outcome.get("price"),
                     "point": outcome.get("point"),
+                    "link":  _book_link(outcome.get("link") or market.get("link"), book.get("key", "")),
                 }
 
             for player, sides in by_player.items():
@@ -363,6 +429,10 @@ def _parse_event_odds(event_data: dict, out: dict, target_date=None, team_map=No
                 # book quoting the same event is also kept in `books` for line shopping.
                 book_quote = {"book": book_name, "line": float(line),
                               "over_price": over.get("price"), "under_price": under.get("price")}
+                # Deepest link first when the slip hands off to this book; absent keys mean the book sent none.
+                links = {"event_link": _book_link(book.get("link"), book.get("key", "")),
+                         "over_link": over.get("link"), "under_link": under.get("link")}
+                book_quote.update({key: url for key, url in links.items() if url})
                 player_dict = out.setdefault(player, {})
                 existing = player_dict.get(stat)
                 if existing is None:

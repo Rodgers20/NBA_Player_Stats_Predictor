@@ -6,6 +6,11 @@ export type BoardFilters = {
   game: string;
   locksOnly: boolean;
   minStars: number;
+  window: string;
+  /** Only picks with a positive expected value. */
+  ev: boolean;
+  /** Picked players, pipe-separated; empty means everyone. */
+  players: string;
 };
 export type BoardState = BoardFilters & { q: string };
 

@@ -1,4 +1,4 @@
-.block { padding: 12px 12px 10px; border-radius: 14px; background: rgba(255, 255, 255, 0.025); border: 1px solid var(--color-border-sub); }
+.block { padding: 12px 12px 10px; border-radius: 14px; background: color-mix(in srgb, var(--color-ink) 2.5%, transparent); border: 1px solid var(--color-border-sub); }
 .title { margin: 0 0 8px; text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-text-sec); }
 .sides { display: grid; grid-template-columns: 1fr 1fr; }
 .side { display: grid; gap: 8px; align-content: start; padding: 0 10px; }
@@ -7,15 +7,15 @@
 .value { margin-left: auto; }
 .add {
   position: relative; z-index: 2; flex: 0 0 auto; display: grid; place-items: center; width: 28px; height: 28px; min-height: 0; padding: 0;
-  border-radius: 9999px; color: var(--color-teal-400); background: transparent; border: 1px solid rgba(89, 224, 200, 0.45);
+  border-radius: 9999px; color: var(--color-teal-400); background: transparent; border: 1px solid color-mix(in srgb, var(--color-teal-400) 45%, transparent);
   transition: transform 160ms var(--ease-out-strong), background-color 150ms ease, color 150ms ease;
 }
 .add:active, .action:active { transform: scale(0.92); }
-.add[aria-pressed="true"], .action[aria-pressed="true"] { color: #0d151b; background: var(--color-teal-400); border-color: var(--color-teal-400); }
+.add[aria-pressed="true"], .action[aria-pressed="true"] { color: var(--color-bg-root); background: var(--color-teal-400); border-color: var(--color-teal-400); }
 .actions { display: flex; justify-content: center; gap: 8px; margin: -2px 0 10px; }
 .action {
   position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 6px; min-height: 0; padding: 6px 12px; border-radius: 9999px;
-  font-size: 12px; font-weight: 700; color: var(--color-text-pri); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--color-border-card);
+  font-size: 12px; font-weight: 700; color: var(--color-text-pri); background: color-mix(in srgb, var(--color-ink) 5%, transparent); border: 1px solid var(--color-border-card);
   transition: transform 160ms var(--ease-out-strong), background-color 150ms ease, color 150ms ease;
 }
 .label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--color-text-sec); }

@@ -34,6 +34,7 @@ export interface Prop {
   live_line:    number | null;
   is_home_today?: boolean | null;
   l5_values?: (number | null)[];
+  l10_values?: (number | null)[];
   chart_windows?: Record<string, { values: (number | null)[]; labels: string[] }>;
   // Research fields (null/absent on research-shortlist and cached rows).
   books?: BookQuote[];
@@ -51,7 +52,11 @@ export interface Prop {
   matchup_grade?: 'A' | 'B' | 'C' | 'D' | 'F' | null;
 }
 
-export interface BookQuote { book: string; line: number; over_price: number | null; under_price: number | null }
+export interface BookQuote {
+  book: string; line: number; over_price: number | null; under_price: number | null;
+  /** The book's own https links, when the odds feed sent them: the game page and each side's add-to-slip link. */
+  event_link?: string; over_link?: string; under_link?: string;
+}
 export interface BestPrice { book: string; price: number; line: number }
 export interface Consensus { line: number; over_price: number | null; under_price: number | null }
 export interface HitRate { hits: number; total: number; pct: number | null }  // pushes excluded from total
@@ -174,6 +179,12 @@ export interface ChartRecord {
   hit:      boolean | null;
   season?:  string | null;
   is_home?: boolean | null;
+  // Per-game context; absent when the history cannot say.
+  minutes?: number | null;
+  margin?:  number | null;   // team points for minus against
+  won?:     boolean | null;
+  rest?:    number | null;   // full days since the player's previous game
+  out?:     string[];        // rotation teammates who sat this game out
 }
 
 export interface PlayerChartData {
@@ -250,9 +261,21 @@ export interface ModelEvaluation {
   candidates: Record<string, {margin: {mae: number; rmse: number}; total: {mae: number; rmse: number}}>;
   features: string[]; limits: string[];
 }
+export interface PickTally {n: number; correct: number; rate: number | null}
 export interface ModelRecord {
-  games: number; winner: {n: number; correct: number; rate: number | null};
+  games: number; winner: PickTally;
+  /** Against the saved sportsbook line; only games where the model took a side. */
+  spread?: PickTally; total_ou?: PickTally;
   margin_mae: number | null; total_mae: number | null;
+}
+/** A first-published forecast graded against the final score and the lines saved with it. */
+export interface LedgerGame {
+  date: string; game_id: string; home_team: string; away_team: string; home_score: number; away_score: number;
+  predicted_home_score: number | null; predicted_away_score: number | null; predicted_total: number | null;
+  predicted_winner: string | null; winner_correct: boolean | null;
+  margin_error: number | null; total_error: number | null;
+  market_spread: number | null; spread_pick: 'HOME' | 'AWAY' | null; spread_correct: boolean | null;
+  market_total: number | null; total_pick: 'OVER' | 'UNDER' | null; total_correct: boolean | null;
 }
 export interface SavedGameForecast {
   date: string; season: number; game_id: string;
@@ -267,7 +290,7 @@ export interface PerformanceResponse {
   live: {current_season: number; excluded_unverified: number; message: string;
     seasons: {season: number; record: ModelRecord; games: SavedGameForecast[];
       by_month: (ModelRecord & {month: string})[]}[]};
-  prospective?: {model_version: string | null; saved: number; pending: number; record?: ModelRecord; message: string};
+  prospective?: {model_version: string | null; saved: number; pending: number; void?: number; record?: ModelRecord; games?: LedgerGame[]; message: string};
   market_record: {available: boolean; message: string};
 }
 
@@ -275,16 +298,34 @@ export interface TrendCard {
   player: string;
   team: string;
   opponent: string | null;
-  stat: 'PTS' | 'REB' | 'AST' | 'FG3M';
+  stat: 'PTS' | 'REB' | 'AST' | 'FG3M' | 'STL' | 'BLK' | 'PTS+REB' | 'PTS+AST' | 'REB+AST' | 'PTS+REB+AST';
   side: 'over' | 'under';
   line: number;
   hits: number;
   games: number;
   results: boolean[];              // oldest to newest; true = the side hit
+  values?: number[];               // oldest to newest: the stat in each game, charted against the line
+  headshot_url?: string | null;
+  cushion?: number;                // how far the average clears the line, relative to it
   avg: number;
   text: string;
   stars: number;                   // 3-5
   line_source: 'live' | 'derived';
   live: { line: number; price: number | null; book: string | null } | null;
+  playing_today?: boolean | null;  // null/absent = the schedule was unknown when this was built
 }
-export interface TrendsResponse { league: string; count: number; trends: TrendCard[] }
+export interface MatchupMetric { label: string; column: string; side: 'offense' | 'defense'; rank: number; of: number; value: number; display: string }
+export interface MatchupProfile { metrics: MatchupMetric[]; strengths: MatchupMetric[]; weaknesses: MatchupMetric[] }
+export interface VenueForm {
+  team: string; games: number; wins?: number; losses?: number; pts_for?: number; pts_against?: number; margin?: number;
+  recent?: { date: string; opponent: string; pts: number; opp_pts: number; won: boolean }[];
+}
+export interface MatchupEdge { team: string; against: string; label: string; defense_label: string; attack_rank: number; defense_rank: number; of: number; gap: number }
+export interface MatchupResponse {
+  league: string; home: string; away: string; available: boolean; season: string | null; message?: string;
+  h2h?: { games: { date: string; home: string; away: string; home_pts: number; away_pts: number; winner: string; kind: string }[]; record: Record<string, number> };
+  splits?: { home: VenueForm; away: VenueForm };
+  profiles?: Record<string, MatchupProfile | null>;
+  edges?: MatchupEdge[];
+}
+export interface TrendsResponse { league: string; count: number; trends: TrendCard[]; slate?: { date: string | null; teams: string[] } }

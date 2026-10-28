@@ -1,54 +1,54 @@
 {
-  "mae": 1.6329637757293523,
-  "r2": 0.5204463944709736,
-  "bias": 0.09818877107895894,
-  "samples": 2818,
+  "mae": 1.7332919521449341,
+  "r2": 0.47731072033799316,
+  "bias": -0.0037731911446927404,
+  "samples": 2733,
   "selected_candidate": "ridge_100",
   "selection_scores": [
     {
       "candidate": "rolling_5",
-      "cv_mae": 1.8533412073490814
+      "cv_mae": 1.903146711293676
     },
     {
       "candidate": "rolling_10",
-      "cv_mae": 1.819928133983252
+      "cv_mae": 1.856192903146349
     },
     {
       "candidate": "rolling_20",
-      "cv_mae": 1.8223689395643454
+      "cv_mae": 1.8498004565424515
     },
     {
       "candidate": "ridge_1",
-      "cv_mae": 1.8103602554301192
+      "cv_mae": 1.8496333347061436
     },
     {
       "candidate": "ridge_100",
-      "cv_mae": 1.7877731876237362
+      "cv_mae": 1.8242886188215859
     },
     {
       "candidate": "ridge_1000",
-      "cv_mae": 1.7968944060395768
+      "cv_mae": 1.8332838385006518
     },
     {
       "candidate": "xgboost_d2_n150",
-      "cv_mae": 1.805640397315889
+      "cv_mae": 1.8328995370037857
     },
     {
       "candidate": "xgboost_d2_n350",
-      "cv_mae": 1.80299158108516
+      "cv_mae": 1.834360511140085
     },
     {
       "candidate": "xgboost_d4_n150",
-      "cv_mae": 1.8077502239876844
+      "cv_mae": 1.836194959257031
     },
     {
       "candidate": "xgboost_d4_n350",
-      "cv_mae": 1.820943966538418
+      "cv_mae": 1.8481416294115165
     }
   ],
-  "train_samples": 7407,
-  "test_samples": 2818,
-  "calibration_samples": 2571,
+  "train_samples": 7631,
+  "test_samples": 2733,
+  "calibration_samples": 2783,
   "features": [
     "rolling_avg_pts_5",
     "rolling_avg_pts_10",
@@ -83,95 +83,102 @@
     "season_avg_reb",
     "season_avg_min"
   ],
-  "excluded_incomplete_rows": 1913,
+  "excluded_incomplete_rows": 1536,
   "evaluation_method": "expanding-date CV / separate calibration / untouched final dates",
   "date_ranges": {
     "development": [
       "2024-05-16",
-      "2025-08-15"
+      "2025-09-10"
     ],
     "calibration": [
-      "2025-08-16",
-      "2026-06-08"
+      "2025-09-11",
+      "2026-07-14"
     ],
     "test": [
-      "2026-06-09",
-      "2026-08-09"
+      "2026-07-15",
+      "2026-10-24"
     ]
   },
   "baseline_test": {
     "rolling_5": {
-      "mae": 1.6894783534421576,
-      "r2": 0.4663025604511438,
-      "bias": 0.054725573692926424,
-      "samples": 2818
+      "mae": 1.8122088059519452,
+      "r2": 0.4211522929727515,
+      "bias": -0.14543236980119525,
+      "samples": 2733
     },
     "rolling_10": {
-      "mae": 1.6404108508792683,
-      "r2": 0.5058114733893333,
-      "bias": 0.07577506280487119,
-      "samples": 2818
+      "mae": 1.7754833632440656,
+      "r2": 0.443108533593921,
+      "bias": -0.164428008061378,
+      "samples": 2733
     },
     "rolling_20": {
-      "mae": 1.6517337621761417,
-      "r2": 0.5066966189319226,
-      "bias": 0.09600673198294198,
-      "samples": 2818
+      "mae": 1.7554853740083374,
+      "r2": 0.45334690819328705,
+      "bias": -0.15437413730774377,
+      "samples": 2733
     }
   },
-  "interval_80_coverage": 0.8232789212207239,
-  "interval_80_mean_width": 5.100872580480455,
+  "interval_80_coverage": 0.7983900475667765,
+  "interval_80_mean_width": 5.268278830816525,
   "probability_diagnostic": {
     "threshold_source": "pregame rolling-10 average rounded to half-point; NOT sportsbook odds",
-    "brier_score": 0.23732546514423378,
+    "brier_score": 0.2372575223524442,
     "bins": [
       {
-        "count": 51,
-        "mean_probability": 0.17087705661355096,
-        "observed_rate": 0.19607843137254902
+        "count": 41,
+        "mean_probability": 0.17642422384726542,
+        "observed_rate": 0.34146341463414637
       },
       {
-        "count": 250,
-        "mean_probability": 0.25585542168674696,
-        "observed_rate": 0.32
+        "count": 247,
+        "mean_probability": 0.2566961527558712,
+        "observed_rate": 0.3360323886639676
       },
       {
-        "count": 760,
-        "mean_probability": 0.3547620021682656,
-        "observed_rate": 0.35526315789473684
+        "count": 585,
+        "mean_probability": 0.35421749604873487,
+        "observed_rate": 0.37777777777777777
       },
       {
-        "count": 891,
-        "mean_probability": 0.44854949285575013,
-        "observed_rate": 0.41414141414141414
+        "count": 752,
+        "mean_probability": 0.45080312464188854,
+        "observed_rate": 0.4747340425531915
       },
       {
-        "count": 624,
-        "mean_probability": 0.5428077072558224,
-        "observed_rate": 0.5112179487179487
+        "count": 717,
+        "mean_probability": 0.5480605655421427,
+        "observed_rate": 0.5453277545327755
       },
       {
-        "count": 211,
-        "mean_probability": 0.6369351431102794,
-        "observed_rate": 0.5781990521327014
+        "count": 327,
+        "mean_probability": 0.638906549393595,
+        "observed_rate": 0.6819571865443425
       },
       {
-        "count": 31,
-        "mean_probability": 0.723380514775021,
-        "observed_rate": 0.6451612903225806
+        "count": 61,
+        "mean_probability": 0.7310062689466403,
+        "observed_rate": 0.8688524590163934
+      },
+      {
+        "count": 3,
+        "mean_probability": 0.8265709156193896,
+        "observed_rate": 0.6666666666666666
       }
     ],
     "market_calibrated": false,
     "roi": null
   },
   "mae_difference_vs_rolling10_95_ci": [
-    -0.029963446268808966,
-    0.016761949800592337
+    -0.06830697012674779,
+    -0.01586065607149662
   ],
+  "requested_model_type": "xgboost",
   "production_refit": {
-    "samples": 12796,
-    "through": "2026-08-09",
+    "samples": 13147,
+    "through": "2026-10-24",
     "note": "Refit on all rows after evaluation; holdout metrics measure the earlier evaluation fit. Residual calibration is approximate after refit."
   },
-  "requested_model_type": "xgboost"
+  "data_source": "/Users/rodgersbahati/Developer/Projects/NBA/NBA_Player_Stats_Predictor/data/wnba/player_game_logs.csv",
+  "data_sha256": "c83ac06d490908b2cbfac380eeaa06ed3bd7b32c192883e9a209df68e900992d"
 }

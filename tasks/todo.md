@@ -1,3 +1,27 @@
+## Live ESPN scores, play-by-play, box score and tracked bets — October 24
+
+The hosted site is a static snapshot, so live data must come from the visitor's browser (ESPN sends
+`access-control-allow-origin: *`), as the NFL app does. Rate-limit safety: each visitor polls from their
+own IP; one shared React Query cache entry per ESPN feed (box score, plays and bets reuse one request);
+poll only while a game is live (scoreboard 20s, summary 15s; ESPN caches for 8s), pause in hidden tabs,
+stop on Final, back off to 60s on errors.
+
+- [x] `lib/espn-live.mjs`: parse scoreboard + summary (box score, plays), stat value, name match, overlay; tests.
+- [x] `lib/live.ts`: `useLiveScoreboard`, `useLiveSummary` hooks with the polling rules.
+- [x] Game cards + game page: live score/clock overlay.
+- [x] Box score: live from ESPN (snapshot fallback) + play-by-play feed (scoring / all).
+- [x] My Bets: live tracker for pending bets (current value vs line, clock, hit/needs N), auto-grades at the final.
+- [x] Verify: unit tests, typecheck, lint, static build, browser check against a live/final game.
+
+### Review
+221 frontend tests (7 new), tsc and eslint clean, static export builds. Production-build browser check on Oct 23
+finals: LAC@LAL box score + 125 scoring / 471 total plays straight from ESPN; seeded bets graded Doncic O5.5 REB
+win, Reaves U10.5 PRA loss; Jokić O11.5 REB tonight shows the 9:00 PM tip and fetches nothing until tip-off. A
+mapped bet fetches only its own game. No overflow at 390px. Not yet exercised against an in-progress game
+(first tip tonight 6 PM ET). Known limits: ESPN 403s "HeadlessChrome" user agents (real browsers fine); a
+player whose profile has no team on a date the roster file doesn't cover makes that date scan every started
+game once (finals never poll). Not committed or deployed.
+
 ## Restore production domain — October 4
 
 - [x] Inspect the production domain and Vercel deployment aliases.
@@ -317,3 +341,128 @@ Review: 340 Python, 34 frontend tests, tsc and eslint clean. Not seen in a brows
 EV looked implausible (29 of 37 priced WNBA markets "+EV", top +66%). `evaluate_market` now shrinks the model probability toward the no-vig market by n/(n+10) (priors in `utils/market_evaluation.py`, not fitted); plays with <8 recent games or EV >20% post-shrink become research rows with a reason. Re-evaluated stored quotes free: top EV +17.7%, 2 hidden, 19 plays of 37. Every play (Tonight, Props) shows the graded record for its stat plus raw vs market probability.
 Caveats: the record is the older hit-rate pick history (1,882 graded), not these shrunk plays; 19/37 still positive-EV is probably still optimistic — fit SHRINK_PRIOR_GAMES against graded priced picks once they exist.
 Review: 346 Python, 35 frontend tests, tsc and eslint clean. Not seen in a browser.
+
+## Opening-week asks — October 21
+User asks: ML/spread/total filter on Best Props; richer game Matchup (H2H, road/home form, strengths/weaknesses); per-game Props tab; why so many unders; Trends only for teams playing today.
+Finding (unders): production NBA board was 188 Under vs 39 Over priced rows, mean projection 0.73 under the line. Reproduced on 60 PTS lines: projection −1.59 vs line, 83% under. Two feature causes at season start: `days_rest` clamps to 14 after the offseason, and preseason games (24 min vs 27 regular) feed the rolling and "season" averages. Removing both gives +0.45 and 43% under.
+- [ ] `next_game_features`: ignore preseason (SEASON_ID 1xxxx) and treat an offseason gap (>60 days) as normal rest. Test first.
+- [ ] Trends: cards carry `playing_today`, opponent from the slate; page defaults to tonight's games with an "All players" toggle.
+- [ ] `utils/matchup.py` + `GET /api/games/matchup`: head-to-head, away team on the road, home team at home, strengths and weaknesses ranked against the league; export per slate game; Matchup tab on the game page.
+- [ ] Game Props tab lists that game's priced props (picks, leans, research) instead of a link.
+- [ ] Best Props "Game lines" markets: moneyline, spread, totals (chips on the board).
+
+# Outlier-inspired features — October 22
+
+Source: REA capture of app.outlier.bet (notes in memory `outlier-reverse-engineering`). Ideas only, own data and look. "Most researched" is a crowd counter, so it is replaced by L10 hit rate + edge. Public betting percentages are Outlier's paid data and are out of scope unless the odds provider offers them.
+
+Finding behind step 1: production is a static snapshot rebuilt once a day (GitHub Action 11:17 UTC). `/props`, home, analysis and game props all request `include_research: true`, and the board renders the snapshot's `target_date` without comparing it to today (ET), so yesterday's slate stays up until the next build.
+
+- [x] 1. Daily freshness: `isPastSlate` helper (lib/slate-freshness.mjs) + guard in `filterProps` (static snapshot), props page and home board show "Today's picks aren't published yet" for a past slate. 150 frontend tests, tsc and eslint pass. Not yet confirmed in a browser (dev server blocked 127.0.0.1; use localhost). Picks still only update when the 7:17 AM ET build runs.
+- [x] 2. Hit-rate bar + window switcher. Backend sends `l10_values` (last 10 results, newest first) from the refresh path, the background cache and the WNBA research path. Board rows draw a 10-segment green/red/grey bar in the L10 cell; a HIT WINDOW control (L5/L10/L20/H2H/Season, in the URL as `window`) outlines that window, fills a fourth column with H2H or Season, and "Highest Hit Rate" sorts by it (ties: bigger sample). 440 Python tests (one pre-existing failure: `test_startup_does_not_import_dash_or_fetch` fails the same without these changes, 'network attempted'), 157 frontend tests, tsc and eslint pass; checked in a browser with a temporary dated copy of the snapshot (restored byte-identical). Limits: dashes need the next data export/refresh (the existing snapshot has no `l10_values`, so rows just omit the bar until then); H2H/Season show a percentage only, no per-game bar; sorting by window applies to the loaded page of rows, like the Edge sort.
+- [x] 3. Popular page at `/popular` (nav item "Popular"): tabs Hottest (last-10 hit rate, then edge, then sample) and Best edge (real picks by EV). Today's priced plays only: games that started or finished drop out (state + tip time), unpriced research, missing lines, prices worse than -500 and samples under 5 games are excluded; past-slate snapshots show the "not published yet" message. Cards show rank, player, matchup + tip time, line, 10-game dash bar with hit rate, best-book price, EV and an add-to-slip button. Shared `HitDashes` component now also used by the props row. `popularBoard` is unit tested (6 tests); 163 frontend tests, tsc, eslint pass; checked in a browser. No crowd counts (no user base), by design.
+- [x] 4. Props filters (done in `/props`): Only +EV toggle (`ev=true`), multi-select stat chips (`stat=PTS,AST`; the API gets one stat, several are narrowed client-side), Players checklist with search (max 10, `players=A|B`), Sportsbooks picker (global, persisted in prefs; keeps picks a chosen book quotes at the same line, shows the best chosen price and recomputes EV only on half-point lines, otherwise drops EV rather than guess; stars/edge cleared when the price changes), plus the earlier game dropdown, side and hit window. `lib/prop-filters.mjs` 15 tests + `props-url` 16 tests; 182 frontend tests, tsc, eslint pass; checked in a browser. Not built: Outlier's DFS/Predictions book tabs (no such data), and the dropdown panels were not clicked open in the browser check (covered by build + types only).
+- [x] 4b. Player drill-in (built on the existing `/analysis` page, which already had the L5/L10/L20/H2H/home/away/season windows, threshold chart and matchup defense). Added: backend `utils/game_context.py` (+ `api/routes/players.py`) giving every game `minutes`, `margin` (from team-game history, 94% coverage, preseason has none), `won`, `rest` days and `out` (rotation teammates who sat out) in both the live chart and the static series (8 + 5 Python tests); `lib/game-filters.mjs` (11 tests) and a Game filters panel in our design: home-only switch, days of rest, games with/without a teammate, margin range + W/L over a histogram, minutes range over a histogram, reset all, "N of M games match"; filters apply before the window so L10 = last 10 matching games; Minutes bars with Average/Median; a pronoun-free streak INSIGHT sentence (`lib/insights.mjs`, 9 tests); defense tabs vs G / F / C (the data has only 3 position groups, not 5); 240 ms ease-out page entrance (skipped for reduced motion). Verified end to end against the real API in a browser (home + without Chet Holmgren leaves 29 of 200 games, L10 9/9). Not built: the Matchup slide-over with lineups/public betting and the ALT LINES / insight-type dropdowns (not captured from Outlier; matchup content is covered by step 5). Static snapshot grows ~49% per player series before compression until the next export.
+  - Header: Back to Props; photo + team logo; chip `DEN @ OKC · Today 9:30 PM`; name, team, position; selected prop (e.g. "1Q Assists - Over 0.5"); line/price chip, ALT LINES dropdown, best-book Add-to-slip button with a book dropdown; Matchup > button.
+  - Stat tab strip (scrolls): 1Q AST, PTS, 1Q PTS, 1H PTS, FGM, FGA, FTM, FTA, AST, PTS+AST, 3PTM, 3PTA, 2PTM, 2PTA, OREB, DNK, BLK... Only offer stats the game logs actually have.
+  - Window control: insight dropdown, L5, L10, L20, H2H, current season, previous season, plus a filter dropdown (home/away, with teammate X, without teammate X).
+  - Chart: one bar per game, value label on top, dashed line at the prop line, green if cleared and red if not, x labels `date + @/vs opp`. Summary: window hit rate with "10 of 10", L5/L20, H2H/season, previous season, average, median.
+  - Supporting stats: minutes (and other stats) bars with Average/Median toggle; tooltip shows opponent, score and value.
+  - Insights card: streak sentence for the selected prop ("exceeded 0.5 1Q assists in 12 straight games (2.4 avg)").
+  - Key opponent defense for that stat: tabs Overall / vs PG / SG / SF / PF / C; rows Full game and 1Q "Allowed" with avg + league rank and a favorable / neutral / unfavorable icon.
+  - Matchup panel (slide-over): same defense block, Team Rankings offense vs defense with swap, plus injuries, lineups and public betting (public betting only if a data source exists).
+  - Game filter panel (behind the sliders button next to the windows; user loves this one, build it in our own design): "Show only home games" toggle; Days of Rest dropdown; Games with Player and Games without Player dropdowns (teammate pickers, reuse `teammate_impact`); Margin range slider over a histogram of the player's games (0-20 pts) with "Current Spread: OKC -8.5" and an Any W/L dropdown; Minutes per game range slider over a histogram (23-52); RESET ALL. Every filter re-computes the chart, hit rates, average and median on the selected games. Data from existing game logs: home/away, date gaps for rest, MIN, team score margin and W/L, teammate presence. Check the logs carry margin/W-L; if not, derive from the schedule/box score data.
+  - Still to capture from Outlier: the insight dropdown, the ALT LINES dropdown, and the lower part of the Matchup panel (injuries, lineups, public betting).
+- [x] 5. Game page: new **Insights** tab (priced props' streak sentences from the last ten games, "stayed under" for unders, ranked straight runs first, prices worse than -500 and unpriced research skipped; `gameInsights` tested, 13 tests with `streakInsight`) and a **Team Rankings** comparison at the top of the Matchup tab (one team's offense vs the other's defense over four like-for-like pairs, rank 1 = best, swap button, 8+ place edges highlighted; `offenseVsDefense` 5 tests). The side "Insights" tab (model notes) is renamed "Model notes". The game page already had H2H, home/road form, strengths/weaknesses, injuries and the box score. Checked in a browser against the real API.
+- [ ] 6. Public betting (bet % / money % per side): NOT BUILT. A 2026-10-22 search found it only as consumer web pages (Action Network, SportsBettingDime, theSpread) with no licensed feed; the one API found was SharpAPI's splits endpoint (DraftKings + Circa; its two doc pages disagree on the paid tier). Scraping the consumer pages is out of scope. Revisit if a provider is chosen; the games-list dropdown and a Public Betting card on the game page are where it would go.
+
+Verification per step: frontend tests + TypeScript + ESLint, then look at the rendered page (desktop and 390px). Python tests when API code changes.
+
+## Review — October 22
+
+Done: 1, 2, 3, 4, 4b, 5. Not built: 6 (no legitimate data source), Outlier's crowd counters (no user base), DFS/Predictions book tabs, ALT LINES / insight-type dropdowns and the Matchup slide-over's lineups/public betting (not captured).
+
+Verification: 453 Python tests pass (one pre-existing failure, `test_startup_does_not_import_dash_or_fetch`, fails the same without these changes), 212 frontend tests, tsc, eslint and a static production build pass; every feature was also looked at in a browser. Nothing is committed or deployed.
+
+Caveats: fresh picks still arrive only with the 11:17 UTC snapshot build (the site now says so instead of showing yesterday); the existing snapshot has no `l10_values`/game context until the next export; static player series grow ~49% before compression; sportsbook-filtered EV is recomputed only on half-point lines.
+
+## 2026-10-23 · Props fixes + full-screen player analysis
+
+- [x] Only 2 games of props: Odds API free tier (7 credits per game, ~35/day budget, 280 left this month). Not a code bug; needs a paid plan or fewer markets per game. Awaiting user decision.
+- [x] Headshots: served from the snapshot (`scripts/export_api.py --headshots-only`, run automatically on export); test `tests/test_export_headshots.py`.
+- [x] Props rows: card layout below 1200px, no overlap at 390/820/1024/1440.
+- [x] Players filter shows headshots.
+- [x] Load more keeps position (keepPreviousData).
+- [x] Performance: empty season-record panel hidden until a game is graded.
+- [x] Chart: animated hover/tap tooltip; Outlier-style hit/miss colours, tinted zones, line tag, date + opponent labels; draws at real width.
+- [x] Full-screen PlayerAnalysisSheet from Props (spring from tap point, Back to Props, Esc/browser back, focus return, reduced motion); /analysis kept and shares the component.
+- [x] New game filters: Home/Away, opponent, season.
+
+### Review
+Verified with headless Chromium on local static build and production: sheet open/close at 1440 and 390, scroll preserved, no page errors; tap tooltip on touch; tsc/eslint clean; 214 frontend tests, 454 Python tests pass (1 pre-existing failure in tests/test_rest_api.py::test_startup_does_not_import_dash_or_fetch, untouched code). Deployed to production twice (court-vision-basketball.vercel.app). Not committed.
+
+## UX teardown fixes — October 26
+
+Teardown: https://claude.ai/artifact/2qGdARAxQ5ZgmaET2qP7VV (4/10). Build order follows its fix list.
+
+- [x] Edge audit: history keeps only real-season games played (`api.data.played_games`); residuals take the player's 20-game spread; market weighs 40 games; a play needs +2% EV.
+- [x] Nav 10 → 5 (Tonight, Props, Games, Players, My Bets), labels visible on desktop, no "More" sheet on phones.
+- [x] Popular, Trends and Hit Rates became Props views (Hot, Streaks); old routes redirect. Streaks sort by real book line, hits, then cushion; no Add on research lines; capped at 24 with Show more.
+- [x] Tonight: one count line, top 8 compact rows with a one-line reason, visible "model passed" list; old-model graded record removed from rows.
+- [x] My Bets: three-tap how-to, live tracker and progress first, hand entry collapsed.
+- [x] Players opens on tonight's top play; eyebrows unified as SECTION / LEAGUE; one logo.
+
+### Review
+Offline re-price of the same saved quotes: before 159/159 +EV, median +7.2%, 61 five-star; after 30 plays from 249 markets, best +8.9%, median -1.9%, no five-star. Tonight 24,909px → 2,215px. 470 Python + 230 frontend tests pass (the one REST failure predates this work); tsc and eslint clean; static build checked at 1440 and 390 with no overflow or console errors.
+Not done: a closing-line (CLV) check of the new pricing needs graded priced picks, which do not exist yet. The 40-game market weight is a reasoned prior, not a fitted value.
+
+## Colour tokens, clean retrain, pick ledger with CLV — October 27
+
+User: "ok do the now and the next steps" (now = colour tokens; next = empty Tonight, retrain, closing-line tracking). Light theme itself is deferred.
+
+- [x] Colour tokens: hard-coded hex / `white/N` in ~56 files → theme tokens (`--color-*`, new `ink`). Dark must look identical: pixel-compare screenshots before/after.
+- [x] Empty Tonight overnight: board for yesterday after midnight is expected until 7:15 refresh; Players must not open on a stale player (237 days) when there is no pick.
+- [x] Retrain PTS/REB/AST on clean history (preseason 2,006 rows + DNP 16,420 rows feed the rolling features today, while serving uses clean history). Promote only if holdout MAE is no worse.
+- [x] Pick ledger: published picks were never logged since Sep 28 (`save_daily_props` has no caller). First-published price/line/book per pick, graded next morning with result, closing line and CLV; Record view shows hit rate, ROI at taken price, average CLV, share beating the close. Legacy September record hidden.
+- [x] Tests, build, deploy, Brain vault.
+
+### Review
+- Tokens: codemod rewrote 583 colours in 54 files to tokens with identical values (11 new: ink, surfaces, text-dim/soft, track, rail). Pixel diff of 10 pages at 1440 and 390 against a pre-change build: identical except load-timing noise, which the same diff of the old build against itself also shows. Canvas slip image, theme-color meta and design-lab keep hex on purpose; Tailwind's own teal-200/300 and rose are still palette colours.
+- Retrain: the script crashed twice before training (forbidden minute weights; untuned path hits an sklearn 1.6.1 / xgboost 2.1.3 tags clash, so `--tune` as before). Same 12,154 NBA test rows with serving's clean features: PTS 4.673→4.669 MAE, bias −0.52→+0.15; REB 1.954→1.945, −0.29→−0.02; AST 1.397→1.408, −0.11→+0.05. The old models had refit on most of that window, so their numbers are flattered. WNBA: 57 rows removed; same window within 0.02 MAE, PTS bias −0.61→−0.38. Old models backed up under models/<league>/backups.
+- Ledger: `utils/prop_pick_ledger.py` (6 tests). Export records picks before tip and grades after; `/api/props/record?league=` serves it. Seeded with the 30 picks the Oct 26 board published at 18:05 ET. First grades land with the 6 AM history refresh.
+- Players opens on the top streak card when there is no pick (Paul George, history 4 days old, instead of A.J. Lawson at 237 days).
+- Tests: 477 Python pass; one fails only before the morning odds hour (`test_live_odds_refresh`, planner refuses pre-7 AM fetches) — time-of-day dependent, not this change. 230 frontend tests, tsc, eslint clean.
+- Not done: re-pricing a live board with the new models waits for today's quotes. Players at 390px is 412px wide (hit-rate chip row), also in the pre-change build. Light theme deferred.
+
+## Send the slip to a sportsbook + paste-your-picks importer — October 27
+
+User: "are you able to view this and implement that" (ChatGPT plan: Playbook-style import → match → sportsbook handoff). Chosen scope: links + paste importer (no AI, no server); FanDuel and DraftKings first. Screenshot import deferred (needs a serverless function, an Anthropic key, per-image cost).
+
+- [x] Odds fetch asks for `includeLinks=true` (cost is markets × regions only, so free). Each book quote keeps `event_link`, `over_link`, `under_link`; only https links on the book's own domain survive.
+- [x] `lib/sportsbook-links.mjs` (pure, tested): per slip leg and chosen book → deepest link (slip > game > home) and a review status (ready / line moved / price moved / not at this book / not on board). FanDuel: one combined add-to-slip link when every leg has a slip link (format unverified until real links arrive; per-leg buttons always shown).
+- [x] Slip panel: "Send to sportsbook" with a FanDuel / DraftKings choice (remembered), the review list, and Open buttons.
+- [x] `lib/pick-import.mjs` (pure, tested): text like "Brunson o27.5 pts, Ant over 4.5 ast, SGA 30+ points" → legs. Stat and direction shorthand, initials and last names matched against tonight's board; exact / different line (user approves) / not found. Never substitutes silently.
+- [x] "Paste picks" dialog on Props and in the slip; matched legs go into the same slip.
+- [x] Tests, QA at 390/1440.
+- [ ] Deploy, Brain vault.
+
+### Review
+- 12 new frontend tests (links + importer); 242 frontend pass, tsc and eslint clean. Python: 478 pass; `test_startup_does_not_import_dash_or_fetch` fails with or without this change (refresh returns today's cached 148-prop board, the test expects 0).
+- QA at 390 and 1440 on the static snapshot: paste → exact pick pre-ticked, different line offered unticked, unknown player flagged; Send to sportsbook lists each leg. No overflow, no page errors.
+- Today's board predates `includeLinks`, so every leg opens the book's home page until the next quote refresh; the FanDuel combined-slip format is unverified until real links arrive.
+
+## First-quarter player props (hit rates, no prices) + slip photos — October 27
+
+User: "I need to have first quarter bets there as well … as a filter the analysis page and also in the props page, Have them in trends as well. In the bet slip, players needs their profile pictures". Chosen: player 1Q PTS/REB/AST/3PM, hit rates only (no 1Q odds credits). Also: spent 7 credits so tonight's first game has slip links.
+
+- [x] Slip legs show the player's photo (players.json headshots, looked up by name, so old slips get them too).
+- [x] `scripts/refresh_q1_history.py`: stats.nba.com PlayerGameLogs period=1 (one call per season, last 2 seasons) → `data/nba/player_q1_logs.csv`; atomic write; in publish_snapshot.sh (warn-only).
+- [x] `utils/quarter_stats.py` (pure, tested): join Q1 lines onto history as PTS_1Q/REB_1Q/AST_1Q/FG3M_1Q; a covered game the player missed in Q1 counts 0, an uncovered game stays empty.
+- [x] API: player series carries pts_1q…; chart-data accepts the _1Q stats; `/api/trends?period=1q` builds cards from the 1Q columns; export saves trends-1q.json.
+- [x] Analysis: Full game / 1st quarter toggle; Trends: same toggle; Props: 1st-quarter view of tonight's players (hit rates vs derived lines, labelled "no 1Q price").
+- [x] Tests, QA 390/1440, deploy.
+
+### Review
+- Live: Add all 3 legs builds one FanDuel addToBetslip link (marketId[0..2]/selectionId[0..2]); 3/3 slip photos; Props 1st Quarter tab and Analysis 1st quarter (Tatum, stat=PTS_1Q in the URL) render on production; no page errors.
+- 482 Python + 246 frontend tests pass; `test_startup_does_not_import_dash_or_fetch` still fails as before (pre-existing).
+- Checked a suspicious 0: Tatum 2026-03-06 really scored 0 in Q1 (stats.nba.com row), so the join is right.
+- Known: Analysis at 390px is 412px wide from the L5/L10/L20 row (pre-existing). Early season: 26 players qualify for 1Q streaks, 4 tonight. DraftKings multi-outcome link form is inferred, not yet confirmed on DK.

@@ -18,7 +18,7 @@
 
 .panel { display: grid; gap: 16px; padding-top: 16px; }
 .markets { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
-.note { padding: 20px; border-radius: 16px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--color-border-sub); color: var(--color-text-sec); }
+.note { padding: 20px; border-radius: 16px; background: color-mix(in srgb, var(--color-ink) 3%, transparent); border: 1px solid var(--color-border-sub); color: var(--color-text-sec); }
 .note a { color: var(--color-teal-400); }
 
 .side { padding: 16px; display: grid; gap: 12px; }

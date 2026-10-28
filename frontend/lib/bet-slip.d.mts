@@ -2,6 +2,8 @@ export interface SlipLeg {
   league: 'nba' | 'wnba'; date: string; player: string; stat: string;
   direction: string; line: number; price: number; probability: number | null;
   matchup: string; addedAt: string; team?: string;
+  /** True when no price was entered and the standard -110 stands in; shown with an asterisk on the slip. */
+  assumedPrice?: boolean;
 }
 export function decimalOdds(price: number): number | null;
 export function americanOdds(decimal: number): number | null;

@@ -8,6 +8,8 @@ import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
 import { gameState } from "@/lib/game-board.mjs";
+import { withLive } from "@/lib/espn-live.mjs";
+import { useLiveScoreboard } from "@/lib/live";
 import { gameMarkets } from "@/lib/game-markets.mjs";
 import { quoteAge } from "@/lib/tonight.mjs";
 import { modelContext } from "@/lib/model-context.mjs";
@@ -18,6 +20,9 @@ import { GameHighlights } from "./GameHighlights";
 import { MarketBlock } from "./MarketBlock";
 import { MarketGauge, MatchupBanner, teamInfo } from "./MatchupCards";
 import { Injuries, MatchupDetails } from "./MatchupDetails";
+import { GameProps } from "./GameProps";
+import { GameInsights } from "./GameInsights";
+import { MatchupPanel } from "./MatchupPanel";
 import { Tabs, type TabDef } from "./GameTabs";
 import { useTeamMap } from "./useTeamMap";
 import { useGameSlip, withAdds } from "./useGameSlip";
@@ -25,8 +30,8 @@ import type { Game, GamePrediction } from "@/lib/types";
 import gameStyles from "./games.module.css";
 import styles from "./GameDetail.module.css";
 
-const MAIN_TABS = [{ id: "lines", label: "Gamelines" }, { id: "props", label: "Props" }, { id: "box", label: "Box score" }, { id: "clips", label: "Highlights" }] as const satisfies readonly TabDef<string>[];
-const SIDE_TABS = [{ id: "matchup", label: "Matchup" }, { id: "injuries", label: "Injuries" }, { id: "insights", label: "Insights" }] as const satisfies readonly TabDef<string>[];
+const MAIN_TABS = [{ id: "lines", label: "Gamelines" }, { id: "props", label: "Props" }, { id: "insights", label: "Insights" }, { id: "matchup", label: "Matchup" }, { id: "box", label: "Box score" }, { id: "clips", label: "Highlights" }] as const satisfies readonly TabDef<string>[];
+const SIDE_TABS = [{ id: "matchup", label: "Defense" }, { id: "injuries", label: "Injuries" }, { id: "insights", label: "Model notes" }] as const satisfies readonly TabDef<string>[];
 type MainTab = (typeof MAIN_TABS)[number]["id"];
 type SideTab = (typeof SIDE_TABS)[number]["id"];
 
@@ -68,8 +73,10 @@ export function GameDetailPage() {
   const games = useQuery({ queryKey: ["games", league, date], queryFn: () => api.games(league, date), enabled: validId || !!matchup });
   const predictions = useQuery({ queryKey: ["game-predictions", league, date], queryFn: () => api.predictions(league, date), staleTime: 300_000 });
   const { teamMap: teams, ready } = useTeamMap(league);
+  const live = useLiveScoreboard(league, date ?? games.data?.target_date ?? undefined);
 
-  const game = games.data?.games.find(item => (validId ? item.game_id === id : item.matchup === matchup));
+  const found = games.data?.games.find(item => (validId ? item.game_id === id : item.matchup === matchup));
+  const game = found && withLive(found, live[found.game_id ?? ""]);
   const prediction = game && predictions.data?.target_date === games.data?.target_date ? predictions.data?.predictions.find(item => item.matchup === game.matchup) : undefined;
   const status = predictions.isPending ? "Loading model estimate…" : predictions.data?.message || predictions.data?.errors.find(item => item.matchup === game?.matchup)?.message || "Model estimate unavailable for this game.";
 
@@ -96,7 +103,9 @@ export function GameDetailPage() {
           <MarketGauge game={game} />
           <MatchupDetails game={game} prediction={prediction} predictionStatus={status} league={league} showDefense={false} showAvailability={false} />
         </>}
-        {tab === "props" && <p className={styles.note}>Player props for {game.away_team} and {game.home_team} are on the <Link href="/props">Best Props board ↗</Link>. Open any prop there for its full game log and hit-rate windows.</p>}
+        {tab === "props" && <GameProps game={game} league={league} date={date ?? games.data?.target_date ?? undefined} />}
+        {tab === "insights" && <GameInsights game={game} league={league} />}
+        {tab === "matchup" && <MatchupPanel game={game} league={league} />}
         {tab === "box" && (game.game_id && state !== "pre"
           ? <BoxScore key={`${league}-${game.game_id}`} league={league} gameId={game.game_id} />
           : <p className={styles.note}>The box score appears once the game tips off.</p>)}

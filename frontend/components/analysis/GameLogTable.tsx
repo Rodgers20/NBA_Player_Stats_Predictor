@@ -1,9 +1,10 @@
+import Link from "next/link";
 import type { ChartRecord } from "@/lib/types";
 import { gradeSide } from "@/lib/hit-rate.mjs";
 import styles from "./AnalysisPanels.module.css";
 
 /** The chart's data as a table: same games, same line, with the result written out in words. */
-export function GameLogTable({ games, line, stat }: { games: ChartRecord[]; line: number; stat: string }) {
+export function GameLogTable({ games, line, stat, boxHref }: { games: ChartRecord[]; line: number; stat: string; boxHref?: (game: ChartRecord) => string | null }) {
   if (!games.length) return null;
   return (
     <details className={styles.log}>
@@ -17,7 +18,7 @@ export function GameLogTable({ games, line, stat }: { games: ChartRecord[]; line
               const result = game.value == null ? null : gradeSide(game.value, line, "Over");
               return (
                 <tr key={`${game.date}-${index}`}>
-                  <td>{game.date}</td>
+                  <td>{(href => href ? <Link href={href} className="text-teal-400 hover:underline" title="Full box score">{game.date} ↗</Link> : game.date)(boxHref?.(game))}</td>
                   <td>{game.opponent}</td>
                   <td>{game.value ?? "—"}</td>
                   <td className={result === "hit" ? styles.over : result === "miss" ? styles.under : ""}>

@@ -4,12 +4,17 @@ from typing import Literal
 import logging
 import pandas as pd
 from fastapi import APIRouter, Query, HTTPException
-from api.data import League, history, predictor, number
+from api.data import League, history, with_q1, predictor, number
+from functools import lru_cache
+from utils.game_context import annotate, build_league_context
 from utils.league_config import get_config
+
+from utils.quarter_stats import Q1_STATS
 
 router = APIRouter(tags=['players'])
 logger = logging.getLogger(__name__)
-STATS = {'PTS', 'AST', 'REB', 'FG3M', 'STL', 'BLK', 'PTS+REB', 'PTS+AST', 'REB+AST', 'PTS+REB+AST', 'STL+BLK'}
+STATS = {'PTS', 'AST', 'REB', 'FG3M', 'STL', 'BLK', 'PTS+REB', 'PTS+AST', 'REB+AST', 'PTS+REB+AST', 'STL+BLK',
+         'PTS_1Q', 'REB_1Q', 'AST_1Q', 'FG3M_1Q'}
 
 
 def _headshot_url(frame: pd.DataFrame, league: League) -> str | None:
@@ -47,21 +52,69 @@ def _injury_context(player_name: str, league: League) -> tuple[str | None, str |
     return status, reason
 
 
+@lru_cache(maxsize=4)
+def _read_team_history(path, modified):
+    return pd.read_csv(path, usecols=['GAME_ID', 'TEAM_ABBREVIATION', 'PTS', 'OPP_PTS'])
+
+
+def _team_history(league):
+    """Team game scores, or None when this league has no team-game history."""
+    path = get_config(league).data_dir / 'game_team_history.csv'
+    return _read_team_history(path, path.stat().st_mtime_ns) if path.exists() else None
+
+
+_context_cache = {}
+
+
+def _league_context(league):
+    """Indexed once per loaded history; the cache holds the frame itself so its id cannot be reused."""
+    frame = history(league)
+    cached = _context_cache.get(league)
+    if cached is None or cached[0] is not frame:
+        _context_cache[league] = cached = (frame, build_league_context(frame, _team_history(league)))
+    return cached[1]
+
+
+def _game_context(frame, league):
+    """Per-game minutes, margin, result, rest and absent teammates for the player's rows; [] when the logs lack them."""
+    try:
+        return annotate(frame, _league_context(league))
+    except (KeyError, ValueError, TypeError):
+        logger.warning('Game context unavailable for %s history', league, exc_info=True)
+        return []
+
+
+def _context_fields(context, size):
+    """The last `size` context records as sparse dicts: missing values are left out to keep the payload small."""
+    rows = context[-size:] if size and len(context) >= size else [{}] * size
+    return [{key: value for key, value in row.items() if value is not None and value != []} for row in rows]
+
+
 def _player(player_name, league):
     df = history(league)
     frame = df[df['PLAYER_NAME'].str.casefold() == player_name.casefold()].copy()
     if frame.empty:
         raise HTTPException(404, f"Player '{player_name}' not found")
+    if {'Game_ID', 'Player_ID'} <= set(frame):  # older or test logs without ids simply have no first quarters
+        frame = with_q1(frame, league)
     today = pd.Timestamp(datetime.now(ZoneInfo('America/New_York')).date())
     return frame[frame['_date'] < today].sort_values('_date')
 
 
 @router.get('/players')
 def list_players(q: str | None = None, league: League = 'nba'):
-    names = sorted(history(league)['PLAYER_NAME'].dropna().unique().tolist())
+    frame = history(league)
+    names = sorted(frame['PLAYER_NAME'].dropna().unique().tolist())
     if q:
         names = [name for name in names if q.casefold() in name.casefold()]
-    return {'players': names}
+    # One photo per name for search lists, from the player's most recent game id (same CDN as the player page).
+    id_column = next((column for column in ('Player_ID', 'PLAYER_ID') if column in frame), None)
+    headshots = {}
+    if id_column:
+        ids = frame.assign(_id=pd.to_numeric(frame[id_column], errors='coerce')).dropna(subset=['_id']).groupby('PLAYER_NAME')['_id'].last()
+        template = get_config(league).headshot_cdn_template
+        headshots = {name: template.format(player_id=int(ids[name])) for name in names if name in ids}
+    return {'players': names, 'headshots': headshots}
 
 
 @router.get('/players/scheduled')
@@ -74,13 +127,15 @@ def list_scheduled_players(game_date: date, league: League = 'nba'):
 def get_player_series(player_name: str, games: int = Query(200, ge=5, le=200),
                       league: League = 'nba'):
     """One compact, chronological game series for every static chart statistic."""
-    frame = _player(player_name, league).tail(games)
+    whole = _player(player_name, league)
+    frame = whole.tail(games)
     base_stats = ('PTS', 'REB', 'AST', 'FG3M', 'STL', 'BLK')
     missing = [stat for stat in base_stats if stat not in frame]
     if missing:
         raise HTTPException(503, f'Player history lacks {", ".join(missing)}')
+    context = _context_fields(_game_context(whole, league), len(frame))
     records = []
-    for _, row in frame.iterrows():
+    for (_, row), extra in zip(frame.iterrows(), context):
         matchup = str(row.get('MATCHUP') or '')
         is_home = True if ' vs. ' in matchup else False if ' @ ' in matchup else None
         if is_home is None and 'is_home' in frame:
@@ -90,7 +145,7 @@ def get_player_series(player_name: str, games: int = Query(200, ge=5, le=200),
         season = row.get('SEASON')
         records.append(dict(date=row['_date'].date().isoformat(), opponent=matchup,
                             season=None if pd.isna(season) else str(season), is_home=is_home,
-                            **{stat.lower(): number(row.get(stat)) for stat in base_stats}))
+                            **{stat.lower(): number(row.get(stat)) for stat in base_stats + Q1_STATS}, **extra))
     return dict(player=player_name, games=records)
 
 
@@ -101,13 +156,15 @@ def get_player_chart_data(player_name: str, stat: str = 'PTS', games: int = Quer
     stat = stat.upper()
     if stat not in STATS:
         raise HTTPException(400, f"Unknown stat '{stat}'")
-    frame = _player(player_name, league).tail(games)
+    whole = _player(player_name, league)
+    frame = whole.tail(games)
     columns = stat.split('+')
     if any(col not in frame for col in columns):
         raise HTTPException(503, 'This statistic is unavailable in player history')
     values = frame[columns].apply(pd.to_numeric, errors='coerce').sum(axis=1, min_count=len(columns))
+    context = _context_fields(_game_context(whole, league), len(frame))
     records = []
-    for (_, row), raw in zip(frame.iterrows(), values):
+    for (_, row), raw, extra in zip(frame.iterrows(), values, context):
         value = number(raw)
         hit = None if line is None or value is None else (value > line if direction == 'over' else value < line)
         matchup = str(row.get('MATCHUP') or '')
@@ -119,7 +176,7 @@ def get_player_chart_data(player_name: str, stat: str = 'PTS', games: int = Quer
         season = row.get('SEASON')
         records.append(dict(date=row['_date'].date().isoformat(), opponent=matchup,
                             value=value, hit=hit, season=None if pd.isna(season) else str(season),
-                            is_home=is_home))
+                            is_home=is_home, **extra))
     return dict(player=player_name, stat=stat, line=line, direction=direction,
                 avg=number(values.mean()), l5_avg=number(values.tail(5).mean()), games=records)
 

@@ -1,12 +1,12 @@
-/* Courtside Night shell: desktop rail, floating mobile pill, More sheet, context sidebar. */
+/* Courtside Night shell: desktop rail, floating mobile pill, context sidebar. */
 .rail { display: none; }
-.pill, .scrim, .sheet { display: none; }
+.pill { display: none; }
 
 @media (min-width: 901px) {
   .rail {
     position: fixed; inset: 0 auto 0 0; z-index: 60; width: 72px;
     display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0; overflow-y: auto; scrollbar-width: none;
-    background: linear-gradient(180deg, #101c22, #0a1116);
+    background: linear-gradient(180deg, var(--color-rail-top), var(--color-rail-bottom));
     border-right: 1px solid var(--color-border-sub);
   }
   .mark {
@@ -16,34 +16,28 @@
             mask: radial-gradient(circle, transparent 9px, #000 10px);
   }
   .item {
-    position: relative; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px;
+    position: relative; display: grid; place-items: center; align-content: center; gap: 3px; width: 60px; height: 56px; border-radius: 14px;
     color: var(--color-text-sec);
     transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out-strong);
   }
   .item:active { transform: scale(0.94); }
-  .item[aria-current="page"] { color: var(--color-teal-400); background: rgba(89, 224, 200, 0.12); }
+  .item[aria-current="page"] { color: var(--color-teal-400); background: color-mix(in srgb, var(--color-teal-400) 12%, transparent); }
   .item[aria-current="page"]::before {
     content: ""; position: absolute; left: -12px; top: 12px; bottom: 12px; width: 3px;
     border-radius: 0 3px 3px 0; background: var(--color-teal-400);
   }
-  .tip {
-    position: absolute; left: 58px; padding: 6px 10px; border-radius: 8px; white-space: nowrap; pointer-events: none;
-    font-size: 12px; font-weight: 600; color: var(--color-text-pri); background: #1b2b32; border: 1px solid var(--color-border-card);
-    opacity: 0; transform: translateX(-4px); transform-origin: left center;
-    transition: opacity 125ms ease-out, transform 125ms var(--ease-out-strong);
-  }
+  /* Labels stay visible: five icons nobody has learned yet are mystery meat without them. */
+  .label { font-size: 10px; font-weight: 600; letter-spacing: .01em; line-height: 1; white-space: nowrap; }
 }
 @media (min-width: 901px) and (hover: hover) and (pointer: fine) {
-  .item:hover { color: var(--color-text-pri); background: rgba(255, 255, 255, 0.06); }
-  .item:hover .tip { opacity: 1; transform: translateX(0); }
+  .item:hover { color: var(--color-text-pri); background: color-mix(in srgb, var(--color-ink) 6%, transparent); }
 }
-.item:focus-visible .tip { opacity: 1; transform: translateX(0); }
 
 @media (max-width: 900px) {
   .pill {
     position: fixed; left: 50%; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 55;
     display: flex; gap: 2px; padding: 6px; border-radius: 9999px; max-width: calc(100vw - 16px); overflow-x: auto; scrollbar-width: none;
-    background: rgba(21, 33, 40, 0.84); border: 1px solid var(--color-border-card);
+    background: color-mix(in srgb, var(--color-bg-card) 84%, transparent); border: 1px solid var(--color-border-card);
     -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   }
@@ -54,27 +48,7 @@
     transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out-strong);
   }
   .pillItem:active { transform: scale(0.95); }
-  .pillItem[aria-current="page"], .pillItem[aria-expanded="true"] { color: var(--color-teal-400); background: rgba(89, 224, 200, 0.14); }
-
-  .scrim {
-    display: block; position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, 0.55);
-    opacity: 0; pointer-events: none; transition: opacity 200ms ease;
-  }
-  .scrim[data-open="true"] { opacity: 1; pointer-events: auto; }
-  .sheet {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-    position: fixed; inset: auto 0 0; z-index: 71; padding: 18px 16px calc(24px + env(safe-area-inset-bottom, 0px));
-    border-radius: 24px 24px 0 0; background: var(--color-bg-card); border-top: 1px solid var(--color-border-card);
-    transform: translateY(100%); transition: transform 280ms var(--ease-drawer);
-  }
-  .sheet[data-open="true"] { transform: translateY(0); }
-  .sheetLink {
-    display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 6px; border-radius: 16px;
-    font-size: 12px; font-weight: 600; text-align: center; color: var(--color-text-sec); background: rgba(255, 255, 255, 0.04);
-    transition: transform 160ms var(--ease-out-strong), background-color 150ms ease;
-  }
-  .sheetLink:active { transform: scale(0.96); }
-  .sheetLink[aria-current="page"] { color: var(--color-teal-400); background: rgba(89, 224, 200, 0.12); }
+  .pillItem[aria-current="page"] { color: var(--color-teal-400); background: color-mix(in srgb, var(--color-teal-400) 14%, transparent); }
 }
 
 .layout { display: block; }
@@ -83,7 +57,4 @@
 @media (min-width: 1200px) {
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
   .side { position: sticky; top: 84px; max-height: calc(100dvh - 100px); overflow: auto; margin-top: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .sheet { transition: opacity 150ms ease; }
 }

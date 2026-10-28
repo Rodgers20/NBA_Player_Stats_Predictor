@@ -24,3 +24,24 @@
 - When odds fixes exist locally, verify the production snapshot and refresh workflow too. Persisting quotes in the API does not update a static deployment; export must explicitly refresh quotes within the credit budget, and a player-level deduplication must not hide separate stat markets.
 
 - When the user requests the NFL matchup artwork across the slate, apply it to every game card as well as the featured matchup; verify multiple games rather than just the selected banner. Model Performance must distinguish current-version prospective results, legacy calls and fixed holdouts.
+
+- Visual QA must cover 390, 820, 1024 and 1440 px. The props table looked fine at 1440 and 390 but overlapped at iPad/laptop widths; a dense grid needs its card breakpoint where the fixed columns stop fitting (~1200px), not at 768.
+- An avatar showing initials is a bug signal, not a style. cdn.nba.com refuses cross-site browser loads (curl works, browsers get HTTP2 errors), so headshots must be served from our own snapshot (`export_api.py` localizes them).
+- An empty section ("No graded games yet") reads as leftover clutter to the user. Hide a panel until it has data instead of showing an empty state.
+- Swapping a list for a loading skeleton on "Load more" collapses the page and jumps to the top; keep previous data on screen (`placeholderData: keepPreviousData`).
+- Touch has no hover and fires pointerleave on lift: chart tooltips need tap-to-pin on touch, hover on mouse.
+- A scheduled refresh must never publish an emptier board for the same slate. When the free credits are spent and morning quotes expire (6 h), the evening export rebuilt an empty board and blanked Props right before tip-off. The export now keeps the same-date board, and a restarted API reads quotes saved on disk.
+
+- A failed fetch is not an empty result. `get_upcoming_games` read one dropped ESPN request as "no games today" and published tomorrow's slate. Retry, then tell "the call failed" apart from "zero rows", and never cache the failure.
+- If every priced market comes out +EV, the model is broken, not lucky. Books keep a 4-5% margin, so a sound model rates most markets negative. Check the input history first: preseason games and did-not-play zero rows (18% of NBA rows) were dragging every projection down. Keep a market-share sanity check in mind whenever pricing changes.
+- Read the code before critiquing a feature. The UX teardown called My Bets "manual bookkeeping" when live tracking and auto-grading already existed; the real problem was that the page led with the hand-entry form.
+- "Black and white theme where it can be dark or a white background" meant a light/dark toggle, not grayscale. When a design word has a literal and a colloquial reading, take the one that matches how apps are built (themes are light/dark), or show both in one preview.
+- A training script nobody has run lately is not evidence the models are current. `train_improved_models.py` crashed (outcome weights are forbidden; the untuned path hits an sklearn/xgboost tags clash), and training kept the preseason and did-not-play rows that serving had dropped. Compare old and new models on the same rows, with the features serving builds.
+- Grading code with no caller grades nothing. `save_daily_props` had no caller after Sep 28, so the Record tab showed an older model's unpriced September lines. Check that the writer of a record actually runs before trusting the record.
+
+## 2026-10-27 — slip and Analysis corrections
+- A new stat dimension (1st quarter) belongs in the existing stat tab row, not behind a mode toggle. Add tabs, not modes.
+- On a phone, a scrolling tab row hides its later tabs: the user thought PRA/P+A didn't exist. Wrap the row.
+- A book's multi-leg deep link must be copied from a real shared parlay *including its host*: FanDuel reads indexed legs only on account.sportsbook.fanduel.com/sportsbook/addToBetslip.
+- The main action in a slip (send to book) goes in the always-visible footer, never inside the scroll area.
+- When a reference product's deep link works and ours doesn't, copy *every* part of theirs (host, path, state, params) before reasoning about which part matters. Gambly's FanDuel link uses the person's state site ({state}.sportsbook.fanduel.com/addToBetslip); I changed only the host twice and the user re-reported the bug twice.

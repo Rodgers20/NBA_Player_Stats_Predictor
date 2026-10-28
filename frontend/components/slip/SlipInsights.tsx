@@ -11,10 +11,10 @@ const pct = (p: number) => `${Math.round(p * 1000) / 10}%`;
 /** Independent versus correlation-adjusted chance of the whole parlay, when the API could price it. */
 export function CorrelationSummary({ price, independent }: { price: SlipPrice | null; independent: number | null }) {
   if (!price) return null;
-  return <p className="rounded-lg bg-white/[.06] px-2.5 py-2 text-[12px] leading-snug text-[#a9bec0]">
-    Independent <b className="font-mono text-[#eaf8f6]">{pct(independent ?? price.independent_prob)}</b>
-    {' → '}correlation-adjusted <b className="font-mono text-[#59e0c8]">{pct(price.correlated_prob)}</b>
-    {price.fair_odds != null && <> · fair odds <b className="font-mono text-[#f5ba64]">{formatOdds(price.fair_odds)}</b></>}
+  return <p className="rounded-lg bg-ink/[.06] px-2.5 py-2 text-[12px] leading-snug text-text-sec">
+    Independent <b className="font-mono text-text-pri">{pct(independent ?? price.independent_prob)}</b>
+    {' → '}correlation-adjusted <b className="font-mono text-teal-400">{pct(price.correlated_prob)}</b>
+    {price.fair_odds != null && <> · fair odds <b className="font-mono text-lock-gold">{formatOdds(price.fair_odds)}</b></>}
   </p>;
 }
 
@@ -31,13 +31,13 @@ function Num({ label, value, min, onChange }: { label: string; value: number; mi
 export function KellyBox({ total, bankroll, onBankroll, onUse, each }: {
   total: number; bankroll: Bankroll; onBankroll: (b: Bankroll) => void; onUse: (stake: number) => void; each: boolean;
 }) {
-  return <div className="rounded-lg bg-white/[.06] px-2.5 py-2 text-[12px]">
+  return <div className="rounded-lg bg-ink/[.06] px-2.5 py-2 text-[12px]">
     <div className="flex items-center gap-2">
-      <span className="text-[#a9bec0]">Suggested stake{each ? ' (all legs)' : ''}</span>
-      <b className={`ml-auto font-mono text-[17px] leading-tight ${total > 0 ? 'text-[#59e0c8]' : 'text-[#a9bec0]'}`}>{total > 0 ? money(total) : '—'}</b>
-      {total > 0 && !each && <button type="button" onClick={() => onUse(total)} className="rounded-md border border-[#2b4248] px-2 py-1 text-[11.5px] font-semibold text-[#59e0c8] hover:border-[#59e0c8]/60">Use</button>}
+      <span className="text-text-sec">Suggested stake{each ? ' (all legs)' : ''}</span>
+      <b className={`ml-auto font-mono text-[17px] leading-tight ${total > 0 ? 'text-teal-400' : 'text-text-sec'}`}>{total > 0 ? money(total) : '—'}</b>
+      {total > 0 && !each && <button type="button" onClick={() => onUse(total)} className="rounded-md border border-border-card px-2 py-1 text-[11.5px] font-semibold text-teal-400 hover:border-teal-400/60">Use</button>}
     </div>
-    <div className="mt-2 flex items-center gap-1.5 text-[#a9bec0]">
+    <div className="mt-2 flex items-center gap-1.5 text-text-sec">
       Bankroll
       <Num label="Bankroll units" value={bankroll.units} min={1} onChange={units => onBankroll({ ...bankroll, units })} />
       units ×
@@ -47,6 +47,6 @@ export function KellyBox({ total, bankroll, onBankroll, onUse, each }: {
           className="ql-control w-16 py-1 pl-4 pr-2 text-right font-mono text-[13px] font-semibold" /></span>
       <span className="ml-auto font-mono">= {money(bankrollAmount(bankroll))}</span>
     </div>
-    <p className="mt-2 text-[10.5px] leading-snug text-[#a9bec0]">Quarter Kelly from the model chance and price, capped at 5% of bankroll; none when there is no edge.</p>
+    <p className="mt-2 text-[10.5px] leading-snug text-text-sec">Quarter Kelly from the model chance and price, capped at 5% of bankroll; none when there is no edge.</p>
   </div>;
 }

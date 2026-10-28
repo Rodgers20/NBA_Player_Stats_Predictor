@@ -42,7 +42,7 @@
 .compareRow b {font-variant-numeric:tabular-nums;font-weight:600;}
 .compareRow b:last-child {text-align:right;}
 .compareRow span {display:grid;gap:6px;text-align:center;font-size:11px;color:var(--color-text-sec);}
-.compareRow i {display:block;height:5px;border-radius:3px;background:#67858f;overflow:hidden;}
+.compareRow i {display:block;height:5px;border-radius:3px;background:var(--color-track);overflow:hidden;}
 .compareRow em {display:block;height:100%;width:100%;background:var(--color-teal-400);transform-origin:left;animation:grow 420ms var(--ease-out) both;}
 
 .switcher {display:flex;gap:8px;margin:26px 0 12px;}
@@ -74,7 +74,22 @@
 .box button:focus-visible {outline:2px solid var(--color-teal-400);outline-offset:3px;}
 @keyframes rise {from {opacity:0;transform:translateY(8px);}}
 @keyframes grow {from {transform:scaleX(0);}}
+.plays {margin-top:14px;border:1px solid var(--color-border-card);border-radius:8px;background:var(--color-bg-card);}
+.playsHead {display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--color-border-sub);}
+.playsHead p {font:600 11px var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-sec);}
+.playsHead div {display:flex;gap:6px;}
+.playsHead button {padding:5px 11px;border:1px solid var(--color-border-card);border-radius:999px;font-size:12px;color:var(--color-text-sec);transition:background-color 160ms ease,color 160ms ease;}
+.playsHead button[aria-pressed=true] {border-color:var(--color-teal-400);color:var(--color-text-pri);background:color-mix(in srgb,var(--color-teal-400) 12%,transparent);}
+.plays ol {max-height:380px;overflow-y:auto;overscroll-behavior:contain;}
+.plays li {display:grid;grid-template-columns:52px 30px minmax(0,1fr) auto;align-items:center;gap:12px;padding:9px 16px;font-size:13px;color:var(--color-text-sec);animation:rise 220ms var(--ease-out) both;}
+.plays li+li {border-top:1px solid var(--color-border-sub);}
+.plays li[data-scoring=true] {color:var(--color-text-pri);}
+.playClock {display:grid;font:600 11px var(--font-mono);color:var(--color-text-sec);}
+.playClock small {font-weight:400;}
+.playText b {color:var(--color-teal-400);font-weight:700;}
+.playScore {font:700 14px var(--font-display);font-variant-numeric:tabular-nums;}
+.playDot {width:8px;height:8px;margin:auto;border-radius:50%;background:var(--color-border-card);}
 @keyframes livepulse {50% {opacity:.35;}}
 @keyframes pulse {50% {opacity:.5;}}
 @media(max-width:760px) {.leaders {grid-template-columns:1fr;}.compareHead,.compareRow {grid-template-columns:52px minmax(0,1fr) 52px;gap:8px;}.compare {padding:4px 14px 8px;}.switcher button {flex:1;justify-content:center;}}
-@media(prefers-reduced-motion:reduce) {.leaderTeam li,.playerPanel,.compareRow em,.live i,.skeleton {animation:none;}.switcher button {transition:none;}}
+@media(prefers-reduced-motion:reduce) {.plays li,.leaderTeam li,.playerPanel,.compareRow em,.live i,.skeleton {animation:none;}.switcher button {transition:none;}}

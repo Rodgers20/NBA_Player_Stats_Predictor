@@ -52,7 +52,7 @@
 .power {min-width:560px;}
 .barCol {width:34%;text-align:left!important;}
 .barCol b {display:inline-block;min-width:44px;margin-left:10px;color:var(--color-text-pri);font-weight:700;}
-.bar {position:relative;display:inline-block;vertical-align:middle;width:calc(100% - 64px);height:8px;border-radius:4px;background:#20363a;}
+.bar {position:relative;display:inline-block;vertical-align:middle;width:calc(100% - 64px);height:8px;border-radius:4px;background:var(--color-surface-hover);}
 .bar::after {content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--color-text-sec);opacity:.5;}
 .bar i {position:absolute;top:0;bottom:0;left:50%;background:var(--color-teal-400);border-radius:0 4px 4px 0;transform-origin:left;animation:grow 420ms var(--ease-out) both;}
 .bar i[data-neg=true] {left:auto;right:50%;background:var(--color-danger);border-radius:4px 0 0 4px;transform-origin:right;}

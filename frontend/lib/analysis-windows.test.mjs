@@ -2,6 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { selectWindow, windowCounts } from './analysis-windows.mjs';
 
+test('window counts grade an Under prop as hits below the line', () => {
+  const games = [10, 20, 30].map((value, i) => ({ date: `2026-05-0${i + 1}`, opponent: 'BOS', value, season: '2025-26' }));
+  const l5 = windowCounts(games, 25, {}, 'Under').find(count => count.key === 5);
+  assert.deepEqual([l5.hits, l5.decided], [2, 3]);
+});
+
 const game = (n, opponent, value, extra = {}) => ({ date: `2026-05-${String(n).padStart(2, '0')}`, opponent, value, season: '2025-26', ...extra });
 const games = [
   game(1, 'vs. Celtics', 20), game(2, '@ Knicks', 30), game(3, 'vs. Celtics', 25), game(4, '@ Heat', 10),

@@ -1,7 +1,8 @@
 import type { TeamsResponse } from './team-types';
 import type { StandingsResponse } from './standings-types';
 import type { BoxScore } from './boxscore-types';
-import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse, HighlightsResponse, ScheduleIndex, PerformanceResponse, LineHistory, DefenseRankings, TrendsResponse } from "./types";
+import type { QuarterQuote } from './sportsbook-links.mjs';
+import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse, HighlightsResponse, ScheduleIndex, PerformanceResponse, LineHistory, DefenseRankings, TrendsResponse, MatchupResponse } from "./types";
 import { playerKey, filterProps, seriesChart, scheduledPlayersSnapshot, filterDefense, filterTrends } from './snapshot.mjs';
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, '');
@@ -43,13 +44,13 @@ export const api = {
   trends: async (league = 'nba', params: Params = {}): Promise<TrendsResponse> => {
     if (!STATIC) return get<TrendsResponse>('/api/trends', { league, ...params });
     try {
-      return filterTrends(await snapshot<TrendsResponse>(league, 'trends'), params);
+      return filterTrends(await snapshot<TrendsResponse>(league, params.period === '1q' ? 'trends-1q' : 'trends'), params);
     } catch {
       return { league, count: 0, trends: [] };
     }
   },
   altLines: (league = 'nba') => STATIC ? snapshot<AltLinesResponse>(league, 'alt-lines') : get<AltLinesResponse>('/api/props/alt-lines', { league }),
-  propsRecord: () => get<PropsRecordResponse>(STATIC ? '/data/props-record.json' : '/api/props/record'),
+  propsRecord: (league = 'nba') => STATIC ? snapshot<PropsRecordResponse>(league, 'props-record') : get<PropsRecordResponse>('/api/props/record', { league }),
   predictions: (league = 'nba', gameDate?: string) => STATIC ? snapshot<GamePredictionsResponse>(league, gameDate ? `schedule/${gameDate}-predictions` : 'predictions') : get<GamePredictionsResponse>('/api/games/predictions', { league, ...(gameDate ? {game_date: gameDate} : {}) }),
   budget: (league = 'nba') => get<{ configured: boolean; daily: number; daily_limit: number; monthly: number; monthly_limit: number; remaining: number | null; message: string }>('/api/props/budget', { league }),
   refreshProps: async (league = 'nba') => {
@@ -59,10 +60,14 @@ export const api = {
     return response.json() as Promise<{ count: number; message: string; skipped: { reason: string }[]; budget?: { message: string } }>;
   },
   games: (league = 'nba', gameDate?: string) => STATIC ? snapshot<GamesResponse>(league, gameDate ? `schedule/${gameDate}` : 'games') : get<GamesResponse>('/api/games', { league, ...(gameDate ? {game_date: gameDate} : {}) }),
+  matchup: (league: string, home: string, away: string) => STATIC
+    ? snapshot<MatchupResponse>(league, `matchup/${away}-${home}`)
+    : get<MatchupResponse>('/api/games/matchup', { league, home, away }),
   teams: (league = 'nba', season?: number) => STATIC ? snapshot<TeamsResponse>(league, season ? `teams-${season}` : 'teams') : get<TeamsResponse>('/api/teams', {league, ...(season ? {season} : {})}),
   performance: (league = 'nba') => STATIC ? snapshot<PerformanceResponse>(league, 'performance') : get<PerformanceResponse>('/api/performance', {league}),
   standings: (league = 'nba') => STATIC ? snapshot<StandingsResponse>(league, 'standings') : get<StandingsResponse>('/api/standings', {league}),
   boxscore: (league: string, gameId: string) => STATIC ? snapshot<BoxScore>(league, `boxscore/${gameId}`) : get<BoxScore>(`/api/games/${encodeURIComponent(gameId)}/boxscore`, {league}),
+  q1Odds: (league = 'nba') => STATIC ? snapshot<{ league: string; quotes: QuarterQuote[] }>(league, 'q1-odds') : get<{ league: string; quotes: QuarterQuote[] }>('/api/props/q1-odds', {league}),
   highlights: (league = 'nba') => STATIC ? snapshot<HighlightsResponse>(league, 'highlights') : get<HighlightsResponse>('/api/highlights', {league}),
   scheduleIndex: (league = 'nba') => STATIC ? snapshot<ScheduleIndex>(league, 'schedule-index') : Promise.resolve(null),
   refreshGameLines: async (league: 'nba' | 'wnba') => {
@@ -79,9 +84,9 @@ export const api = {
     ? (await snapshot<{ stats: PlayerStats }>(league, `player/${playerKey(player)}`)).stats
     : get<PlayerStats>(`/api/player/${encodeURIComponent(player)}/stats`, { league }),
   players: async (q = '', league = 'nba') => {
-    if (!STATIC) return get<{players: string[]}>('/api/players', { q, league });
-    const data = await snapshot<{players: string[]}>(league, 'players');
-    return { players: data.players.filter(name => name.toLowerCase().includes(q.toLowerCase())) };
+    if (!STATIC) return get<{players: string[]; headshots?: Record<string, string>}>('/api/players', { q, league });
+    const data = await snapshot<{players: string[]; headshots?: Record<string, string>}>(league, 'players');
+    return { players: data.players.filter(name => name.toLowerCase().includes(q.toLowerCase())), headshots: data.headshots ?? {} };
   },
 };
 
@@ -106,11 +111,20 @@ export interface AltLinesResponse {
   target_date: string | null;
 }
 
+/** Published picks at their first price, graded the morning after; pushes are outside hit/miss/total. */
 export interface PropsRecordResponse {
   hit: number;
   miss: number;
+  pushes?: number;
   total: number;
   pct: number;
   recent_7d: number;
+  units?: number;
+  roi_pct?: number;
+  clv?: { n: number; avg_pct: number | null; beat_pct: number };
+  pending?: number;
+  since?: string | null;
   by_stat: Record<string, { hit: number; total: number; pct: number }>;
+  recent?: { date: string; player: string; stat: string; direction: string; line: number; price: number; book: string | null;
+    actual: number | null; result: "win" | "loss" | "push"; units: number; close_line: number | null; clv_pct: number | null }[];
 }
