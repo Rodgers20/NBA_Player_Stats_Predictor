@@ -19,11 +19,17 @@ logger = logging.getLogger(__name__)
 # TTL keeps live scores fresh while collapsing a render into a single request.
 _SCHEDULE_TTL = 120  # seconds
 _schedule_cache: dict[str, tuple[float, list[dict]]] = {}
+# After a failure, answer "no games" for a while instead of calling again: a slate search walks several days, and with
+# stats.nba.com unreachable each day waited out its own timeout, so one request outlasted the export (2026-10-29).
+_FAIL_COOLDOWN = 300  # seconds
+_FETCH_TIMEOUT = 10   # seconds; nba_api's default 30 multiplied across a slate search
+_cooldown: dict[str, float] = {}
 
 
 def clear_schedule_cache() -> None:
-    """Drop all cached schedule entries (used by tests and manual refresh)."""
+    """Drop all cached schedule entries and any failure pause (used by tests and manual refresh)."""
     _schedule_cache.clear()
+    _cooldown.clear()
 
 
 def get_todays_wnba_games(
@@ -47,8 +53,11 @@ def get_todays_wnba_games(
         if hit is not None and (now - hit[0]) < _SCHEDULE_TTL:
             return hit[1]
 
+    if not force_refresh and _cooldown.get("until", 0.0) > now:
+        return []
     games = _fetch_todays_wnba_games(target_date)
-    if games is None:          # fetch failed — do not poison the cache
+    if games is None:          # fetch failed — do not poison the cache; pause briefly instead
+        _cooldown["until"] = now + _FAIL_COOLDOWN
         return []
 
     _schedule_cache[target_date] = (now, games)
@@ -83,7 +92,7 @@ def _fetch_todays_wnba_games(target_date: Optional[str] = None) -> Optional[list
         target_date = date.today().strftime("%Y-%m-%d")
 
     try:
-        sb = scoreboardv3.ScoreboardV3(game_date=target_date, league_id="10")
+        sb = scoreboardv3.ScoreboardV3(game_date=target_date, league_id="10", timeout=_FETCH_TIMEOUT)
         frames = sb.get_data_frames()
     except Exception as e:
         logger.warning(f"WNBA scoreboard fetch failed: {e}")

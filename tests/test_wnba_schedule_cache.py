@@ -93,9 +93,15 @@ def test_failure_is_not_cached(monkeypatch):
     import nba_api.stats.endpoints as eps
     monkeypatch.setattr(eps.scoreboardv3, "ScoreboardV3", _Boom, raising=False)
 
+    clock = [1000.0]
+    monkeypatch.setattr(wnba_data_fetch.time, "monotonic", lambda: clock[0])
     assert wnba_data_fetch.get_todays_wnba_games("2026-08-03") == []
+    # stats.nba.com unreachable: the next days of a slate search answer at once instead of each waiting out a timeout.
+    assert wnba_data_fetch.get_todays_wnba_games("2026-08-04") == []
+    assert len(calls) == 1, "a failure pauses the endpoint briefly"
+    clock[0] += wnba_data_fetch._FAIL_COOLDOWN + 1
     assert wnba_data_fetch.get_todays_wnba_games("2026-08-03") == []
-    assert len(calls) == 2, "a failure must be retried, not cached"
+    assert len(calls) == 2, "after the pause a failure is retried, never pinned"
 
 
 def test_cache_returns_equal_value(monkeypatch):

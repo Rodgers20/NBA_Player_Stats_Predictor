@@ -97,3 +97,19 @@ def test_export_includes_teams_seasons_highlights_and_dated_schedules(tmp_path, 
     for day in index['dates']:
         assert json.loads((out / f'nba/schedule/{day}.json').read_text())['target_date'] == day
         assert (out / f'nba/schedule/{day}-predictions.json').exists()
+
+
+def test_a_league_whose_quote_refresh_times_out_still_exports_from_saved_quotes(tmp_path, monkeypatch):
+    """The WNBA refresh hanging (stats.nba.com unreachable) once blocked every NBA publish for a day."""
+    def fetch(base, path, method='GET'):
+        if method == 'POST' and 'league=wnba' in path:
+            raise TimeoutError('timed out')
+        if path.startswith('/api/players?'):
+            return {'players': []}
+        if path.startswith('/api/props?'):
+            return {'props': [{'player': 'A'}], 'target_date': '2026-10-29'}
+        return {}
+    monkeypatch.setattr(export_api, 'fetch', fetch)
+    out = export_api.export('http://test', tmp_path / 'data', refresh_odds=True)
+    assert json.loads((out / 'nba/props.json').read_text())['props'] == [{'player': 'A'}]
+    assert (out / 'wnba/props.json').exists()

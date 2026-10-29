@@ -141,8 +141,13 @@ def export(base, out, refresh_odds=False):
         for league in ('nba', 'wnba'):
             root = stage / league
             if refresh_odds:
-                result = fetch(base, f'/api/props/refresh?league={league}&fetch_odds=true', method='POST')
-                print(f'{league}: quote refresh evaluated {result.get("count", 0)} markets; {result.get("message", "")}')
+                # Buying quotes is best-effort: a league whose refresh hangs (stats.nba.com unreachable) exports from the
+                # quotes already saved, rather than blocking every other league's publish.
+                try:
+                    result = fetch(base, f'/api/props/refresh?league={league}&fetch_odds=true', method='POST')
+                    print(f'{league}: quote refresh evaluated {result.get("count", 0)} markets; {result.get("message", "")}')
+                except (OSError, ValueError) as exc:
+                    print(f'{league}: quote refresh failed ({exc}); exporting saved quotes')
             board = fetch(base, f'/api/props?league={league}&direction=all&include_research=true&limit=500')
             save(root, 'props', board)
             keep_board_if_emptied(root, out / league)
