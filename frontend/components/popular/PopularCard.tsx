@@ -52,11 +52,11 @@ export function PopularCard({ prop, rank, league, date, game }: Props) {
           : initial}
       </div>
       <div className="min-w-0">
-        <p className="truncate text-xs text-text-sec">{prop.game_matchup}{tip && ` · ${tip}`}</p>
-        <p className="truncate text-sm font-bold text-text-pri">
+        <p className="text-xs leading-snug text-text-sec">{prop.game_matchup}{tip && ` · ${tip}`}</p>
+        <p className="break-words text-sm font-bold leading-snug text-text-pri">
           <PlayerName name={prop.player} league={league} focus={focusFromProp(prop)} />
-          {` · ${prop.stat_label || prop.stat} ${side} ${prop.line}`}
         </p>
+        <p className="text-sm font-bold leading-snug text-teal-400">{side} {prop.line} {prop.stat_label || prop.stat}</p>
       </div>
       <div className="col-span-2 col-start-3 min-w-0 md:col-span-1 md:col-start-auto">
         {last10 && <>
@@ -67,7 +67,8 @@ export function PopularCard({ prop, rank, league, date, game }: Props) {
       <div className="col-start-4 row-start-1 flex items-center gap-2 md:col-start-auto md:row-start-auto">
         <div className="text-right">
           <p className="inline-block rounded-md border border-ink/10 bg-ink/[0.06] px-2 py-1 font-mono text-sm font-semibold tabular-nums text-text-pri">{formatOdds(prop.price)}</p>
-          <p className="mt-1 truncate text-[10px] uppercase tracking-wide text-text-sec">{prop.book ?? "Sportsbook"}{ev && ` · ${ev}`}</p>
+          <p className="mt-1 text-[10px] uppercase leading-tight tracking-wide text-text-sec">{prop.book ?? "Sportsbook"}</p>
+          {ev && <p className="text-[10px] uppercase leading-tight tracking-wide text-text-sec">{ev}</p>}
         </div>
         <button type="button" onClick={add} disabled={!canAdd} aria-pressed={inSlip}
           aria-label={inSlip ? `Remove ${prop.player} ${prop.stat} from slip` : `Add ${prop.player} ${prop.stat} to slip`}

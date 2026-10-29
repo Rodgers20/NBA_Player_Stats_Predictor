@@ -83,7 +83,7 @@
   .grid { grid-template-columns: repeat(6, minmax(0, 1fr)); column-gap: 6px; row-gap: 10px; }
   .who { grid-column: 1 / 5; }
   .line { grid-column: 5 / 7; justify-items: end; text-align: right; }
-  .book { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .book { max-width: 100%; text-align: right; line-height: 1.35; overflow-wrap: anywhere; }
   .num { font-size: 26px; }
   .opp { grid-column: 1; }
   .ev { grid-column: 6; }

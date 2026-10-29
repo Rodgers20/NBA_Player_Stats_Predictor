@@ -45,11 +45,11 @@ export function TonightRow({ prop, league, date }: Props) {
         : initial}
     </PlayerName>
     <div className="min-w-0">
-      <p className="truncate text-sm font-bold text-text-pri">
+      <p className="break-words text-sm font-bold leading-snug text-text-pri">
         <PlayerName name={prop.player} league={league} focus={focusFromProp(prop)} />
-        <span className="text-teal-400"> · {side} {prop.line} {prop.stat_label || prop.stat}</span>
       </p>
-      <p className="truncate text-xs tabular-nums text-text-sec">
+      <p className="text-sm font-bold leading-snug text-teal-400">{side} {prop.line} {prop.stat_label || prop.stat}</p>
+      <p className="mt-0.5 text-xs leading-snug tabular-nums text-text-sec">
         {prop.game_matchup || `${prop.team} vs ${prop.opponent}`} · <strong className="text-text-pri">{formatOdds(prop.price)}</strong> {prop.book ?? ""}
         {age?.stale && <span className="text-amber-300"> · priced {age.label}</span>}
       </p>
