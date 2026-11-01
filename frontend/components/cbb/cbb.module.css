@@ -13,7 +13,8 @@
 @media (max-width: 640px) {
   .hero { grid-template-columns: 1fr 1fr; padding: 20px 14px; gap: 14px 10px; }
   .team.home { grid-column: 2; grid-row: 1; }
-  .team { align-self: start; gap: 8px; }
+  .team { align-self: start; gap: 8px; flex-direction: column; align-items: flex-start; }
+  .team.home { flex-direction: column-reverse; align-items: flex-end; }
   .center { grid-column: 1 / -1; grid-row: 2; }
   .name { font-size: 24px; overflow-wrap: normal; }
   .team small { font-size: 10px; }

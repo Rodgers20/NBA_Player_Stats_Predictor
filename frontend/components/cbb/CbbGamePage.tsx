@@ -225,7 +225,7 @@ export function CbbGamePage() {
         {g.pick ? <Predictions g={g} /> : <p role="status" className="ql-panel p-5 text-sm text-text-sec">The model has no call for this game yet. It projects a game once both teams have ratings.</p>}
         <Factors g={g} />
         <RecentForm g={g} />
-        <div className="grid gap-4 lg:grid-cols-2"><H2H g={g} /><Ratings g={g} /></div>
+        <div className={`grid gap-4 ${g.h2h.n ? "lg:grid-cols-2" : ""}`}><H2H g={g} /><Ratings g={g} /></div>
         <Movement g={g} />
       </div>
     </div>

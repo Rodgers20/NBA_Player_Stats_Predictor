@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { cbbApi } from "@/lib/api";
@@ -44,6 +44,11 @@ export function CbbSlate() {
   const visible = useMemo(() => filterGames(games, { view, conference }), [games, view, conference]);
   const conferences = useMemo(() => conferencesOf(games), [games]);
   const available = days?.map(d => d.date) ?? [];
+
+  // The strip starts at the oldest day; bring the open day into view.
+  useEffect(() => {
+    document.querySelector<HTMLElement>('nav[aria-label="Game dates"] [aria-pressed="true"]')?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [date, days]);
 
   const choose = (next: string) => {
     setPicked(next); setShown(PAGE);
