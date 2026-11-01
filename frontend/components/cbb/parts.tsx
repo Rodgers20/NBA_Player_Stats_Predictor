@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { TeamLogo } from "@/components/teams/TeamLogo";
-import { barColor, pct } from "@/lib/cbb.mjs";
 import type { CbbTeam } from "@/lib/cbb-types";
 
 const TABS = [
@@ -57,21 +56,6 @@ export function Mark({ kind }: { kind: "hit" | "miss" | "push" | null | undefine
   if (!kind) return null;
   const m = MARKS[kind];
   return <span role="img" aria-label={m.label} title={m.label} className={`inline-flex h-4 min-w-4 items-center justify-center rounded border px-1 text-[10px] font-bold leading-none ${m.cls}`}>{m.glyph}</span>;
-}
-
-/** Away-to-home win bar in each team's colour, with a gold tick at the sportsbook's number. */
-export function WinBar({ away, home, pHome, marketHome, tall }: { away: CbbTeam; home: CbbTeam; pHome: number; marketHome?: number | null; tall?: boolean }) {
-  const homePct = Math.round(pHome * 100);
-  return (
-    <div>
-      <div className={`relative flex overflow-hidden rounded-sm bg-surface-hover ${tall ? "h-4" : "h-2"}`} role="img"
-        aria-label={`Model: ${away.abbr} ${100 - homePct} percent, ${home.abbr} ${homePct} percent${marketHome != null ? `. Sportsbook: ${home.abbr} ${pct(marketHome)}` : ""}`}>
-        <div style={{ width: `${100 - homePct}%`, background: barColor(away) }} />
-        <div style={{ width: `${homePct}%`, background: barColor(home) }} />
-        {marketHome != null && <span className="absolute inset-y-0 w-0.5 bg-lock-gold shadow-[0_0_0_1px_rgba(13,21,27,.9)]" style={{ left: `${(1 - marketHome) * 100}%` }} title={`Sportsbook: ${home.abbr} ${pct(marketHome)}`} />}
-      </div>
-    </div>
-  );
 }
 
 export function Loading({ label }: { label: string }) {

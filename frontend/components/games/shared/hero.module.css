@@ -19,3 +19,7 @@
   .name { font-size: 24px; overflow-wrap: normal; }
   .team small { font-size: 10px; }
 }
+.name a { color: inherit; }
+.name a:hover { text-decoration: underline; }
+.team small:first-child { margin-bottom: 2px; }
+@media (max-width: 640px) { .score { font-size: 40px; } }

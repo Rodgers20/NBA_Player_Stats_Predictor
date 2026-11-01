@@ -80,7 +80,7 @@ export function CbbSlate() {
           {games.length === 0 ? <p role="status" className="ql-panel p-5 text-sm text-text-sec">No games scheduled on this day.</p>
             : visible.length === 0 ? <p role="status" className="ql-panel p-5 text-sm text-text-sec">No games match these filters.</p>
             : <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{visible.slice(0, shown).map(g => <CbbGameCard key={g.id} game={g} />)}</div>
+              <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">{visible.slice(0, shown).map(g => <CbbGameCard key={g.id} game={g} />)}</div>
               {visible.length > shown && <button type="button" onClick={() => setShown(s => s + PAGE)} className="ql-chip mx-auto mt-4">Show more ({visible.length - shown})</button>}
             </>}
         </>}
