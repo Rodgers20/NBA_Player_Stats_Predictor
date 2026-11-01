@@ -54,10 +54,10 @@ export function BoardCell({ text, pick, inSlip, onToggle, label }: { text: strin
   );
 }
 
-/** The model's own line for a team over its win chance, in gold. */
-export function ModelCell({ line, win, mark }: { line?: string | null; win: number | null | undefined; mark?: ReactNode }) {
+/** The model's own line for a team over its win chance, in gold. `lean` marks the side the model has covering the spread. */
+export function ModelCell({ line, win, mark, lean }: { line?: string | null; win: number | null | undefined; mark?: ReactNode; lean?: boolean }) {
   return (
-    <span className={`grid min-h-11 place-items-center rounded-lg border px-0.5 py-1 text-center leading-tight ${PLAIN}`}>
+    <span title={lean ? "The model has this side covering" : undefined} className={`grid min-h-11 place-items-center rounded-lg border px-0.5 py-1 text-center leading-tight ${lean ? PICKED : PLAIN}`}>
       {win == null ? <span className="text-text-sec">—</span> : <>
         <span className="text-[13px] font-bold tabular-nums text-text-pri">{line ?? "—"}</span>
         <span className="text-[11px] font-semibold tabular-nums text-lock-gold">{Math.round(win * 100)}%</span>

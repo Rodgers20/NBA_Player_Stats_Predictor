@@ -18,10 +18,11 @@ export function CbbGameCard({ game }: { game: CbbGame }) {
       <BoardRow key={side}>
         <TeamCell logo={<CbbLogo team={team} size={30} />} name={<><RankTag rank={team.rank} />{team.abbr}</>} dim={lost}
           sub={team.record} score={played ? score?.[side] : null} />
-        <BoardCell text={spreadText(line?.spread_home, side) ?? "—"} />
+        <BoardCell text={spreadText(line?.spread_home, side) ?? "—"} pick={!played && pick?.ats?.side === side ? pick.ats.p_cover : null} />
         <BoardCell text={american(side === "home" ? line?.home_ml : line?.away_ml) ?? "—"} pick={!played && pick?.winner === side ? (side === "home" ? pick.p_home : pick.p_away) : null} />
-        <BoardCell text={line?.total == null ? "—" : `${side === "away" ? "o" : "u"}${line.total}`} pick={leanTotal && pick?.total ? pick.total.p : null} />
+        <BoardCell text={line?.total == null ? "—" : `${side === "away" ? "o" : "u"}${line.total}`} pick={!played && leanTotal && pick?.total ? pick.total.p : null} />
         <ModelCell win={pick ? (side === "home" ? pick.p_home : pick.p_away) : null} line={pick ? lineText(side === "home" ? -pick.proj_margin : pick.proj_margin) : null}
+          lean={!played && pick?.ats?.side === side}
           mark={pick?.winner === side && result ? <Mark kind={mark(result.winner_correct)} /> : undefined} />
       </BoardRow>
     );

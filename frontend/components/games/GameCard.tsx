@@ -5,6 +5,7 @@ import { TeamLogo } from "@/components/teams/TeamLogo";
 import { gameState, scoreboard } from "@/lib/game-board.mjs";
 import { fmtLine, fmtPrice } from "@/lib/game-markets.mjs";
 import { safeTeamColor } from "@/lib/team-glow.mjs";
+import { modelLeans } from "@/lib/game-picks.mjs";
 import { teamInfo, type TeamMap } from "./MatchupCards";
 import { useGameSlip } from "./useGameSlip";
 import { BoardCard, BoardCell, BoardRow, BoardWinBar, ModelCell, TeamCell, lineText } from "./shared/Board";
@@ -40,6 +41,7 @@ export function GameCard({ game, prediction, teams, league, date }: { game: Game
   const pHome = prediction?.home_win_probability;
   const chance = typeof pHome === "number" && pHome > 0 && pHome < 1 ? pHome : null;
   const margin = prediction?.spread ?? null; // model home margin
+  const leans = modelLeans(game, prediction); // where the model sits against the book's spread and total
   const status = actual ? game.status_text || (state === "post" ? "Final" : "Live") : tipClock(game);
 
   const row = (side: "away" | "home") => {
@@ -55,10 +57,10 @@ export function GameCard({ game, prediction, teams, league, date }: { game: Game
       <BoardRow key={side}>
         <TeamCell logo={<TeamLogo team={t} size={30} />} name={t.abbrev} sub={record(game[`${side}_wins`], game[`${side}_losses`]) || t.nickname}
           score={actual ? (mine ?? "—") : null} dim={state === "post" && mine != null && theirs != null && mine < theirs} />
-        <BoardCell text={spread == null ? "—" : fmtLine(spread)} inSlip={slip.spread[side]?.inSlip} onToggle={slip.spread[side]?.onToggle} label={slip.spread[side] && `${slip.spread[side]!.inSlip ? "Remove" : "Add"} ${slip.spread[side]!.label} ${slip.spread[side]!.inSlip ? "from" : "to"} slip`} />
+        <BoardCell text={spread == null ? "—" : fmtLine(spread)} pick={!actual && leans.spread?.side === side ? leans.spread.p : null} inSlip={slip.spread[side]?.inSlip} onToggle={slip.spread[side]?.onToggle} label={slip.spread[side] && `${slip.spread[side]!.inSlip ? "Remove" : "Add"} ${slip.spread[side]!.label} ${slip.spread[side]!.inSlip ? "from" : "to"} slip`} />
         <BoardCell text={ml == null ? "—" : fmtPrice(ml)} pick={!actual && lean ? winP : null} inSlip={slip.moneyline[side]?.inSlip} onToggle={slip.moneyline[side]?.onToggle} label={slip.moneyline[side] && `${slip.moneyline[side]!.inSlip ? "Remove" : "Add"} ${slip.moneyline[side]!.label} ${slip.moneyline[side]!.inSlip ? "from" : "to"} slip`} />
-        <BoardCell text={game.total == null ? "—" : `${over ? "o" : "u"}${game.total}`} inSlip={totalAdd?.inSlip} onToggle={totalAdd?.onToggle} label={totalAdd && `${totalAdd.inSlip ? "Remove" : "Add"} ${totalAdd.label} ${totalAdd.inSlip ? "from" : "to"} slip`} />
-        <ModelCell win={winP} line={margin == null ? null : lineText(side === "home" ? -margin : margin)} />
+        <BoardCell text={game.total == null ? "—" : `${over ? "o" : "u"}${game.total}`} pick={!actual && leans.total?.side === (over ? "over" : "under") ? leans.total.p : null} inSlip={totalAdd?.inSlip} onToggle={totalAdd?.onToggle} label={totalAdd && `${totalAdd.inSlip ? "Remove" : "Add"} ${totalAdd.label} ${totalAdd.inSlip ? "from" : "to"} slip`} />
+        <ModelCell win={winP} line={margin == null ? null : lineText(side === "home" ? -margin : margin)} lean={!actual && leans.spread?.side === side} />
       </BoardRow>
     );
   };
