@@ -9,9 +9,9 @@ import { shiftDate } from '@/lib/game-board.mjs';
 import { withLive } from '@/lib/espn-live.mjs';
 import { useLiveScoreboard } from '@/lib/live';
 import { useTeamMap } from '@/components/games/useTeamMap';
-import { GameCard, GameCardSkeletons } from '@/components/games/GameCard';
+import { GameCard, GameCardSkeletons, tipHour } from '@/components/games/GameCard';
+import { BoardGroups } from '@/components/games/shared/Board';
 import { DateStrip } from '@/components/games/DateStrip';
-import cardStyles from '@/components/games/GameCard.module.css';
 import styles from '@/components/games/games.module.css';
 
 export default function GamesPage() {
@@ -45,7 +45,7 @@ export default function GamesPage() {
     {!games.isPending && ready && data && <>
       <div className={styles.sectionHeading}><h2>The slate</h2><div className={styles.filters} role="group" aria-label="Filter games"><button aria-pressed={!followingOnly} onClick={()=>setFollowingOnly(false)}>All games</button><button aria-pressed={followingOnly} onClick={()=>setFollowingOnly(true)}>Teams I follow</button></div></div>
       {!visible.length && <div className={styles.empty}><h3>{followingOnly ? 'No followed teams on this slate' : 'No games scheduled'}</h3><p>{followingOnly ? 'Follow teams in the directory, or switch back to All games.' : 'Choose another day to browse the schedule and results.'}</p>{followingOnly && <Link href="/teams">Find your teams ↗</Link>}</div>}
-      <div className={cardStyles.grid}>{visible.map((game,i)=><GameCard key={game.game_id || game.matchup} game={withLive(game,live[game.game_id ?? ''])} prediction={predictionFor(game.matchup)} teams={teamMap} league={league} date={date} index={i}/>)}</div>
+      <BoardGroups items={[...visible].sort((a,b)=>(a.start_time||a.game_time||'').localeCompare(b.start_time||b.game_time||''))} label={tipHour} card={game=><GameCard key={game.game_id || game.matchup} game={withLive(game,live[game.game_id ?? ''])} prediction={predictionFor(game.matchup)} teams={teamMap} league={league} date={date}/>}/>
       {predictions.isError && <p className={styles.notice} role="alert">Model estimates could not be loaded. <button onClick={()=>void predictions.refetch()}>Try again</button></p>}
     </>}
   </div>;

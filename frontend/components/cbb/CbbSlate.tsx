@@ -7,6 +7,7 @@ import { cbbApi } from "@/lib/api";
 import { conferencesOf, defaultDay, dayRecord, filterGames, pct } from "@/lib/cbb.mjs";
 import { todayEt } from "@/lib/slate-freshness.mjs";
 import { DateStrip } from "@/components/games/DateStrip";
+import { BoardGroups } from "@/components/games/shared/Board";
 import { CbbGameCard } from "./CbbGameCard";
 import { CbbHeader, ErrorBox, Loading } from "./parts";
 
@@ -17,6 +18,7 @@ const VIEWS = [
   { id: "disagree", label: "Model vs book" },
 ] as const;
 const PAGE = 48;
+const hourLabel = (time: string) => { const h = Number(String(time).split(":")[0]); return Number.isFinite(h) ? `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}` : "TBA"; };
 
 function RecordBar({ games }: { games: Parameters<typeof dayRecord>[0] }) {
   const rec = dayRecord(games);
@@ -41,7 +43,7 @@ export function CbbSlate() {
 
   const schedule = useQuery({ queryKey: ["cbb-schedule", date], queryFn: () => cbbApi.schedule(date!), enabled: !!date, staleTime: 120_000 });
   const games = useMemo(() => schedule.data?.games ?? [], [schedule.data]);
-  const visible = useMemo(() => filterGames(games, { view, conference }), [games, view, conference]);
+  const visible = useMemo(() => [...filterGames(games, { view, conference })].sort((a, b) => String(a.time).localeCompare(String(b.time))), [games, view, conference]);
   const conferences = useMemo(() => conferencesOf(games), [games]);
   const available = days?.map(d => d.date) ?? [];
 
@@ -80,7 +82,7 @@ export function CbbSlate() {
           {games.length === 0 ? <p role="status" className="ql-panel p-5 text-sm text-text-sec">No games scheduled on this day.</p>
             : visible.length === 0 ? <p role="status" className="ql-panel p-5 text-sm text-text-sec">No games match these filters.</p>
             : <>
-              <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">{visible.slice(0, shown).map(g => <CbbGameCard key={g.id} game={g} />)}</div>
+              <BoardGroups items={visible.slice(0, shown)} label={g => hourLabel(g.time)} card={g => <CbbGameCard key={g.id} game={g} />} />
               {visible.length > shown && <button type="button" onClick={() => setShown(s => s + PAGE)} className="ql-chip mx-auto mt-4">Show more ({visible.length - shown})</button>}
             </>}
         </>}
