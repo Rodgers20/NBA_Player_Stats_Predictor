@@ -41,6 +41,10 @@ season_year=$(date +%Y); [ "$(date +%-m)" -lt 7 ] && season_year=$((season_year 
 nba_season="$season_year-$(printf %02d $(( (season_year + 1) % 100 )))"
 retry python3 scripts/refresh_game_history.py --league nba --seasons "$nba_season" --timeout 30 || log "WARNING: NBA game results refresh failed; game forecasts stay ungraded"
 
+# The NBA/WNBA export swaps the whole data folder, so set the college files aside and put them back afterwards.
+cbb_keep="$(mktemp -d)"
+[ -d frontend/public/data/cbb ] && cp -R frontend/public/data/cbb "$cbb_keep/cbb"
+
 python3 -m uvicorn api.main:app --host 127.0.0.1 --port "$PORT" > "${TMPDIR:-/tmp}/courtvision-api.log" 2>&1 &
 server_pid=$!
 for _ in $(seq 1 60); do
@@ -53,6 +57,12 @@ if ! retry python3 scripts/export_api.py --refresh-odds --out frontend/public/da
   exit 1
 fi
 kill "$server_pid" 2>/dev/null; server_pid=""
+
+# College basketball runs on free ESPN feeds and is non-fatal: if it fails the site keeps the last college files
+# (restored below) and NBA/WNBA still publish, the same way the NFL publish treats college football.
+[ -d "$cbb_keep/cbb" ] && [ ! -d frontend/public/data/cbb ] && cp -R "$cbb_keep/cbb" frontend/public/data/cbb
+retry python3 -m cbbpred refresh || { log "WARNING: CBB refresh failed; publishing the last college files"; notify "CBB refresh failed; keeping last college data"; }
+rm -rf "$cbb_keep"
 
 cd frontend || exit 1
 if ! NEXT_EXPORT=1 NEXT_PUBLIC_DATA_MODE=static npx --yes vercel@latest build --prod; then
