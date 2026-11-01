@@ -35,3 +35,8 @@ gunicorn>=21.2.0
 
 # Background Scheduling
 APScheduler>=3.10.0
+
+# College basketball (CBB)
+polars>=1.0
+httpx>=0.27
+joblib>=1.3
