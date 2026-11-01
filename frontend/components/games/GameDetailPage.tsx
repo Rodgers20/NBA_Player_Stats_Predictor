@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
+import { useMemo } from "react";
 import { api } from "@/lib/api";
 import { usePrefs } from "@/store/prefs";
 import { gameState } from "@/lib/game-board.mjs";
@@ -18,8 +19,10 @@ import { BoxScore } from "./BoxScore";
 import { DefenseStrip } from "./DefenseStrip";
 import { GameHighlights } from "./GameHighlights";
 import { MarketBlock } from "./MarketBlock";
-import { MarketGauge, MatchupBanner, teamInfo } from "./MatchupCards";
-import { Injuries, MatchupDetails } from "./MatchupDetails";
+import { MatchupBanner, teamInfo } from "./MatchupCards";
+import { Injuries } from "./MatchupDetails";
+import { GameForecast } from "./GameForecast";
+import { GameNavBar, type NavTarget } from "./shared/GameNavBar";
 import { GameProps } from "./GameProps";
 import { GameInsights } from "./GameInsights";
 import { MatchupPanel } from "./MatchupPanel";
@@ -80,6 +83,17 @@ export function GameDetailPage() {
   const prediction = game && predictions.data?.target_date === games.data?.target_date ? predictions.data?.predictions.find(item => item.matchup === game.matchup) : undefined;
   const status = predictions.isPending ? "Loading model estimate…" : predictions.data?.message || predictions.data?.errors.find(item => item.matchup === game?.matchup)?.message || "Model estimate unavailable for this game.";
 
+  const slate = useMemo(() => {
+    const list = [...(games.data?.games ?? [])].sort((a, b) => (a.start_time || a.game_time || "").localeCompare(b.start_time || b.game_time || ""));
+    const index = list.findIndex(item => (validId ? item.game_id === id : item.matchup === matchup));
+    const target = (item?: Game): NavTarget | undefined => item && {
+      href: `/games/detail?${new URLSearchParams({ league, ...(item.game_id ? { id: item.game_id } : { matchup: item.matchup }), ...(date ? { date } : {}) })}`,
+      title: `${item.away_team} @ ${item.home_team}`,
+    };
+    return { list, index, prev: index > 0 ? target(list[index - 1]) : undefined, next: index >= 0 ? target(list[index + 1]) : undefined };
+  }, [games.data, id, matchup, validId, league, date]);
+  const dayLabel = new Date(`${date ?? games.data?.target_date ?? ""}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+
   const back = <Link href="/games" className={styles.back}><ArrowLeft size={16} /> All games</Link>;
   if (!validId && !matchup) return <div className={gameStyles.page}>{back}<p role="alert" className={gameStyles.empty}>That game link is not valid.</p></div>;
   if (games.isPending || (!games.isError && !ready)) return <div className={gameStyles.page}>{back}<div className={gameStyles.skeleton} aria-label="Loading game" /></div>;
@@ -94,14 +108,13 @@ export function GameDetailPage() {
 
   const main = (
     <div className={styles.stack}>
-      {back}
+      <GameNavBar backHref="/games" backLabel={`${dayLabel} slate`} position={slate.index >= 0 ? `${slate.index + 1} of ${slate.list.length}` : undefined} prev={slate.prev} next={slate.next} />
       <MatchupBanner game={game} prediction={prediction} teams={teams} league={league} />
+      <GameForecast game={game} prediction={prediction} away={away} home={home} status={status} />
       <Tabs tabs={[...MAIN_TABS]} value={tab} onChange={id => { setTab(id); remember(id); }} label="Game sections" idPrefix="game" />
       <div role="tabpanel" id="game-panel" aria-labelledby={`game-tab-${tab}`} className={styles.panel}>
         {tab === "lines" && <>
           <GameMarkets game={game} markets={markets} league={league} date={date ?? games.data?.target_date ?? undefined} prediction={prediction} />
-          <MarketGauge game={game} />
-          <MatchupDetails game={game} prediction={prediction} predictionStatus={status} league={league} showDefense={false} showAvailability={false} />
         </>}
         {tab === "props" && <GameProps game={game} league={league} date={date ?? games.data?.target_date ?? undefined} />}
         {tab === "insights" && <GameInsights game={game} league={league} />}
