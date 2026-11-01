@@ -1,0 +1,16 @@
+import type { CbbGame, CbbTeam, CbbPick, CbbSide } from './cbb-types';
+export function spreadText(spreadHome: number | null | undefined, side: CbbSide): string | null;
+export function american(odds: number | null | undefined): string | null;
+export function pct(value: number | null | undefined, digits?: number): string;
+export function signed(value: number | null | undefined, digits?: number): string;
+export function marketSide(pick: CbbPick | null | undefined): CbbSide | null;
+export function disagrees(game: CbbGame): boolean;
+export function spreadEdge(game: CbbGame): number | null;
+export function defaultDay(days: { date: string; games: number }[], today: string): string;
+export function dayRecord(games: CbbGame[]): { winner: { wins: number; losses: number }; ats: { wins: number; losses: number }; total: { wins: number; losses: number }; graded: number };
+export function filterGames(games: CbbGame[], opts?: { view?: string; conference?: string }): CbbGame[];
+export function conferencesOf(games: CbbGame[]): string[];
+export function tipText(time: string | null | undefined): string;
+export const CONFIDENCE_LABEL: Record<string, string>;
+export function barColor(team: Pick<CbbTeam, 'color' | 'alt_color'>): string;
+export function mark(correct: boolean | null | undefined, result?: string | null): 'hit' | 'miss' | 'push' | null;

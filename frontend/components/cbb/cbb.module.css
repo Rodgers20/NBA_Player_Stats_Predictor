@@ -1,0 +1,20 @@
+.hero { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 16px; padding: 28px; border: 1px solid var(--color-border-card); border-radius: 10px; overflow: hidden;
+  background: linear-gradient(105deg, color-mix(in srgb, var(--away-color) 70%, #09131b) 0%, color-mix(in srgb, var(--away-color) 30%, #09131b) 49.8%, color-mix(in srgb, var(--home-color) 36%, #09131b) 50%, color-mix(in srgb, var(--home-color) 70%, #09131b) 100%); }
+.texture { position: absolute; inset: 0; z-index: -1; background: repeating-linear-gradient(90deg, transparent 0, transparent calc(10% - 1px), #ffffff0a 10%); }
+.team { display: flex; align-items: center; gap: 14px; min-width: 0; color: #fff; }
+.team.home { justify-content: flex-end; text-align: right; }
+.team > div { min-width: 0; }
+.team small { display: block; color: #ffffffc9; font-size: 12px; }
+.name { display: block; font: 800 clamp(22px, 2.6vw, 38px)/1.08 var(--font-display); overflow-wrap: anywhere; }
+.center { text-align: center; color: #fff; }
+.score { font: 800 clamp(44px, 6vw, 72px)/1.1 var(--font-display); white-space: nowrap; }
+.pills { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.pills span { padding: 4px 10px; font-size: 12px; background: #00000040; border-radius: 4px; }
+@media (max-width: 640px) {
+  .hero { grid-template-columns: 1fr 1fr; padding: 20px 14px; gap: 14px 10px; }
+  .team.home { grid-column: 2; grid-row: 1; }
+  .team { align-self: start; gap: 8px; }
+  .center { grid-column: 1 / -1; grid-row: 2; }
+  .name { font-size: 24px; overflow-wrap: normal; }
+  .team small { font-size: 10px; }
+}
