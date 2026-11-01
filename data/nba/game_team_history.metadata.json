@@ -1,9 +1,9 @@
 {
-  "rows": 7888,
-  "games": 3944,
+  "rows": 7994,
+  "games": 3997,
   "first_game": "2023-10-24",
-  "last_game": "2026-10-20",
-  "written_at": "2026-10-21T16:15:04.616680+00:00",
+  "last_game": "2026-10-27",
+  "written_at": "2026-10-28T13:00:29.854333+00:00",
   "sources": [
     "kaggle:historical-nba-data-and-player-box-scores:v515",
     "stats.nba.com:LeagueGameLog"

@@ -1,0 +1,925 @@
+{
+  "version": 1,
+  "league": "wnba",
+  "forecasts": [
+    {
+      "game_id": "1042600303",
+      "model_version": "game-forecast-v1",
+      "generated_at": "2026-10-21T14:11:38.073922+00:00",
+      "tipoff": "2026-10-22T00:00:00+00:00",
+      "home_team": "ATL",
+      "away_team": "GSV",
+      "prediction": {
+        "matchup": "GSV @ ATL",
+        "home_team": "ATL",
+        "away_team": "GSV",
+        "predicted_winner": "ATL",
+        "spread": 4.6,
+        "model_metadata": {
+          "name": "margin:core_ridge_100 / total:core_ridge_10",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": false,
+          "metrics": {
+            "margin": {
+              "mae": 9.717986318683913,
+              "rmse": 12.819767187071001
+            },
+            "total": {
+              "mae": 14.120395218129064,
+              "rmse": 17.65878417402209
+            },
+            "winner": {
+              "accuracy": 0.6974358974358974,
+              "log_loss": 0.5732532387269572,
+              "brier": 0.19452448980822323,
+              "calibration_bins": [
+                {
+                  "lower": 0.2,
+                  "count": 8,
+                  "predicted": 0.2486454521103212,
+                  "actual": 0.125
+                },
+                {
+                  "lower": 0.3,
+                  "count": 29,
+                  "predicted": 0.35867043738496773,
+                  "actual": 0.20689655172413793
+                },
+                {
+                  "lower": 0.4,
+                  "count": 25,
+                  "predicted": 0.4531117645358938,
+                  "actual": 0.44
+                },
+                {
+                  "lower": 0.5,
+                  "count": 36,
+                  "predicted": 0.557456263390036,
+                  "actual": 0.4722222222222222
+                },
+                {
+                  "lower": 0.6,
+                  "count": 39,
+                  "predicted": 0.6494930643361398,
+                  "actual": 0.6153846153846154
+                },
+                {
+                  "lower": 0.7,
+                  "count": 38,
+                  "predicted": 0.7418643043288234,
+                  "actual": 0.8947368421052632
+                },
+                {
+                  "lower": 0.8,
+                  "count": 19,
+                  "predicted": 0.8453514849261223,
+                  "actual": 0.8421052631578947
+                },
+                {
+                  "lower": 0.9,
+                  "count": 1,
+                  "predicted": 0.9013492269381187,
+                  "actual": 1.0
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7897435897435897,
+              "total": 0.7692307692307693
+            }
+          },
+          "version": "game-forecast-v1",
+          "trained_through": "2026-10-07 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-10-21",
+          "teams": {
+            "ATL": {
+              "latest_game_date": "2026-10-09",
+              "history_age_days": 12,
+              "history_older_than_14_days": false,
+              "games_available": 138,
+              "latest_player_log_date": "2026-10-17",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "GSV": {
+              "latest_game_date": "2026-10-09",
+              "history_age_days": 12,
+              "history_older_than_14_days": false,
+              "games_available": 96,
+              "latest_player_log_date": "2026-10-17",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-17",
+          "player_history_age_days": 4,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "ATL": true,
+            "GSV": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.6414267709290111,
+        "winner_probability": 0.6414267709290111,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -10.1,
+            23.5
+          ],
+          "total": [
+            141.5,
+            187.6
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 161.8,
+        "confidence": "LOW",
+        "predicted_home_score": 83.2,
+        "predicted_away_score": 78.6,
+        "intel": [
+          "\ud83d\ude91 ATL missing Brionna Jones (9 PPG, OUT)",
+          "\ud83d\ude91 GSV missing Iliana Rupert (10 PPG, OUT)",
+          "ATL on a hot streak \u2014 10-0 in last 10",
+          "GSV on a hot streak \u2014 8-2 in last 10",
+          "Form L10 \u2014 ATL: 10-0  |  GSV: 8-2"
+        ],
+        "winner_reason": "ATL projected to win 83\u201379 (margin 4.6 pts, low conf). ATL L10: 10-0, 94 PPG avg. GSV L10: 8-2, 83 PPG avg. GSV missing Iliana Rupert (10 PPG, OUT).",
+        "spread_reason": "Model line: ATL -4.6 (favored). ATL defense #7 (allows 78 PPG L10), GSV defense #7 (allows 77 PPG L10). H2H: ATL 2-4 in last 6 meetings.",
+        "total_reason": "Model projects 162 combined pts (ATL 83 + GSV 79). ATL allows 78 PPG L10, GSV allows 77 PPG L10.",
+        "market_spread": -3.5,
+        "market_total": 152.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "OVER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -3.5,
+        "total": 152.5,
+        "home_ml": -162.0,
+        "away_ml": 136.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-10-21T14:11:35.978192+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "1042600303",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-10-21T15:04:56.923829+00:00",
+      "tipoff": "2026-10-22T00:00:00+00:00",
+      "home_team": "ATL",
+      "away_team": "GSV",
+      "prediction": {
+        "matchup": "GSV @ ATL",
+        "home_team": "ATL",
+        "away_team": "GSV",
+        "predicted_winner": "ATL",
+        "spread": 4.3,
+        "model_metadata": {
+          "name": "margin:core_ridge_100 / total:core_ridge_10",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.786,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 9.717986318683913,
+              "rmse": 12.819767187071001
+            },
+            "total": {
+              "mae": 14.120395218129064,
+              "rmse": 17.65878417402209
+            },
+            "winner": {
+              "accuracy": 0.6974358974358974,
+              "log_loss": 0.5732532387269572,
+              "brier": 0.19452448980822323,
+              "calibration_bins": [
+                {
+                  "lower": 0.2,
+                  "count": 8,
+                  "predicted": 0.2486454521103212,
+                  "actual": 0.125
+                },
+                {
+                  "lower": 0.3,
+                  "count": 29,
+                  "predicted": 0.35867043738496773,
+                  "actual": 0.20689655172413793
+                },
+                {
+                  "lower": 0.4,
+                  "count": 25,
+                  "predicted": 0.4531117645358938,
+                  "actual": 0.44
+                },
+                {
+                  "lower": 0.5,
+                  "count": 36,
+                  "predicted": 0.557456263390036,
+                  "actual": 0.4722222222222222
+                },
+                {
+                  "lower": 0.6,
+                  "count": 39,
+                  "predicted": 0.6494930643361398,
+                  "actual": 0.6153846153846154
+                },
+                {
+                  "lower": 0.7,
+                  "count": 38,
+                  "predicted": 0.7418643043288234,
+                  "actual": 0.8947368421052632
+                },
+                {
+                  "lower": 0.8,
+                  "count": 19,
+                  "predicted": 0.8453514849261223,
+                  "actual": 0.8421052631578947
+                },
+                {
+                  "lower": 0.9,
+                  "count": 1,
+                  "predicted": 0.9013492269381187,
+                  "actual": 1.0
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7897435897435897,
+              "total": 0.7692307692307693
+            }
+          },
+          "trained_through": "2026-10-07 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-10-21",
+          "teams": {
+            "ATL": {
+              "latest_game_date": "2026-10-09",
+              "history_age_days": 12,
+              "history_older_than_14_days": false,
+              "games_available": 138,
+              "latest_player_log_date": "2026-10-17",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "GSV": {
+              "latest_game_date": "2026-10-09",
+              "history_age_days": 12,
+              "history_older_than_14_days": false,
+              "games_available": 96,
+              "latest_player_log_date": "2026-10-17",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-17",
+          "player_history_age_days": 4,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "ATL": true,
+            "GSV": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.6325627179032628,
+        "winner_probability": 0.6325627179032628,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -10.4,
+            23.2
+          ],
+          "total": [
+            141.6,
+            187.7
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 161.9,
+        "confidence": "LOW",
+        "predicted_home_score": 83.1,
+        "predicted_away_score": 78.8,
+        "intel": [
+          "\ud83d\ude91 ATL missing Brionna Jones (9 PPG, OUT)",
+          "\ud83d\ude91 GSV missing Iliana Rupert (10 PPG, OUT)",
+          "ATL on a hot streak \u2014 10-0 in last 10",
+          "GSV on a hot streak \u2014 8-2 in last 10",
+          "Form L10 \u2014 ATL: 10-0  |  GSV: 8-2"
+        ],
+        "winner_reason": "ATL projected to win 83\u201379 (margin 4.3 pts, low conf). ATL L10: 10-0, 94 PPG avg. GSV L10: 8-2, 83 PPG avg. GSV missing Iliana Rupert (10 PPG, OUT).",
+        "spread_reason": "Model line: ATL -4.3 (favored). ATL defense #7 (allows 78 PPG L10), GSV defense #7 (allows 77 PPG L10). H2H: ATL 2-4 in last 6 meetings.",
+        "total_reason": "Model projects 162 combined pts (ATL 83 + GSV 79). ATL allows 78 PPG L10, GSV allows 77 PPG L10.",
+        "market_spread": -3.5,
+        "market_total": 153.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "OVER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -3.5,
+        "total": 153.5,
+        "home_ml": -166.0,
+        "away_ml": 140.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-10-21T15:04:55.149151+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "1042600304",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-10-22T22:12:22.622234+00:00",
+      "tipoff": "2026-10-24T17:00:00+00:00",
+      "home_team": "ATL",
+      "away_team": "GSV",
+      "prediction": {
+        "matchup": "GSV @ ATL",
+        "home_team": "ATL",
+        "away_team": "GSV",
+        "predicted_winner": "ATL",
+        "spread": 4.5,
+        "model_metadata": {
+          "name": "margin:core_ridge_100 / total:core_ridge_10",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.786,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 9.717986318683913,
+              "rmse": 12.819767187071001
+            },
+            "total": {
+              "mae": 14.120395218129064,
+              "rmse": 17.65878417402209
+            },
+            "winner": {
+              "accuracy": 0.6974358974358974,
+              "log_loss": 0.5732532387269572,
+              "brier": 0.19452448980822323,
+              "calibration_bins": [
+                {
+                  "lower": 0.2,
+                  "count": 8,
+                  "predicted": 0.2486454521103212,
+                  "actual": 0.125
+                },
+                {
+                  "lower": 0.3,
+                  "count": 29,
+                  "predicted": 0.35867043738496773,
+                  "actual": 0.20689655172413793
+                },
+                {
+                  "lower": 0.4,
+                  "count": 25,
+                  "predicted": 0.4531117645358938,
+                  "actual": 0.44
+                },
+                {
+                  "lower": 0.5,
+                  "count": 36,
+                  "predicted": 0.557456263390036,
+                  "actual": 0.4722222222222222
+                },
+                {
+                  "lower": 0.6,
+                  "count": 39,
+                  "predicted": 0.6494930643361398,
+                  "actual": 0.6153846153846154
+                },
+                {
+                  "lower": 0.7,
+                  "count": 38,
+                  "predicted": 0.7418643043288234,
+                  "actual": 0.8947368421052632
+                },
+                {
+                  "lower": 0.8,
+                  "count": 19,
+                  "predicted": 0.8453514849261223,
+                  "actual": 0.8421052631578947
+                },
+                {
+                  "lower": 0.9,
+                  "count": 1,
+                  "predicted": 0.9013492269381187,
+                  "actual": 1.0
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7897435897435897,
+              "total": 0.7692307692307693
+            }
+          },
+          "trained_through": "2026-10-07 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-10-24",
+          "teams": {
+            "ATL": {
+              "latest_game_date": "2026-10-09",
+              "history_age_days": 15,
+              "history_older_than_14_days": true,
+              "games_available": 138,
+              "latest_player_log_date": "2026-10-21",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "GSV": {
+              "latest_game_date": "2026-10-09",
+              "history_age_days": 15,
+              "history_older_than_14_days": true,
+              "games_available": 96,
+              "latest_player_log_date": "2026-10-21",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-21",
+          "player_history_age_days": 3,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "ATL": true,
+            "GSV": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.6384802684013464,
+        "winner_probability": 0.6384802684013464,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -10.2,
+            23.4
+          ],
+          "total": [
+            141.6,
+            187.7
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 161.9,
+        "confidence": "LOW",
+        "predicted_home_score": 83.2,
+        "predicted_away_score": 78.7,
+        "intel": [
+          "\ud83d\ude91 ATL missing Brionna Jones (9 PPG, OUT)",
+          "\ud83d\ude91 GSV missing Iliana Rupert (10 PPG, OUT)",
+          "ATL on a hot streak \u2014 10-0 in last 10",
+          "GSV on a hot streak \u2014 8-2 in last 10",
+          "Form L10 \u2014 ATL: 10-0  |  GSV: 8-2"
+        ],
+        "winner_reason": "ATL projected to win 83\u201379 (margin 4.5 pts, low conf). ATL L10: 10-0, 94 PPG avg. GSV L10: 8-2, 83 PPG avg. GSV missing Iliana Rupert (10 PPG, OUT).",
+        "spread_reason": "Model line: ATL -4.5 (favored). ATL defense #7 (allows 78 PPG L10), GSV defense #7 (allows 77 PPG L10). H2H: ATL 2-4 in last 6 meetings.",
+        "total_reason": "Model projects 162 combined pts (ATL 83 + GSV 79). ATL allows 78 PPG L10, GSV allows 77 PPG L10.",
+        "market_spread": -4.5,
+        "market_total": 153.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "OVER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -4.5,
+        "total": 153.5,
+        "home_ml": -192.0,
+        "away_ml": 160.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-10-22T22:12:20.600100+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "1042600305",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-10-25T10:03:13.728428+00:00",
+      "tipoff": "2026-10-27T00:00:00+00:00",
+      "home_team": "GSV",
+      "away_team": "ATL",
+      "prediction": {
+        "matchup": "ATL @ GSV",
+        "home_team": "GSV",
+        "away_team": "ATL",
+        "predicted_winner": "GSV",
+        "spread": 0.9,
+        "model_metadata": {
+          "name": "margin:core_ridge_100 / total:core_ridge_10",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.786,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 9.717986318683913,
+              "rmse": 12.819767187071001
+            },
+            "total": {
+              "mae": 14.120395218129064,
+              "rmse": 17.65878417402209
+            },
+            "winner": {
+              "accuracy": 0.6974358974358974,
+              "log_loss": 0.5732532387269572,
+              "brier": 0.19452448980822323,
+              "calibration_bins": [
+                {
+                  "lower": 0.2,
+                  "count": 8,
+                  "predicted": 0.2486454521103212,
+                  "actual": 0.125
+                },
+                {
+                  "lower": 0.3,
+                  "count": 29,
+                  "predicted": 0.35867043738496773,
+                  "actual": 0.20689655172413793
+                },
+                {
+                  "lower": 0.4,
+                  "count": 25,
+                  "predicted": 0.4531117645358938,
+                  "actual": 0.44
+                },
+                {
+                  "lower": 0.5,
+                  "count": 36,
+                  "predicted": 0.557456263390036,
+                  "actual": 0.4722222222222222
+                },
+                {
+                  "lower": 0.6,
+                  "count": 39,
+                  "predicted": 0.6494930643361398,
+                  "actual": 0.6153846153846154
+                },
+                {
+                  "lower": 0.7,
+                  "count": 38,
+                  "predicted": 0.7418643043288234,
+                  "actual": 0.8947368421052632
+                },
+                {
+                  "lower": 0.8,
+                  "count": 19,
+                  "predicted": 0.8453514849261223,
+                  "actual": 0.8421052631578947
+                },
+                {
+                  "lower": 0.9,
+                  "count": 1,
+                  "predicted": 0.9013492269381187,
+                  "actual": 1.0
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7897435897435897,
+              "total": 0.7692307692307693
+            }
+          },
+          "trained_through": "2026-10-07 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-10-26",
+          "teams": {
+            "GSV": {
+              "latest_game_date": "2026-10-09",
+              "history_age_days": 17,
+              "history_older_than_14_days": true,
+              "games_available": 96,
+              "latest_player_log_date": "2026-10-24",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "ATL": {
+              "latest_game_date": "2026-10-09",
+              "history_age_days": 17,
+              "history_older_than_14_days": true,
+              "games_available": 138,
+              "latest_player_log_date": "2026-10-24",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-24",
+          "player_history_age_days": 2,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "GSV": true,
+            "ATL": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.5282533345833472,
+        "winner_probability": 0.5282533345833472,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -13.8,
+            19.8
+          ],
+          "total": [
+            136.0,
+            182.1
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 156.3,
+        "confidence": "LOW",
+        "predicted_home_score": 78.6,
+        "predicted_away_score": 77.7,
+        "intel": [
+          "\ud83d\ude91 GSV missing Iliana Rupert (10 PPG, OUT)",
+          "\ud83d\ude91 ATL missing Allisha Gray (16 PPG, QUESTIONABLE)",
+          "\ud83d\ude91 ATL missing Brionna Jones (9 PPG, OUT)",
+          "GSV on a hot streak \u2014 8-2 in last 10",
+          "ATL on a hot streak \u2014 10-0 in last 10"
+        ],
+        "winner_reason": "GSV projected to win 79\u201378 (margin 0.9 pts, low conf). GSV L10: 8-2, 83 PPG avg. ATL L10: 10-0, 94 PPG avg. ATL missing Allisha Gray (16 PPG, QUESTIONABLE). ATL missing Brionna Jones (9 PPG, OUT).",
+        "spread_reason": "Model line: GSV -0.9 (favored). GSV defense #7 (allows 77 PPG L10), ATL defense #7 (allows 78 PPG L10). H2H: GSV 4-2 in last 6 meetings.",
+        "total_reason": "Model projects 156 combined pts (GSV 79 + ATL 78). GSV allows 77 PPG L10, ATL allows 78 PPG L10.",
+        "market_spread": -1.5,
+        "market_total": 149.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "OVER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -1.5,
+        "total": 149.5,
+        "home_ml": -115.0,
+        "away_ml": -105.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-10-25T10:03:11.965834+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "1042600306",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-10-27T05:27:28.229472+00:00",
+      "tipoff": "2026-10-29T16:30:00+00:00",
+      "home_team": "ATL",
+      "away_team": "GSV",
+      "prediction": {
+        "matchup": "GSV @ ATL",
+        "home_team": "ATL",
+        "away_team": "GSV",
+        "predicted_winner": "ATL",
+        "spread": 4.3,
+        "model_metadata": {
+          "name": "margin:core_ridge_100 / total:core_ridge_10",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.786,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 9.717986318683913,
+              "rmse": 12.819767187071001
+            },
+            "total": {
+              "mae": 14.120395218129064,
+              "rmse": 17.65878417402209
+            },
+            "winner": {
+              "accuracy": 0.6974358974358974,
+              "log_loss": 0.5732532387269572,
+              "brier": 0.19452448980822323,
+              "calibration_bins": [
+                {
+                  "lower": 0.2,
+                  "count": 8,
+                  "predicted": 0.2486454521103212,
+                  "actual": 0.125
+                },
+                {
+                  "lower": 0.3,
+                  "count": 29,
+                  "predicted": 0.35867043738496773,
+                  "actual": 0.20689655172413793
+                },
+                {
+                  "lower": 0.4,
+                  "count": 25,
+                  "predicted": 0.4531117645358938,
+                  "actual": 0.44
+                },
+                {
+                  "lower": 0.5,
+                  "count": 36,
+                  "predicted": 0.557456263390036,
+                  "actual": 0.4722222222222222
+                },
+                {
+                  "lower": 0.6,
+                  "count": 39,
+                  "predicted": 0.6494930643361398,
+                  "actual": 0.6153846153846154
+                },
+                {
+                  "lower": 0.7,
+                  "count": 38,
+                  "predicted": 0.7418643043288234,
+                  "actual": 0.8947368421052632
+                },
+                {
+                  "lower": 0.8,
+                  "count": 19,
+                  "predicted": 0.8453514849261223,
+                  "actual": 0.8421052631578947
+                },
+                {
+                  "lower": 0.9,
+                  "count": 1,
+                  "predicted": 0.9013492269381187,
+                  "actual": 1.0
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7897435897435897,
+              "total": 0.7692307692307693
+            }
+          },
+          "trained_through": "2026-10-07 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-10-29",
+          "teams": {
+            "ATL": {
+              "latest_game_date": "2026-10-09",
+              "history_age_days": 20,
+              "history_older_than_14_days": true,
+              "games_available": 138,
+              "latest_player_log_date": "2026-10-24",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "GSV": {
+              "latest_game_date": "2026-10-09",
+              "history_age_days": 20,
+              "history_older_than_14_days": true,
+              "games_available": 96,
+              "latest_player_log_date": "2026-10-24",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-24",
+          "player_history_age_days": 5,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "ATL": true,
+            "GSV": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.6325627179032628,
+        "winner_probability": 0.6325627179032628,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -10.4,
+            23.2
+          ],
+          "total": [
+            141.6,
+            187.7
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 161.9,
+        "confidence": "LOW",
+        "predicted_home_score": 83.1,
+        "predicted_away_score": 78.8,
+        "intel": [
+          "\ud83d\ude91 ATL missing Brionna Jones (9 PPG, OUT)",
+          "\ud83d\ude91 GSV missing Iliana Rupert (10 PPG, OUT)",
+          "ATL on a hot streak \u2014 10-0 in last 10",
+          "GSV on a hot streak \u2014 8-2 in last 10",
+          "Form L10 \u2014 ATL: 10-0  |  GSV: 8-2"
+        ],
+        "winner_reason": "ATL projected to win 83\u201379 (margin 4.3 pts, low conf). ATL L10: 10-0, 94 PPG avg. GSV L10: 8-2, 83 PPG avg. GSV missing Iliana Rupert (10 PPG, OUT).",
+        "spread_reason": "Model line: ATL -4.3 (favored). ATL defense #7 (allows 78 PPG L10), GSV defense #7 (allows 77 PPG L10). H2H: ATL 2-4 in last 6 meetings.",
+        "total_reason": "Model projects 162 combined pts (ATL 83 + GSV 79). ATL allows 78 PPG L10, GSV allows 77 PPG L10.",
+        "market_spread": -3.5,
+        "market_total": 147.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "OVER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -3.5,
+        "total": 147.5,
+        "home_ml": -162.0,
+        "away_ml": 136.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-10-27T05:27:25.633705+00:00"
+      },
+      "actual": null
+    }
+  ]
+}
