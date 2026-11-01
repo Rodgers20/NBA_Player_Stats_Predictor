@@ -3,11 +3,11 @@ export interface VenueCardProps {
   title: string;
   /** Games in the sample; 0 shows the empty note. */
   games: number;
-  wins: number;
-  losses: number;
-  scores: string | number | null;
-  allows: string | number | null;
-  margin: number | null;
+  wins?: number;
+  losses?: number;
+  scores?: string | number | null;
+  allows?: string | number | null;
+  margin?: number | null;
   /** Oldest to newest. */
   bars: VenueBar[];
   emptyText?: string;
