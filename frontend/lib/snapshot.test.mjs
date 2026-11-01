@@ -24,19 +24,18 @@ test('static home and away filters match live API location behavior', () => {
   assert.equal(filterProps(data,{location:'home'}).count,1);
   assert.equal(filterProps(data,{location:'away'}).count,1);
 });
-test("a snapshot dated before today is withheld, so yesterday's picks never show as today's", () => {
+test('a board dated before today stays on screen until the new one is published, flagged as the past slate', () => {
   const prop = { direction: 'Over', game_matchup: 'A @ B', stat: 'PTS', ev: 3, is_lock: false };
   const data = { target_date: '2026-10-21', game_matchups: ['A @ B'], count: 1, props: [prop] };
   const result = filterProps(data, {}, new Date('2026-10-22T14:00:00Z'));
-  assert.equal(result.count, 0); assert.deepEqual(result.props, []);
-  assert.deepEqual(result.game_matchups, []); assert.equal(result.status, 'stale');
-  assert.equal(result.target_date, '2026-10-21'); assert.match(result.message, /aren.t published yet/);
-  assert.equal(data.props.length, 1);
+  assert.equal(result.count, 1); assert.equal(result.props.length, 1);
+  assert.deepEqual(result.game_matchups, ['A @ B']); assert.equal(result.past_slate, true);
+  assert.notEqual(result.status, 'stale'); assert.equal(result.target_date, '2026-10-21');
 });
-test("today's snapshot is served unchanged", () => {
+test("today's snapshot is served unchanged and is not flagged as past", () => {
   const prop = { direction: 'Over', game_matchup: 'A @ B', stat: 'PTS', ev: 3, is_lock: false };
   const result = filterProps({ target_date: '2026-10-22', props: [prop] }, {}, new Date('2026-10-22T14:00:00Z'));
-  assert.equal(result.count, 1); assert.notEqual(result.status, 'stale');
+  assert.equal(result.count, 1); assert.equal(result.past_slate, false);
 });
 test('a static series keeps the per-game context the game filters need, and omits what is missing', () => {
   const series = { games: [

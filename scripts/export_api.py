@@ -118,13 +118,14 @@ def localize_headshots(stage, previous, download=download_headshot):
 
 
 def keep_board_if_emptied(root, previous):
-    """A refresh that buys no quotes (credits spent, prices expired) must not blank a slate that already had
-    picks: keep the earlier board for the same date. Each row still shows how old its price is."""
+    """The old board only goes away when a new one is ready. A refresh that comes back empty (credits spent, prices
+    expired, next slate not priced yet) must never blank the published props, whatever the date: keep the earlier
+    board. Each row still shows how old its price is, and the site flags a past-dated board."""
     new_path, old_path = root / 'props.json', previous / 'props.json'
     if not old_path.exists():
         return False
     new, old = json.loads(new_path.read_text()), json.loads(old_path.read_text())
-    if new.get('count') or not old.get('count') or new.get('target_date') != old.get('target_date'):
+    if new.get('count') or not old.get('count'):
         return False
     new_path.write_text(old_path.read_text())
     print(f'{root.name}: refresh produced no priced props; kept the {old["count"]}-prop board for {old["target_date"]}')

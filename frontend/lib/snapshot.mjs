@@ -11,12 +11,12 @@ export function scheduledPlayersSnapshot(data, league, gameDate) {
 
 import { isPastSlate } from './slate-freshness.mjs';
 
-/** The snapshot is rebuilt once a day; between games ending and that build it still holds yesterday's slate. */
+/**
+ * The snapshot is rebuilt once a day; until the new board is published it still holds the last slate.
+ * That board stays on screen (never an empty page) and is flagged `past_slate` so the UI can say so.
+ */
 export function filterProps(data, params = {}, now = new Date()) {
-  if (isPastSlate(data.target_date, now)) {
-    return { ...data, count: 0, props: [], stat_counts: {}, game_matchups: [], status: 'stale',
-      message: "Today's picks aren't published yet. New picks appear after the morning data refresh, around 7:15 AM ET." };
-  }
+  const past_slate = isPastSlate(data.target_date, now);
   const eligible = data.props.filter(p =>
     (!params.direction || params.direction === 'all' || p.direction.toLowerCase() === String(params.direction).toLowerCase()) &&
     (!params.game || p.game_matchup.toLowerCase().includes(String(params.game).toLowerCase())) &&
@@ -28,7 +28,7 @@ export function filterProps(data, params = {}, now = new Date()) {
     (!params.locks_only || p.is_lock) && (!params.combos_only || p.is_combo));
   const key = params.sort === 'hit_rate' ? 'hit_rate' : 'ev';
   props.sort((a, b) => Number(b.is_lock) - Number(a.is_lock) || (b[key] ?? -Infinity) - (a[key] ?? -Infinity));
-  return { ...data, stat_counts, count: props.length, props: props.slice(0, Number(params.limit ?? 100)) };
+  return { ...data, past_slate, stat_counts, count: props.length, props: props.slice(0, Number(params.limit ?? 100)) };
 }
 
 export function windowChart(data, count) {

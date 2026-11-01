@@ -79,6 +79,8 @@ export interface DefenseRankings { league: string; stat: string | null; season: 
 export interface Clv { close_line: number | null; close_price: number | null; clv_pct: number | null }
 
 export interface PropsResponse {
+  /** True when this is the last published board and today's is not ready yet; it stays on screen until replaced. */
+  past_slate?: boolean;
   status?: string;
   message?: string | null;
   count:        number;

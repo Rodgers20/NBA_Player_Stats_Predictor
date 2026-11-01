@@ -141,9 +141,9 @@ function PropsBoard() {
   const shownProps = filters.sort === "edge" ? sortByEdge(starred) : filters.sort === "hit_rate" ? sortByWindow(starred, filters.window) : starred;
   const byGame = Object.groupBy(shownProps, (prop) => prop.game_matchup || "Other matchups");
   const verifiedCount = shownProps.filter((prop) => (prop.pick_type ?? (prop.recommendation_eligible ? "pick" : "research")) !== "research").length;
-  // The static snapshot withholds a past slate (status "stale") instead of showing yesterday's picks.
-  const pastSlate = data?.status === "stale";
-  const showPlayers = activeView === "props" && !lineMarket && !pastSlate;
+  // Never an empty page: until today's board is published the last one stays up, with a note (`past_slate`).
+  const pastSlate = !!data?.past_slate;
+  const showPlayers = activeView === "props" && !lineMarket;
 
   return (
     <main className="ql-page mx-auto max-w-[1440px] px-4 pb-12 pt-7 sm:px-8" onPointerDownCapture={(event) => { tapOrigin.current = { x: event.clientX, y: event.clientY }; }}>
@@ -205,11 +205,10 @@ function PropsBoard() {
 
       <div className="min-w-0">
       {activeView === "props" && lineMarket && <GameLinesBoard league={league} market={lineMarket} />}
-      {activeView === "props" && !lineMarket && pastSlate && (
-        <div className="ql-panel px-6 py-12 text-center" role="status">
-          <p className="text-sm text-text-pri">{"Today's picks aren't published yet."}</p>
-          <p className="mt-2 text-xs text-text-sec">The board last refreshed for {slateDate(data?.target_date)}. New picks appear after the morning data refresh, around 7:15 AM ET.</p>
-        </div>
+      {activeView === "props" && !lineMarket && pastSlate && !!data?.props.length && (
+        <p className="ql-panel mb-4 border-lock-gold/30 px-4 py-3 text-xs text-lock-gold" role="status">
+          Showing the last published board ({slateDate(data.target_date)}). Today&apos;s picks replace it automatically as soon as they&apos;re ready, around 7:15 AM ET. Check each row&apos;s price age before betting.
+        </p>
       )}
       {showPlayers && fullBoard.data?.status === "ready" && fullBoard.data.target_date && (
         <ParlayBuilder props={fullBoard.data.props} league={league} date={fullBoard.data.target_date} />

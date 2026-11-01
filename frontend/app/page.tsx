@@ -37,11 +37,12 @@ export default function TonightPage() {
   // Game-line value needs no props feed: the model's win chance against each moneyline price. Only use predictions for the same slate.
   const sameSlate = predictions.data && predictions.data.target_date === games.data?.target_date;
   // The static snapshot is rebuilt once a day; until then it holds yesterday's slate, which must not read as tonight's.
-  const stale = props.data?.status === "stale" || isPastSlate(games.data?.target_date);
-  const edges = stale ? [] : gameEdges(games.data?.games ?? [], sameSlate ? predictions.data?.predictions ?? [] : []);
+  // Never an empty page: the last board stays up (with a note) until today's replaces it.
+  const stale = !!props.data?.past_slate || isPastSlate(games.data?.target_date);
+  const edges = gameEdges(games.data?.games ?? [], sameSlate ? predictions.data?.predictions ?? [] : []);
   const lineEdges = bettableEdges(edges).length;
   const date = props.data?.target_date ?? games.data?.target_date ?? "";
-  const slate = stale ? [] : games.data?.games ?? [];
+  const slate = games.data?.games ?? [];
   const priced = board.picks.length + board.leans.length;
   const plays = board.picks.length + lineEdges;
 
@@ -55,6 +56,10 @@ export default function TonightPage() {
     {props.data && !stale && <p className="mb-5 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-y border-ink/10 py-3 text-sm text-text-sec" role="status">
       <span><strong className="text-lg font-extrabold tabular-nums text-text-pri">{plays}</strong> {plays === 1 ? "play" : "plays"} from <strong className="tabular-nums text-text-pri">{priced}</strong> priced markets</span>
       <Link href="/performance" className="ml-auto text-xs font-semibold text-teal-400 hover:underline">Model record ↗</Link>
+    </p>}
+
+    {stale && !props.isPending && <p className="ql-panel mb-5 border-lock-gold/30 px-4 py-3 text-xs text-lock-gold" role="status">
+      Showing the last published board ({slateDate(date)}). Today&apos;s picks replace it automatically as soon as they&apos;re ready, around 7:15 AM ET.
     </p>}
 
     {props.isError && <div role="alert" className="ql-panel p-8 text-center text-sm text-red-300">
@@ -78,10 +83,6 @@ export default function TonightPage() {
 
     {!props.isPending && <GameEdges edges={edges} league={league} date={date} />}
 
-    {stale && <section className="ql-panel px-6 py-10 text-center" role="status">
-      <h2 className="ql-section-title">Today&apos;s picks aren&apos;t published yet</h2>
-      <p className="mx-auto mt-2 max-w-[60ch] text-sm text-text-sec">The board last refreshed for {slateDate(date)}. New picks appear after the morning data refresh, around 7:15 AM ET.</p>
-    </section>}
 
     {!stale && props.data && board.picks.length === 0 && !lineEdges && <section className="ql-panel px-6 py-10 text-center" role="status">
       <h2 className="ql-section-title">No bettable edges right now</h2>
