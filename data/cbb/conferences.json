@@ -1,0 +1,162 @@
+{
+  "3": {
+    "name": "Atlantic 10 Conference",
+    "short": "A-10",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/atlantic_10.gif"
+  },
+  "2": {
+    "name": "Atlantic Coast Conference",
+    "short": "ACC",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/acc.gif"
+  },
+  "1": {
+    "name": "America East Conference",
+    "short": "Am. East",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/america_east.gif"
+  },
+  "62": {
+    "name": "American Conference",
+    "short": "American",
+    "logo": null
+  },
+  "46": {
+    "name": "Atlantic Sun Conference",
+    "short": "Atlantic Sun",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/atlantic_sun.gif"
+  },
+  "8": {
+    "name": "Big 12 Conference",
+    "short": "Big 12",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/big_12.gif"
+  },
+  "4": {
+    "name": "Big East Conference",
+    "short": "Big East",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/big_east.gif"
+  },
+  "5": {
+    "name": "Big Sky Conference",
+    "short": "Big Sky",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/big_sky.gif"
+  },
+  "6": {
+    "name": "Big South Conference",
+    "short": "Big South",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/big_south.gif"
+  },
+  "7": {
+    "name": "Big Ten Conference",
+    "short": "Big Ten",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/big_ten.gif"
+  },
+  "9": {
+    "name": "Big West Conference",
+    "short": "Big West",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/big_west.gif"
+  },
+  "10": {
+    "name": "Coastal Athletic Association",
+    "short": "CAA",
+    "logo": null
+  },
+  "11": {
+    "name": "Conference USA",
+    "short": "CUSA",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/conference_usa.gif"
+  },
+  "45": {
+    "name": "Horizon League",
+    "short": "Horizon",
+    "logo": null
+  },
+  "12": {
+    "name": "Ivy League",
+    "short": "Ivy",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/ivy.gif"
+  },
+  "14": {
+    "name": "Mid-American Conference",
+    "short": "MAC",
+    "logo": null
+  },
+  "16": {
+    "name": "Mid-Eastern Athletic Conference",
+    "short": "MEAC",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/meac.gif"
+  },
+  "13": {
+    "name": "Metro Conference",
+    "short": "Metro",
+    "logo": null
+  },
+  "44": {
+    "name": "Mountain West Conference",
+    "short": "Mountain West",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/mountain_west.gif"
+  },
+  "18": {
+    "name": "Missouri Valley Conference",
+    "short": "MVC",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/missouri_valley.gif"
+  },
+  "19": {
+    "name": "Northeast Conference",
+    "short": "NEC",
+    "logo": null
+  },
+  "20": {
+    "name": "Ohio Valley Conference",
+    "short": "OVC",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/ohio_valley.gif"
+  },
+  "21": {
+    "name": "Pac-12 Conference",
+    "short": "Pac-12",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/pac_12.gif"
+  },
+  "22": {
+    "name": "Patriot League",
+    "short": "Patriot",
+    "logo": null
+  },
+  "23": {
+    "name": "Southeastern Conference",
+    "short": "SEC",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/sec.gif"
+  },
+  "24": {
+    "name": "Southern Conference",
+    "short": "SoCon",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/southern.gif"
+  },
+  "25": {
+    "name": "Southland Conference",
+    "short": "Southland",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/southland.gif"
+  },
+  "49": {
+    "name": "Summit League",
+    "short": "Summit",
+    "logo": null
+  },
+  "27": {
+    "name": "Sun Belt Conference",
+    "short": "Sun Belt",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/sun_belt.gif"
+  },
+  "26": {
+    "name": "Southwestern Athletic Conference",
+    "short": "SWAC",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/swac.gif"
+  },
+  "30": {
+    "name": "United Athletic Conference",
+    "short": "UAC",
+    "logo": null
+  },
+  "29": {
+    "name": "West Coast Conference",
+    "short": "WCC",
+    "logo": "https://a.espncdn.com/i/teamlogos/ncaa_conf/sml/trans/west_coast.gif"
+  }
+}

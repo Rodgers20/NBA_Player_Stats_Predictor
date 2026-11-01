@@ -1,0 +1,22 @@
+{
+  "params": {
+    "k": 0.07,
+    "k_early": 1.8,
+    "hfa": 3.5,
+    "carry": 0.75,
+    "base": 72.41008690089033,
+    "cap": 30.0,
+    "unseen_off": -9.0,
+    "unseen_def": 9.0
+  },
+  "fit_mae": 9.304844816544707,
+  "fit_seasons": [
+    2023,
+    2025
+  ],
+  "holdout_mae": 9.39414598549117,
+  "holdout_seasons": [
+    2026,
+    2027
+  ]
+}
