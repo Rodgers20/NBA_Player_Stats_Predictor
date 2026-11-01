@@ -3,10 +3,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { TeamRankings } from "./TeamRankings";
+import { VenueCard as VenueCardView } from "./VenueCard";
 import type { Game, MatchupMetric, MatchupProfile, MatchupResponse, VenueForm } from "@/lib/types";
 
 const day = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-const signed = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(1)}`;
 const heading = "ql-data-label mb-2";
 
 function Pill({ metric, tone }: { metric: MatchupMetric; tone: "good" | "bad" }) {
@@ -39,21 +39,9 @@ function HeadToHead({ data }: { data: MatchupResponse }) {
 }
 
 function VenueCard({ form, title }: { form: VenueForm; title: string }) {
-  if (!form.games) return <div className="ql-panel p-4"><h4 className="text-sm font-bold text-text-pri">{title}</h4><p className="mt-1 text-xs text-text-sec">No games at this venue in the data.</p></div>;
-  const margin = form.margin ?? 0;
   const oldestFirst = [...(form.recent ?? [])].reverse();
-  return <div className="ql-panel p-4">
-    <h4 className="text-sm font-bold text-text-pri">{title}</h4>
-    <p className="mt-1 text-2xl font-extrabold tabular-nums text-text-pri">{form.wins}–{form.losses}<span className="ml-2 text-xs font-medium text-text-sec">last {form.games}</span></p>
-    <dl className="mt-2 grid grid-cols-3 gap-2 text-xs">
-      <div><dt className="ql-data-label">SCORES</dt><dd className="font-bold tabular-nums text-text-pri">{form.pts_for}</dd></div>
-      <div><dt className="ql-data-label">ALLOWS</dt><dd className="font-bold tabular-nums text-text-pri">{form.pts_against}</dd></div>
-      <div><dt className="ql-data-label">MARGIN</dt><dd className={`font-bold tabular-nums ${margin >= 0 ? "text-teal-300" : "text-rose-300"}`}>{signed(margin)}</dd></div>
-    </dl>
-    <div className="mt-3 flex gap-1" role="img" aria-label={`Last ${form.games} games, oldest to newest: ${oldestFirst.map(game => game.won ? "win" : "loss").join(", ")}`}>
-      {oldestFirst.map((game, index) => <span key={index} title={`${day(game.date)} vs ${game.opponent}: ${game.pts}-${game.opp_pts}`} className={`h-4 flex-1 rounded-sm ${game.won ? "bg-teal-400" : "bg-rose-400/70"}`} />)}
-    </div>
-  </div>;
+  return <VenueCardView title={title} games={form.games} wins={form.wins} losses={form.losses} scores={form.pts_for} allows={form.pts_against} margin={form.margin}
+    bars={oldestFirst.map(game => ({ win: game.won, tip: `${day(game.date)} vs ${game.opponent}: ${game.pts}-${game.opp_pts}` }))} />;
 }
 
 function Profile({ team, profile }: { team: string; profile: MatchupProfile | null | undefined }) {
