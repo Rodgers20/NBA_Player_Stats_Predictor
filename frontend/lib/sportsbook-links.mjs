@@ -7,9 +7,6 @@ export const BOOKS = {
   fanatics: { name: 'Fanatics', home: 'https://sportsbook.fanatics.com/' },
 };
 
-/** States where FanDuel Sportsbook is live, as its state-site subdomains (va.sportsbook.fanduel.com). */
-export const FANDUEL_STATES = ['az', 'co', 'ct', 'dc', 'ia', 'il', 'in', 'ks', 'ky', 'la', 'ma', 'md', 'me', 'mi', 'mo', 'nc', 'nj', 'ny', 'oh', 'pa', 'tn', 'va', 'vt', 'wv', 'wy'];
-
 /** A link is opened only when it is https on the book's own domain; anything else is null. */
 export function safeBookUrl(url, bookKey) {
   if (typeof url !== 'string' || !bookKey) return null;
@@ -26,7 +23,7 @@ const bookKeyOf = name => String(name ?? '').toLowerCase().replace(/[^a-z]/g, ''
 
 /**
  * Where to send one slip leg at one book, deepest first (slip > game > home), and what the person should check.
- * status: ready | price (price moved, same selection) | line (line moved: the game page, never another selection)
+ * status: ready | price (price moved, same selection) | line (the book hangs another number: its line is handed off, the note names it)
  *         | quarter (a 1st-quarter leg: no 1Q odds are bought, so the game page)
  *         | book (this book has no quote) | board (the leg is not on tonight's board)
  */
@@ -47,10 +44,10 @@ export function handoffLeg(leg, board, bookKey) {
   const price = under ? quote.under_price : quote.over_price;
   const game = safeBookUrl(quote.event_link, bookKey);
   const fallback = game ? { depth: 'game', url: game } : { depth: 'home', url: home };
-  if (quote.line !== leg.line) return { status: 'line', ...fallback, line: quote.line, price };
-
+  // The book hangs another number: hand off its own line (the note names it) rather than leave the leg out of the one-tap slip.
   const slip = safeBookUrl(under ? quote.under_link : quote.over_link, bookKey);
-  return { status: price === leg.price ? 'ready' : 'price', ...(slip ? { depth: 'slip', url: slip } : fallback), line: quote.line, price };
+  const status = quote.line !== leg.line ? 'line' : price === leg.price ? 'ready' : 'price';
+  return { status, ...(slip ? { depth: 'slip', url: slip, page: game } : { ...fallback, page: game }), line: quote.line, price };
 }
 
 /**
@@ -74,29 +71,25 @@ function selection(url, bookKey) {
 }
 
 /**
- * Each book's own multi-add format: FanDuel's indexed addToBetslip, DraftKings' '+'-joined outcomes.
- * FanDuel adds every leg when the link goes to the site of the state the person is in (co.sportsbook.fanduel.com/addToBetslip,
- * checked on a phone in Colorado: 2 of 2 legs, with or without shareBetId); another state's site adds nothing, so the
- * stateless account host is only a fallback until a state is picked.
+ * Each book's multi-add link, copied from the ones Gambly's share pages send (live, Nov 2026):
+ * FanDuel's stateless addToBetslip with every `marketId[i]=..&selectionId[i]=..` pair percent-encoded whole (no state site),
+ * DraftKings' event page with the outcomes comma-joined (legs from other games ride along on the first one's page).
  */
-const fanduelHost = state => (FANDUEL_STATES.includes(state) ? `https://${state}.sportsbook.fanduel.com/addToBetslip?` : 'https://account.sportsbook.fanduel.com/sportsbook/addToBetslip?');
 const COMBINE = {
-  fanduel: (ids, state) => fanduelHost(state) + ids.map(({ market, selection }, i) =>
-    `marketId[${i}]=${encodeURIComponent(market)}&selectionId[${i}]=${encodeURIComponent(selection)}`).join('&'),
-  // ponytail: DraftKings' multi-outcome form is inferred from its single-outcome links; check it if DK adds only one leg.
-  draftkings: ids => `${BOOKS.draftkings.home}?outcomes=${ids.map(encodeURIComponent).join('+')}`,
+  fanduel: ids => 'https://account.sportsbook.fanduel.com/sportsbook/addToBetslip?' + ids.map(({ market, selection }, i) =>
+    `marketId%5b${i}%5d%3d${encodeURIComponent(market)}%26selectionId%5b${i}%5d%3d${encodeURIComponent(selection)}`).join('&'),
+  draftkings: (ids, page) => `${page && /\/event\/\d+$/.test(page) ? page : BOOKS.draftkings.home}?outcomes=${ids.map(encodeURIComponent).join(',')}`,
 };
 
 /**
  * Every leg's hand-off, plus one link that adds every leg with a slip link to the book's bet slip at once.
- * Legs without one (moved line, no quote) are left out of it, so the book never gets a selection the person did not pick.
+ * Legs without one (no quote, or a quote with no link) are left out of it.
  */
-export function handoff(legs, boards, bookKey, state) {
+export function handoff(legs, boards, bookKey) {
   const results = legs.map(leg => handoffLeg(leg, boards?.[leg.league], bookKey));
   const slips = results.filter(r => r.depth === 'slip');
-  const stated = bookKey === 'fanduel' && FANDUEL_STATES.includes(state);
-  if (slips.length === 1 && !stated) return { legs: results, combined: slips[0].url, linked: 1 };
+  if (slips.length === 1) return { legs: results, combined: slips[0].url, linked: 1 };
   // ponytail: Fanatics has no known multi-leg format, so several linked legs open one by one; add it to COMBINE once seen.
   const ids = COMBINE[bookKey] ? slips.map(r => selection(r.url, bookKey)).filter(Boolean) : [];
-  return { legs: results, combined: ids.length ? COMBINE[bookKey](ids, state) : null, linked: ids.length };
+  return { legs: results, combined: ids.length ? COMBINE[bookKey](ids, slips[0]?.page) : null, linked: ids.length };
 }

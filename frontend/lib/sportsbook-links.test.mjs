@@ -33,9 +33,11 @@ test('a changed price is flagged but still opens the same selection', () => {
   assert.deepEqual([result.status, result.depth, result.price], ['price', 'slip', -115]);
 });
 
-test('a moved line never opens a different selection: it falls back to the game page', () => {
-  const result = handoffLeg(leg('Jayson Tatum', 'PTS', 27.5, -110), board, 'draftkings');
-  assert.deepEqual([result.status, result.depth, result.url, result.line], ['line', 'game', 'https://sportsbook.draftkings.com/event/9', 28.5]);
+test('a book hanging another number hands off its own line (status line); with no link, the game page', () => {
+  const result = handoffLeg(leg('Jayson Tatum', 'PTS', 26.5, -110), board, 'fanduel');
+  assert.deepEqual([result.status, result.depth, result.url, result.line], ['line', 'slip', fdSlip('42.1', '7'), 27.5]);
+  const dk = handoffLeg(leg('Jayson Tatum', 'PTS', 27.5, -110), board, 'draftkings');
+  assert.deepEqual([dk.status, dk.depth, dk.url, dk.line], ['line', 'game', 'https://sportsbook.draftkings.com/event/9', 28.5]);
 });
 
 test('a book without the market, or a leg off the board, opens the book’s home page', () => {
@@ -44,10 +46,10 @@ test('a book without the market, or a leg off the board, opens the book’s home
   assert.equal(handoffLeg(leg('Bam Adebayo', 'AST', 4.5, -110), board, 'fanduel').status, 'book');
 });
 
-test('FanDuel: one link adds every linked leg to the bet slip, in the indexed form FanDuel shares parlays with', () => {
+test('FanDuel: one link adds every linked leg to the bet slip, in the stateless form Gambly sends (each pair encoded whole)', () => {
   const legs = [leg('Jayson Tatum', 'PTS', 27.5, -115), leg('Jaylen Brown', 'REB', 6.5, 120)];
   const all = handoff(legs, { nba: board }, 'fanduel');
-  assert.equal(all.combined, 'https://account.sportsbook.fanduel.com/sportsbook/addToBetslip?marketId[0]=42.1&selectionId[0]=7&marketId[1]=42.2&selectionId[1]=11');
+  assert.equal(all.combined, 'https://account.sportsbook.fanduel.com/sportsbook/addToBetslip?marketId%5b0%5d%3d42.1%26selectionId%5b0%5d%3d7&marketId%5b1%5d%3d42.2%26selectionId%5b1%5d%3d11');
   assert.equal(all.linked, 2);
   const partial = handoff([...legs, leg('Nobody', 'PTS', 9.5, -110)], { nba: board }, 'fanduel');
   assert.equal(partial.combined, all.combined, 'legs without a slip link are left for the person to add');
@@ -56,16 +58,16 @@ test('FanDuel: one link adds every linked leg to the bet slip, in the indexed fo
   assert.deepEqual(handoff(legs, { nba: board }, 'draftkings'), { ...handoff(legs, { nba: board }, 'draftkings'), combined: null, linked: 0 });
 });
 
-test('DraftKings: one link carries every linked outcome id', () => {
+test('DraftKings: the first leg’s event page carries every outcome, comma-joined', () => {
   const dk = id => `https://sportsbook.draftkings.com/?outcomes=${encodeURIComponent(id)}`;
   const dkBoard = { props: [
-    { player: 'Jayson Tatum', stat: 'PTS', books: [{ book: 'DraftKings', line: 26.5, over_price: -108, under_price: -118, over_link: dk('0QA382972274#2337722395_13L42648Q11742021793Q20') }] },
+    { player: 'Jayson Tatum', stat: 'PTS', books: [{ book: 'DraftKings', line: 26.5, over_price: -108, under_price: -118, event_link: 'https://sportsbook.draftkings.com/event/7', over_link: dk('0QA382972274#2337722395_13L42648Q11742021793Q20') }] },
     { player: 'Michael Porter Jr', stat: 'PTS', books: [{ book: 'DraftKings', line: 22.5, over_price: -103, under_price: -124, under_link: dk('0QA382971620#2337695081_13L42648Q12094929165Q20') }] },
   ] };
   const legs = [leg('Jayson Tatum', 'PTS', 26.5, -108), leg('Michael Porter Jr', 'PTS', 22.5, -124, 'Under')];
   const { combined, linked } = handoff(legs, { nba: dkBoard }, 'draftkings');
   assert.equal(linked, 2);
-  assert.equal(combined, 'https://sportsbook.draftkings.com/?outcomes=0QA382972274%232337722395_13L42648Q11742021793Q20+0QA382971620%232337695081_13L42648Q12094929165Q20');
+  assert.equal(combined, 'https://sportsbook.draftkings.com/event/7?outcomes=0QA382972274%232337722395_13L42648Q11742021793Q20,0QA382971620%232337695081_13L42648Q12094929165Q20');
 });
 
 test('Fanatics: no quote opens its home page; a single slip link is used as is, several wait for a known parlay format', () => {
@@ -90,14 +92,6 @@ test('a 1st-quarter leg opens the player’s game page at the book (no 1Q odds a
   assert.equal(handoff([leg('Jayson Tatum', 'PTS_1Q', 7.5, -110)], { nba: board }, 'fanduel').combined, null);
 });
 
-test('FanDuel with a state: every leg goes to that state’s site in the indexed form, exactly as Gambly’s working links do', () => {
-  const legs = [leg('Jayson Tatum', 'PTS', 27.5, -115), leg('Jaylen Brown', 'REB', 6.5, 120)];
-  assert.equal(handoff(legs, { nba: board }, 'fanduel', 'va').combined,
-    'https://va.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7&marketId[1]=42.2&selectionId[1]=11');
-  assert.equal(handoff(legs.slice(0, 1), { nba: board }, 'fanduel', 'va').combined, 'https://va.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.1&selectionId[0]=7');
-  assert.equal(handoff(legs, { nba: board }, 'fanduel', 'evil.com/x').combined, handoff(legs, { nba: board }, 'fanduel').combined, 'an unknown state is ignored');
-});
-
 test('bought 1st-quarter quotes put 1Q legs in the slip link at the book’s 1Q line', () => {
   const q1 = [{ player: 'Jayson Tatum', stat: 'PTS_1Q', line: 7.5, game_matchup: 'MIA @ BOS',
     books: [{ book: 'FanDuel', line: 7.5, over_price: -120, under_price: -110, event_link: FD_GAME, over_link: fdSlip('42.7', '70') }] }];
@@ -106,8 +100,18 @@ test('bought 1st-quarter quotes put 1Q legs in the slip link at the book’s 1Q 
   const at = handoffLeg(leg('Jayson Tatum', 'PTS_1Q', 7.5, -120), merged, 'fanduel');
   assert.deepEqual([at.status, at.depth, at.url], ['ready', 'slip', fdSlip('42.7', '70')]);
   const off = handoffLeg(leg('Jayson Tatum', 'PTS_1Q', 5.5, -110), merged, 'fanduel');
-  assert.deepEqual([off.status, off.depth, off.line], ['line', 'game', 7.5]);
-  const all = handoff([leg('Jayson Tatum', 'PTS_1Q', 7.5, -120), leg('Jaylen Brown', 'REB', 6.5, 120)], { nba: merged }, 'fanduel', 'co');
-  assert.equal(all.combined, 'https://co.sportsbook.fanduel.com/addToBetslip?marketId[0]=42.7&selectionId[0]=70&marketId[1]=42.2&selectionId[1]=11');
+  assert.deepEqual([off.status, off.depth, off.line], ['line', 'slip', 7.5]);
+  const all = handoff([leg('Jayson Tatum', 'PTS_1Q', 7.5, -120), leg('Jaylen Brown', 'REB', 6.5, 120)], { nba: merged }, 'fanduel');
+  assert.equal(all.combined, 'https://account.sportsbook.fanduel.com/sportsbook/addToBetslip?marketId%5b0%5d%3d42.7%26selectionId%5b0%5d%3d70&marketId%5b1%5d%3d42.2%26selectionId%5b1%5d%3d11');
   assert.equal(boardWithQuarterQuotes(undefined, q1).props.length, 1);
+});
+
+test('a 7-leg slip becomes one FanDuel link; an unlinked leg is left out and counted', () => {
+  const names = ['A', 'B', 'C', 'D', 'E', 'F'];
+  const big = { props: [...names.map((n, i) => ({ player: n, stat: 'PTS', books: [{ book: 'FanDuel', line: 20.5, over_price: -110, event_link: FD_GAME, over_link: fdSlip(`42.${i}`, `${100 + i}`) }] })),
+    { player: 'G', stat: 'PTS', books: [{ book: 'FanDuel', line: 20.5, over_price: -110, event_link: FD_GAME }] }] };
+  const legs = [...names, 'G'].map(n => leg(n, 'PTS', 20.5, -110));
+  const r = handoff(legs, { nba: big }, 'fanduel');
+  assert.equal(r.linked, 6);
+  assert.equal(r.combined, 'https://account.sportsbook.fanduel.com/sportsbook/addToBetslip?' + names.map((_, i) => `marketId%5b${i}%5d%3d42.${i}%26selectionId%5b${i}%5d%3d${100 + i}`).join('&'));
 });

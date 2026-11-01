@@ -5,14 +5,11 @@ import { useQueries } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatOdds, legKey, type SlipLeg } from '@/lib/bet-slip.mjs';
-import { BOOKS, FANDUEL_STATES, boardWithQuarterQuotes, handoff, type BookKey, type LegHandoff } from '@/lib/sportsbook-links.mjs';
+import { BOOKS, boardWithQuarterQuotes, handoff, type BookKey, type LegHandoff } from '@/lib/sportsbook-links.mjs';
 import type { PropsResponse } from '@/lib/types';
 import { statLabel } from '@/lib/team-legs.mjs';
 
 const BOOK_KEY = 'slip-book';
-const STATE_KEY = 'slip-fanduel-state';
-const remembered = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
-const remember = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* not remembered */ } };
 
 /** Tonight's full board per league (same cache key as the Props page's builder), plus any bought 1st-quarter quotes. */
 export function useBoards(leagues: string[]): Record<string, PropsResponse> {
@@ -31,7 +28,7 @@ function note(h: LegHandoff, book: string): { text: string; warn: boolean } {
   switch (h.status) {
     case 'ready': return { text: `Same line and price, ${opens}`, warn: false };
     case 'price': return { text: `Price is now ${formatOdds(h.price)}, ${opens}`, warn: true };
-    case 'line': return { text: `${book} has ${h.line}${h.price != null ? ` (${formatOdds(h.price)})` : ''}, not this line. ${h.depth === 'game' ? 'Find it on the game page.' : 'Search the player there.'}`, warn: true };
+    case 'line': return { text: `${book} has ${h.line}${h.price != null ? ` (${formatOdds(h.price)})` : ''}, not this line. ${h.depth === 'slip' ? `Adds ${book}'s line instead.` : h.depth === 'game' ? 'Find it on the game page.' : 'Search the player there.'}`, warn: true };
     case 'quarter': return { text: `1st-quarter odds aren't loaded, so it can't go straight into the slip. ${h.depth === 'game' ? 'Opens the game page: find it under 1st Quarter.' : `Search the player at ${book}.`}`, warn: true };
     case 'book': return { text: `${book} has no quote for this. Search it there.`, warn: true };
     default: return { text: `Not on tonight's board. Search it at ${book}.`, warn: true };
@@ -45,18 +42,16 @@ export function useSendToBook(legs: SlipLeg[]) {
     try { const saved = localStorage.getItem(BOOK_KEY); return saved && saved in BOOKS ? saved as BookKey : 'fanduel'; } catch { return 'fanduel'; }
   });
   const choose = (next: BookKey) => { setBook(next); try { localStorage.setItem(BOOK_KEY, next); } catch { /* not remembered */ } };
-  // FanDuel adds every leg only through the person's state site, so its state is asked once and remembered.
-  const [state, setState] = useState<string>(() => { const saved = remembered(STATE_KEY) ?? ''; return FANDUEL_STATES.includes(saved) ? saved : ''; });
-  const chooseState = (next: string) => { setState(next); remember(STATE_KEY, next); };
   const boards = useBoards(legs.map(l => l.league));
-  return { book, choose, state, chooseState, boards, name: BOOKS[book].name, total: legs.length, ...handoff(legs, boards, book, state) };
+  return { book, choose, boards, name: BOOKS[book].name, total: legs.length, ...handoff(legs, boards, book) };
 }
 export type SendState = ReturnType<typeof useSendToBook>;
 
 /** Book picker plus one tap that puts every linked leg in that book's bet slip, where the book builds the parlay. Disabled with the reason when no leg can go. */
 export function BookButton({ state }: { state: SendState }) {
-  const { book, choose, name, total, combined, linked, legs, state: fdState, chooseState } = state;
+  const { book, choose, name, total, combined, linked, legs } = state;
   const quarters = legs.filter(h => h.status === 'quarter').length;
+  const moved = legs.filter(h => h.status === 'line' && h.depth === 'slip').length;
   const label = total === 1 ? `Add to ${name} bet slip` : linked === total || linked === 0 ? `Add all ${total} legs to ${name}` : `Add ${linked} of ${total} legs to ${name}`;
   const cls = 'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 text-[15px] font-extrabold';
   return <div className="flex flex-col gap-1.5">
@@ -64,18 +59,10 @@ export function BookButton({ state }: { state: SendState }) {
       {(Object.keys(BOOKS) as BookKey[]).map(key => <button key={key} type="button" role="radio" aria-checked={book === key} onClick={() => choose(key)}
         className={`min-h-9 flex-1 rounded-md px-2.5 text-[12.5px] font-bold ${book === key ? 'bg-teal-400 text-bg-root' : 'text-text-sec hover:text-ink'}`}>{BOOKS[key].name}</button>)}
     </div>
-    {book === 'fanduel' && <label className="flex items-center gap-2 text-[12px] text-text-sec">
-      <span className="shrink-0">State you’re in</span>
-      <select value={fdState} onChange={e => chooseState(e.target.value)} aria-label="FanDuel state"
-        className={`min-h-9 flex-1 rounded-md border bg-bg-root px-2 text-[13px] font-bold uppercase text-text-pri ${fdState ? 'border-border-card' : 'border-lock-gold/70'}`}>
-        <option value="">Choose…</option>
-        {FANDUEL_STATES.map(code => <option key={code} value={code}>{code.toUpperCase()}</option>)}
-      </select>
-    </label>}
-    {book === 'fanduel' && !fdState && linked > 1 && <p className="text-[11.5px] leading-snug text-lock-gold">Pick the state you’re in right now: FanDuel only adds every leg through that state’s site.</p>}
     {combined
       ? <a href={combined} target="_blank" rel="noopener noreferrer" className={`${cls} bg-teal-400 text-bg-root hover:brightness-110`}>{label} <ExternalLink className="h-4 w-4" aria-hidden /></a>
       : <button type="button" disabled className={`${cls} cursor-not-allowed bg-ink/10 text-text-sec`}>{label}</button>}
+    {moved > 0 && <p className="text-[11.5px] leading-snug text-lock-gold">{moved} {moved === 1 ? 'leg uses' : 'legs use'} {name}’s own line, not the one on your slip. Check the numbers in the {name} slip before you bet.</p>}
     {linked < total && <p className="text-[11.5px] leading-snug text-lock-gold">
       {quarters ? `${quarters === total ? 'These are' : `${quarters} ${quarters === 1 ? 'leg is' : 'legs are'}`} 1st-quarter bets: we don't load 1Q odds yet, so ${quarters === 1 ? 'it has' : 'they have'} no one-tap link. Open opens the game at ${name}; add ${quarters === 1 ? 'it' : 'them'} from its 1st Quarter tab.`
         : linked === 0 ? `${name} hasn't sent bet-slip links for these lines yet. Use Open on each leg under Send to sportsbook.` : `${total - linked} ${total - linked === 1 ? 'leg has' : 'legs have'} no ${name} slip link yet. Use Open on each leg under Send to sportsbook.`}
