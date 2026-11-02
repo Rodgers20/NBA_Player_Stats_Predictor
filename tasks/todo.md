@@ -466,3 +466,21 @@ User: "I need to have first quarter bets there as well … as a filter the analy
 - 482 Python + 246 frontend tests pass; `test_startup_does_not_import_dash_or_fetch` still fails as before (pre-existing).
 - Checked a suspicious 0: Tatum 2026-03-06 really scored 0 in Q1 (stats.nba.com row), so the join is right.
 - Known: Analysis at 390px is 412px wide from the L5/L10/L20 row (pre-existing). Early season: 26 players qualify for 1Q streaks, 4 tonight. DraftKings multi-outcome link form is inferred, not yet confirmed on DK.
+
+## CBB players, ranked board and draft simulator — November 2
+
+User ask: a CBB player section like NBA player analysis, an all-players ranking sortable by every stat, and a draft
+simulator showing who is most likely to go at pick N and which NBA team owns that pick. Then design pass, deploy, vault.
+
+Sources (probed): ESPN `statistics/byathlete` (all players, per-game + totals, 500/page, 2027 has ~40 so far, 2026 has
+9,950); ESPN `athletes/{id}/gamelog` (CORS `*`, fetched live in the browser, like box scores); ESPN's own 2027 draft is
+empty, so prospects/order/pick ownership come from Tankathon (big board, full-draft with "from" trades, lottery odds).
+Lottery is simulated from our NBA power ratings (6 games in, so heavily shrunk to the mean).
+
+- [ ] `cbbpred/players.py` -> `players.json` (current + last season lines for every player with real minutes)
+- [ ] `cbbpred/draft.py` -> `draft.json` (board joined to ESPN ids/stats, pick ownership by origin team, NBA team inputs, lottery seed odds). Never replaces a good file with an empty one.
+- [ ] Wire into `export`/`refresh`, tests with trimmed fixtures
+- [ ] `lib/cbb-players.mjs` (sort/filter/rank/percentile) + `lib/draft-sim.mjs` (season sim, lottery, board draw) with node tests
+- [ ] `/cbb/players`: ranked table, sort every stat, season toggle, filters, search; player sheet with live game log
+- [ ] `/cbb/draft`: board, "who goes at pick N + who owns it", one-click mock draft, class filter
+- [ ] Design pass (frontend-design), QA at 390/820/1024/1440, commit per step, deploy, update the vault

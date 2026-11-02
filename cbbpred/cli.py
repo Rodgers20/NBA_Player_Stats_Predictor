@@ -68,6 +68,42 @@ def cmd_export(_: argparse.Namespace) -> None:
     print(json.dumps(export_all(), indent=2, default=str))
 
 
+def _players(ctx):  # noqa: ANN001
+    from cbbpred.espn import current_season
+    from cbbpred.players import players_payload
+    return players_payload(ctx, current_season())
+
+
+def cmd_players(_: argparse.Namespace) -> None:
+    from cbbpred.context import load
+    from cbbpred.export import _write
+    payload = _players(load())
+    if not payload["players"]:
+        print("no players returned; keeping the last players.json")
+        return
+    _write(cfg.export_dir() / "players.json", payload)
+    print(f"{len(payload['players'])} players")
+
+
+def cmd_draft(_: argparse.Namespace) -> None:
+    """Draft board + pick ownership. A source page that stops parsing leaves the last good draft.json in place."""
+    from cbbpred.context import load
+    from cbbpred.draft import DraftFeedError, draft_payload
+    from cbbpred.espn import current_season
+    from cbbpred.export import _write
+    ctx = load()
+    players = _players(ctx)["players"]
+    standings = cfg.export_dir().parent / "nba" / "standings.json"
+    try:
+        payload = draft_payload(players, standings, ctx.generated_at.strftime("%Y-%m-%dT%H:%MZ"), current_season())
+    except DraftFeedError as exc:
+        log.warning("draft board not refreshed: %s", exc)
+        print("draft board not refreshed; keeping the last draft.json")
+        return
+    _write(cfg.export_dir() / "draft.json", payload)
+    print(f"{len(payload['board'])} prospects, {sum(1 for b in payload['board'] if b['espn_id'])} linked to ESPN")
+
+
 def cmd_refresh(args: argparse.Namespace) -> None:
     """Daily job: pull the running season, rebuild ratings, grade, predict what is ahead, write the JSON."""
     args.current, args.no_lines = True, False
@@ -76,6 +112,11 @@ def cmd_refresh(args: argparse.Namespace) -> None:
     cmd_predict(args)
     cmd_grade(args)
     cmd_export(args)
+    for extra in (cmd_players, cmd_draft):       # separate from export: they need the network and may fail alone
+        try:
+            extra(args)
+        except Exception:  # noqa: BLE001 - one broken feed must not stop the daily job
+            log.exception("%s failed; keeping the last file", extra.__name__)
 
 
 COMMANDS = {
@@ -87,6 +128,8 @@ COMMANDS = {
     "predict": (cmd_predict, "project unplayed games and append changed ones to the log"),
     "grade": (cmd_grade, "grade pre-tip predictions against final scores"),
     "export": (cmd_export, "write the static JSON under frontend/public/data/cbb"),
+    "players": (cmd_players, "write players.json: every D1 player with real minutes, this and last season"),
+    "draft": (cmd_draft, "write draft.json: NBA draft board, pick ownership and lottery inputs"),
     "refresh": (cmd_refresh, "daily job: ingest --current, ratings, predict, grade, export"),
 }
 
