@@ -10,6 +10,8 @@ const TABS = [
   { href: "/cbb", label: "Games" },
   { href: "/cbb/rankings", label: "Power rankings" },
   { href: "/cbb/standings", label: "Standings" },
+  { href: "/cbb/players", label: "Players" },
+  { href: "/cbb/draft", label: "Draft" },
   { href: "/cbb/model", label: "Model record" },
 ] as const;
 

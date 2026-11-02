@@ -3,7 +3,7 @@ import type { StandingsResponse } from './standings-types';
 import type { BoxScore } from './boxscore-types';
 import type { QuarterQuote } from './sportsbook-links.mjs';
 import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse, HighlightsResponse, ScheduleIndex, PerformanceResponse, LineHistory, DefenseRankings, TrendsResponse, MatchupResponse } from "./types";
-import type { CbbHealth, CbbSchedule, CbbGameDetail, CbbRankings, CbbStandings, CbbModelPerformance } from './cbb-types';
+import type { CbbHealth, CbbSchedule, CbbGameDetail, CbbRankings, CbbStandings, CbbModelPerformance, CbbPlayersData, CbbDraftData } from './cbb-types';
 import { playerKey, filterProps, seriesChart, scheduledPlayersSnapshot, filterDefense, filterTrends } from './snapshot.mjs';
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, '');
@@ -31,6 +31,8 @@ export const cbbApi = {
   rankings: () => cbbFile<CbbRankings>('rankings'),
   standings: () => cbbFile<CbbStandings>('standings'),
   model: () => cbbFile<CbbModelPerformance>('model-performance'),
+  players: () => cbbFile<CbbPlayersData>('players'),
+  draft: () => cbbFile<CbbDraftData>('draft'),
 };
 
 export const api = {

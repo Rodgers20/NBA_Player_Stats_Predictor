@@ -1,0 +1,11 @@
+import type { CbbDraftData, DraftPick, DraftOdds } from './cbb-types';
+export const ROUND: number;
+export const PICKS: number;
+export function rng(seed?: number): () => number;
+export function normal(rand: () => number): number;
+export function projectOrder(teams: CbbDraftData['teams'], rand: () => number): string[];
+export function drawLottery(order: string[], balls: number[], restricted: Record<string, number>, rand: () => number): string[];
+export function pickOrigins(order: string[], lottery: string[]): string[];
+export function drawBoard(board: { rank: number }[], rand: () => number): number[];
+export function simulate(data: CbbDraftData, rand: () => number): DraftPick[];
+export function monteCarlo(data: CbbDraftData, runs?: number, seed?: number): DraftOdds;

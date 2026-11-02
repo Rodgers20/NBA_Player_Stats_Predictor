@@ -81,3 +81,19 @@ export interface CbbModelPerformance {
   recent: CbbGame[];
   notes: string[];
 }
+
+export interface CbbStatLine { gp: number; min: number; pts: number; reb: number; ast: number; stl: number; blk: number; tov: number; fg: number; tp: number; ft: number; tpm: number }
+export interface CbbPlayer { id: string; name: string; pos: string | null; team_id: string; team: string | null; abbr: string | null; logo: string; color: string | null; stats: Record<string, CbbStatLine> }
+export interface CbbPlayersData { generated_at: string; season: number; seasons: number[]; min_mpg: number; players: CbbPlayer[] }
+
+export interface CbbProspect { rank: number; slug: string; name: string; pos: string; school: string; height_in: number | null; weight: number | null; cls: string | null; age: number | null; intl: string | null; espn_id: string | null }
+export interface DraftTeam { slug: string; abbr: string; name: string; logo: string; w: number; l: number; power: number }
+export interface CbbDraftData {
+  generated_at: string; draft_year: number; board: CbbProspect[]; teams: DraftTeam[];
+  owners: Record<string, { r1: string; r2: string }>; lottery: { balls: number[]; restricted: Record<string, number> }; source: string;
+}
+export interface DraftPick { pick: number; origin: string; owner: string; prospect: number | null }
+export interface DraftOdds {
+  runs: number; owners: { key: string; p: number }[][]; origins: { key: string; p: number }[][]; players: { key: string; p: number }[][];
+  profile: { top3: number; top10: number; lottery: number; first: number; drafted: number; expected: number | null }[];
+}
