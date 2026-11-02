@@ -57,10 +57,10 @@ export function GameCard({ game, prediction, teams, league, date }: { game: Game
       <BoardRow key={side}>
         <TeamCell logo={<TeamLogo team={t} size={30} />} name={t.abbrev} sub={record(game[`${side}_wins`], game[`${side}_losses`]) || t.nickname}
           score={actual ? (mine ?? "—") : null} dim={state === "post" && mine != null && theirs != null && mine < theirs} />
-        <BoardCell text={spread == null ? "—" : fmtLine(spread)} pick={!actual && leans.spread?.side === side ? leans.spread.p : null} inSlip={slip.spread[side]?.inSlip} onToggle={slip.spread[side]?.onToggle} label={slip.spread[side] && `${slip.spread[side]!.inSlip ? "Remove" : "Add"} ${slip.spread[side]!.label} ${slip.spread[side]!.inSlip ? "from" : "to"} slip`} />
-        <BoardCell text={ml == null ? "—" : fmtPrice(ml)} pick={!actual && lean ? winP : null} inSlip={slip.moneyline[side]?.inSlip} onToggle={slip.moneyline[side]?.onToggle} label={slip.moneyline[side] && `${slip.moneyline[side]!.inSlip ? "Remove" : "Add"} ${slip.moneyline[side]!.label} ${slip.moneyline[side]!.inSlip ? "from" : "to"} slip`} />
-        <BoardCell text={game.total == null ? "—" : `${over ? "o" : "u"}${game.total}`} pick={!actual && leans.total?.side === (over ? "over" : "under") ? leans.total.p : null} inSlip={totalAdd?.inSlip} onToggle={totalAdd?.onToggle} label={totalAdd && `${totalAdd.inSlip ? "Remove" : "Add"} ${totalAdd.label} ${totalAdd.inSlip ? "from" : "to"} slip`} />
-        <ModelCell win={winP} line={margin == null ? null : lineText(side === "home" ? -margin : margin)} lean={!actual && leans.spread?.side === side} />
+        <BoardCell text={spread == null ? "—" : fmtLine(spread)} pick={leans.spread?.side === side ? leans.spread.p : null} inSlip={slip.spread[side]?.inSlip} onToggle={slip.spread[side]?.onToggle} label={slip.spread[side] && `${slip.spread[side]!.inSlip ? "Remove" : "Add"} ${slip.spread[side]!.label} ${slip.spread[side]!.inSlip ? "from" : "to"} slip`} />
+        <BoardCell text={ml == null ? "—" : fmtPrice(ml)} pick={lean ? winP : null} inSlip={slip.moneyline[side]?.inSlip} onToggle={slip.moneyline[side]?.onToggle} label={slip.moneyline[side] && `${slip.moneyline[side]!.inSlip ? "Remove" : "Add"} ${slip.moneyline[side]!.label} ${slip.moneyline[side]!.inSlip ? "from" : "to"} slip`} />
+        <BoardCell text={game.total == null ? "—" : `${over ? "o" : "u"}${game.total}`} pick={leans.total?.side === (over ? "over" : "under") ? leans.total.p : null} inSlip={totalAdd?.inSlip} onToggle={totalAdd?.onToggle} label={totalAdd && `${totalAdd.inSlip ? "Remove" : "Add"} ${totalAdd.label} ${totalAdd.inSlip ? "from" : "to"} slip`} />
+        <ModelCell win={winP} line={margin == null ? null : lineText(side === "home" ? -margin : margin)} lean={leans.spread?.side === side} />
       </BoardRow>
     );
   };
@@ -68,7 +68,7 @@ export function GameCard({ game, prediction, teams, league, date }: { game: Game
   return (
     <BoardCard href={href} label={`Open ${away.name} at ${home.name}`}
       status={<span className={state === "in" ? "font-bold text-lock-gold" : ""}>{status}</span>}
-      foot={chance != null && !actual ? <BoardWinBar away={{ abbr: away.abbrev, p: 1 - chance, color: safeTeamColor(away.color) }} home={{ abbr: home.abbrev, p: chance, color: safeTeamColor(home.color) }} /> : undefined}>
+      foot={chance != null ? <BoardWinBar away={{ abbr: away.abbrev, p: 1 - chance, color: safeTeamColor(away.color) }} home={{ abbr: home.abbrev, p: chance, color: safeTeamColor(home.color) }} /> : undefined}>
       {row("away")}{row("home")}
     </BoardCard>
   );
