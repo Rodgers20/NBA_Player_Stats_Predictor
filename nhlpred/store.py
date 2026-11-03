@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any
@@ -25,8 +26,19 @@ def read_parquet(path: Path) -> pd.DataFrame:
     return pd.read_parquet(path) if path.exists() else pd.DataFrame()
 
 
+def clean(o: Any) -> Any:
+    """NaN / inf are not valid JSON: turn them into null before writing."""
+    if isinstance(o, dict):
+        return {k: clean(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [clean(v) for v in o]
+    if hasattr(o, "item") and not isinstance(o, (str, bytes)):
+        o = o.item()
+    return None if isinstance(o, float) and not math.isfinite(o) else o
+
+
 def dumps(data: Any, *, compact: bool = True) -> str:
-    return json.dumps(data, separators=(",", ":") if compact else None, indent=None if compact else 2,
+    return json.dumps(clean(data), separators=(",", ":") if compact else None, indent=None if compact else 2,
                       default=_default, allow_nan=False)
 
 

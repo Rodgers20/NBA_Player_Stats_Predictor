@@ -3,7 +3,7 @@ API_PORT ?= 8000
 FRONTEND_PORT ?= 3001
 EXPORT_DIR ?= frontend/public/data
 
-.PHONY: install api frontend dev app export build test cbb-refresh
+.PHONY: install api frontend dev app export build test cbb-refresh nhl-refresh
 install:
 	$(PYTHON) -m pip install -r requirements.txt -r api/requirements.txt
 	cd frontend && npm ci
@@ -24,3 +24,5 @@ test:
 	cd frontend && npm test && npm run lint && npx tsc --noEmit
 cbb-refresh:
 	$(PYTHON) -m cbbpred refresh
+nhl-refresh:
+	$(PYTHON) -m nhlpred refresh

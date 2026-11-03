@@ -44,6 +44,7 @@ retry python3 scripts/refresh_game_history.py --league nba --seasons "$nba_seaso
 # The NBA/WNBA export swaps the whole data folder, so set the college files aside and put them back afterwards.
 cbb_keep="$(mktemp -d)"
 [ -d frontend/public/data/cbb ] && cp -R frontend/public/data/cbb "$cbb_keep/cbb"
+[ -d frontend/public/data/nhl ] && cp -R frontend/public/data/nhl "$cbb_keep/nhl"
 
 python3 -m uvicorn api.main:app --host 127.0.0.1 --port "$PORT" > "${TMPDIR:-/tmp}/courtvision-api.log" 2>&1 &
 server_pid=$!
@@ -62,6 +63,9 @@ kill "$server_pid" 2>/dev/null; server_pid=""
 # (restored below) and NBA/WNBA still publish, the same way the NFL publish treats college football.
 [ -d "$cbb_keep/cbb" ] && [ ! -d frontend/public/data/cbb ] && cp -R "$cbb_keep/cbb" frontend/public/data/cbb
 retry python3 -m cbbpred refresh || { log "WARNING: CBB refresh failed; publishing the last college files"; notify "CBB refresh failed; keeping last college data"; }
+# NHL runs on the free NHL web API, also non-fatal; `nhlpred refresh` retrains only when its models are over a week old.
+[ -d "$cbb_keep/nhl" ] && [ ! -d frontend/public/data/nhl ] && cp -R "$cbb_keep/nhl" frontend/public/data/nhl
+retry python3 -m nhlpred refresh || { log "WARNING: NHL refresh failed; publishing the last NHL files"; notify "NHL refresh failed; keeping last NHL data"; }
 rm -rf "$cbb_keep"
 
 cd frontend || exit 1

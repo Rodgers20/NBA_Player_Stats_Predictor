@@ -1,0 +1,159 @@
+{
+  "version": "nhl-game-20261103",
+  "trained_at": "2026-11-03T17:16:34.376527+00:00",
+  "train_games": 4163,
+  "elo": {
+    "k": 12,
+    "hfa": 35,
+    "regress": 0.3
+  },
+  "backtest": {
+    "n": 2851,
+    "model": {
+      "accuracy": 0.5658,
+      "log_loss": 0.6718,
+      "brier": 0.2397
+    },
+    "baselines": {
+      "home_always": {
+        "accuracy": 0.5444,
+        "log_loss": 0.6894,
+        "brier": 0.2481
+      },
+      "elo_only": {
+        "accuracy": 0.5686,
+        "log_loss": 0.6781,
+        "brier": 0.2426
+      }
+    },
+    "total_goals": {
+      "mae": 1.854,
+      "mae_baseline": 1.863,
+      "mean_actual": 6.184,
+      "mean_pred": 5.88
+    },
+    "home_win_rate": 0.5444,
+    "calibration": [
+      {
+        "predicted": 0.3364,
+        "actual": 0.3951,
+        "n": 286
+      },
+      {
+        "predicted": 0.4207,
+        "actual": 0.4842,
+        "n": 285
+      },
+      {
+        "predicted": 0.4672,
+        "actual": 0.4807,
+        "n": 285
+      },
+      {
+        "predicted": 0.5017,
+        "actual": 0.5123,
+        "n": 285
+      },
+      {
+        "predicted": 0.5319,
+        "actual": 0.5228,
+        "n": 285
+      },
+      {
+        "predicted": 0.5613,
+        "actual": 0.4877,
+        "n": 285
+      },
+      {
+        "predicted": 0.5951,
+        "actual": 0.5544,
+        "n": 285
+      },
+      {
+        "predicted": 0.6284,
+        "actual": 0.6,
+        "n": 285
+      },
+      {
+        "predicted": 0.6692,
+        "actual": 0.6737,
+        "n": 285
+      },
+      {
+        "predicted": 0.7402,
+        "actual": 0.7333,
+        "n": 285
+      }
+    ],
+    "by_season": {
+      "2024-25": {
+        "n": 1312,
+        "model": {
+          "accuracy": 0.5846,
+          "log_loss": 0.6607,
+          "brier": 0.2344
+        },
+        "baselines": {
+          "home_always": {
+            "accuracy": 0.5625,
+            "log_loss": 0.6859,
+            "brier": 0.2464
+          },
+          "elo_only": {
+            "accuracy": 0.5907,
+            "log_loss": 0.6694,
+            "brier": 0.2384
+          }
+        }
+      },
+      "2025-26": {
+        "n": 1312,
+        "model": {
+          "accuracy": 0.5366,
+          "log_loss": 0.6878,
+          "brier": 0.2474
+        },
+        "baselines": {
+          "home_always": {
+            "accuracy": 0.5221,
+            "log_loss": 0.6935,
+            "brier": 0.2502
+          },
+          "elo_only": {
+            "accuracy": 0.5404,
+            "log_loss": 0.6896,
+            "brier": 0.2482
+          }
+        }
+      },
+      "2026-27": {
+        "n": 227,
+        "model": {
+          "accuracy": 0.6256,
+          "log_loss": 0.6439,
+          "brier": 0.2262
+        },
+        "baselines": {
+          "home_always": {
+            "accuracy": 0.5683,
+            "log_loss": 0.6852,
+            "brier": 0.246
+          },
+          "elo_only": {
+            "accuracy": 0.6035,
+            "log_loss": 0.6619,
+            "brier": 0.2348
+          }
+        }
+      }
+    },
+    "seasons": [
+      "2024-25",
+      "2025-26",
+      "2026-27"
+    ],
+    "pct_high_conf": 0.3529,
+    "high_conf_accuracy": 0.668,
+    "note": "NHL games are close to coin flips: even the market rarely beats ~60% straight-up. Treat the model as a small edge over home-ice-only, not a lock."
+  }
+}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, timedelta
+from datetime import date
 from typing import Any
 
 import pandas as pd
@@ -45,6 +45,28 @@ def _fetch_box(gid: int) -> tuple[int, dict[str, Any] | None]:
         return gid, None
 
 
+def _with_shots(games: pd.DataFrame, old: pd.DataFrame, fresh: dict[int, dict[str, Any]], skaters: pd.DataFrame) -> pd.DataFrame:
+    """Team shots on goal per game: new boxscores, else what was stored, else the sum of the skaters' shots.
+
+    A rescanned schedule row carries no shots, so without the last two sources a re-ingest would wipe them.
+    """
+    games = games.copy()
+    for col in ("home_sog", "away_sog"):
+        if col not in games:
+            games[col] = float("nan")
+        if not old.empty and col in old:
+            games[col] = games[col].fillna(games.game_id.map(old.set_index("game_id")[col]))
+    for gid, s in fresh.items():
+        for col, v in s.items():
+            games.loc[games.game_id == gid, col] = v
+    if not skaters.empty:
+        tot = skaters.groupby(["game_id", "home"]).sog.sum().unstack()
+        for col, side in (("home_sog", True), ("away_sog", False)):
+            if side in tot:
+                games[col] = games[col].fillna(games.game_id.map(tot[side]))
+    return games.sort_values(["date", "start_utc", "game_id"]).reset_index(drop=True)
+
+
 def ingest(seasons: list[int], today: date | None = None) -> dict[str, int]:
     today = today or date.today()
     old_games = read_parquet(cfg.games_path())
@@ -72,27 +94,34 @@ def ingest(seasons: list[int], today: date | None = None) -> dict[str, int]:
                 new_gl += b
             if i % 500 == 0:
                 log.info("  %s/%s boxscores", i, len(todo))
-    for col in ("home_sog", "away_sog"):
-        if col not in games:
-            games[col] = float("nan")
-    for gid, s in shots.items():
-        for col, v in s.items():
-            games.loc[games.game_id == gid, col] = v
-    games = games.sort_values(["date", "start_utc", "game_id"]).reset_index(drop=True)
+    if new_sk:
+        sk = pd.concat([sk, pd.DataFrame(new_sk)], ignore_index=True)
+        gl = pd.concat([gl, pd.DataFrame(new_gl)], ignore_index=True)
+    games = _with_shots(games, old_games, shots, sk)
     write_parquet(games, cfg.games_path())
     if new_sk:
-        write_parquet(pd.concat([sk, pd.DataFrame(new_sk)], ignore_index=True), cfg.skaters_path())
-        write_parquet(pd.concat([gl, pd.DataFrame(new_gl)], ignore_index=True), cfg.goalies_path())
+        write_parquet(sk, cfg.skaters_path())
+        write_parquet(gl, cfg.goalies_path())
     old_teams = {t["id"]: t for t in read_json(cfg.teams_path(), [])}
     old_teams.update({t["id"]: t for t in teams})
     write_json(sorted(old_teams.values(), key=lambda t: t["abbr"]), cfg.teams_path(), compact=False)
     return {"games": len(games), "fetched": len(shots), "boxscores_missing": len(todo) - len(shots)}
 
 
+def fetch_standings() -> int:
+    """Current standings snapshot (the league's own table: points, streak, last 10)."""
+    payload = get_json(f"{cfg.API}/standings/now")
+    rows = (payload or {}).get("standings", [])
+    if rows:
+        write_json({"as_of": payload.get("standingsDateTimeUtc"), "standings": rows}, cfg.standings_path())
+    return len(rows)
+
+
 def refresh_current(today: date | None = None) -> dict[str, int]:
     """Daily job: rescan only the running season. Finished games already stored are skipped."""
-    return ingest([cfg.current_season(today)], today)
-
-
-def current_window_start(today: date) -> date:
-    return today - timedelta(days=cfg.EXPORT_DAYS_BACK)
+    out = ingest([cfg.current_season(today)], today)
+    try:
+        out["standings"] = fetch_standings()
+    except FeedError as exc:                       # a missing standings table must not stop the daily job
+        log.warning("standings not refreshed: %s", exc)
+    return out

@@ -1,15 +1,15 @@
 """Player prop models: one count model per market (goals, assists, points, shots on goal).
 
 Each market predicts the expected count mu for a player-game. Probabilities at each line come from a Poisson or
-negative-binomial tail with that mu, then an isotonic map fitted on a held-out window (the 60 days before the
-training cut-off) corrects any systematic bias. Two model families compete in the walk-forward backtest (LightGBM
+negative-binomial tail with that mu, then an isotonic map fitted on a held-out window (the last 45 game days before
+the training cut-off) corrects any systematic bias. Two model families compete in the walk-forward backtest (LightGBM
 with a Poisson objective and a Poisson GLM); the production model uses whichever scored better per market.
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 import joblib
@@ -35,7 +35,7 @@ MARKETS: dict[str, dict[str, Any]] = {
     "assists": {"target": "assists", "lines": [0.5, 1.5], "main": 0.5, "label": "Assists"},
     "points": {"target": "points", "lines": [0.5, 1.5, 2.5], "main": 0.5, "label": "Points"},
 }
-CAL_DAYS = 60
+CAL_GAME_DAYS = 45            # the held-out calibration window is the last 45 distinct game dates before the cut
 FOLD_MONTHS = 2
 TEST_FROM_SEASON = 2026       # last full season + the running one
 KINDS = ("lgb", "glm")
@@ -77,6 +77,11 @@ def fit_iso(p: np.ndarray, y: np.ndarray) -> IsotonicRegression | None:
     return IsotonicRegression(y_min=0.002, y_max=0.998, out_of_bounds="clip").fit(p, y)
 
 
+def cal_window_start(done: pd.DataFrame, cut: pd.Timestamp) -> pd.Timestamp:
+    days = np.sort(done.date[done.date < cut].unique())
+    return pd.Timestamp(days[-CAL_GAME_DAYS]) if len(days) >= CAL_GAME_DAYS else pd.Timestamp(days[0])
+
+
 def _fold_edges(df: pd.DataFrame) -> list[tuple[pd.Timestamp, pd.Timestamp]]:
     test = df[(df.season >= TEST_FROM_SEASON) & df.goals.notna()]
     start = test.date.min().replace(day=1)
@@ -93,7 +98,7 @@ def walk_forward(df: pd.DataFrame) -> pd.DataFrame:
     done = df[df.goals.notna()]
     out = []
     for start, end in _fold_edges(df):
-        cal_start = start - timedelta(days=CAL_DAYS)
+        cal_start = cal_window_start(done, start)
         train, cal, test = done[done.date < cal_start], done[(done.date >= cal_start) & (done.date < start)], done[(done.date >= start) & (done.date < end)]
         if len(test) == 0 or len(train) < 20000:
             continue
@@ -154,10 +159,10 @@ def version(now: datetime | None = None) -> str:
 
 
 def train(df: pd.DataFrame, summary: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
-    """Fit the production models. Train on everything before the last CAL_DAYS days, calibrate on those days."""
+    """Fit the production models. Train on everything before the last CAL_GAME_DAYS game days, calibrate on those days."""
     done = df[df.goals.notna()]
-    cut = done.date.max() - timedelta(days=CAL_DAYS)
-    train_df, cal = done[done.date <= cut], done[done.date > cut]
+    cal_start = cal_window_start(done, done.date.max() + pd.Timedelta(days=1))
+    train_df, cal = done[done.date < cal_start], done[done.date >= cal_start]
     Xtr, Xca = prep(train_df), prep(cal)
     now = now or datetime.now(UTC)
     bundle: dict[str, Any] = {"version": version(now), "trained_at": now.isoformat(), "features": feature_columns(), "markets": {},

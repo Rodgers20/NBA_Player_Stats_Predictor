@@ -1,0 +1,578 @@
+{
+  "version": "nhl-props-20261103",
+  "trained_at": "2026-11-03T17:17:09.366424+00:00",
+  "train_rows": 137861,
+  "cal_rows": 11988,
+  "markets": {
+    "goal": {
+      "kind": "lgb",
+      "alpha": 0.3174
+    },
+    "sog": {
+      "kind": "lgb",
+      "alpha": 0.07
+    },
+    "assists": {
+      "kind": "lgb",
+      "alpha": 0.0691
+    },
+    "points": {
+      "kind": "lgb",
+      "alpha": 0.0708
+    }
+  },
+  "backtest": {
+    "goal": {
+      "n": 55403,
+      "main_line": 0.5,
+      "chosen_model": "lgb",
+      "calibrated": false,
+      "model": {
+        "log_loss": 0.3927,
+        "brier": 0.1201
+      },
+      "baselines": {
+        "season_avg": {
+          "log_loss": 0.401,
+          "brier": 0.1222
+        },
+        "base_rate": {
+          "log_loss": 0.4262,
+          "brier": 0.1289
+        }
+      },
+      "by_kind": {
+        "lgb": {
+          "raw": {
+            "log_loss": 0.3927,
+            "brier": 0.1201
+          },
+          "calibrated": {
+            "log_loss": 0.3933,
+            "brier": 0.1202
+          }
+        },
+        "glm": {
+          "raw": {
+            "log_loss": 0.3946,
+            "brier": 0.1207
+          },
+          "calibrated": {
+            "log_loss": 0.3954,
+            "brier": 0.1207
+          }
+        }
+      },
+      "calibration": [
+        {
+          "predicted": 0.0399,
+          "actual": 0.0388,
+          "n": 5541
+        },
+        {
+          "predicted": 0.0518,
+          "actual": 0.0541,
+          "n": 5541
+        },
+        {
+          "predicted": 0.0692,
+          "actual": 0.0729,
+          "n": 5541
+        },
+        {
+          "predicted": 0.0905,
+          "actual": 0.0982,
+          "n": 5540
+        },
+        {
+          "predicted": 0.1124,
+          "actual": 0.115,
+          "n": 5540
+        },
+        {
+          "predicted": 0.1366,
+          "actual": 0.1495,
+          "n": 5540
+        },
+        {
+          "predicted": 0.1665,
+          "actual": 0.169,
+          "n": 5540
+        },
+        {
+          "predicted": 0.2051,
+          "actual": 0.2135,
+          "n": 5540
+        },
+        {
+          "predicted": 0.2514,
+          "actual": 0.2605,
+          "n": 5540
+        },
+        {
+          "predicted": 0.319,
+          "actual": 0.3489,
+          "n": 5540
+        }
+      ],
+      "top_decile": {
+        "n": 5540,
+        "predicted": 0.319,
+        "hit_rate": 0.3489,
+        "base_rate": 0.152
+      },
+      "lines": [
+        {
+          "line": 0.5,
+          "n": 55403,
+          "hit_rate": 0.152,
+          "avg_pred": 0.1442,
+          "log_loss": 0.3927,
+          "brier": 0.1201,
+          "baseline": {
+            "log_loss": 0.401,
+            "brier": 0.1222
+          }
+        }
+      ]
+    },
+    "sog": {
+      "n": 55403,
+      "main_line": 2.5,
+      "chosen_model": "lgb",
+      "calibrated": false,
+      "model": {
+        "log_loss": 0.453,
+        "brier": 0.1455
+      },
+      "baselines": {
+        "season_avg": {
+          "log_loss": 0.4659,
+          "brier": 0.1497
+        },
+        "base_rate": {
+          "log_loss": 0.5224,
+          "brier": 0.1696
+        }
+      },
+      "by_kind": {
+        "lgb": {
+          "raw": {
+            "log_loss": 0.453,
+            "brier": 0.1455
+          },
+          "calibrated": {
+            "log_loss": 0.4544,
+            "brier": 0.1458
+          }
+        },
+        "glm": {
+          "raw": {
+            "log_loss": 0.4541,
+            "brier": 0.1458
+          },
+          "calibrated": {
+            "log_loss": 0.4549,
+            "brier": 0.1458
+          }
+        }
+      },
+      "calibration": [
+        {
+          "predicted": 0.0458,
+          "actual": 0.0419,
+          "n": 5541
+        },
+        {
+          "predicted": 0.0699,
+          "actual": 0.0646,
+          "n": 5541
+        },
+        {
+          "predicted": 0.0913,
+          "actual": 0.0944,
+          "n": 5541
+        },
+        {
+          "predicted": 0.1148,
+          "actual": 0.1244,
+          "n": 5540
+        },
+        {
+          "predicted": 0.1448,
+          "actual": 0.1505,
+          "n": 5540
+        },
+        {
+          "predicted": 0.1875,
+          "actual": 0.1886,
+          "n": 5540
+        },
+        {
+          "predicted": 0.2457,
+          "actual": 0.2403,
+          "n": 5540
+        },
+        {
+          "predicted": 0.3105,
+          "actual": 0.3208,
+          "n": 5540
+        },
+        {
+          "predicted": 0.3861,
+          "actual": 0.393,
+          "n": 5540
+        },
+        {
+          "predicted": 0.5187,
+          "actual": 0.546,
+          "n": 5540
+        }
+      ],
+      "top_decile": {
+        "n": 5540,
+        "predicted": 0.5187,
+        "hit_rate": 0.546,
+        "base_rate": 0.2164
+      },
+      "lines": [
+        {
+          "line": 0.5,
+          "n": 55403,
+          "hit_rate": 0.7273,
+          "avg_pred": 0.7308,
+          "log_loss": 0.5382,
+          "brier": 0.1805,
+          "baseline": {
+            "log_loss": 0.5516,
+            "brier": 0.1858
+          }
+        },
+        {
+          "line": 1.5,
+          "n": 55403,
+          "hit_rate": 0.4238,
+          "avg_pred": 0.4223,
+          "log_loss": 0.6076,
+          "brier": 0.2096,
+          "baseline": {
+            "log_loss": 0.6239,
+            "brier": 0.2169
+          }
+        },
+        {
+          "line": 2.5,
+          "n": 55403,
+          "hit_rate": 0.2164,
+          "avg_pred": 0.2115,
+          "log_loss": 0.453,
+          "brier": 0.1455,
+          "baseline": {
+            "log_loss": 0.4659,
+            "brier": 0.1497
+          }
+        },
+        {
+          "line": 3.5,
+          "n": 55403,
+          "hit_rate": 0.1003,
+          "avg_pred": 0.097,
+          "log_loss": 0.2765,
+          "brier": 0.0801,
+          "baseline": {
+            "log_loss": 0.2847,
+            "brier": 0.0818
+          }
+        },
+        {
+          "line": 4.5,
+          "n": 55403,
+          "hit_rate": 0.0438,
+          "avg_pred": 0.0419,
+          "log_loss": 0.1499,
+          "brier": 0.0386,
+          "baseline": {
+            "log_loss": 0.1543,
+            "brier": 0.0391
+          }
+        },
+        {
+          "line": 5.5,
+          "n": 55403,
+          "hit_rate": 0.018,
+          "avg_pred": 0.0173,
+          "log_loss": 0.0741,
+          "brier": 0.0168,
+          "baseline": {
+            "log_loss": 0.0766,
+            "brier": 0.017
+          }
+        }
+      ]
+    },
+    "assists": {
+      "n": 55403,
+      "main_line": 0.5,
+      "chosen_model": "lgb",
+      "calibrated": false,
+      "model": {
+        "log_loss": 0.5171,
+        "brier": 0.1697
+      },
+      "baselines": {
+        "season_avg": {
+          "log_loss": 0.5287,
+          "brier": 0.1738
+        },
+        "base_rate": {
+          "log_loss": 0.5527,
+          "brier": 0.1831
+        }
+      },
+      "by_kind": {
+        "lgb": {
+          "raw": {
+            "log_loss": 0.5171,
+            "brier": 0.1697
+          },
+          "calibrated": {
+            "log_loss": 0.5181,
+            "brier": 0.1699
+          }
+        },
+        "glm": {
+          "raw": {
+            "log_loss": 0.5184,
+            "brier": 0.1702
+          },
+          "calibrated": {
+            "log_loss": 0.5193,
+            "brier": 0.1702
+          }
+        }
+      },
+      "calibration": [
+        {
+          "predicted": 0.1031,
+          "actual": 0.0985,
+          "n": 5541
+        },
+        {
+          "predicted": 0.1311,
+          "actual": 0.1316,
+          "n": 5541
+        },
+        {
+          "predicted": 0.15,
+          "actual": 0.1458,
+          "n": 5541
+        },
+        {
+          "predicted": 0.1708,
+          "actual": 0.174,
+          "n": 5540
+        },
+        {
+          "predicted": 0.1945,
+          "actual": 0.1953,
+          "n": 5540
+        },
+        {
+          "predicted": 0.2229,
+          "actual": 0.2363,
+          "n": 5540
+        },
+        {
+          "predicted": 0.2568,
+          "actual": 0.2606,
+          "n": 5540
+        },
+        {
+          "predicted": 0.3002,
+          "actual": 0.3101,
+          "n": 5540
+        },
+        {
+          "predicted": 0.355,
+          "actual": 0.3805,
+          "n": 5540
+        },
+        {
+          "predicted": 0.4594,
+          "actual": 0.4814,
+          "n": 5540
+        }
+      ],
+      "top_decile": {
+        "n": 5540,
+        "predicted": 0.4594,
+        "hit_rate": 0.4814,
+        "base_rate": 0.2414
+      },
+      "lines": [
+        {
+          "line": 0.5,
+          "n": 55403,
+          "hit_rate": 0.2414,
+          "avg_pred": 0.2344,
+          "log_loss": 0.5171,
+          "brier": 0.1697,
+          "baseline": {
+            "log_loss": 0.5287,
+            "brier": 0.1738
+          }
+        },
+        {
+          "line": 1.5,
+          "n": 55403,
+          "hit_rate": 0.0417,
+          "avg_pred": 0.0398,
+          "log_loss": 0.1546,
+          "brier": 0.038,
+          "baseline": {
+            "log_loss": 0.1606,
+            "brier": 0.0386
+          }
+        }
+      ]
+    },
+    "points": {
+      "n": 55403,
+      "main_line": 0.5,
+      "chosen_model": "lgb",
+      "calibrated": false,
+      "model": {
+        "log_loss": 0.5925,
+        "brier": 0.2028
+      },
+      "baselines": {
+        "season_avg": {
+          "log_loss": 0.6052,
+          "brier": 0.2082
+        },
+        "base_rate": {
+          "log_loss": 0.6461,
+          "brier": 0.2268
+        }
+      },
+      "by_kind": {
+        "lgb": {
+          "raw": {
+            "log_loss": 0.5925,
+            "brier": 0.2028
+          },
+          "calibrated": {
+            "log_loss": 0.5936,
+            "brier": 0.203
+          }
+        },
+        "glm": {
+          "raw": {
+            "log_loss": 0.595,
+            "brier": 0.2038
+          },
+          "calibrated": {
+            "log_loss": 0.5957,
+            "brier": 0.2039
+          }
+        }
+      },
+      "calibration": [
+        {
+          "predicted": 0.1588,
+          "actual": 0.1473,
+          "n": 5541
+        },
+        {
+          "predicted": 0.1888,
+          "actual": 0.1821,
+          "n": 5541
+        },
+        {
+          "predicted": 0.217,
+          "actual": 0.2223,
+          "n": 5541
+        },
+        {
+          "predicted": 0.2493,
+          "actual": 0.2532,
+          "n": 5540
+        },
+        {
+          "predicted": 0.2857,
+          "actual": 0.298,
+          "n": 5540
+        },
+        {
+          "predicted": 0.3266,
+          "actual": 0.3329,
+          "n": 5540
+        },
+        {
+          "predicted": 0.3803,
+          "actual": 0.389,
+          "n": 5540
+        },
+        {
+          "predicted": 0.4415,
+          "actual": 0.4585,
+          "n": 5540
+        },
+        {
+          "predicted": 0.5122,
+          "actual": 0.5466,
+          "n": 5540
+        },
+        {
+          "predicted": 0.614,
+          "actual": 0.6486,
+          "n": 5540
+        }
+      ],
+      "top_decile": {
+        "n": 5540,
+        "predicted": 0.614,
+        "hit_rate": 0.6486,
+        "base_rate": 0.3478
+      },
+      "lines": [
+        {
+          "line": 0.5,
+          "n": 55403,
+          "hit_rate": 0.3478,
+          "avg_pred": 0.3374,
+          "log_loss": 0.5925,
+          "brier": 0.2028,
+          "baseline": {
+            "log_loss": 0.6052,
+            "brier": 0.2082
+          }
+        },
+        {
+          "line": 1.5,
+          "n": 55403,
+          "hit_rate": 0.0901,
+          "avg_pred": 0.0838,
+          "log_loss": 0.2654,
+          "brier": 0.0749,
+          "baseline": {
+            "log_loss": 0.2735,
+            "brier": 0.0764
+          }
+        },
+        {
+          "line": 2.5,
+          "n": 55403,
+          "hit_rate": 0.0198,
+          "avg_pred": 0.0184,
+          "log_loss": 0.0832,
+          "brier": 0.0186,
+          "baseline": {
+            "log_loss": 0.0861,
+            "brier": 0.0188
+          }
+        }
+      ]
+    }
+  }
+}

@@ -52,10 +52,10 @@ every date in the export window (7 days back, 7 ahead), ascending. Use it to fin
 ```
 
 - `status`: `scheduled` | `live` | `final`; `period_type`: `REG` | `OT` | `SO` once final.
-- `pick.source`: `live` (made before puck drop from data available then) or `pre` (frozen pre-game call kept for a finished
-  game). `confidence`: `low` (<0.56 on the pick), `medium` (0.56-0.62), `high` (>0.62). `correct` is null until final.
+- `pick.source`: `live` (a real call: updated until puck drop, then frozen) or `backtest` (a walk-forward replay of a game that
+  finished before live logging started: out-of-sample, but not a call anyone saw in advance). `confidence`: `low` (<0.56 on the pick), `medium` (0.56-0.62), `high` (>0.62). `correct` is null until final.
 - `score` is null until the game starts. `goalies[*].projected` is true unless the starter is confirmed in the boxscore.
-- Games in `scheduled`/`live` always have `pick`; finished games keep the frozen pre-game pick.
+- Every game in the window has a `pick` (finished games carry their frozen call, or the walk-forward replay).
 
 ## game/{gameId}.json
 
@@ -69,16 +69,17 @@ every date in the export window (7 days back, 7 ahead), ascending. Use it to fin
  "factors":[{"key":"elo","label":"Team strength (Elo)","home":1534,"away":1498,"edge":"home","pct":2.1},
             {"key":"rest","label":"Rest","home":"2 days","away":"B2B","edge":"home","pct":1.4}],
  "top_props":[{"player_id":8479318,"name":"A. Matthews","team":"TOR","pos":"C","headshot":"https://...","market":"goal",
-               "line":0.5,"side":"over","p":0.52,"fair_odds":-108,"projection":0.55,"confidence":"medium"}],
- "box":null}
+               "line":0.5,"side":"over","p":0.36,"fair_odds":178,"projection":0.47,"confidence":"high","lift":2.34}],
+ "fair_odds":{"home":-110,"away":110},"box":null}
 ```
 
 - `factors[*].edge`: `home` | `away` | `even`; `pct` = how many percentage points of home win probability that factor
   moves the model (approximate attribution, signed toward home). Sorted by |pct| desc.
-- `top_props`: up to 8 best model-probability props for the game across markets (anytime goal, 1+ assists, 1+ points,
-  SOG overs at the most-likely-to-be-posted line), flagged by `confidence`.
+- `top_props`: up to 8 props for the game (max 3 per market, no `low` confidence), ranked by `lift` = model p divided by the league
+  hit rate for that market and line (a 36% goal chance is 2.3x the 15% base rate). Markets: anytime goal, 1+ assists, 1+ points,
+  and SOG at the highest line whose p_over >= 0.55.
 - `box` (finished games only):
-  `{"periods":[{"period":1,"home":1,"away":0}],"sog":{"home":32,"away":24},"skaters":{"home":[{"player_id":..,"name":..,"pos":"C","toi":"11:16","goals":0,"assists":0,"points":0,"sog":0,"pp_goals":0}],"away":[...]},"goalies":{"home":[{"player_id":..,"name":..,"saves":24,"shots_against":24,"sv_pct":1.0,"toi":"60:00","decision":"W","starter":true}],"away":[...]}}`
+  `{"sog":{"home":32,"away":24},"skaters":{"home":[{"player_id":..,"name":..,"pos":"C","toi":"11:16","goals":0,"assists":0,"points":0,"sog":0,"pp_goals":0}],"away":[...]},"goalies":{"home":[{"player_id":..,"name":..,"saves":24,"shots_against":24,"sv_pct":1.0,"toi":"60:00","decision":"W","starter":true}],"away":[...]}}`
 
 ## props.json (board)
 
@@ -98,9 +99,9 @@ every date in the export window (7 days back, 7 ahead), ascending. Use it to fin
 ```
 
 - Markets keyed exactly `goal` (anytime goal scorer: only line 0.5, `p_over` = P(>=1 goal)), `sog`, `assists`, `points`.
-  Lines: goal [0.5]; assists [0.5,1.5]; points [0.5,1.5,2.5]; sog [0.5,1.5,2.5,3.5,4.5] (only lines with 3%<p<97% kept).
+  Lines: goal [0.5]; assists [0.5,1.5]; points [0.5,1.5,2.5]; sog [0.5,1.5,2.5,3.5,4.5,5.5] (only lines with 3%<p<97% kept).
 - `projection` is the expected count. `hit_*` = share of the player's games with the stat over the line (last 10/20/season; null if
-  fewer than 5 games). `confidence`: `low|medium|high` from sample size and model calibration for that market.
+  fewer than 5 games). `confidence`: `low|medium|high` from sample size only: games played in the last 40 team games >= 30 high, >= 15 medium.
 - Sorted by `date`, then `start`, then descending best anytime-goal probability. Only players projected to dress.
 
 ## players.json
@@ -124,30 +125,38 @@ Players with >= 5 games this or last season (goalies excluded). Sorted by points
  "splits":{"home":{"gp":8,"goals":0.7,"assists":0.3,"points":1.0,"sog":4.4},"away":{"...":"..."}}}
 ```
 
-`log` is newest first, current + prior season (regular season) only. `next` is null if the team has no scheduled game in the
+`log` is newest first, the last 50 regular-season games (current + prior season). `splits` cover those two seasons and include `gp` and `toi`. `next` is null if the team has no scheduled game in the
 export window. `rank_*` are 1 = allows the most (softest matchup). Goalies are not exported.
 
 ## standings.json
 
-`{"generated_at":..,"conferences":[{"name":"Eastern","divisions":[{"name":"Metropolitan","teams":[{"team":TeamRef,"rank":1,"gp":16,"w":12,"l":2,"otl":2,"pts":26,"pct":0.8125,"gf":63,"ga":36,"diff":27,"l10":"8-1-1","streak":"W4","elo":1560}]}]}]}`
+`{"generated_at":..,"conferences":[{"name":"Eastern","divisions":[{"name":"Metropolitan","teams":[{"team":TeamRef,"rank":1,"gp":16,"w":12,"l":2,"otl":2,"pts":26,"pct":0.8125,"gf":63,"ga":36,"diff":27,"l10":"8-1-1","streak":"W4","wildcard":0,"elo":1560}]}]}]}`
 
 ## model-performance.json
 
 ```json
 {"generated_at":"2026-11-03T14:35Z",
- "game":{"n":2400,"seasons":["2025-26","2026-27"],"model":{"accuracy":0.585,"log_loss":0.675,"brier":0.2415},
-         "baselines":{"home_always":{"accuracy":0.53,"log_loss":0.69,"brier":0.25},"elo_only":{"accuracy":0.57,"log_loss":0.68,"brier":0.244}},
-         "calibration":[{"predicted":0.45,"actual":0.44,"n":300}],"total_goals":{"mae":1.8,"mean_actual":6.1,"mean_pred":6.0},
+ "game":{"n":2851,"seasons":["2024-25","2025-26","2026-27"],"model":{"accuracy":0.566,"log_loss":0.6718,"brier":0.2397},
+         "baselines":{"home_always":{"accuracy":0.544,"log_loss":0.6894,"brier":0.2481},"elo_only":{"accuracy":0.569,"log_loss":0.6781,"brier":0.2426}},
+         "calibration":[{"predicted":0.34,"actual":0.40,"n":286}],"total_goals":{"mae":1.854,"mae_baseline":1.863,"mean_actual":6.18,"mean_pred":5.88},
+         "by_season":{"2025-26":{"n":1312,"model":{},"baselines":{}}},"home_win_rate":0.544,"pct_high_conf":0.35,"high_conf_accuracy":0.668,
          "note":"honest note on the ceiling"},
- "props":{"goal":{"n":40000,"model":{"log_loss":0.38,"brier":0.115},"baselines":{"season_avg":{"log_loss":0.39,"brier":0.118}},
-                  "calibration":[{"predicted":0.1,"actual":0.1,"n":9000}],
-                  "top_decile":{"n":4000,"predicted":0.38,"hit_rate":0.37,"base_rate":0.19},
-                  "lines":[{"line":0.5,"n":40000,"log_loss":0.38,"brier":0.115,"hit_rate":0.2}]},
-          "sog":{"...":"per line entries in lines[]"},"assists":{},"points":{}},
- "record":{"games":{"graded":120,"correct":71,"rate":0.592},
-           "props":{"goal":{"graded":300,"top_decile_hit_rate":0.3,"avg_p":0.28},"sog":{},"assists":{},"points":{}},
-           "recent":[{"date":"2026-11-02","game_id":2026020232,"pick":"BOS","p":0.58,"result":"BOS","correct":true}]}}
+ "props":{"goal":{"n":55403,"main_line":0.5,"chosen_model":"lgb","calibrated":false,
+                  "model":{"log_loss":0.3927,"brier":0.1201},
+                  "baselines":{"season_avg":{"log_loss":0.401,"brier":0.1222},"base_rate":{"log_loss":0.4262,"brier":0.1289}},
+                  "calibration":[{"predicted":0.04,"actual":0.05,"n":5540}],
+                  "top_decile":{"n":5540,"predicted":0.319,"hit_rate":0.349,"base_rate":0.152},
+                  "lines":[{"line":0.5,"n":55403,"hit_rate":0.152,"avg_pred":0.144,"log_loss":0.3927,"brier":0.1201,"baseline":{"log_loss":0.401,"brier":0.1222}}]},
+          "sog":{"main_line":2.5,"lines":["one entry per line"]},"assists":{},"points":{}},
+ "record":{"games":{"live":{"graded":0,"correct":0,"rate":null},"note":"..."},
+           "props":{"goal":{"graded":0,"hit_rate":null,"avg_p":null,"top_decile_hit_rate":null},"sog":{},"assists":{},"points":{}},
+           "recent":[{"date":"2026-11-02","game_id":2026020232,"pick":"VGK","p":0.513,"result":"BOS","correct":false,"source":"backtest"}]}}
 ```
+
+- `props.*` backtest = walk-forward over 2025-26 and the running season; `main_line` is the line the headline numbers use (goal 0.5,
+  sog 2.5, assists 0.5, points 0.5). `baselines.season_avg` is the player's own shrunk season average through the same count tail.
+- `record.games.live` counts only calls frozen before puck drop; it starts at 0 and grows daily. `record.props` is the same for the
+  main line of each market. `recent` (newest first, 25 games) mixes live and `backtest` sources, labelled.
 
 ## Refresh behaviour
 
