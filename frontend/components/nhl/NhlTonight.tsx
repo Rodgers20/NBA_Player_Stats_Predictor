@@ -52,9 +52,9 @@ export function NhlTonight() {
               <h2 className="ql-section-title">{market.label}{line != null && market.key !== "goal" ? ` ${lineLabel(market.key as NhlMarketKey, line)}` : ""}</h2>
               <Link href="/nhl/props" className="ql-data-label hover:text-text-pri">ALL IN PROPS ↗</Link>
             </div>
-            <ul className="ql-panel divide-y divide-ink/[0.07] overflow-hidden">
+            <div className="ql-panel overflow-hidden">
               {rows.map(r => <NhlPropRow key={r.player.player_id} row={r} market={market.key as NhlMarketKey} onOpen={setOpen} />)}
-            </ul>
+            </div>
           </section>
         ))}
         {groups.length === 0 && <section className="ql-panel px-6 py-10 text-center" role="status">

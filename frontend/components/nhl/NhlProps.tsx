@@ -7,7 +7,7 @@ import { MARKETS, lineLabel, tipText } from "@/lib/nhl.mjs";
 import { SORTS, boardGames, boardRows, initialLine, lineOptions } from "@/lib/nhl-props.mjs";
 import type { NhlMarketKey } from "@/lib/nhl-types";
 import { ErrorBox, FairOddsNote, Loading, NhlHeader, FRAME } from "./parts";
-import { NhlPropRow } from "./NhlPropRow";
+import { NhlPropHeader, NhlPropRow } from "./NhlPropRow";
 import { NhlPlayerSheet } from "./NhlPlayerSheet";
 
 const PAGE = 40;
@@ -83,15 +83,16 @@ export function NhlProps() {
         <p className="mb-2 font-mono text-[11px] text-text-sec">{rows.length} players · over {line} {MARKETS.find(m => m.key === market)?.unit}</p>
         {rows.length === 0 ? <p role="status" className="ql-panel p-5 text-sm text-text-sec">No players match these filters.</p> : (
           <div className="min-w-0 space-y-5">
+            <NhlPropHeader />
             {byGame.map(([matchup, list]) => (
               <section key={matchup} aria-label={matchup}>
                 <div className="mb-2 flex items-baseline justify-between border-b border-ink/10 pb-2">
                   <h2 className="ql-section-title">{matchup}</h2>
                   <span className="ql-data-label text-text-sec">{list.length} PROPS</span>
                 </div>
-                <ul className="ql-panel divide-y divide-ink/[0.07] overflow-hidden">
+                <div className="ql-panel overflow-hidden">
                   {list.map(r => <NhlPropRow key={r.player.player_id} row={r} market={market} onOpen={setOpen} />)}
-                </ul>
+                </div>
               </section>
             ))}
           </div>
