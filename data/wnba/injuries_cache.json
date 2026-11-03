@@ -1,7 +1,7 @@
 {
-  "cached_at": "2026-11-01T04:53:43.661833",
+  "cached_at": "2026-11-02T18:35:16.971539",
   "payload": {
-    "timestamp": "2026-11-01T09:53:36Z",
+    "timestamp": "2026-11-02T23:35:09Z",
     "status": "success",
     "season": {
       "year": 2026,
@@ -13464,11 +13464,11 @@
         "displayName": "New York Liberty",
         "injuries": [
           {
-            "id": "54571",
+            "id": "54635",
             "longComment": "out",
             "shortComment": "out",
             "status": "Out",
-            "date": "2026-11-01T07:00Z",
+            "date": "2026-11-02T23:01Z",
             "athlete": {
               "firstName": "Satou",
               "lastName": "Sabally",

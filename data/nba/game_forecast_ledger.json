@@ -19846,6 +19846,2942 @@
         "odds_updated_at": "2026-11-01T09:50:16.181184+00:00"
       },
       "actual": null
+    },
+    {
+      "game_id": "401909907",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T00:00:00+00:00",
+      "home_team": "CLE",
+      "away_team": "OKC",
+      "prediction": {
+        "matchup": "OKC @ CLE",
+        "home_team": "CLE",
+        "away_team": "OKC",
+        "predicted_winner": "CLE",
+        "spread": 6.7,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.2,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "CLE": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 288,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "OKC": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 298,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "CLE": true,
+            "OKC": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.6917528002889319,
+        "winner_probability": 0.6917528002889319,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -11.2,
+            24.7
+          ],
+          "total": [
+            192.3,
+            239.3
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 215.7,
+        "confidence": "LOW",
+        "predicted_home_score": 111.2,
+        "predicted_away_score": 104.5,
+        "intel": [
+          "\ud83d\ude91 CLE missing Jaylon Tyson (11 PPG, OUT)",
+          "\ud83d\ude91 CLE missing Peyton Watson (11 PPG, QUESTIONABLE)",
+          "\ud83d\ude91 OKC missing Cason Wallace (12 PPG, OUT)",
+          "\ud83d\ude91 OKC missing Chet Holmgren (15 PPG, OUT)",
+          "OKC on a hot streak \u2014 7-3 in last 10"
+        ],
+        "winner_reason": "CLE projected to win 111\u2013104 (margin 6.7 pts, low conf). CLE L10: 4-6, 109 PPG avg. OKC L10: 7-3, 109 PPG avg. OKC missing Cason Wallace (12 PPG, OUT). OKC missing Chet Holmgren (15 PPG, OUT).",
+        "spread_reason": "Model line: CLE -6.7 (favored). CLE defense #15 (allows 116 PPG L10), OKC defense #15 (allows 107 PPG L10). H2H: CLE 1-5 in last 6 meetings.",
+        "total_reason": "Model projects 216 combined pts (CLE 111 + OKC 104). CLE allows 116 PPG L10, OKC allows 107 PPG L10.",
+        "market_spread": -4.5,
+        "market_total": 228.5,
+        "spread_pick": "HOME",
+        "spread_team": "CLE",
+        "spread_confidence": "LOW",
+        "total_pick": "UNDER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -4.5,
+        "total": 228.5,
+        "home_ml": -180.0,
+        "away_ml": 150.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909908",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T00:30:00+00:00",
+      "home_team": "CHA",
+      "away_team": "DET",
+      "prediction": {
+        "matchup": "DET @ CHA",
+        "home_team": "CHA",
+        "away_team": "DET",
+        "predicted_winner": "DET",
+        "spread": -2.1,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.25,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "CHA": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 250,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "DET": {
+              "latest_game_date": "2026-10-27",
+              "history_age_days": 6,
+              "history_older_than_14_days": false,
+              "games_available": 270,
+              "latest_player_log_date": "2026-10-27",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "CHA": true,
+            "DET": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.4376322947473679,
+        "winner_probability": 0.5623677052526321,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -20.0,
+            15.9
+          ],
+          "total": [
+            192.1,
+            239.1
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 215.5,
+        "confidence": "LOW",
+        "predicted_home_score": 106.7,
+        "predicted_away_score": 108.8,
+        "intel": [
+          "\ud83d\ude91 CHA missing Grant Williams (10 PPG, OUT)",
+          "\ud83d\ude91 CHA missing Kon Knueppel (21 PPG, OUT)",
+          "\ud83d\ude91 DET missing Isaiah Joe (7 PPG, OUT)",
+          "\ud83d\ude91 DET missing Jalen Duren (20 PPG, OUT)",
+          "CHA on a hot streak \u2014 7-3 in last 10"
+        ],
+        "winner_reason": "DET projected to win 109\u2013107 (margin 2.1 pts, low conf). DET L10: 5-5, 109 PPG avg. CHA L10: 7-3, 111 PPG avg. CHA missing Grant Williams (10 PPG, OUT). CHA missing Kon Knueppel (21 PPG, OUT).",
+        "spread_reason": "Model line: DET -2.1 (favored). CHA defense #15 (allows 109 PPG L10), DET defense #15 (allows 109 PPG L10). H2H: CHA 2-8 in last 10 meetings.",
+        "total_reason": "Model projects 216 combined pts (CHA 107 + DET 109). CHA allows 109 PPG L10, DET allows 109 PPG L10.",
+        "market_spread": 4.5,
+        "market_total": 210.5,
+        "spread_pick": "HOME",
+        "spread_team": "CHA",
+        "spread_confidence": "LOW",
+        "total_pick": "OVER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": 4.5,
+        "total": 210.5,
+        "home_ml": 145.0,
+        "away_ml": -175.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909909",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T00:30:00+00:00",
+      "home_team": "IND",
+      "away_team": "ATL",
+      "prediction": {
+        "matchup": "ATL @ IND",
+        "home_team": "IND",
+        "away_team": "ATL",
+        "predicted_winner": "ATL",
+        "spread": -7.1,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.25,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "IND": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 290,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "ATL": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 256,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "IND": true,
+            "ATL": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.2978047369385658,
+        "winner_probability": 0.7021952630614342,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -25.0,
+            10.9
+          ],
+          "total": [
+            205.3,
+            252.3
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 228.7,
+        "confidence": "LOW",
+        "predicted_home_score": 110.8,
+        "predicted_away_score": 117.9,
+        "intel": [
+          "\ud83d\ude91 IND missing T.J. McConnell (8 PPG, OUT)",
+          "\ud83d\ude91 IND missing Ivica Zubac (9 PPG, OUT)",
+          "\ud83d\ude91 ATL missing Kingston Flemings (3 PPG, OUT)",
+          "\ud83d\ude91 ATL missing Jock Landale (8 PPG, OUT)",
+          "Form L10 \u2014 IND: 3-7  |  ATL: 4-6"
+        ],
+        "winner_reason": "ATL projected to win 118\u2013111 (margin 7.1 pts, low conf). ATL L10: 4-6, 109 PPG avg. IND L10: 3-7, 112 PPG avg. IND missing T.J. McConnell (8 PPG, OUT). IND missing Ivica Zubac (9 PPG, OUT).",
+        "spread_reason": "Model line: ATL -7.1 (favored). IND defense #15 (allows 116 PPG L10), ATL defense #15 (allows 115 PPG L10). H2H: IND 6-4 in last 10 meetings.",
+        "total_reason": "Model projects 229 combined pts (IND 111 + ATL 118). IND allows 116 PPG L10, ATL allows 115 PPG L10.",
+        "market_spread": 5.5,
+        "market_total": 232.5,
+        "spread_pick": "AWAY",
+        "spread_team": "ATL",
+        "spread_confidence": "LOW",
+        "total_pick": "UNDER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": 5.5,
+        "total": 232.5,
+        "home_ml": 164.0,
+        "away_ml": -198.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909910",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T00:30:00+00:00",
+      "home_team": "NYK",
+      "away_team": "BKN",
+      "prediction": {
+        "matchup": "BKN @ NYK",
+        "home_team": "NYK",
+        "away_team": "BKN",
+        "predicted_winner": "NYK",
+        "spread": 15.4,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.25,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "NYK": {
+              "latest_game_date": "2026-10-27",
+              "history_age_days": 6,
+              "history_older_than_14_days": false,
+              "games_available": 300,
+              "latest_player_log_date": "2026-10-27",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "BKN": {
+              "latest_game_date": "2026-10-27",
+              "history_age_days": 6,
+              "history_older_than_14_days": false,
+              "games_available": 250,
+              "latest_player_log_date": "2026-10-27",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "NYK": true,
+            "BKN": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.875164660676471,
+        "winner_probability": 0.875164660676471,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -2.5,
+            33.4
+          ],
+          "total": [
+            198.0,
+            245.0
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 221.4,
+        "confidence": "LOW",
+        "predicted_home_score": 118.4,
+        "predicted_away_score": 103.0,
+        "intel": [
+          "\ud83d\ude91 NYK missing Jose Alvarado (5 PPG, OUT)",
+          "\ud83d\ude91 BKN missing Egor Demin (7 PPG, OUT)",
+          "\ud83d\ude91 BKN missing Mikel Brown Jr. (10 PPG, QUESTIONABLE)",
+          "Form L10 \u2014 NYK: 6-4  |  BKN: 2-8",
+          "H2H (12 games): NYK leads 12-0"
+        ],
+        "winner_reason": "NYK projected to win 118\u2013103 (margin 15.4 pts, low conf). NYK L10: 6-4, 107 PPG avg. BKN L10: 2-8, 108 PPG avg. BKN missing Egor Demin (7 PPG, OUT). BKN missing Mikel Brown Jr. (10 PPG, QUESTIONABLE).",
+        "spread_reason": "Model line: NYK -15.4 (favored). NYK defense #15 (allows 102 PPG L10), BKN defense #15 (allows 123 PPG L10). H2H: NYK 12-0 in last 12 meetings.",
+        "total_reason": "Model projects 221 combined pts (NYK 118 + BKN 103). NYK allows 102 PPG L10, BKN allows 123 PPG L10.",
+        "market_spread": -14.5,
+        "market_total": 220.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": null,
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -14.5,
+        "total": 220.5,
+        "home_ml": -900.0,
+        "away_ml": 600.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909911",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T00:30:00+00:00",
+      "home_team": "ORL",
+      "away_team": "WAS",
+      "prediction": {
+        "matchup": "WAS @ ORL",
+        "home_team": "ORL",
+        "away_team": "WAS",
+        "predicted_winner": "ORL",
+        "spread": 1.1,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.2,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "ORL": {
+              "latest_game_date": "2026-10-25",
+              "history_age_days": 8,
+              "history_older_than_14_days": false,
+              "games_available": 268,
+              "latest_player_log_date": "2026-10-25",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": true
+            },
+            "WAS": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 250,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "ORL": true,
+            "WAS": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.5327660929929606,
+        "winner_probability": 0.5327660929929606,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -16.8,
+            19.1
+          ],
+          "total": [
+            200.7,
+            247.7
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 224.1,
+        "confidence": "LOW",
+        "predicted_home_score": 112.6,
+        "predicted_away_score": 111.5,
+        "intel": [
+          "\ud83d\ude91 ORL missing Jonathan Isaac (2 PPG, OUT)",
+          "\ud83d\ude91 ORL missing Jalen Suggs (10 PPG, OUT)",
+          "\ud83d\ude91 WAS missing Tristan Vukcevic (11 PPG, OUT)",
+          "\ud83d\ude91 WAS missing Justin Champagnie (9 PPG, OUT)",
+          "Form L10 \u2014 ORL: 4-6  |  WAS: 2-8"
+        ],
+        "winner_reason": "ORL projected to win 113\u2013112 (margin 1.1 pts, low conf). ORL L10: 4-6, 101 PPG avg. WAS L10: 2-8, 115 PPG avg. WAS missing Tristan Vukcevic (11 PPG, OUT). WAS missing Justin Champagnie (9 PPG, OUT).",
+        "spread_reason": "Model line: ORL -1.1 (favored). ORL defense #15 (allows 107 PPG L10), WAS defense #15 (allows 125 PPG L10). H2H: ORL 11-1 in last 12 meetings.",
+        "total_reason": "Model projects 224 combined pts (ORL 113 + WAS 112). ORL allows 107 PPG L10, WAS allows 125 PPG L10.",
+        "market_spread": -1.5,
+        "market_total": 223.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": null,
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -1.5,
+        "total": 223.5,
+        "home_ml": -130.0,
+        "away_ml": 110.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909912",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T00:30:00+00:00",
+      "home_team": "PHI",
+      "away_team": "CHI",
+      "prediction": {
+        "matchup": "CHI @ PHI",
+        "home_team": "PHI",
+        "away_team": "CHI",
+        "predicted_winner": "PHI",
+        "spread": 10.6,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.25,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "PHI": {
+              "latest_game_date": "2026-10-25",
+              "history_age_days": 8,
+              "history_older_than_14_days": false,
+              "games_available": 267,
+              "latest_player_log_date": "2026-10-25",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": true
+            },
+            "CHI": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 250,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "PHI": true,
+            "CHI": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.7859216155091024,
+        "winner_probability": 0.7859216155091024,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -7.3,
+            28.6
+          ],
+          "total": [
+            209.6,
+            256.6
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 233.0,
+        "confidence": "LOW",
+        "predicted_home_score": 121.8,
+        "predicted_away_score": 111.2,
+        "intel": [
+          "\ud83d\ude91 PHI missing Dominick Barlow (7 PPG, OUT)",
+          "\ud83d\ude91 PHI missing Joel Embiid (29 PPG, QUESTIONABLE)",
+          "\ud83d\ude91 CHI missing Jalen Smith (13 PPG, QUESTIONABLE)",
+          "Form L10 \u2014 PHI: 5-5  |  CHI: 3-7",
+          "H2H (10 games): PHI leads 4-6"
+        ],
+        "winner_reason": "PHI projected to win 122\u2013111 (margin 10.6 pts, low conf). PHI L10: 5-5, 106 PPG avg. CHI L10: 3-7, 113 PPG avg. CHI missing Jalen Smith (13 PPG, QUESTIONABLE).",
+        "spread_reason": "Model line: PHI -10.6 (favored). PHI defense #15 (allows 112 PPG L10), CHI defense #15 (allows 126 PPG L10). H2H: PHI 4-6 in last 10 meetings.",
+        "total_reason": "Model projects 233 combined pts (PHI 122 + CHI 111). PHI allows 112 PPG L10, CHI allows 126 PPG L10.",
+        "market_spread": -11.5,
+        "market_total": 239.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "UNDER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -11.5,
+        "total": 239.5,
+        "home_ml": -575.0,
+        "away_ml": 425.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909913",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T01:00:00+00:00",
+      "home_team": "DAL",
+      "away_team": "SAC",
+      "prediction": {
+        "matchup": "SAC @ DAL",
+        "home_team": "DAL",
+        "away_team": "SAC",
+        "predicted_winner": "DAL",
+        "spread": 9.0,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.25,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "DAL": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 272,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "SAC": {
+              "latest_game_date": "2026-10-27",
+              "history_age_days": 6,
+              "history_older_than_14_days": false,
+              "games_available": 250,
+              "latest_player_log_date": "2026-10-27",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "DAL": true,
+            "SAC": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.7494467571985508,
+        "winner_probability": 0.7494467571985508,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -8.9,
+            27.0
+          ],
+          "total": [
+            210.0,
+            257.0
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 233.4,
+        "confidence": "LOW",
+        "predicted_home_score": 121.2,
+        "predicted_away_score": 112.2,
+        "intel": [
+          "\ud83d\ude91 DAL missing Dereck Lively II (5 PPG, OUT)",
+          "\ud83d\ude91 DAL missing Sergio de Larrea (5 PPG, OUT)",
+          "\ud83d\ude91 SAC missing Dylan Cardwell (6 PPG, OUT)",
+          "\ud83d\ude91 SAC missing Maxime Raynaud (15 PPG, OUT)",
+          "Form L10 \u2014 DAL: 4-6  |  SAC: 3-7"
+        ],
+        "winner_reason": "DAL projected to win 121\u2013112 (margin 9.0 pts, low conf). DAL L10: 4-6, 119 PPG avg. SAC L10: 3-7, 112 PPG avg. SAC missing Dylan Cardwell (6 PPG, OUT). SAC missing Maxime Raynaud (15 PPG, OUT).",
+        "spread_reason": "Model line: DAL -9.0 (favored). DAL defense #15 (allows 122 PPG L10), SAC defense #15 (allows 122 PPG L10). H2H: DAL 3-7 in last 10 meetings.",
+        "total_reason": "Model projects 233 combined pts (DAL 121 + SAC 112). DAL allows 122 PPG L10, SAC allows 122 PPG L10.",
+        "market_spread": -10.5,
+        "market_total": 234.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": null,
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -10.5,
+        "total": 234.5,
+        "home_ml": -395.0,
+        "away_ml": 310.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909914",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T01:00:00+00:00",
+      "home_team": "MEM",
+      "away_team": "NOP",
+      "prediction": {
+        "matchup": "NOP @ MEM",
+        "home_team": "MEM",
+        "away_team": "NOP",
+        "predicted_winner": "MEM",
+        "spread": 5.9,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.2,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "MEM": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 254,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "NOP": {
+              "latest_game_date": "2026-10-24",
+              "history_age_days": 9,
+              "history_older_than_14_days": false,
+              "games_available": 253,
+              "latest_player_log_date": "2026-10-24",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": true
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "MEM": true,
+            "NOP": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.6704025010687157,
+        "winner_probability": 0.6704025010687157,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -12.0,
+            23.9
+          ],
+          "total": [
+            213.7,
+            260.7
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 237.1,
+        "confidence": "LOW",
+        "predicted_home_score": 121.5,
+        "predicted_away_score": 115.6,
+        "intel": [
+          "\ud83d\ude91 MEM missing Scotty Pippen Jr. (10 PPG, QUESTIONABLE)",
+          "\ud83d\ude91 MEM missing Quinten Post (7 PPG, QUESTIONABLE)",
+          "\ud83d\ude91 NOP missing Jordan Poole (9 PPG, OUT)",
+          "\ud83d\ude91 NOP missing Yves Missi (6 PPG, OUT)",
+          "Form L10 \u2014 MEM: 4-6  |  NOP: 1-9"
+        ],
+        "winner_reason": "MEM projected to win 121\u2013116 (margin 5.9 pts, low conf). MEM L10: 4-6, 112 PPG avg. NOP L10: 1-9, 120 PPG avg. NOP missing Jordan Poole (9 PPG, OUT). NOP missing Yves Missi (6 PPG, OUT).",
+        "spread_reason": "Model line: MEM -5.9 (favored). MEM defense #15 (allows 124 PPG L10), NOP defense #15 (allows 128 PPG L10). H2H: MEM 8-4 in last 12 meetings.",
+        "total_reason": "Model projects 237 combined pts (MEM 121 + NOP 116). MEM allows 124 PPG L10, NOP allows 128 PPG L10.",
+        "market_spread": -6.5,
+        "market_total": 234.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "OVER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -6.5,
+        "total": 234.5,
+        "home_ml": -218.0,
+        "away_ml": 180.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909915",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T01:00:00+00:00",
+      "home_team": "MIN",
+      "away_team": "MIL",
+      "prediction": {
+        "matchup": "MIL @ MIN",
+        "home_team": "MIN",
+        "away_team": "MIL",
+        "predicted_winner": "MIN",
+        "spread": 5.9,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.25,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "MIN": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 293,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "MIL": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 261,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "MIN": true,
+            "MIL": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.6704025010687157,
+        "winner_probability": 0.6704025010687157,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -12.0,
+            23.9
+          ],
+          "total": [
+            202.5,
+            249.5
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 225.9,
+        "confidence": "LOW",
+        "predicted_home_score": 115.9,
+        "predicted_away_score": 110.0,
+        "intel": [
+          "\ud83d\ude91 MIN missing Anthony Edwards (31 PPG, OUT)",
+          "\ud83d\ude91 MIN missing Donte DiVincenzo (11 PPG, OUT)",
+          "Form L10 \u2014 MIN: 5-5  |  MIL: 3-7",
+          "H2H (6 games): MIN leads 3-3"
+        ],
+        "winner_reason": "MIN projected to win 116\u2013110 (margin 5.9 pts, low conf). MIN L10: 5-5, 112 PPG avg. MIL L10: 3-7, 113 PPG avg.",
+        "spread_reason": "Model line: MIN -5.9 (favored). MIN defense #15 (allows 114 PPG L10), MIL defense #15 (allows 120 PPG L10). H2H: MIN 3-3 in last 6 meetings.",
+        "total_reason": "Model projects 226 combined pts (MIN 116 + MIL 110). MIN allows 114 PPG L10, MIL allows 120 PPG L10.",
+        "market_spread": -10.5,
+        "market_total": 234.5,
+        "spread_pick": "AWAY",
+        "spread_team": "MIL",
+        "spread_confidence": "LOW",
+        "total_pick": "UNDER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -10.5,
+        "total": 234.5,
+        "home_ml": -455.0,
+        "away_ml": 350.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909916",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T01:30:00+00:00",
+      "home_team": "HOU",
+      "away_team": "BOS",
+      "prediction": {
+        "matchup": "BOS @ HOU",
+        "home_team": "HOU",
+        "away_team": "BOS",
+        "predicted_winner": "HOU",
+        "spread": 4.0,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.25,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "HOU": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 263,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "BOS": {
+              "latest_game_date": "2026-10-27",
+              "history_age_days": 6,
+              "history_older_than_14_days": false,
+              "games_available": 287,
+              "latest_player_log_date": "2026-10-27",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "HOU": true,
+            "BOS": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.6175299416603189,
+        "winner_probability": 0.6175299416603189,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -13.9,
+            22.0
+          ],
+          "total": [
+            192.8,
+            239.8
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 216.2,
+        "confidence": "LOW",
+        "predicted_home_score": 110.1,
+        "predicted_away_score": 106.1,
+        "intel": [
+          "\ud83d\ude91 HOU missing Steven Adams (6 PPG, OUT)",
+          "\ud83d\ude91 HOU missing Clint Capela (3 PPG, QUESTIONABLE)",
+          "\ud83d\ude91 BOS missing Mitchell Robinson (6 PPG, OUT)",
+          "Form L10 \u2014 HOU: 6-4  |  BOS: 5-5",
+          "H2H (6 games): HOU leads 2-4"
+        ],
+        "winner_reason": "HOU projected to win 110\u2013106 (margin 4.0 pts, low conf). HOU L10: 6-4, 108 PPG avg. BOS L10: 5-5, 110 PPG avg. BOS missing Mitchell Robinson (6 PPG, OUT).",
+        "spread_reason": "Model line: HOU -4.0 (favored). HOU defense #15 (allows 105 PPG L10), BOS defense #15 (allows 108 PPG L10). H2H: HOU 2-4 in last 6 meetings.",
+        "total_reason": "Model projects 216 combined pts (HOU 110 + BOS 106). HOU allows 105 PPG L10, BOS allows 108 PPG L10.",
+        "market_spread": -4.5,
+        "market_total": 219.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "UNDER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -4.5,
+        "total": 219.5,
+        "home_ml": -198.0,
+        "away_ml": 164.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909917",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T01:30:00+00:00",
+      "home_team": "SAS",
+      "away_team": "UTA",
+      "prediction": {
+        "matchup": "UTA @ SAS",
+        "home_team": "SAS",
+        "away_team": "UTA",
+        "predicted_winner": "SAS",
+        "spread": 17.8,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.25,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "SAS": {
+              "latest_game_date": "2026-10-27",
+              "history_age_days": 6,
+              "history_older_than_14_days": false,
+              "games_available": 273,
+              "latest_player_log_date": "2026-10-27",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "UTA": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 250,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "SAS": true,
+            "UTA": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.9083313697698531,
+        "winner_probability": 0.9083313697698531,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -0.1,
+            35.8
+          ],
+          "total": [
+            205.4,
+            252.4
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 228.8,
+        "confidence": "LOW",
+        "predicted_home_score": 123.3,
+        "predicted_away_score": 105.5,
+        "intel": [
+          "\ud83d\ude91 UTA missing Jaren Jackson Jr. (19 PPG, OUT)",
+          "\ud83d\ude91 UTA missing Jusuf Nurkic (12 PPG, OUT)",
+          "Form L10 \u2014 SAS: 4-6  |  UTA: 2-8",
+          "H2H (10 games): SAS leads 6-4"
+        ],
+        "winner_reason": "SAS projected to win 123\u2013106 (margin 17.8 pts, low conf). SAS L10: 4-6, 109 PPG avg. UTA L10: 2-8, 118 PPG avg. UTA missing Jaren Jackson Jr. (19 PPG, OUT). UTA missing Jusuf Nurkic (12 PPG, OUT).",
+        "spread_reason": "Model line: SAS -17.8 (favored). SAS defense #15 (allows 106 PPG L10), UTA defense #15 (allows 129 PPG L10). H2H: SAS 6-4 in last 10 meetings.",
+        "total_reason": "Model projects 229 combined pts (SAS 123 + UTA 106). SAS allows 106 PPG L10, UTA allows 129 PPG L10.",
+        "market_spread": -16.5,
+        "market_total": 231.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "UNDER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -16.5,
+        "total": 231.5,
+        "home_ml": -1200.0,
+        "away_ml": 750.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909918",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T02:00:00+00:00",
+      "home_team": "DEN",
+      "away_team": "POR",
+      "prediction": {
+        "matchup": "POR @ DEN",
+        "home_team": "DEN",
+        "away_team": "POR",
+        "predicted_winner": "DEN",
+        "spread": 5.2,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.2,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "DEN": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 281,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "POR": {
+              "latest_game_date": "2026-10-27",
+              "history_age_days": 6,
+              "history_older_than_14_days": false,
+              "games_available": 254,
+              "latest_player_log_date": "2026-10-27",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "DEN": true,
+            "POR": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.6512509139901765,
+        "winner_probability": 0.6512509139901765,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -12.7,
+            23.2
+          ],
+          "total": [
+            204.2,
+            251.2
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 227.6,
+        "confidence": "LOW",
+        "predicted_home_score": 116.4,
+        "predicted_away_score": 111.2,
+        "intel": [
+          "\ud83d\ude91 DEN missing Spencer Jones (3 PPG, OUT)",
+          "\ud83d\ude91 DEN missing Julian Strawther (10 PPG, OUT)",
+          "\ud83d\ude91 POR missing Ja Morant (16 PPG, OUT)",
+          "\ud83d\ude91 POR missing Shaedon Sharpe (21 PPG, OUT)",
+          "Form L10 \u2014 DEN: 4-6  |  POR: 6-4"
+        ],
+        "winner_reason": "DEN projected to win 116\u2013111 (margin 5.2 pts, low conf). DEN L10: 4-6, 111 PPG avg. POR L10: 6-4, 113 PPG avg. POR missing Ja Morant (16 PPG, OUT). POR missing Shaedon Sharpe (21 PPG, OUT).",
+        "spread_reason": "Model line: DEN -5.2 (favored). DEN defense #15 (allows 116 PPG L10), POR defense #15 (allows 110 PPG L10). H2H: DEN 9-3 in last 12 meetings.",
+        "total_reason": "Model projects 228 combined pts (DEN 116 + POR 111). DEN allows 116 PPG L10, POR allows 110 PPG L10.",
+        "market_spread": -4.5,
+        "market_total": 231.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "UNDER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -4.5,
+        "total": 231.5,
+        "home_ml": -175.0,
+        "away_ml": 145.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909919",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T03:00:00+00:00",
+      "home_team": "GSW",
+      "away_team": "PHX",
+      "prediction": {
+        "matchup": "PHX @ GSW",
+        "home_team": "GSW",
+        "away_team": "PHX",
+        "predicted_winner": "GSW",
+        "spread": 1.0,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.2,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "GSW": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 262,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "PHX": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 257,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "GSW": true,
+            "PHX": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.5297931783924159,
+        "winner_probability": 0.5297931783924159,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -16.9,
+            19.0
+          ],
+          "total": [
+            196.2,
+            243.2
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 219.6,
+        "confidence": "LOW",
+        "predicted_home_score": 110.3,
+        "predicted_away_score": 109.3,
+        "intel": [
+          "\ud83d\ude91 GSW missing Draymond Green (7 PPG, OUT)",
+          "\ud83d\ude91 GSW missing Stephen Curry (23 PPG, OUT)",
+          "\ud83d\ude91 PHX missing Mark Williams (8 PPG, OUT)",
+          "Form L10 \u2014 GSW: 2-8  |  PHX: 3-7",
+          "H2H (13 games): GSW leads 6-7"
+        ],
+        "winner_reason": "GSW projected to win 110\u2013109 (margin 1.0 pts, low conf). GSW L10: 2-8, 114 PPG avg. PHX L10: 3-7, 107 PPG avg. PHX missing Mark Williams (8 PPG, OUT).",
+        "spread_reason": "Model line: GSW -1.0 (favored). GSW defense #15 (allows 118 PPG L10), PHX defense #15 (allows 117 PPG L10). H2H: GSW 6-7 in last 13 meetings.",
+        "total_reason": "Model projects 220 combined pts (GSW 110 + PHX 109). GSW allows 118 PPG L10, PHX allows 117 PPG L10.",
+        "market_spread": -4.5,
+        "market_total": 227.5,
+        "spread_pick": "AWAY",
+        "spread_team": "PHX",
+        "spread_confidence": "LOW",
+        "total_pick": "UNDER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -4.5,
+        "total": 227.5,
+        "home_ml": -180.0,
+        "away_ml": 150.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909920",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T03:00:00+00:00",
+      "home_team": "LAC",
+      "away_team": "TOR",
+      "prediction": {
+        "matchup": "TOR @ LAC",
+        "home_team": "LAC",
+        "away_team": "TOR",
+        "predicted_winner": "TOR",
+        "spread": -4.3,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.2,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "LAC": {
+              "latest_game_date": "2026-10-25",
+              "history_age_days": 8,
+              "history_older_than_14_days": false,
+              "games_available": 262,
+              "latest_player_log_date": "2026-10-25",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": true
+            },
+            "TOR": {
+              "latest_game_date": "2026-10-25",
+              "history_age_days": 8,
+              "history_older_than_14_days": false,
+              "games_available": 256,
+              "latest_player_log_date": "2026-10-25",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": true
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "LAC": true,
+            "TOR": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.3739442080529958,
+        "winner_probability": 0.6260557919470042,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -22.2,
+            13.7
+          ],
+          "total": [
+            199.5,
+            246.5
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 222.9,
+        "confidence": "LOW",
+        "predicted_home_score": 109.3,
+        "predicted_away_score": 113.6,
+        "intel": [
+          "\ud83d\ude91 TOR missing Jakob Poeltl (8 PPG, QUESTIONABLE)",
+          "Form L10 \u2014 LAC: 4-6  |  TOR: 5-5",
+          "H2H (6 games): LAC leads 5-1"
+        ],
+        "winner_reason": "TOR projected to win 114\u2013109 (margin 4.3 pts, low conf). TOR L10: 5-5, 111 PPG avg. LAC L10: 4-6, 112 PPG avg.",
+        "spread_reason": "Model line: TOR -4.3 (favored). LAC defense #15 (allows 113 PPG L10), TOR defense #15 (allows 109 PPG L10). H2H: LAC 5-1 in last 6 meetings.",
+        "total_reason": "Model projects 223 combined pts (LAC 109 + TOR 114). LAC allows 113 PPG L10, TOR allows 109 PPG L10.",
+        "market_spread": 5.5,
+        "market_total": 221.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": null,
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": 5.5,
+        "total": 221.5,
+        "home_ml": 170.0,
+        "away_ml": -205.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
+    },
+    {
+      "game_id": "401909921",
+      "model_version": "game-forecast-v1+market-prior",
+      "generated_at": "2026-11-02T11:35:12.380451+00:00",
+      "tipoff": "2026-11-03T03:00:00+00:00",
+      "home_team": "LAL",
+      "away_team": "MIA",
+      "prediction": {
+        "matchup": "MIA @ LAL",
+        "home_team": "LAL",
+        "away_team": "MIA",
+        "predicted_winner": "LAL",
+        "spread": 2.9,
+        "model_metadata": {
+          "name": "margin:full_ridge_1000 / total:full_ridge_1000",
+          "validated": true,
+          "injury_adjustment_validated": false,
+          "market_assisted": true,
+          "early_season_weight": 0.25,
+          "version": "game-forecast-v1+market-prior",
+          "metrics": {
+            "margin": {
+              "mae": 11.901471489434524,
+              "rmse": 15.141144943878391
+            },
+            "total": {
+              "mae": 14.800539764355452,
+              "rmse": 18.861837883917897
+            },
+            "winner": {
+              "accuracy": 0.7068723702664796,
+              "log_loss": 0.5778837051902791,
+              "brier": 0.1961667864688869,
+              "calibration_bins": [
+                {
+                  "lower": 0.0,
+                  "count": 1,
+                  "predicted": 0.0958562040382846,
+                  "actual": 0.0
+                },
+                {
+                  "lower": 0.1,
+                  "count": 23,
+                  "predicted": 0.16307310168412606,
+                  "actual": 0.043478260869565216
+                },
+                {
+                  "lower": 0.2,
+                  "count": 46,
+                  "predicted": 0.24981362271038704,
+                  "actual": 0.08695652173913043
+                },
+                {
+                  "lower": 0.3,
+                  "count": 85,
+                  "predicted": 0.3596509808849097,
+                  "actual": 0.25882352941176473
+                },
+                {
+                  "lower": 0.4,
+                  "count": 121,
+                  "predicted": 0.4498888513789072,
+                  "actual": 0.4628099173553719
+                },
+                {
+                  "lower": 0.5,
+                  "count": 135,
+                  "predicted": 0.5524829929586903,
+                  "actual": 0.6148148148148148
+                },
+                {
+                  "lower": 0.6,
+                  "count": 129,
+                  "predicted": 0.6488918142353913,
+                  "actual": 0.6744186046511628
+                },
+                {
+                  "lower": 0.7,
+                  "count": 102,
+                  "predicted": 0.7458754604508887,
+                  "actual": 0.7941176470588235
+                },
+                {
+                  "lower": 0.8,
+                  "count": 59,
+                  "predicted": 0.8383408990872131,
+                  "actual": 0.847457627118644
+                },
+                {
+                  "lower": 0.9,
+                  "count": 12,
+                  "predicted": 0.9232618104480507,
+                  "actual": 0.8333333333333334
+                }
+              ]
+            },
+            "interval_coverage_80": {
+              "margin": 0.7741935483870968,
+              "total": 0.8064516129032258
+            }
+          },
+          "trained_through": "2026-06-13 00:00:00",
+          "feature_count": 157,
+          "calibration": "earlier out-of-fold residuals; untouched temporal holdout",
+          "injury_scenario_applied": true,
+          "venue": null,
+          "venue_location_basis": "home_arena_city_proxy",
+          "training_game_types": [
+            "Regular Season",
+            "Playoffs"
+          ],
+          "schedule_season_type": null,
+          "preseason_validated": false,
+          "context_warning": "Schedule game type unavailable; preseason performance is unvalidated."
+        },
+        "data_quality": {
+          "as_of": "2026-11-02",
+          "teams": {
+            "LAL": {
+              "latest_game_date": "2026-10-27",
+              "history_age_days": 6,
+              "history_older_than_14_days": false,
+              "games_available": 270,
+              "latest_player_log_date": "2026-10-27",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            },
+            "MIA": {
+              "latest_game_date": "2026-10-26",
+              "history_age_days": 7,
+              "history_older_than_14_days": false,
+              "games_available": 259,
+              "latest_player_log_date": "2026-10-26",
+              "player_boxscore_lag_days": 0,
+              "injury_player_history_stale": false
+            }
+          },
+          "latest_player_log_date": "2026-10-27",
+          "player_history_age_days": 6,
+          "injury_player_history_stale": false,
+          "injury_feed_available": {
+            "LAL": true,
+            "MIA": true
+          },
+          "limitations": [
+            "Injury scenario coefficients are not historically validated",
+            "No timestamped historical injury archive is used in training"
+          ],
+          "team_history_source": "validated_team_boxscores"
+        },
+        "home_win_probability": 0.5858081257583416,
+        "winner_probability": 0.5858081257583416,
+        "prediction_intervals": {
+          "coverage": 0.8,
+          "margin": [
+            -15.0,
+            20.9
+          ],
+          "total": [
+            209.9,
+            256.9
+          ],
+          "injury_scenario_shifted": true
+        },
+        "total": 233.3,
+        "confidence": "LOW",
+        "predicted_home_score": 118.1,
+        "predicted_away_score": 115.2,
+        "intel": [
+          "\ud83d\ude91 LAL missing Ziaire Williams (11 PPG, OUT)",
+          "\ud83d\ude91 LAL missing Adou Thiero (2 PPG, OUT)",
+          "\ud83d\ude91 MIA missing Tim Hardaway Jr. (5 PPG, QUESTIONABLE)",
+          "Form L10 \u2014 LAL: 4-6  |  MIA: 3-7",
+          "H2H (6 games): LAL leads 3-3"
+        ],
+        "winner_reason": "LAL projected to win 118\u2013115 (margin 2.9 pts, low conf). LAL L10: 4-6, 112 PPG avg. MIA L10: 3-7, 121 PPG avg. MIA missing Tim Hardaway Jr. (5 PPG, QUESTIONABLE).",
+        "spread_reason": "Model line: LAL -2.9 (favored). LAL defense #15 (allows 114 PPG L10), MIA defense #15 (allows 125 PPG L10). H2H: LAL 3-3 in last 6 meetings.",
+        "total_reason": "Model projects 233 combined pts (LAL 118 + MIA 115). LAL allows 114 PPG L10, MIA allows 125 PPG L10.",
+        "market_spread": -2.5,
+        "market_total": 237.5,
+        "spread_pick": null,
+        "spread_team": null,
+        "spread_confidence": "LOW",
+        "total_pick": "UNDER",
+        "total_confidence": "LOW"
+      },
+      "market": {
+        "spread": -2.5,
+        "total": 237.5,
+        "home_ml": -135.0,
+        "away_ml": 114.0,
+        "odds_source": "ESPN",
+        "odds_updated_at": "2026-11-02T11:34:20.360184+00:00"
+      },
+      "actual": null
     }
   ]
 }
