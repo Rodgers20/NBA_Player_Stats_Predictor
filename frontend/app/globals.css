@@ -166,7 +166,21 @@ body {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
+@media (max-width: 520px) {
+  /* Phones: five labelled pills do not fit, so only the current one keeps its text (others stay readable to screen readers). */
+  .site-header .site-brand { font-size: 0; }
+  .site-brand::before { margin-right: 0; }
+  .site-league-pill { padding: 6px 9px; }
+  .site-league-pill:not(.active) .site-league-label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+}
+.site-league-logo { flex: none; object-fit: contain; }
 .site-league-pill:hover { color: #e5e7eb; background: rgba(255, 255, 255, 0.04); }
 .site-league-pill.active {
   color: white;
@@ -178,6 +192,8 @@ body {
 @media (max-width: 900px) {
   .site-header-inner { min-height: 60px; padding: 0 1rem; }
   .site-league-pill { padding: 5px 10px; font-size: 12px; }
+  .site-league-toggle { flex-shrink: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+  .site-league-toggle::-webkit-scrollbar { display: none; }
   .app-main { padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px)); }
 }
 button, a, select, input { -webkit-tap-highlight-color: transparent; }
