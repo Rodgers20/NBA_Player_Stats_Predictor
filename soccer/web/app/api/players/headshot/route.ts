@@ -9,6 +9,11 @@ export async function GET(request: Request) {
     return Response.json({ success: false, data: null, error: `no headshot found for ${name}`, meta: {} }, { status: 404 });
   }
   return new Response(new Uint8Array(img.buf), {
-    headers: { "Content-Type": img.type, "Cache-Control": "public, max-age=2592000, immutable" },
+    headers: {
+      "Content-Type": img.type,
+      "Cache-Control": "public, max-age=2592000, immutable",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    },
   });
 }
