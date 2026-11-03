@@ -1,0 +1,52 @@
+{
+  "checked": [
+    {
+      "fixture": "SP1|2026-09-14|Villarreal|Betis",
+      "label": "Over 2.5 goals",
+      "probability": 0.6094,
+      "scores": [
+        {
+          "home": 1,
+          "away": 1,
+          "probability": 0.1099
+        },
+        {
+          "home": 2,
+          "away": 1,
+          "probability": 0.098
+        },
+        {
+          "home": 2,
+          "away": 0,
+          "probability": 0.0825
+        }
+      ]
+    },
+    {
+      "fixture": "SP1|2026-09-20|Getafe|Malaga",
+      "label": "Under 2.5 goals",
+      "probability": 0.5831,
+      "scores": [
+        {
+          "home": 1,
+          "away": 1,
+          "probability": 0.1362
+        },
+        {
+          "home": 1,
+          "away": 0,
+          "probability": 0.1272
+        },
+        {
+          "home": 0,
+          "away": 0,
+          "probability": 0.1078
+        }
+      ]
+    }
+  ],
+  "requestedExamplesPassed": true,
+  "drawPickRendered": true,
+  "mobileOverflow": false,
+  "errors": []
+}

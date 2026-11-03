@@ -1,0 +1,38 @@
+# dependencies / envs
+.venv/
+web/node_modules/
+web/.next/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# data lives on the T7 volume, never in git
+/raw/
+/lake/
+/models/
+/cache/
+
+# local
+.env
+.DS_Store
+*.partial
+*.part
+
+# Local originals preserved by the September review
+/review-backup-20260912/
+
+# stray screenshots kept locally, not part of the source
+/dashboard.png
+/yamal.png
+/*.png
+
+# machine-local Claude Code settings (the plans in .claude/plan are tracked)
+.claude/settings.local.json
+
+# the Next.js app is tracked as ordinary files, not a nested repo
+web/node_modules/
+web/.next/
+web/out/
+web/.playwright-mcp/
+.playwright-mcp/

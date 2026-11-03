@@ -1,0 +1,150 @@
+@import "tailwindcss";
+
+/* ===========================================================================
+   FUTBALL design tokens
+
+   Surfaces are a cool near-black with a slight blue cast — never pure #000,
+   which crushes depth on OLED and makes panels read as holes rather than
+   material. Two accents carry the brand: pitch-green for live/active state,
+   floodlight-blue for links and the home side.
+
+   The six chart series colours are NOT hand-picked. They were solved for
+   against the dataviz validator (OKLCH lightness band 0.48-0.67 on the dark
+   surface, chroma >= 0.10, adjacent CVD deltaE >= 8, contrast >= 3:1) and pass
+   all five checks with zero warnings — worst adjacent pair deltaE 17.2 under
+   deuteranopia. The ordering is fixed and must never be cycled or reassigned
+   by rank: colour follows the entity.
+   =========================================================================== */
+
+@theme {
+  /* surfaces */
+  --color-void:      #07090C;
+  --color-base:      #0B0F14;
+  --color-panel:     #111721;
+  --color-elevated:  #161D28;
+  --color-stroke:    #1E2733;
+  --color-stroke-hi: #2A3644;
+
+  /* ink */
+  --color-ink:           #E8EDF4;
+  --color-ink-secondary: #94A3B4;
+  --color-ink-muted:     #91A0B3;
+
+  /* brand accents */
+  --color-pitch: #00D26A;
+  --color-flood: #3792FD;
+  --color-live:  #FF3B47;
+
+  /* validated categorical series — fixed order, never cycled */
+  --color-series-1: #3792FD;
+  --color-series-2: #FC4540;
+  --color-series-3: #13A5B2;
+  --color-series-4: #C0851F;
+  --color-series-5: #A225E2;
+  --color-series-6: #09AF51;
+
+  /* team polarity (diverging, not categorical) */
+  --color-home: #3792FD;
+  --color-away: #FC4540;
+
+  /* form badges — always paired with a W/D/L letter, never colour alone */
+  --color-form-w: #09AF51;
+  --color-form-d: #5C6B7E;
+  --color-form-l: #FC4540;
+
+  --radius-panel: 14px;
+}
+
+:root {
+  --pitch-length: 120;
+  --pitch-width: 80;
+}
+
+* { border-color: var(--color-stroke); }
+
+html, body {
+  background: var(--color-base);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  /* Atmosphere: a stadium-floodlight bloom behind the shell, so panels sit on
+     something rather than floating on flat paint. */
+  background-image:
+    radial-gradient(900px 520px at 78% -8%,  rgba(55,146,253,0.10), transparent 62%),
+    radial-gradient(760px 440px at 8% 102%, rgba(0,210,106,0.07),  transparent 60%);
+  background-attachment: fixed;
+}
+
+h1,h2,h3,h4,.font-display {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.015em;
+}
+
+/* Every number column uses tabular figures so digits do not jitter as a live
+   score, clock or stat ticks. */
+.tnum, table, .font-mono {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.font-mono { font-family: var(--font-mono), ui-monospace, monospace; }
+
+/* Panel material: a hairline border plus a very low-opacity grain so large dark
+   surfaces have texture instead of reading as flat void. */
+.panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-stroke);
+  border-radius: var(--radius-panel);
+  position: relative;
+  overflow: hidden;
+}
+.panel::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.live-dot {
+  width: 7px; height: 7px; border-radius: 999px;
+  background: var(--color-live);
+  box-shadow: 0 0 0 0 rgba(255,59,71,0.6);
+  animation: livepulse 1.9s cubic-bezier(0.4,0,0.6,1) infinite;
+}
+@keyframes livepulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,59,71,0.55); }
+  70%  { box-shadow: 0 0 0 9px rgba(255,59,71,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,59,71,0); }
+}
+
+/* Wide content scrolls inside its own container; the page body never scrolls
+   horizontally. */
+.scroll-x { overflow-x: auto; scrollbar-width: thin; }
+.scroll-x::-webkit-scrollbar { height: 7px; }
+.scroll-x::-webkit-scrollbar-thumb { background: var(--color-stroke-hi); border-radius: 99px; }
+.scroll-x::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+html { color-scheme: dark; scroll-padding-top: 6rem; }
+body { font-size: 16px; line-height: 1.5; }
+button, summary, a, input { touch-action: manipulation; }
+button:not(:disabled), summary { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--color-pitch); outline-offset: 4px; }
+.skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; padding: 12px 18px; background: var(--color-pitch); color: #04160C; border-radius: 8px; }
+.skip-link:focus { top: 12px; }
+.panel:has([role="combobox"]) { overflow: visible; }
+.panel:has([aria-expanded="true"]) { z-index: 40; }
+summary::-webkit-details-marker { display: none; }
+html[data-density="compact"] td { padding-top: 4px; padding-bottom: 4px; }
+@media (max-width: 639px) { header h1 { font-size: 15px; } main { padding-bottom: env(safe-area-inset-bottom, 16px); } }

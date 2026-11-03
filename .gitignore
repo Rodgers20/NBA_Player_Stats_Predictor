@@ -63,3 +63,7 @@ frontend/public/data/
 
 # Recomputable game-model feature cache
 data/*/game_features-*.parquet
+
+# Soccer (FUTBALL) snapshot is regenerated from the T7 lake by `make -C soccer snapshot`
+soccer/web/snapshot/
+soccer/web/.vercel/

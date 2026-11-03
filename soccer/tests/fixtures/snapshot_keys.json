@@ -1,0 +1,14 @@
+[
+  {"path": "/health", "query": {}, "file": "health.json"},
+  {"path": "health", "query": {}, "file": "health.json"},
+  {"path": "/leagues/E0/standings", "query": {"season_year": "2025"}, "file": "leagues/E0/standings@season_year=2025.json"},
+  {"path": "/leagues/E0/standings", "query": {"season_year": ""}, "file": "leagues/E0/standings.json"},
+  {"path": "/leagues/E0/matches", "query": {"limit": "40", "season_year": "2026"}, "file": "leagues/E0/matches@limit=40&season_year=2026.json"},
+  {"path": "/leagues/E0/matches/", "query": {"season_year": "2026", "limit": "40"}, "file": "leagues/E0/matches@limit=40&season_year=2026.json"},
+  {"path": "/teams/profile", "query": {"team": "Brighton & Hove Albion", "competition": "E0"}, "file": "teams/profile@competition=E0&team=Brighton~20~26~20Hove~20Albion.json"},
+  {"path": "/players/search", "query": {"q": "Mbappé", "limit": "5"}, "file": "players/search@limit=5&q=Mbapp~C3~A9.json"},
+  {"path": "/predict/by-fixture", "query": {"fixture_key": "E0|2026-09-12|Arsenal|Chelsea"}, "file": "predict/by-fixture@fixture_key=E0~7C2026-09-12~7CArsenal~7CChelsea.json"},
+  {"path": "/players/profile/a~b", "query": {}, "file": "players/profile/a~7Eb.json"},
+  {"path": "/leagues/E0/calendar.ics", "query": {}, "file": "leagues/E0/calendar.ics"},
+  {"path": "/teams/calendar.ics", "query": {"team": "Man City"}, "file": "teams/calendar.ics@team=Man~20City"}
+]

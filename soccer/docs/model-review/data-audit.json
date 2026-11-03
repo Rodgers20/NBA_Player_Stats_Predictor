@@ -1,0 +1,90 @@
+{
+  "latest_result": "2026-09-12",
+  "duplicate_match_keys": 0,
+  "future_results": 0,
+  "source_counts": [
+    {
+      "source": "football-data.org",
+      "len": 30
+    },
+    {
+      "source": "openfootball",
+      "len": 1109
+    },
+    {
+      "source": "football-data.co.uk",
+      "len": 27213
+    }
+  ],
+  "recent_barcelona_raw_matches": [
+    {
+      "date": "2026-08-23",
+      "home": "Elche",
+      "away": "Barcelona",
+      "score": [
+        0,
+        5
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "home": "Barcelona",
+      "away": "Ath Bilbao",
+      "score": [
+        2,
+        0
+      ]
+    },
+    {
+      "date": "2026-08-31",
+      "home": "Barcelona",
+      "away": "Vallecano",
+      "score": [
+        5,
+        2
+      ]
+    },
+    {
+      "date": "2026-09-06",
+      "home": "Valencia",
+      "away": "Barcelona",
+      "score": [
+        0,
+        5
+      ]
+    }
+  ],
+  "current_season": [
+    {
+      "competition_code": "SP1",
+      "matches": 46,
+      "latest_result": "2026-09-12",
+      "missing_home_sot": 5
+    },
+    {
+      "competition_code": "F1",
+      "matches": 27,
+      "latest_result": "2026-09-06",
+      "missing_home_sot": 0
+    },
+    {
+      "competition_code": "I1",
+      "matches": 30,
+      "latest_result": "2026-09-07",
+      "missing_home_sot": 0
+    },
+    {
+      "competition_code": "E0",
+      "matches": 37,
+      "latest_result": "2026-09-12",
+      "missing_home_sot": 7
+    },
+    {
+      "competition_code": "D1",
+      "matches": 18,
+      "latest_result": "2026-09-06",
+      "missing_home_sot": 0
+    }
+  ],
+  "scope": "Stored source CSV compared with processed table; not independent verification of provider facts."
+}

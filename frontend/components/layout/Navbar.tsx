@@ -46,6 +46,10 @@ export function Navbar() {
           <Link href="/cbb" aria-current={college ? "page" : undefined} className={`site-league-pill${college ? " active" : ""}`}>
             COLLEGE
           </Link>
+          {/* Soccer (FUTBALL) is its own deployment proxied at /soccer, so a plain anchor, not a Next <Link>. */}
+          <a href="/soccer" className="site-league-pill">
+            SOCCER
+          </a>
         </div>
       </div>
     </header>

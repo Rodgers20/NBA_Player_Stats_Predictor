@@ -1,3 +1,7 @@
 {
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/soccer", "destination": "https://futball-soccer.vercel.app/soccer" },
+    { "source": "/soccer/:path*", "destination": "https://futball-soccer.vercel.app/soccer/:path*" }
+  ]
 }
