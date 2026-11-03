@@ -4,6 +4,7 @@ import type { BoxScore } from './boxscore-types';
 import type { QuarterQuote } from './sportsbook-links.mjs';
 import type { PropsResponse, GamesResponse, PlayerChartData, PlayerStats, GamePredictionsResponse, HighlightsResponse, ScheduleIndex, PerformanceResponse, LineHistory, DefenseRankings, TrendsResponse, MatchupResponse } from "./types";
 import type { CbbHealth, CbbSchedule, CbbGameDetail, CbbRankings, CbbStandings, CbbModelPerformance, CbbPlayersData, CbbDraftData } from './cbb-types';
+import type { NhlHealth, NhlScheduleIndex, NhlSchedule, NhlGameDetail, NhlPropsBoard, NhlPlayersList, NhlPlayerDetail, NhlStandings, NhlModelPerformance } from './nhl-types';
 import { playerKey, filterProps, seriesChart, scheduledPlayersSnapshot, filterDefense, filterTrends } from './snapshot.mjs';
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, '');
@@ -33,6 +34,24 @@ export const cbbApi = {
   model: () => cbbFile<CbbModelPerformance>('model-performance'),
   players: () => cbbFile<CbbPlayersData>('players'),
   draft: () => cbbFile<CbbDraftData>('draft'),
+};
+
+// NHL ships as static files under /data/nhl in every mode (same as college).
+const nhlFile = async <T,>(file: string): Promise<T> => {
+  const res = await fetch(`/data/nhl/${file}.json`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`NHL data is unavailable (${res.status}). Please try again later.`);
+  return res.json() as Promise<T>;
+};
+export const nhlApi = {
+  health: () => nhlFile<NhlHealth>('health'),
+  scheduleIndex: () => nhlFile<NhlScheduleIndex>('schedule/index'),
+  schedule: (date: string) => nhlFile<NhlSchedule>(`schedule/${date}`),
+  game: (id: string | number) => nhlFile<NhlGameDetail>(`game/${id}`),
+  props: () => nhlFile<NhlPropsBoard>('props'),
+  players: () => nhlFile<NhlPlayersList>('players'),
+  player: (id: string | number) => nhlFile<NhlPlayerDetail>(`player/${id}`),
+  standings: () => nhlFile<NhlStandings>('standings'),
+  model: () => nhlFile<NhlModelPerformance>('model-performance'),
 };
 
 export const api = {
