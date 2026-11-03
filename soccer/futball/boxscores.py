@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
@@ -43,6 +44,7 @@ SCHEMA: dict[str, pl.DataType] = {
     "espn_id": pl.Utf8, "player": pl.Utf8, "team": pl.Utf8, "opponent": pl.Utf8,
     "competition_code": pl.Utf8, "date": pl.Utf8, "event_id": pl.Utf8, "is_home": pl.Boolean,
     "started": pl.Boolean, "sub_in": pl.Boolean, "position": pl.Utf8,
+    "team_id": pl.Utf8, "opp_id": pl.Utf8,
     "goals": pl.Int32, "assists": pl.Int32, "shots": pl.Int32, "sot": pl.Int32,
     "fouls_committed": pl.Int32, "fouls_suffered": pl.Int32, "yellow": pl.Int32, "red": pl.Int32,
     "offsides": pl.Int32, "saves": pl.Int32, "team_goals": pl.Int32, "opp_goals": pl.Int32,
@@ -124,10 +126,12 @@ def parse_summary(
     rows: list[dict] = []
     rosters = (body or {}).get("rosters") or []
     names = {r.get("homeAway"): resolve((r.get("team") or {}).get("displayName", ""), code) for r in rosters}
+    ids = {r.get("homeAway"): str((r.get("team") or {}).get("id") or "") for r in rosters}
     for roster in rosters:
         side = roster.get("homeAway")
         is_home = side == "home"
         other = names.get("away" if is_home else "home", "")
+        other_id = ids.get("away" if is_home else "home", "")
         for entry in roster.get("roster") or []:
             stats = {s.get("name"): s.get("value") for s in entry.get("stats") or []}
             athlete = entry.get("athlete") or {}
@@ -137,6 +141,7 @@ def parse_summary(
             rows.append({
                 "espn_id": str(athlete["id"]), "player": athlete.get("displayName") or athlete.get("fullName") or "",
                 "team": names.get(side, ""), "opponent": other, "competition_code": code,
+                "team_id": ids.get(side, ""), "opp_id": other_id,
                 "date": meta["date"], "event_id": str(meta["event_id"]), "is_home": is_home,
                 "started": entry.get("starter") is True,
                 "sub_in": entry.get("starter") is not True and (bool(entry.get("subbedIn")) or _int(stats.get("subIns")) > 0),
@@ -226,6 +231,22 @@ def backfill(codes: list[str] | None = None, today: date | None = None, workers:
 
 # ---------------------------------------------------------------- silver ---
 
+def canonicalise_clubs(rows: list[dict]) -> list[dict]:
+    """One spelling per ESPN team id, so a club's league and Champions League matches are the same club.
+
+    UCL box scores resolve against the UCL results table ("FC Barcelona", "Aston Villa FC") while
+    domestic ones use football-data spellings ("Barcelona", "Aston Villa"). Left alone, a player's
+    latest match decides which spelling he carries and his season splits in two.
+    The spelling used most in domestic competitions wins; a club that only plays in UCL keeps its own.
+    """
+    votes: dict[str, Counter] = defaultdict(Counter)
+    for r in rows:
+        if r.get("team_id"):
+            votes[r["team_id"]][(r["competition_code"] != "UCL", r["team"])] += 1
+    name = {tid: max(c, key=lambda k: (k[0], c[k]))[1] for tid, c in votes.items()}
+    return [{**r, "team": name.get(r.get("team_id"), r["team"]), "opponent": name.get(r.get("opp_id"), r["opponent"])} for r in rows]
+
+
 def build_silver() -> int:
     """Re-derive `player_match_stats` from every cached summary. Returns the row count."""
     rows: list[dict] = []
@@ -234,6 +255,7 @@ def build_silver() -> int:
             wrapped = _cache.read_json(path)
             if wrapped and not _is_exhibition(wrapped["meta"]):
                 rows.extend(parse_summary(wrapped["body"], code, wrapped["meta"]))
+    rows = canonicalise_clubs(rows)
     df = pl.DataFrame(rows, schema=SCHEMA) if rows else pl.DataFrame(schema=SCHEMA)
     df = df.unique(subset=["espn_id", "event_id"], keep="first").sort(["date", "event_id", "team", "player"])
     SILVER_DIR.mkdir(parents=True, exist_ok=True)

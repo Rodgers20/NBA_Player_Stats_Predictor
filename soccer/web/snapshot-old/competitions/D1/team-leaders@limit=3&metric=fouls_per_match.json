@@ -1,0 +1,1 @@
+{"success":true,"data":{"competition_code":"D1","competition":"Bundesliga","metric":"fouls_per_match","label":"Fouls per match","unit":"fouls","higher_is_better":false,"precision":1,"rows":[{"team":"Augsburg","value":9.5,"played":8},{"team":"Freiburg","value":9.6,"played":8},{"team":"Stuttgart","value":10.1,"played":8}],"note":null},"error":null,"meta":{"source":"results lake"}}

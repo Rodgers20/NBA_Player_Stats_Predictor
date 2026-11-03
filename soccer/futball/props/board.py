@@ -15,6 +15,19 @@ PERSON_FIELDS = ("player", "team", "opponent", "is_home", "position", "market", 
                  "games", "start_prob", "confidence", "reason")
 
 
+#: UCL fixture spellings the generic resolver will not guess; value = the box-score club name.
+CLUB_ALIASES = {"FK Shakhtar Donetsk": "Shakhtar Donetsk", "Sporting Clube de Portugal": "Sporting CP", "FK Bodø/Glimt": "Bodo/Glimt",
+                "ŠK Slovan Bratislava": "Slovan Bratislava", "PAE AEK": "AEK Athen", "PSV": "PSV Eindhoven", "SK Slavia Praha": "Slavia Praha"}
+
+
+def club_resolver(rows: list[dict]) -> Callable[[str], str]:
+    """Fixture team name -> the club name its box-score rows carry (unchanged when unknown)."""
+    from ..teams import TeamResolver
+
+    resolver = TeamResolver(sorted({r["team"] for r in rows}))
+    return lambda name: CLUB_ALIASES.get(name) or resolver.resolve(name) or name
+
+
 def _league_avgs(aggs: dict[str, fm.TeamAggregate], teams: set[str]) -> dict[str, float]:
     chosen = [a for t, a in aggs.items() if t in teams] or list(aggs.values())
     games = sum(a.games for a in chosen) or 1
@@ -43,6 +56,7 @@ def build_board(code: str, rows: list[dict], fixtures: list[dict], predict: Call
     league = _league_avgs(aggs, scope)
     markets = tuple(m for m in price.MARKETS if not (m == "shots_on_target" and code in NO_SOT_COMPETITIONS))
 
+    club = club_resolver(rows)
     out = []
     for fx in fixtures:
         entry = {k: fx[k] for k in ("fixture_key", "date", "time", "kickoff_utc", "home_team", "away_team")}
@@ -51,8 +65,11 @@ def build_board(code: str, rows: list[dict], fixtures: list[dict], predict: Call
         except (ValueError, KeyError, TypeError):
             out.append({**entry, "home_xg": None, "away_xg": None, "props": []})
             continue
-        priced = price.price_fixture(forms, aggs, priors, league, fx["home_team"], fx["away_team"], xg, sot, markets, dispersion, strength)
-        props = [{"player_key": key_for(r["espn_id"], r["player"], r["team"]), **{k: r[k] for k in PERSON_FIELDS}}
+        home, away = club(fx["home_team"]), club(fx["away_team"])
+        shown = {home: fx["home_team"], away: fx["away_team"]}  # props carry the fixture's own spelling so crests still match
+        priced = price.price_fixture(forms, aggs, priors, league, home, away, xg, sot, markets, dispersion, strength)
+        props = [{"player_key": key_for(r["espn_id"], r["player"], r["team"]),
+                  **{k: r[k] for k in PERSON_FIELDS}, "team": shown[r["team"]], "opponent": shown[r["opponent"]]}
                  for r in priced if _keep(r)]
         out.append({**entry, "home_xg": xg["home"], "away_xg": xg["away"], "props": props})
     return {"competition_code": code, "generated_at": generated_at, "model_trained_through": trained_through, "fixtures": out}
@@ -85,9 +102,9 @@ def gamelog(rows: list[dict], espn_id: str, player_key: str, board: dict) -> dic
     for fx in board["fixtures"]:
         found = [p for p in fx["props"] if p["player_key"] == player_key]
         if found:
-            side_home = fx["home_team"] == form.team
-            next_fx = {"fixture_key": fx["fixture_key"], "opponent": fx["away_team"] if side_home else fx["home_team"],
-                       "date": fx["date"], "is_home": side_home}
+            # the priced row knows his side and opponent even when the fixture spells his club differently
+            next_fx = {"fixture_key": fx["fixture_key"], "opponent": found[0]["opponent"], "date": fx["date"],
+                       "is_home": found[0]["is_home"]}
             props = found
             break
     return {

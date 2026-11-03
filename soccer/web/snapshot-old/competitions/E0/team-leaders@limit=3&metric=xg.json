@@ -1,0 +1,1 @@
+{"success":true,"data":{"competition_code":"E0","competition":"Premier League","metric":"xg","label":"Expected goals (xG)","unit":"xG","higher_is_better":true,"precision":2,"rows":[{"team":"Man City","value":18.63,"played":9},{"team":"Brighton","value":17.21,"played":9},{"team":"Bournemouth","value":15.74,"played":9}],"note":null},"error":null,"meta":{"source":"results lake"}}

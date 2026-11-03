@@ -1,0 +1,1 @@
+{"success":true,"data":{"competition_code":"E0","competition":"Premier League","metric":"xg_difference","label":"xG difference","unit":"xG","higher_is_better":true,"precision":2,"rows":[{"team":"Arsenal","value":7.66,"played":9},{"team":"Man City","value":7.19,"played":9},{"team":"Bournemouth","value":5.63,"played":9}],"note":null},"error":null,"meta":{"source":"results lake"}}

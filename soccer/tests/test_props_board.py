@@ -80,3 +80,17 @@ def test_gamelog_has_season_totals_newest_first_games_and_next_fixture():
     assert log["next_fixture"] == {"fixture_key": FIXTURE["fixture_key"], "opponent": "Chelsea", "date": "2026-11-07", "is_home": True}
     assert log["props"] and all(p["player_key"] == "espn-1" for p in log["props"])
     assert "tackles" in " ".join(log["notes"]).lower()
+
+
+def test_fixture_spelling_differing_from_box_score_spelling_still_prices_the_stars():
+    fx = {**FIXTURE, "home_team": "Arsenal FC", "away_team": "Chelsea FC"}
+    props = build(code="UCL", fixtures=(fx,))["fixtures"][0]["props"]
+    assert {"P1", "P5"} <= {p["player"] for p in props}
+    assert {p["team"] for p in props} == {"Arsenal FC", "Chelsea FC"}  # fixture spelling is kept for crests
+
+
+def test_next_fixture_side_and_opponent_survive_a_different_fixture_spelling():
+    fx = {**FIXTURE, "home_team": "Arsenal FC", "away_team": "Chelsea FC"}
+    b = build(code="UCL", fixtures=(fx,))
+    log = board.gamelog(history(), "1", "espn-1", b)
+    assert log["next_fixture"]["is_home"] is True and log["next_fixture"]["opponent"] == "Chelsea FC"

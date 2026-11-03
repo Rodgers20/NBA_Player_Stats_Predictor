@@ -90,3 +90,16 @@ def test_leaders_rank_goals_and_assists_from_box_scores_for_one_competition():
     assert [(x["player"], x["goals"], x["played"]) for x in got["scorers"]] == [("A", 3, 2), ("B", 1, 2)]
     assert [(x["player"], x["assists"]) for x in got["assists"]] == [("B", 4), ("A", 1)]
     assert got["scorers"][0]["player_id"] == "espn-1" and got["scorers"][0]["team"] == "X"
+
+
+def test_a_clubs_league_and_ucl_spellings_merge_by_team_id():
+    def row(code, team, opp):
+        return {"competition_code": code, "team": team, "team_id": "83", "opponent": opp, "opp_id": "9"}
+    merged = bs.canonicalise_clubs([row("SP1", "Barcelona", "Getafe"), row("SP1", "Barcelona", "Getafe"),
+                                    row("UCL", "FC Barcelona", "Aston Villa FC")])
+    assert {r["team"] for r in merged} == {"Barcelona"}
+
+
+def test_a_ucl_only_club_keeps_its_own_spelling():
+    merged = bs.canonicalise_clubs([{"competition_code": "UCL", "team": "FC Porto", "team_id": "5", "opponent": "x", "opp_id": ""}])
+    assert merged[0]["team"] == "FC Porto"

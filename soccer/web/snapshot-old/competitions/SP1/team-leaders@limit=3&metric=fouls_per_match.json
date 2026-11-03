@@ -1,0 +1,1 @@
+{"success":true,"data":{"competition_code":"SP1","competition":"La Liga","metric":"fouls_per_match","label":"Fouls per match","unit":"fouls","higher_is_better":false,"precision":1,"rows":[{"team":"Real Madrid","value":8.7,"played":11},{"team":"Betis","value":10.1,"played":11},{"team":"Levante","value":10.2,"played":11}],"note":null},"error":null,"meta":{"source":"results lake"}}

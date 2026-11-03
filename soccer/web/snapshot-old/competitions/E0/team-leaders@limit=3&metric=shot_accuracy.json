@@ -1,0 +1,1 @@
+{"success":true,"data":{"competition_code":"E0","competition":"Premier League","metric":"shot_accuracy","label":"Shot accuracy","unit":"%","higher_is_better":true,"precision":1,"rows":[{"team":"Chelsea","value":42.1,"played":9},{"team":"Ipswich","value":37.4,"played":9},{"team":"Man City","value":36.2,"played":9}],"note":null},"error":null,"meta":{"source":"results lake"}}

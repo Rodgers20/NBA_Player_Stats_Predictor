@@ -1,0 +1,1 @@
+{"success":true,"data":{"competition_code":"SP1","competition":"La Liga","metric":"cards_per_match","label":"Cards per match","unit":"cards","higher_is_better":false,"precision":2,"rows":[{"team":"Levante","value":1.36,"played":11},{"team":"Barcelona","value":1.55,"played":11},{"team":"Betis","value":1.64,"played":11}],"note":null},"error":null,"meta":{"source":"results lake"}}
