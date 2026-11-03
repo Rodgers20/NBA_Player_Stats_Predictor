@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { nhlApi } from "@/lib/api";
@@ -10,7 +11,7 @@ import { todayEt } from "@/lib/slate-freshness.mjs";
 import { DateStrip } from "@/components/games/DateStrip";
 import { BoardGroups } from "@/components/games/shared/Board";
 import { NhlGameCard } from "./NhlGameCard";
-import { ErrorBox, Loading, NhlHeader } from "./parts";
+import { ErrorBox, Loading, NhlHeader, FRAME } from "./parts";
 import type { NhlGame } from "@/lib/nhl-types";
 
 function RecordBar({ games }: { games: NhlGame[] }) {
@@ -48,8 +49,10 @@ export function NhlSlate() {
   };
 
   return (
-    <div className="ql-page">
-      <NhlHeader title="NHL games" sub="Every game with a model win probability, projected total and the pre-game call kept for finished games. There are no sportsbook lines in this data." />
+    <div className={FRAME}>
+      <NhlHeader kicker="GAMES" title="NHL games" sub="Every game with a model win probability, projected total and the pre-game call kept for finished games. There are no sportsbook lines in this data.">
+        <span className="flex gap-2"><Link href="/nhl/standings" className="ql-chip">Standings</Link><Link href="/nhl/model" className="ql-chip">Model record</Link></span>
+      </NhlHeader>
       {index.isError && <ErrorBox onRetry={() => void index.refetch()}>NHL data is unavailable.</ErrorBox>}
       {days && date && <DateStrip dates={days.map(d => d.date)} date={date} today={today} onChange={choose} />}
       <div className="mt-4">

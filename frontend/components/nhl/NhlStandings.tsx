@@ -4,15 +4,15 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { nhlApi } from "@/lib/api";
 import { pct, signed } from "@/lib/nhl.mjs";
-import { ErrorBox, Loading, NhlHeader, NhlLogo } from "./parts";
+import { ErrorBox, Loading, NhlHeader, FRAME, NhlLogo } from "./parts";
 
 export function NhlStandings() {
   const { data, isPending, isError, refetch } = useQuery({ queryKey: ["nhl-standings"], queryFn: nhlApi.standings, staleTime: 600_000 });
   const [conf, setConf] = useState("");
   const list = useMemo(() => (data?.conferences ?? []).filter(c => !conf || c.name === conf), [data, conf]);
   return (
-    <div className="ql-page">
-      <NhlHeader title="Standings" sub="Division and conference standings by points. Elo is the model's team-strength rating going into the next game.">
+    <div className={FRAME}>
+      <NhlHeader kicker="STANDINGS" title="Standings" sub="Division and conference standings by points. Elo is the model's team-strength rating going into the next game.">
         {data && <select aria-label="Conference" value={conf} onChange={e => setConf(e.target.value)} className="ql-control px-3 text-xs font-bold">
           <option value="">Both conferences</option>
           {data.conferences.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}

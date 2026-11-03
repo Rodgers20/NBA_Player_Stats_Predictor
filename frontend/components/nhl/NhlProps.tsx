@@ -6,7 +6,7 @@ import { nhlApi } from "@/lib/api";
 import { MARKETS, lineLabel, tipText } from "@/lib/nhl.mjs";
 import { SORTS, boardGames, boardRows, initialLine, lineOptions } from "@/lib/nhl-props.mjs";
 import type { NhlMarketKey } from "@/lib/nhl-types";
-import { ErrorBox, FairOddsNote, Loading, NhlHeader } from "./parts";
+import { ErrorBox, FairOddsNote, Loading, NhlHeader, FRAME } from "./parts";
 import { NhlPropRow } from "./NhlPropRow";
 import { NhlPlayerSheet } from "./NhlPlayerSheet";
 
@@ -34,10 +34,18 @@ export function NhlProps() {
   const teams = useMemo(() => [...new Set(dayPlayers.map(p => p.team))].sort(), [dayPlayers]);
   const rows = useMemo(() => boardRows(players, { market, line, date, gameId, team, query, sort }), [players, market, line, date, gameId, team, query, sort]);
   const reset = () => setShown(PAGE);
+  const byGame = useMemo(() => {
+    const groups = new Map<string, typeof rows>();
+    for (const r of rows.slice(0, shown)) {
+      const p = r.player, key = p.home ? `${p.opp} @ ${p.team}` : `${p.team} @ ${p.opp}`;
+      groups.set(key, [...(groups.get(key) ?? []), r]);
+    }
+    return [...groups.entries()];
+  }, [rows, shown]);
 
   return (
-    <div className="ql-page">
-      <NhlHeader title="NHL props" sub="Anytime goal, shots on goal, assists and points for every player projected to dress, as model probability and fair odds." />
+    <div className={FRAME}>
+      <NhlHeader kicker="PROPS" title="NHL props" sub="Anytime goal, shots on goal, assists and points for every player projected to dress, as model probability and fair odds." />
       <div className="mb-4"><FairOddsNote extra={data?.lineup_note ? <> {data.lineup_note}</> : undefined} /></div>
       {isPending && <Loading label="Loading props" />}
       {isError && <ErrorBox onRetry={() => void refetch()}>The props board is unavailable.</ErrorBox>}
@@ -48,8 +56,9 @@ export function NhlProps() {
             {data.dates.map(d => <button key={d} type="button" aria-pressed={d === date} onClick={() => { setDate(d); setGameId(""); setTeam(""); reset(); }} className={`ql-chip ${d === date ? "ql-chip-active" : ""}`}>{dayLabel(d)}</button>)}
           </div>
         )}
-        <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" role="tablist" aria-label="Market">
-          {MARKETS.map(m => <button key={m.key} type="button" role="tab" aria-selected={market === m.key} onClick={() => { setMarket(m.key); reset(); }} className={`ql-chip shrink-0 ${market === m.key ? "ql-chip-active" : ""}`}>{m.label}</button>)}
+        <div className="mb-5 flex max-w-full items-center gap-1 overflow-x-auto border-b border-ink/10" role="tablist" aria-label="Market">
+          {MARKETS.map(m => <button key={m.key} type="button" role="tab" aria-selected={market === m.key} onClick={() => { setMarket(m.key); reset(); }}
+            className={`shrink-0 border-b-2 px-3 py-2.5 text-xs font-bold uppercase tracking-[.08em] ${market === m.key ? "border-teal-400 text-teal-400" : "border-transparent text-text-sec hover:text-ink"}`}>{m.label}</button>)}
         </div>
         {options.length > 1 && (
           <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Line">
@@ -73,9 +82,19 @@ export function NhlProps() {
         </div>
         <p className="mb-2 font-mono text-[11px] text-text-sec">{rows.length} players · over {line} {MARKETS.find(m => m.key === market)?.unit}</p>
         {rows.length === 0 ? <p role="status" className="ql-panel p-5 text-sm text-text-sec">No players match these filters.</p> : (
-          <ul className="ql-panel divide-y divide-ink/[0.07] overflow-hidden">
-            {rows.slice(0, shown).map(r => <NhlPropRow key={r.player.player_id} row={r} market={market} onOpen={setOpen} />)}
-          </ul>
+          <div className="min-w-0 space-y-5">
+            {byGame.map(([matchup, list]) => (
+              <section key={matchup} aria-label={matchup}>
+                <div className="mb-2 flex items-baseline justify-between border-b border-ink/10 pb-2">
+                  <h2 className="ql-section-title">{matchup}</h2>
+                  <span className="ql-data-label text-text-sec">{list.length} PROPS</span>
+                </div>
+                <ul className="ql-panel divide-y divide-ink/[0.07] overflow-hidden">
+                  {list.map(r => <NhlPropRow key={r.player.player_id} row={r} market={market} onOpen={setOpen} />)}
+                </ul>
+              </section>
+            ))}
+          </div>
         )}
         {rows.length > shown && <button type="button" onClick={() => setShown(s => s + PAGE)} className="ql-chip mx-auto mt-4">Show more ({rows.length - shown})</button>}
       </>}

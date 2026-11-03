@@ -13,7 +13,7 @@ import { WhoWins } from "@/components/games/shared/WhoWins";
 import { CallTiles } from "@/components/games/shared/CallTiles";
 import { GameNavBar, type NavTarget } from "@/components/games/shared/GameNavBar";
 import type { NhlGame, NhlGameDetail, NhlSide } from "@/lib/nhl-types";
-import { ErrorBox, FairOddsNote, Loading, Mark, NhlLogo } from "./parts";
+import { ErrorBox, FairOddsNote, Loading, Mark, NhlLogo, FRAME } from "./parts";
 import { Factors, H2H, RecentForm, RestGoalies } from "./NhlGameParts";
 import { NhlBoxScore } from "./NhlBoxScore";
 import { NhlTopProps } from "./NhlTopProps";
@@ -68,12 +68,12 @@ export function NhlGamePage() {
   const q = useQuery({ queryKey: ["nhl-game", id], queryFn: () => nhlApi.game(id), enabled: valid, staleTime: 120_000, retry: false });
   const [player, setPlayer] = useState<number | null>(null);
   const back = <Link href="/nhl" className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-sec hover:text-text-pri"><ArrowLeft size={16} aria-hidden /> All games</Link>;
-  if (!valid) return <div className="ql-page">{back}<ErrorBox>That game link is not valid.</ErrorBox></div>;
-  if (q.isPending) return <div className="ql-page">{back}<Loading label="Loading game" /></div>;
-  if (q.isError) return <div className="ql-page">{back}<ErrorBox>This game isn&apos;t in the data. Game pages cover roughly a week back and a week ahead.</ErrorBox></div>;
+  if (!valid) return <div className={FRAME}>{back}<ErrorBox>That game link is not valid.</ErrorBox></div>;
+  if (q.isPending) return <div className={FRAME}>{back}<Loading label="Loading game" /></div>;
+  if (q.isError) return <div className={FRAME}>{back}<ErrorBox>This game isn&apos;t in the data. Game pages cover roughly a week back and a week ahead.</ErrorBox></div>;
   const d: NhlGameDetail = q.data;
   return (
-    <div className="ql-page">
+    <div className={FRAME}>
       <GameNav game={d.game} />
       <div className="space-y-4">
         <Hero g={d.game} />

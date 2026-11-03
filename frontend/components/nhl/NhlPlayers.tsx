@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { nhlApi } from "@/lib/api";
 import { num } from "@/lib/nhl.mjs";
-import { AbbrLogo, ErrorBox, Headshot, Loading, NhlHeader } from "./parts";
+import { AbbrLogo, ErrorBox, Headshot, Loading, NhlHeader, FRAME } from "./parts";
 import { NhlPlayerAnalysis } from "./NhlPlayerAnalysis";
 
 const PAGE = 50;
@@ -18,7 +18,7 @@ function PlayerPage({ id }: { id: string }) {
   const q = useQuery({ queryKey: ["nhl-player", Number(id)], queryFn: () => nhlApi.player(id), staleTime: 300_000, retry: false, enabled: /^\d{5,9}$/.test(id) });
   const back = <Link href="/nhl/players" className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-sec hover:text-text-pri"><ArrowLeft size={16} aria-hidden /> All players</Link>;
   return (
-    <div className="ql-page">
+    <div className={FRAME}>
       {back}
       {!/^\d{5,9}$/.test(id) ? <ErrorBox>That player link is not valid.</ErrorBox>
         : q.isPending ? <Loading label="Loading player" />
@@ -44,8 +44,8 @@ function PlayerList() {
     return (data?.players ?? []).filter(p => (!pos || (pos === "D" ? p.pos === "D" : p.pos !== "D")) && (!needle || fold(p.name).includes(needle) || fold(p.team).includes(needle)));
   }, [data, q, pos]);
   return (
-    <div className="ql-page">
-      <NhlHeader title="Players" sub="Search any skater for his game log, hit rates against each line, splits and the model's projection for his next game. Goalies are not covered." />
+    <div className={FRAME}>
+      <NhlHeader kicker="PLAYERS" title="Players" sub="Search any skater for his game log, hit rates against each line, splits and the model's projection for his next game. Goalies are not covered." />
       {isPending && <Loading label="Loading players" />}
       {isError && <ErrorBox onRetry={() => void refetch()}>Player data is unavailable.</ErrorBox>}
       {data && <>

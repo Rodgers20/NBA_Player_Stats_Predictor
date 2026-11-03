@@ -1,44 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { TeamLogo } from "@/components/teams/TeamLogo";
 import type { NhlTeamRef } from "@/lib/nhl-types";
 
 export { ErrorBox, Loading, Mark } from "@/components/cbb/parts";
 
-const TABS = [
-  { href: "/nhl", label: "Games" },
-  { href: "/nhl/props", label: "Props" },
-  { href: "/nhl/players", label: "Players" },
-  { href: "/nhl/standings", label: "Standings" },
-  { href: "/nhl/model", label: "Model record" },
-] as const;
-
-/** Page title plus the NHL sub-nav. */
-export function NhlHeader({ title, sub, children }: { title: string; sub?: ReactNode; children?: ReactNode }) {
-  const path = usePathname().replace(/\/$/, "") || "/";
+/** NBA-style page header: kicker, heading, subtitle, optional right-hand controls. Navigation lives in the bottom bar and rail. */
+export function NhlHeader({ kicker, title, sub, children }: { kicker: string; title: string; sub?: ReactNode; children?: ReactNode }) {
   return (
-    <header className="mb-5 space-y-4">
-      <nav aria-label="NHL" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-        {TABS.map(tab => {
-          const active = tab.href === "/nhl" ? path === "/nhl" || path.startsWith("/nhl/game") : path.startsWith(tab.href);
-          return <Link key={tab.href} href={tab.href} aria-current={active ? "page" : undefined}
-            className={`ql-chip shrink-0 whitespace-nowrap ${active ? "ql-chip-active" : ""}`}>{tab.label}</Link>;
-        })}
-      </nav>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="ql-kicker">National Hockey League</p>
-          <h1 className="ql-heading mt-1">{title}</h1>
-          {sub && <p className="ql-subtitle mt-2 max-w-2xl">{sub}</p>}
-        </div>
-        {children}
+    <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p className="ql-kicker">{kicker} / NHL</p>
+        <h1 className="ql-heading mt-1">{title}</h1>
+        {sub && <p className="ql-subtitle mt-2 max-w-[80ch]">{sub}</p>}
       </div>
+      {children}
     </header>
   );
 }
+
+/** Same page frame the NBA pages use. */
+export const FRAME = "ql-page mx-auto max-w-[1440px] px-4 pb-12 pt-7 sm:px-8";
 
 /** Team logo from the data's own SVG url (the dark-background variant), initials when it fails. */
 export function NhlLogo({ team, size = 32 }: { team: Pick<NhlTeamRef, "abbr" | "name" | "logo" | "logo_dark">; size?: number }) {
@@ -68,13 +51,8 @@ export function Headshot({ src, name, size = 40 }: { src: string | null | undefi
 /** The honesty note shown wherever a prop probability appears. */
 export function FairOddsNote({ extra }: { extra?: ReactNode }) {
   return (
-    <div role="note" className="ql-panel border-lock-gold/40 p-4">
-      <p className="ql-kicker !text-lock-gold">Read this first</p>
-      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-text-pri">
-        These are model probabilities and fair odds, not sportsbook lines. There are no free sportsbook prop lines in this data, so nothing here is an
-        offer you can bet at. Compare the fair odds with your book&apos;s price: a bet only has positive edge when the book pays <b>better</b> than fair
-        (for example, fair is -150 and your book offers -130 or +100).{extra}
-      </p>
-    </div>
+    <p role="note" className="ql-panel border-lock-gold/40 px-4 py-3 text-xs leading-relaxed text-text-sec">
+      <b className="text-lock-gold">Model odds, not book lines.</b> Probabilities and fair odds only; there are no free NHL prop lines. A bet has an edge only when your book pays better than fair.{extra}
+    </p>
   );
 }

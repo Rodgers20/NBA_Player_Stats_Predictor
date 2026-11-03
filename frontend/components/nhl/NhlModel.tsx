@@ -5,7 +5,7 @@ import { nhlApi } from "@/lib/api";
 import { MARKETS, pct } from "@/lib/nhl.mjs";
 import { Panel } from "@/components/games/shared/Panel";
 import type { NhlCalBin, NhlMarketKey, NhlModelPerformance, NhlPropPerf } from "@/lib/nhl-types";
-import { ErrorBox, Loading, Mark, NhlHeader } from "./parts";
+import { ErrorBox, Loading, Mark, NhlHeader, FRAME } from "./parts";
 
 function Big({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return <div><dt className="ql-data-label">{label}</dt><dd className="ql-metric mt-1">{value}</dd>{sub && <dd className="mt-1 text-xs text-text-sec">{sub}</dd>}</div>;
@@ -99,8 +99,8 @@ function Body({ d }: { d: NhlModelPerformance }) {
 export function NhlModel() {
   const { data, isPending, isError, refetch } = useQuery({ queryKey: ["nhl-model"], queryFn: nhlApi.model, staleTime: 600_000 });
   return (
-    <div className="ql-page">
-      <NhlHeader title="Model record" sub="How the game and prop models did in a walk-forward backtest and on calls logged before puck drop." />
+    <div className={FRAME}>
+      <NhlHeader kicker="MODEL" title="Model record" sub="How the game and prop models did in a walk-forward backtest and on calls logged before puck drop." />
       {isPending && <Loading label="Loading model record" />}
       {isError && <ErrorBox onRetry={() => void refetch()}>The model record is unavailable.</ErrorBox>}
       {data && <Body d={data} />}
