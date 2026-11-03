@@ -8,7 +8,7 @@ import httpx
 from .. import config
 from ..sources import _cache
 
-LEAGUES = {'E0':'eng.1', 'SP1':'esp.1', 'UCL':'uefa.champions'}
+LEAGUES = config.ESPN_SLUGS
 RAW = config.RAW / 'espn-live'
 _locks = {code: threading.Lock() for code in LEAGUES}
 _memory = {}
@@ -58,6 +58,20 @@ def parse(body: dict, code: str, now: datetime) -> list[dict]:
     return sorted(out,key=lambda r:r['kickoff_utc'])
 
 
+def _scoreboard(code: str, now: datetime) -> dict:
+    """Yesterday + today. ESPN rejects any multi-day `dates` range with a 400, so ask per day."""
+    events: list = []
+    for day in (now - timedelta(days=1), now):
+        response = httpx.get(f'https://site.api.espn.com/apis/site/v2/sports/soccer/{LEAGUES[code]}/scoreboard',
+                             params={'dates': f'{day:%Y%m%d}', 'limit': 100}, timeout=12)
+        response.raise_for_status()
+        body = response.json()
+        if not isinstance(body, dict) or not isinstance(body.get('events'), list):
+            raise ValueError('Invalid scoreboard')
+        events.extend(body['events'])
+    return {'events': events}
+
+
 def board(code: str) -> dict:
     now = datetime.now(timezone.utc)
     day = now.date().isoformat()
@@ -76,12 +90,7 @@ def board(code: str) -> dict:
             if recent:
                 body = disk['body']
             else:
-                dates = f'{now-timedelta(days=1):%Y%m%d}-{now:%Y%m%d}'
-                response = httpx.get(f'https://site.api.espn.com/apis/site/v2/sports/soccer/{LEAGUES[code]}/scoreboard', params={'dates':dates,'limit':100}, timeout=12)
-                response.raise_for_status()
-                body = response.json()
-                if not isinstance(body,dict) or not isinstance(body.get('events'),list):
-                    raise ValueError('Invalid scoreboard')
+                body = _scoreboard(code, now)
                 fetched = now.isoformat()
             rows = parse(body, code, now)
             # Discover delayed starts quickly near kickoff; idle leagues poll slowly.

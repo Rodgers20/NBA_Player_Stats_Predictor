@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import logging
 
+import polars as pl
+
 from .. import config, league
 from ..sources import football_data_org as fdo
 from . import serve
@@ -80,6 +82,27 @@ def _fixtures_in(code: str, matchday: int) -> list[dict]:
     return rows
 
 
+WINDOW_DAYS = 7
+
+
+def _window_fixtures(code: str) -> list[dict]:
+    """Fixtures from the last two days to the next WINDOW_DAYS, for competitions with no provider rounds."""
+    from datetime import date, timedelta
+
+    today = date.today()
+    lo, hi = (today - timedelta(days=2)).isoformat(), (today + timedelta(days=WINDOW_DAYS)).isoformat()
+    rows = league._fixtures().filter(
+        (pl.col("competition_code") == code) & (pl.col("date") >= lo) & (pl.col("date") <= hi)
+    ).sort(["date", "time"]).to_dicts()
+    return [{
+        "provider_id": None, "kickoff_utc": r["kickoff_utc"], "date": r["date"],
+        "status": "FINISHED" if r["home_goals"] is not None else "SCHEDULED",
+        "home_team": r["home_team"], "away_team": r["away_team"],
+        "home_name": r["home_team"], "away_name": r["away_team"],
+        "home_goals": r["home_goals"], "away_goals": r["away_goals"],
+    } for r in rows]
+
+
 def _headline(prediction: dict) -> dict:
     """The few numbers a round-at-a-glance board can actually show."""
     corners = prediction.get("corners") or {}
@@ -122,21 +145,23 @@ def board(code: str, matchday: int | None = None) -> dict:
         "note": None,
     }
 
-    if code not in fdo.COMPETITIONS:
-        result["note"] = f"{result['competition']} has no fixture list on this plan."
-        return result
-
-    result["matchdays"] = available_matchdays(code)
-    matchday = matchday if matchday is not None else current_matchday(code)
-    if matchday is None:
-        result["note"] = "Every published round has been played."
-        return result
-    result["matchday"] = matchday
-
-    fixtures = _fixtures_in(code, matchday)
-    if not fixtures:
-        result["note"] = f"No fixtures published for matchday {matchday}."
-        return result
+    if code in fdo.COMPETITIONS:
+        result["matchdays"] = available_matchdays(code)
+        matchday = matchday if matchday is not None else current_matchday(code)
+        if matchday is None:
+            result["note"] = "Every published round has been played."
+            return result
+        result["matchday"] = matchday
+        fixtures = _fixtures_in(code, matchday)
+        if not fixtures:
+            result["note"] = f"No fixtures published for matchday {matchday}."
+            return result
+    else:
+        # No provider rounds (MLS): a rolling window of recent and upcoming fixtures instead.
+        fixtures = _window_fixtures(code)
+        if not fixtures:
+            result["note"] = f"{result['competition']} has no fixtures in the next {WINDOW_DAYS} days."
+            return result
 
     known = set(serve.teams(code))
     out = []

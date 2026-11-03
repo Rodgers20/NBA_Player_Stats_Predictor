@@ -51,7 +51,9 @@ def test_match_join_requires_both_sides_date_and_finished():
              'competitions': [{'competitors': [{'homeAway': 'home', 'team': {'displayName': 'Home'}}, {'homeAway': 'away', 'team': {'displayName': 'Different'}}]}]}
     with patch.object(m, 'canonical', side_effect=lambda x:x), patch.object(m, 'fetch', return_value={'events':[event]}) as get:
         assert m.match_summary(fixture(), 'SP1') == {}
-        assert get.call_count == 1
+        # ESPN 400s on date ranges: the day before, the day and the day after are three single-date calls.
+        assert get.call_count == 3
+        assert [c.args[2]['dates'] for c in get.call_args_list] == ['20260831', '20260901', '20260902']
 
 
 def test_latest_does_not_fall_back_to_an_older_full_lineup():

@@ -1,41 +1,25 @@
-import type { Metadata } from "next";
-import { Archivo, Public_Sans, IBM_Plex_Mono } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Barlow_Condensed, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import { RestorePreferences } from "@/components/Preferences";
 import { Providers } from "@/components/Providers";
 
-// Deliberately not Inter/Roboto. Archivo's condensed weights give scorelines
-// presence; Public Sans is a workhorse with a voice; Plex Mono keeps stat
-// columns aligned.
-const display = Archivo({
-  subsets: ["latin"],
-  variable: "--font-display",
-  weight: ["500", "600", "700", "800"],
-});
-const body = Public_Sans({
-  subsets: ["latin"],
-  variable: "--font-body",
-  weight: ["400", "500", "600"],
-});
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400", "500", "600"],
-});
+// Same three faces as the main Court Vision app, so both sections read as one product.
+const display = Barlow_Condensed({ subsets: ["latin"], variable: "--font-barlow", weight: ["500", "600", "700", "800", "900"] });
+const body = IBM_Plex_Sans({ subsets: ["latin"], variable: "--font-plex-sans", weight: ["400", "500", "600", "700"] });
+const mono = IBM_Plex_Mono({ subsets: ["latin"], variable: "--font-plex-mono", weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
-  title: "FUTBALL — Football Intelligence",
-  description:
-    "Live 3D football intelligence dashboard built on StatsBomb open data.",
+  title: "Soccer Props AI",
+  description: "Soccer match predictions, player props and player analysis for the Premier League, La Liga, Champions League, Bundesliga and MLS.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export const viewport: Viewport = { themeColor: "#0d151b", width: "device-width", initialScale: 1 };
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
-      <body className="min-h-screen antialiased">
-        <RestorePreferences /><Providers>{children}</Providers>
+      <body>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

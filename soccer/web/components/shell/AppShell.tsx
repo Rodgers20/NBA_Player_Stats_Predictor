@@ -1,8 +1,6 @@
-import { Suspense } from "react";
 import { api } from "@/lib/api";
 import { resolveCompetition } from "@/lib/competition";
-import { Sidebar } from "./Sidebar";
-import { TopBar } from "./TopBar";
+import { BottomNav, Header, Rail } from "./Nav";
 import type { League, LiveCounts } from "@/lib/types";
 
 export interface ShellContext {
@@ -19,8 +17,13 @@ export async function loadShell(requested?: string): Promise<ShellContext> {
   return { leagues, competition: resolveCompetition(requested, leagues), live };
 }
 
+/**
+ * Page chrome. `breadcrumb` and `action` are accepted so existing pages keep
+ * compiling; both are ignored on purpose: the header's competition pills do
+ * the job of the old switcher, and each page carries its own heading.
+ */
 export function AppShell({
-  shell, title, breadcrumb, action, children,
+  shell, title, children,
 }: {
   shell: ShellContext;
   title: string;
@@ -29,21 +32,15 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen">
+    <>
       <a className="skip-link" href="#main-content">Skip to content</a>
-      <Suspense fallback={<div className="hidden lg:block w-[236px] shrink-0 border-r border-stroke" />}>
-        <Sidebar
-          leagues={shell.leagues}
-          selected={shell.competition}
-          liveTotal={shell.live.total}
-          liveByCompetition={shell.live.by_competition}
-        />
-      </Suspense>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar competition={shell.competition} leagues={shell.leagues} title={title}
-                breadcrumb={breadcrumb} action={action} liveTotal={shell.live.total} />
-        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 p-4 lg:p-6">{children}</main>
-      </div>
-    </div>
+      <Rail competition={shell.competition} />
+      <Header leagues={shell.leagues} competition={shell.competition} />
+      <main id="main-content" tabIndex={-1} className="app-main">
+        <h1 className="sr-only">{title}</h1>
+        <div className="mx-auto w-full max-w-[1500px]">{children}</div>
+      </main>
+      <BottomNav competition={shell.competition} />
+    </>
   );
 }

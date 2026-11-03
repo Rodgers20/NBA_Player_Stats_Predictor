@@ -1,39 +1,43 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { AppShell, loadShell } from "@/components/shell/AppShell";
-import { Panel } from "@/components/shell/Panel";
-import { PlayerProfileView } from "@/components/player/PlayerProfileView";
-import type { PlayerProfile } from "@/lib/types";
+import { PlayerAnalysis } from "@/components/player/PlayerAnalysis";
+import type { PlayerGamelog, PlayerProfile } from "@/lib/types";
+import styles from "@/components/player/analysis.module.css";
 
 export const dynamic = "force-dynamic";
 
+/** `id` is the player_key: a numeric profile id, or `espn-<athlete id>` for players only seen in box scores. */
 export default async function PlayerPage({
   params, searchParams,
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ competition?: string }>;
 }) {
-  const { id } = await params;
+  const { id: raw } = await params;
+  const id = decodeURIComponent(raw);
   const sp = await searchParams;
   const shell = await loadShell(sp.competition);
 
-  let profile: PlayerProfile | null = null;
-  let error: string | null = null;
-  try {
-    profile = await api.playerProfile(id);
-  } catch (e) {
-    error = e instanceof Error ? e.message : "Could not load this player.";
-  }
+  const [gamelog, profile] = await Promise.all([
+    api.playerGamelog(id).catch((): PlayerGamelog | null => null),
+    api.playerProfile(id).catch((): PlayerProfile | null => null),
+  ]);
 
-  if (!profile) {
+  if (!gamelog && !profile) {
     return (
       <AppShell shell={shell} title="Player" breadcrumb="Not found">
-        <Panel title="Player unavailable">
-          <p className="p-4 text-sm text-ink-secondary">
-            {error ?? "No player matches that id."}{" "}
-            <Link href="/players" className="text-pitch underline">Back to search</Link>
-          </p>
-        </Panel>
+        <div className={styles.root}>
+          <div className={styles.panel}>
+            <div className={styles.empty}>
+              <h3>Player not found</h3>
+              <p>
+                There is no data for this player.{" "}
+                <Link href="/players" className={styles.back}>Back to player search</Link>
+              </p>
+            </div>
+          </div>
+        </div>
       </AppShell>
     );
   }
@@ -41,10 +45,10 @@ export default async function PlayerPage({
   return (
     <AppShell
       shell={shell}
-      title={profile.name}
-      breadcrumb={profile.club ?? profile.nationality ?? "Player"}
+      title={gamelog?.player ?? profile?.name ?? "Player"}
+      breadcrumb={gamelog?.team ?? profile?.club ?? "Player"}
     >
-      <PlayerProfileView profile={profile} />
+      <PlayerAnalysis playerKey={id} gamelog={gamelog} profile={profile} />
     </AppShell>
   );
 }

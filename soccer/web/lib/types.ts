@@ -797,3 +797,85 @@ export interface PlayerDetails {
   fetched_at: number | null;
   status: string;
 }
+
+/* ---- Props board & player gamelog (soccer/docs/props-contract.md) ---- */
+
+export type PropMarket = "anytime_goal" | "shots_on_target" | "assist";
+
+export interface PlayerProp {
+  player_key: string;
+  player: string;
+  team: string;
+  opponent: string;
+  is_home: boolean;
+  position: "G" | "D" | "M" | "F" | null;
+  market: PropMarket;
+  /** null for goal/assist; 0.5 | 1.5 (over) for shots on target. */
+  line: number | null;
+  prob: number;
+  expected: number | null;
+  per_game: number | null;
+  games: number;
+  start_prob: number | null;
+  confidence: "high" | "medium" | "low";
+  reason: string | null;
+}
+
+export interface PropsFixture {
+  fixture_key: string;
+  date: string;
+  time: string | null;
+  kickoff_utc: string | null;
+  home_team: string;
+  away_team: string;
+  home_xg: number | null;
+  away_xg: number | null;
+  props: PlayerProp[];
+}
+
+export interface PropsBoard {
+  competition_code: string;
+  generated_at: string | null;
+  model_trained_through: string | null;
+  fixtures: PropsFixture[];
+}
+
+export interface GamelogGame {
+  date: string;
+  competition_code: string;
+  opponent: string;
+  is_home: boolean;
+  result: string | null;
+  started: boolean;
+  goals: number | null;
+  assists: number | null;
+  shots: number | null;
+  sot: number | null;
+  fouls_committed: number | null;
+  fouls_suffered?: number | null;
+  yellow: number | null;
+  red: number | null;
+  offsides?: number | null;
+}
+
+export interface GamelogLine {
+  goals: number; assists: number; shots: number; sot: number;
+  fouls_committed: number; fouls_suffered: number; yellow: number; red: number; offsides?: number;
+}
+
+export interface PlayerGamelog {
+  player_key: string;
+  player: string;
+  team: string;
+  competition_code: string;
+  position: "G" | "D" | "M" | "F" | null;
+  espn_id: string | null;
+  season: {
+    label: string; games: number; starts: number;
+    totals: GamelogLine; per_game: Partial<GamelogLine>;
+  };
+  games: GamelogGame[];
+  next_fixture: { fixture_key: string; opponent: string; date: string; is_home: boolean } | null;
+  props: PlayerProp[];
+  notes: string[];
+}

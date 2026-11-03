@@ -16,7 +16,7 @@ import httpx
 from . import clubs, config
 from .sources import _cache, football_data_org as fdo
 
-LEAGUES = {'E0': 'eng.1', 'SP1': 'esp.1', 'UCL': 'uefa.champions'}
+LEAGUES = config.ESPN_SLUGS
 BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer'
 RAW = config.RAW / 'espn'
 _lock = threading.Lock()
@@ -70,8 +70,9 @@ def finished(row: dict) -> bool:
 
 def match_summary(row: dict, code: str) -> dict:
     day = date.fromisoformat(row['utcDate'][:10])
-    dates = f'{(day-timedelta(days=1)):%Y%m%d}-{(day+timedelta(days=1)):%Y%m%d}'
-    board = fetch(code, 'scoreboard', {'dates': dates, 'limit': 100})
+    # ESPN answers 400 to any multi-day range, so the surrounding days are separate single-date calls.
+    boards = [fetch(code, 'scoreboard', {'dates': f'{day + timedelta(days=d):%Y%m%d}', 'limit': 100}) for d in (-1, 0, 1)]
+    board = {'events': [e for b in boards for e in b.get('events') or []], '_stale': any(b.get('_stale') for b in boards)}
     wanted = {side: canonical(row[f'{side}Team']['name']) for side in ('home', 'away')}
     for event in board.get('events') or []:
         if event.get('date', '')[:10] != row['utcDate'][:10]:

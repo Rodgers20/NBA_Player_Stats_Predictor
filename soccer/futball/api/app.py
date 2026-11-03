@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import asyncio
+import unicodedata
 
 from fastapi import Response, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -437,11 +438,37 @@ def get_player_leaders(
             source="football-data.org + results lake",
         )
 
+    # No scorer feed (MLS, or a league not yet cached): season leaders from our own ESPN box-score table.
+    from .. import boxscores as box
+
+    board = box.leaders(competition_code, limit)
+    if board["scorers"]:
+        return ok(
+            {
+                "competition_code": competition_code, "competition": meta["name"], "season_year": season_year,
+                "scorers": board["scorers"], "assists": board["assists"],
+                "clean_sheets": sheet_rows, "clean_sheets_kind": "team", "available": True, "is_fallback": False,
+                "note": sheets.get("note"),
+                "assists_note": "Computed from ESPN match box scores for this season, so it covers matches ESPN published a line-up for.",
+                "clean_sheets_note": keeper_note,
+            },
+            source="ESPN box scores + results lake",
+        )
+
     # Nothing cached yet: fall back to the Wikipedia article.
     try:
         stats = wikipedia_stats.fetch(competition_code, int(season_year))
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(502, f"wikipedia lookup failed: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001 - no Wikipedia article is mapped for newer leagues: show an empty board, not a 502
+        log.warning("no leaders for %s: %s", competition_code, exc)
+        return ok(
+            {
+                "competition_code": competition_code, "competition": meta["name"], "season_year": season_year,
+                "scorers": [], "assists": [], "clean_sheets": sheet_rows, "clean_sheets_kind": "team",
+                "available": False, "is_fallback": False, "note": "No scorer source is available for this competition yet.",
+                "assists_note": None, "clean_sheets_note": keeper_note,
+            },
+            source="results lake",
+        )
 
     # If the current season has no table published yet, fall back one season so
     # the page shows real leaders rather than an empty panel.
@@ -549,7 +576,9 @@ def get_competition_calendar(code: str, days: int = Query(120, ge=1, le=400)):
 def get_team_calendar(team: str, days: int = Query(120, ge=1, le=400)):
     """Subscribable fixture feed for one club, across competitions."""
     body = calendar_feed.team_calendar(team, days=days)
-    slug = "".join(c if c.isalnum() else "-" for c in team.lower()).strip("-")
+    # ASCII only: a header value cannot carry "é" or "ş" (this crashed for Atlético, Bayern München, Beşiktaş...).
+    folded = unicodedata.normalize("NFKD", team.lower()).encode("ascii", "ignore").decode()
+    slug = "".join(c if c.isalnum() else "-" for c in folded).strip("-") or "club"
     return Response(
         content=body,
         media_type="text/calendar; charset=utf-8",

@@ -14,7 +14,7 @@ export function Panel({
       {(title || action) && (
         <header className="flex items-center gap-3 px-4 pt-3.5 pb-2.5">
           {typeof title === "string" ? (
-            <h2 className="font-display text-[13px] font-semibold tracking-tight">{title}</h2>
+            <h2 className="font-display text-[18px] font-bold uppercase leading-none tracking-[0.02em]">{title}</h2>
           ) : (
             title
           )}

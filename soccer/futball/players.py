@@ -343,7 +343,7 @@ def search(query: str, limit: int = 20) -> list[dict]:
 # rather than data-richness order — the Euro spell carries far more detail, but
 # someone looking a player up wants the competition they actually play in
 # week to week.
-_COMPETITION_RANK: dict[str, int] = {"E0": 0, "SP1": 0, "UCL": 1, "EURO2024": 2}
+_COMPETITION_RANK: dict[str, int] = {"E0": 0, "SP1": 0, "D1": 0, "MLS": 0, "UCL": 1, "EURO2024": 2}
 _UNRANKED = 3
 
 

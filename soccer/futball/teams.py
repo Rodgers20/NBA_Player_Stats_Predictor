@@ -152,6 +152,16 @@ MANUAL: dict[str, str] = {
     # against the canonical SP1 name list before adding.
     "deportivo la coruna": "La Coruna",
     "racing santander": "Santander",
+    # MLS: ESPN's spellings vs football-data.co.uk's USA.csv (checked against its 31 club names).
+    "d c united": "DC United",
+    "la galaxy": "Los Angeles Galaxy",
+    "lafc": "Los Angeles FC",
+    "red bull new york": "New York Red Bulls",
+    "new york red bulls": "New York Red Bulls",
+    # ESPN's short or English spellings for three European clubs (checked against the lake names).
+    "deportivo": "La Coruna",
+    "espanyol": "Espanol",
+    "cologne": "FC Koln",
 }
 
 

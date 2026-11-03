@@ -12,7 +12,7 @@ export function FormBadges({ form }: { form: ("W" | "D" | "L")[] }) {
           key={i}
           role="listitem"
           title={label[f]}
-          className="grid place-items-center w-[17px] h-[17px] rounded text-[9px] font-bold text-white"
+          className="grid place-items-center w-[17px] h-[17px] rounded text-[9px] font-bold text-bg-root"
           style={{ background: bg[f] }}
         >
           {f}

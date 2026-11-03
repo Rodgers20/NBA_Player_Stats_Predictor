@@ -106,8 +106,11 @@ def season_codes(n_seasons: int = 16) -> list[str]:
     return out
 
 # MLS and other "extra" leagues live in a single multi-season file.
-# No "extra league" files are ingested now that MLS is out of scope.
-FD_EXTRA: dict[str, tuple[str, str, str]] = {}
+# MLS was dropped once and restored for the Soccer v2 build. The file carries goals and closing
+# 1X2 odds only (no shots, SOT or corners), so MLS gets goals/1X2/BTTS models and no count markets.
+FD_EXTRA: dict[str, tuple[str, str, str]] = {
+    "MLS": (f"{FOOTBALL_DATA_BASE}/new/USA.csv", "Major League Soccer", "USA"),
+}
 
 OPENFOOTBALL_CL = (
     "https://raw.githubusercontent.com/openfootball/champions-league/master/{season}/cl.txt"
@@ -142,7 +145,14 @@ OF_SEASON_FILES: dict[str, str] = {
 LEAGUES: dict[str, dict[str, str]] = {
     "E0":  {"name": "Premier League", "country": "England", "kind": "league"},
     "SP1": {"name": "La Liga", "country": "Spain", "kind": "league"},
+    "D1":  {"name": "Bundesliga", "country": "Germany", "kind": "league"},
     "UCL": {"name": "UEFA Champions League", "country": "Europe", "kind": "cup"},
+    "MLS": {"name": "Major League Soccer", "country": "USA", "kind": "league"},
+}
+
+# ESPN site-API league slugs, shared by live scores, box-score backfill and lineups.
+ESPN_SLUGS: dict[str, str] = {
+    "E0": "eng.1", "SP1": "esp.1", "D1": "ger.1", "UCL": "uefa.champions", "MLS": "usa.1",
 }
 
 # Competition badges. These are FotMob's *dark-theme* variants, which are drawn
@@ -154,6 +164,8 @@ COMPETITION_EMBLEMS: dict[str, str] = {
     "E0": "https://images.fotmob.com/image_resources/logo/leaguelogo/dark/47.png",
     "SP1": "https://images.fotmob.com/image_resources/logo/leaguelogo/dark/87.png",
     "UCL": "https://images.fotmob.com/image_resources/logo/leaguelogo/dark/42.png",
+    "D1": "https://images.fotmob.com/image_resources/logo/leaguelogo/dark/54.png",
+    "MLS": "https://images.fotmob.com/image_resources/logo/leaguelogo/dark/130.png",
 }
 
 # Where the qualification lines fall in each competition's table, as
@@ -177,6 +189,19 @@ QUALIFICATION_BANDS: dict[str, tuple[tuple[int, str, str], ...]] = {
         (6, "UEFA Conference League qualifying", "tertiary"),
         (17, "", ""),
         (20, "Relegation to Segunda Division", "danger"),
+    ),
+    "D1": (
+        (4, "UEFA Champions League", "primary"),
+        (5, "UEFA Europa League", "secondary"),
+        (6, "UEFA Conference League qualifying", "tertiary"),
+        (15, "", ""),
+        (16, "Relegation play-off", "secondary"),
+        (18, "Relegation to 2. Bundesliga", "danger"),
+    ),
+    # MLS: the top 9 of each conference reach the playoffs. The league table is built per
+    # conference (see league.standings), so these positions are conference ranks.
+    "MLS": (
+        (9, "MLS Cup playoffs", "primary"),
     ),
     "UCL": (
         (8, "Qualification to 1/8 finals", "primary"),

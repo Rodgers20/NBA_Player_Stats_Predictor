@@ -15,6 +15,8 @@ const EMBLEMS: Record<string, string> = {
   E0: "https://images.fotmob.com/image_resources/logo/leaguelogo/dark/47.png",
   SP1: "https://images.fotmob.com/image_resources/logo/leaguelogo/dark/87.png",
   UCL: "https://images.fotmob.com/image_resources/logo/leaguelogo/dark/42.png",
+  D1: "https://images.fotmob.com/image_resources/logo/leaguelogo/dark/54.png",
+  MLS: "https://images.fotmob.com/image_resources/logo/leaguelogo/dark/130.png",
 };
 
 export function CompetitionCrest({

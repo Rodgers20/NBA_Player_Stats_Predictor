@@ -52,8 +52,9 @@ RAW_FDORG = config.RAW / "football-data-org"
 COMPETITIONS: dict[str, str] = {
     "E0": "PL",    # Premier League
     "SP1": "PD",   # Primera Division (La Liga)
+    "D1": "BL1",   # Bundesliga (entitled on this token; verified 2026-11-03)
     "UCL": "CL",   # UEFA Champions League
-}
+}  # MLS is not offered by football-data.org at all (403), so it comes from ESPN.
 
 # Statuses that mean "this match has a final score".
 PLAYED_STATUSES = frozenset({"FINISHED", "AWARDED"})

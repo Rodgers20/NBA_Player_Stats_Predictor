@@ -71,13 +71,14 @@ def cmd_refresh(args: argparse.Namespace) -> int:
     logging.info("3/5 fetching football-data.org ...")
     if fdo.available():
         logging.info("    %s", fdo.ingest(ttl=0 if args.force else fdo.CACHE_TTL_SECONDS))
+        logging.info("    scorers: %s", fdo.ingest_scorers(ttl=0 if args.force else fdo.SCORERS_TTL_SECONDS))
     else:
         logging.info("    no FOOTBALL_DATA_ORG_KEY set — skipping "
                      "(results will lag upstream by a day or two)")
 
     # Squads sit behind a 7-day TTL, so on most days this is a no-op; it keeps
     # portraits current through transfer windows without a manual step.
-    if fdo.available():
+    if fdo.available() and args.squad_limit > 0:  # --squad-limit 0 skips the API-Football budget entirely
         from . import headshots as headshot_mod
         logging.info("    caching squads for portraits ...")
         logging.info("    %s", headshot_mod.backfill_squads(limit=args.squad_limit))
@@ -146,6 +147,29 @@ def cmd_headshots(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_fixtures(args: argparse.Namespace) -> int:
+    """Rebuild the unified fixtures table (includes ESPN-sourced MLS fixtures)."""
+    from .transform import fixture_table
+
+    config.ensure_dirs()
+    logging.info("fixtures: %s", fixture_table.build())
+    return 0
+
+
+def cmd_boxscores(args: argparse.Namespace) -> int:
+    """Download ESPN box scores for the season in progress and rebuild player_match_stats."""
+    from . import boxscores
+
+    config.ensure_dirs()
+    report = boxscores.backfill(args.competitions or None, workers=args.workers)
+    logging.info("scoreboard days=%d finished events=%d summaries=%d errors=%d",
+                 report["scoreboards"], report["events"], report["summaries"], len(report["errors"]))
+    for message in report["errors"][:20]:
+        logging.error("  %s", message)
+    logging.info("player_match_stats rows: %d", boxscores.build_silver())
+    return 1 if report["errors"] else 0
+
+
 def cmd_quality(args: argparse.Namespace) -> int:
     from . import quality
     return quality.report()
@@ -177,6 +201,14 @@ def main(argv: list[str] | None = None) -> int:
     hs.add_argument("--resolve", action="store_true",
                     help="also download portraits for every known scorer")
     hs.set_defaults(func=cmd_headshots)
+
+    fx = sub.add_parser("fixtures", help="rebuild the unified fixtures table")
+    fx.set_defaults(func=cmd_fixtures)
+
+    bx = sub.add_parser("boxscores", help="backfill ESPN player box scores for this season")
+    bx.add_argument("competitions", nargs="*", help="competition codes (default: all)")
+    bx.add_argument("--workers", type=int, default=4)
+    bx.set_defaults(func=cmd_boxscores)
 
     q = sub.add_parser("quality", help="run the data quality suite")
     q.set_defaults(func=cmd_quality)

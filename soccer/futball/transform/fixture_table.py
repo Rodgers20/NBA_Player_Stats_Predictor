@@ -24,6 +24,7 @@ import polars as pl
 
 from .. import config
 from ..storage import atomic_path
+from ..sources import espn_fixtures as espn_fx
 from ..sources import fixtures as fx_src
 from ..sources import football_data_org as fdo
 from ..teams import TeamResolver
@@ -186,6 +187,11 @@ def build(now: datetime | None = None) -> dict[str, int]:
     for code in fdo.COMPETITIONS:
         for rec in fdo.read_fixtures(code):
             add(rec, canonical_needed=(code != "UCL"))
+
+    # Competitions no keyed provider serves (MLS) come from ESPN's scoreboard.
+    for code in espn_fx.ESPN_ONLY:
+        for rec in espn_fx.read(code):
+            add(rec, canonical_needed=True)
 
     if not rows:
         return {"fixtures": 0}

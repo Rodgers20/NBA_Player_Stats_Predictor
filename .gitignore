@@ -67,3 +67,6 @@ data/*/game_features-*.parquet
 # Soccer (FUTBALL) snapshot is regenerated from the T7 lake by `make -C soccer snapshot`
 soccer/web/snapshot/
 soccer/web/.vercel/
+soccer/web/snapshot-new/
+soccer/web/snapshot-ui/
+soccer/web/snapshot-ui-*/

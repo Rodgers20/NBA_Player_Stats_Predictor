@@ -31,7 +31,8 @@ import httpx  # noqa: E402
 
 log = logging.getLogger("export_snapshot")
 
-DEFAULT_OUT = ROOT / "web" / "snapshot"
+LIVE_DIR = ROOT / "web" / "snapshot"
+DEFAULT_OUT = ROOT / "web" / "snapshot-new"  # built here, swapped into LIVE_DIR with --swap
 BLOCKED_HOSTS = ("api-sports.io", "api-football.com")  # API-Football free tier: 100 req/day
 MAX_MEMO_BYTES = 500_000  # keep parsed bodies only when small; big ones are write-only
 MIN_NAME, MAX_NAME = 2, 60
@@ -116,8 +117,8 @@ class Recorder:
         _strings(body.get("data"), self.names)
         return body.get("data") if len(resp.content) <= MAX_MEMO_BYTES else True
 
-    def write_envelope(self, path: str, data: object, **meta: object) -> None:
-        rel = self.snapshot_file(path, {})
+    def write_envelope(self, path: str, data: object, query: dict[str, str] | None = None, **meta: object) -> None:
+        rel = self.snapshot_file(path, query or {})
         body = {"success": True, "data": data, "error": None, "meta": meta}
         self._write(rel, json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode())
         _strings(data, self.names)
@@ -142,10 +143,8 @@ def as_dict(value: object) -> dict:
 
 def export_globals(rec: Recorder) -> list[str]:
     """Endpoints with no dependency on a league. Returns the league codes."""
-    for path in ("/health", "/quality", "/competitions", "/matches", "/standings",
-                 "/teams/directory", "/predict/competitions", "/ratings/model"):
+    for path in ("/health", "/teams/directory", "/predict/competitions"):
         rec.get(path)
-    rec.get("/ratings/leaders", limit=5)
     leagues = rows(rec.get("/leagues"))
     return [row["code"] for row in leagues]
 
@@ -161,16 +160,12 @@ def export_league_tables(rec: Recorder, code: str) -> tuple[list[int], dict[str,
         matches = as_dict(rec.get(f"/leagues/{code}/matches", season_year=year, limit=400))
         for m in rows(matches.get("rows")):
             teams.update(t for t in (m.get("home_team"), m.get("away_team")) if t)
-    rec.get(f"/leagues/{code}/matches", limit=500)
     return years, {code: teams}
 
 
 def export_fixtures(rec: Recorder, code: str) -> list[dict]:
     """Fixture feeds, plus the head-to-head / form panels the live page opens."""
-    for days in (21, 2):
-        fixtures = rows(rec.get(f"/leagues/{code}/fixtures", days=days))
-        if days == 21:
-            upcoming = fixtures
+    upcoming = rows(rec.get(f"/leagues/{code}/fixtures", days=21))
     rec.get("/fixtures", competition_code=code, days=45)
     predict_list = rows(rec.get("/predict/fixture-list", competition_code=code, days=21))
     for fx in [*upcoming, *predict_list]:
@@ -178,8 +173,9 @@ def export_fixtures(rec: Recorder, code: str) -> list[dict]:
         if not (home and away):
             continue
         rec.get(f"/leagues/{code}/head-to-head", home=home, away=away, limit=6)
-        rec.get(f"/leagues/{code}/team-form", team=home, limit=5)
-        rec.get(f"/leagues/{code}/team-form", team=away, limit=5)
+        for team in (home, away):
+            for limit in (5, 10):
+                rec.get(f"/leagues/{code}/team-form", team=team, limit=limit)
     for fx in predict_list:
         if fx.get("fixture_key"):
             rec.get("/predict/by-fixture", fixture_key=fx["fixture_key"])
@@ -237,33 +233,49 @@ def export_teams(rec: Recorder, team_names: dict[str, set[str]]) -> None:
             rec.get("/lineups/latest", team=profile["team"], competition_code=profile["competition_code"])
 
 
-def export_players(rec: Recorder) -> int:
+def export_players(rec: Recorder, extra_hits: list[dict]) -> int:
+    """Profiles for players with a football-data record; the search index also lists box-score-only players."""
     from futball import players as players_mod
     from futball.sources import api_football
 
     api_football.available = lambda: False  # details(): serve cache only, never spend quota
-    rec.write_envelope("/players/search-index", players_mod.search_index(),
-                       count=len(players_mod._identities()))
-    ids = sorted(players_mod.public_id(e) for e in players_mod._identities().values())
+    league_identities = [e for e in players_mod._identities().values() if e["league"]]
+    known = {e["name"] for e in league_identities}
+    index = [{**players_mod._search_hit(e), "norm": players_mod.normalise(e["name"])} for e in league_identities]
+    index += [h for h in extra_hits if h["name"] not in known]
+    rec.write_envelope("/players/search-index", index, count=len(index))
+    ids = sorted(players_mod.public_id(e) for e in league_identities)
     for pid in ids:
         rec.get(f"/players/profile/{pid}")
         rec.get(f"/players/{pid}/details")
     return len(ids)
 
 
-def export_euro_matches(rec: Recorder) -> int:
-    """Every Euro 2024 match, with exactly the params web/lib/matchData.ts sends."""
-    matches = rows(rec.get("/matches"))
-    for m in matches:
-        base = f"/matches/{m['match_id']}"
-        rec.get(base)
-        for suffix in ("stats", "events", "shots", "heatmap", "lineup-positions"):
-            rec.get(f"{base}/{suffix}")
-        rec.get(f"{base}/momentum", window=5)
-        rec.get(f"{base}/passes", limit=2000)
-        rec.get(f"{base}/top-players", limit=5)
-        rec.get(f"{base}/freeze-frames", limit=240)
-    return len(matches)
+def export_props(rec: Recorder, codes: list[str]) -> tuple[dict[str, int], dict[str, dict]]:
+    """props/board per competition and players/gamelog for every player on a board. Returns (counts, gamelogs)."""
+    from futball import boxscores, league
+    from futball.props import board as board_mod
+    from futball.props import service
+
+    stats = boxscores.load()
+    if stats.height == 0:
+        log.error("player_match_stats is empty: run `python -m futball.cli boxscores` first")
+        return {}, {}
+    stats_rows = stats.to_dicts()
+    key_for = service.default_key_resolver()
+    boards = service.build_boards(codes, stats_rows, league._fixtures(), service.default_predictor(), key_for)
+    index = service.key_index(stats_rows, boards, key_for)
+    counts: dict[str, int] = {}
+    for code, board in boards.items():
+        rec.write_envelope("/props/board", board, {"competition_code": code})
+        counts[code] = sum(len(fx["props"]) for fx in board["fixtures"])
+    # a player on two boards (domestic + UCL) is shown the fixture that comes first
+    merged = {"fixtures": sorted((fx for b in boards.values() for fx in b["fixtures"]), key=lambda fx: (fx["date"], fx["time"] or ""))}
+    logs: dict[str, dict] = {}
+    for key, espn_id in sorted(index.items()):
+        logs[key] = board_mod.gamelog(stats_rows, espn_id, key, merged)
+        rec.write_envelope(f"/players/gamelog/{key}", logs[key])
+    return counts, logs
 
 
 # ----------------------------------------------------------------- images ---
@@ -321,12 +333,24 @@ def write_meta(rec: Recorder, counts: dict[str, int]) -> None:
     (rec.out / "export-meta.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
 
 
+def swap_into_place(new: Path, live: Path) -> None:
+    """Replace `live` with `new` by renames only, so readers see the old or the new snapshot, never a mix."""
+    retired = live.with_name(live.name + "-old")
+    if retired.exists():
+        shutil.rmtree(retired)
+    if live.exists():
+        live.rename(retired)
+    new.rename(live)
+    log.info("swapped %s -> %s (previous kept at %s)", new.name, live.name, retired.name)
+
+
 # ------------------------------------------------------------------- main ---
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     ap.add_argument("--clean", action="store_true", help="delete the output folder first")
+    ap.add_argument("--swap", action="store_true", help="when done, replace web/snapshot/ with the output folder")
     ap.add_argument("--totw-seasons", type=int, default=1,
                     help="newest seasons whose team-of-the-week is exported (ESPN-heavy)")
     args = ap.parse_args(argv)
@@ -367,16 +391,22 @@ def main(argv: list[str] | None = None) -> int:
             export_team_of_week(rec, code, years, args.totw_seasons)
         log.info("clubs: %d (league, team) pairs", sum(len(v) for v in team_names.values()))
         export_teams(rec, team_names)
-        n_players = export_players(rec)
-        n_matches = export_euro_matches(rec)
+        from futball import config as cfg
+        from futball import teamcolors
+        from futball.props import service
+        prop_counts, logs = export_props(rec, codes)
+        hits = service.espn_search_hits(logs, teamcolors.colors, {c: m["name"] for c, m in cfg.LEAGUES.items()})
+        n_players = export_players(rec, hits)
         manifest = export_images(rec)
 
-    write_meta(rec, {"players": n_players, "euro_matches": n_matches,
+    write_meta(rec, {"players": n_players, "gamelogs": len(logs), "props": prop_counts,
                      "crests": len(set(manifest["crest"].values())),
                      "headshots": len(set(manifest["headshot"].values()))})
     summarise(args.out, rec, hosts, time.time() - started)
     log.info("images: %d crest files, %d headshot files",
              len(set(manifest["crest"].values())), len(set(manifest["headshot"].values())))
+    if args.swap:
+        swap_into_place(args.out, LIVE_DIR)
     return 0
 
 

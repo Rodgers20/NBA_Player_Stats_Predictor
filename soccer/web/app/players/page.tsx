@@ -6,6 +6,9 @@ import { CompetitionCrest } from "@/components/CompetitionCrest";
 import { seasonLabel } from "@/lib/competition";
 import { PlayerSearch } from "@/components/player/PlayerSearch";
 import type { PlayerLeaders } from "@/lib/types";
+import Link from "next/link";
+import { withCompetition } from "@/lib/competition";
+import styles from "@/components/props/props.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +36,15 @@ export default async function PlayersPage({
         title="Players"
         breadcrumb="Search any player, or browse the leaders by competition"
       >
-        <div className="space-y-4">
+        <div className={`${styles.root} space-y-4`}>
+          <header className={styles.head}>
+            <div className={styles.kicker}>PLAYERS</div>
+            <h2 className={styles.heading}>Players</h2>
+            <p className={styles.subtitle}>
+              Open any player for per-game shots, shots on target, goals and assists, hit rates against a line, and the model&rsquo;s next-game numbers.{" "}
+              <Link href={withCompetition("/props", shell.competition)} style={{ color: "#59e0c8" }}>See the props board →</Link>
+            </p>
+          </header>
           <Panel title="Find a player">
             <div className="p-3">
               <PlayerSearch />

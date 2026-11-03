@@ -17,7 +17,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import polars as pl
 
-from . import config
+from . import conferences, config
 from .cache import file_cache
 
 log = logging.getLogger(__name__)
@@ -222,17 +222,19 @@ def standings(code: str, season_year: int | None = None) -> dict:
     form = {r["team"]: r["r"][-5:] for r in form_rows}
 
     upcoming = _next_opponents(code)
-    rows = []
-    for i, r in enumerate(table.to_dicts(), 1):
-        band = config.qualification_band(code, i)
-        rows.append({
-            **r,
-            "position": i,
-            "form": form.get(r["team"], []),
-            "next": upcoming.get(r["team"]),
-            "qualification": band[0] if band else None,
-            "qualification_tone": band[1] if band else None,
-        })
+    membership = conferences.conferences(code)  # MLS only; {} elsewhere or if ESPN is unavailable
+    ordered = table.to_dicts()
+    if membership:
+        ranked = conferences.rank_in_conferences(ordered, membership, lambda pos: config.qualification_band(code, pos))
+    else:
+        # A conference league with no membership shows one combined table and NO band: the playoff line is per conference.
+        no_band = code in conferences.CONFERENCE_LEAGUES
+        ranked = []
+        for i, r in enumerate(ordered, 1):
+            band = None if no_band else config.qualification_band(code, i)
+            ranked.append({**r, "conference": None, "position": i,
+                           "qualification": band[0] if band else None, "qualification_tone": band[1] if band else None})
+    rows = [{**r, "form": form.get(r["team"], []), "next": upcoming.get(r["team"])} for r in ranked]
     note = None
     if fallback:
         note = (

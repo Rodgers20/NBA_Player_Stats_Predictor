@@ -1,22 +1,9 @@
-import { AppShell, loadShell } from "@/components/shell/AppShell";
-import { CompetitionSwitcher } from "@/components/league/CompetitionSwitcher";
-import { PredictionsPanel } from "@/components/PredictionsPanel";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function PredictionsPage({
-  searchParams,
-}: { searchParams: Promise<{ competition?: string }> }) {
-  const sp = await searchParams;
-    const shell = await loadShell(sp.competition);
-    return (
-      <AppShell
-        shell={shell}
-        title="Predictions"
-        breadcrumb="Pick a competition, then a fixture"
-        action={<CompetitionSwitcher leagues={shell.leagues} selected={shell.competition} />}
-      >
-        <PredictionsPanel leagues={shell.leagues} initialCompetition={shell.competition} />
-      </AppShell>
-    );
+/** Predictions moved onto the Games page; keep old links working. */
+export default async function PredictionsRedirect({ searchParams }: { searchParams: Promise<{ competition?: string }> }) {
+  const { competition } = await searchParams;
+  redirect(competition ? `/games?competition=${encodeURIComponent(competition)}` : "/games");
 }

@@ -6,7 +6,6 @@ import { Panel } from "@/components/shell/Panel";
 import { TeamCrest } from "@/components/TeamCrest";
 import { PlayerAvatar } from "@/components/PlayerAvatar";
 import { PlayerLink } from "@/components/player/PlayerLink";
-import { FollowButton } from "@/components/FollowButton";
 import { TeamTabs, type TeamTab } from "@/components/team/TeamTabs";
 import { TeamOverview } from "@/components/team/TeamOverview";
 import { SeasonStats } from "@/components/team/SeasonStats";
@@ -81,9 +80,9 @@ export default async function TeamPage({
                style={{ background: primary, color: on_primary }}>
             <TeamCrest name={profile.team} size={48} />
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-xl font-extrabold tracking-tight sm:text-2xl">
+              <h2 className="font-display text-[30px] font-extrabold uppercase leading-none tracking-wide sm:text-[38px]">
                 {profile.team}
-              </h1>
+              </h2>
               <p className="text-[13px] opacity-90">{profile.country ?? "—"}</p>
             </div>
             <a
@@ -94,8 +93,6 @@ export default async function TeamPage({
             >
               Calendar
             </a>
-            <FollowButton kind="team" id={profile.lake_name} label={profile.team}
-                          className="bg-white/90 text-black hover:bg-white" />
           </div>
           <div className="px-2">
             <Suspense fallback={<div className="h-11" />}>

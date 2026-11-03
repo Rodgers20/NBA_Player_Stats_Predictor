@@ -1,6 +1,5 @@
 import { api } from "@/lib/api";
 import { AppShell, loadShell } from "@/components/shell/AppShell";
-import { CompetitionSwitcher } from "@/components/league/CompetitionSwitcher";
 import { SeasonSwitcher } from "@/components/league/SeasonSwitcher";
 import { FixtureList } from "@/components/league/FixtureList";
 import { Panel } from "@/components/shell/Panel";
@@ -29,8 +28,12 @@ export default async function MatchesPage({
         shell={shell}
         title="Matches"
         breadcrumb={`${league?.name ?? code} · ${matches.season ?? "—"} · ${matches.rows.length} results`}
-        action={<CompetitionSwitcher leagues={shell.leagues} selected={code} />}
       >
+        <header className="mb-5">
+          <p className="ql-kicker">Matches / {league?.name ?? code}</p>
+          <h2 className="ql-heading mt-1">Results</h2>
+          <p className="ql-subtitle mt-2">Every completed match this season, with the upcoming fixtures alongside.</p>
+        </header>
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
           <Panel
             title={`Results — ${matches.season ?? ""}`}

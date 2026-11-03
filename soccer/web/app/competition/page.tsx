@@ -6,14 +6,12 @@ import { Panel } from "@/components/shell/Panel";
 import { CompetitionCrest } from "@/components/CompetitionCrest";
 import { CompetitionTabs, type CompetitionTab } from "@/components/league/CompetitionTabs";
 import { SeasonSwitcher } from "@/components/league/SeasonSwitcher";
-import { CompetitionSwitcher } from "@/components/league/CompetitionSwitcher";
 import { StandingsTable } from "@/components/league/StandingsTable";
 import { CompetitionFixtures } from "@/components/league/CompetitionFixtures";
 import { StatLeaders, type LeaderEntry } from "@/components/league/StatLeaders";
 import { SeasonCard } from "@/components/league/SeasonCard";
 import { StatCard, type StatRow } from "@/components/league/StatCard";
 import { TeamOfTheWeekPanel } from "@/components/league/TeamOfTheWeekPanel";
-import { FollowButton } from "@/components/FollowButton";
 import type { Fixture, LeagueStandings, LiveMatch, PlayerLeaders, SeasonHonour, LeaderBoard, MetricSpec, CompetitionNews } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -56,19 +54,17 @@ export default async function CompetitionPage({
       shell={shell}
       title={league?.name ?? code}
       breadcrumb={standings?.season ?? undefined}
-      action={<CompetitionSwitcher leagues={shell.leagues} selected={code} />}
     >
       <div className="min-w-0 space-y-4">
         <section className="rounded-lg border border-stroke bg-panel">
           <div className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
             <CompetitionCrest code={code} size={44} emblem={league?.emblem} />
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-xl font-extrabold tracking-tight text-ink sm:text-2xl">
+              <p className="ql-kicker">League / {league?.country ?? "—"}</p>
+              <h2 className="ql-heading mt-1 !text-[clamp(28px,3vw,38px)]">
                 {league?.name ?? code}
-              </h1>
-              <p className="text-[13px] text-ink-muted">{league?.country ?? "—"}</p>
+              </h2>
             </div>
-            <FollowButton kind="competition" id={code} label={league?.name ?? code} />
             <a
               href={api.calendarUrl(code)}
               className="inline-flex h-8 items-center gap-1.5 rounded-full border border-stroke-hi px-3.5 text-[12px] font-semibold text-ink transition-colors hover:bg-elevated"

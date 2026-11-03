@@ -55,10 +55,19 @@ tune: data
 ingest: data
 	$(VENV)/python -m futball.cli ingest --season 55:282
 
-# Static snapshot for the deployed section: web/snapshot/ (see docs/snapshot-contract.md).
+# Static snapshot for the deployed section (docs/snapshot-contract.md and docs/props-contract.md).
+# Builds web/snapshot-new/; pass SNAPSHOT_ARGS="--clean --swap" to replace web/snapshot/ atomically.
 # Needs the T7 and provider keys in the environment (set -a; . .env; set +a).
 snapshot: data
 	$(VENV)/python scripts/export_snapshot.py $(SNAPSHOT_ARGS)
+
+# Everything, in order: results + retrain (no squad/API-Football spend), ESPN box scores, props backtest, export + swap.
+snapshot-full: data
+	$(VENV)/python -m futball.cli refresh --retrain --force --squad-limit 0
+	$(VENV)/python -m futball.cli fixtures
+	$(VENV)/python -m futball.cli boxscores
+	$(VENV)/python -m futball.props.backtest
+	$(VENV)/python scripts/export_snapshot.py --clean --swap
 
 build:
 	cd web && npm run build

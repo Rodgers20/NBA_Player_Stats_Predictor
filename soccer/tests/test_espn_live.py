@@ -35,7 +35,9 @@ def test_requests_shared_and_failure_retains_timestamp(tmp_path):
  with patch.object(espn,'RAW',tmp_path),patch('futball.league._to_lake_name',side_effect=lambda n,c:n),patch.object(espn.httpx,'get') as get:
   get.return_value.json.return_value={'events':[]}
   a=espn.board('SP1'); b=espn.board('SP1')
-  assert get.call_count==1 and a==b and not a['stale']
+  # ESPN answers 400 to any multi-day range, so yesterday and today are two single-date requests.
+  assert get.call_count==2 and a==b and not a['stale']
+  assert all(len(c.kwargs['params']['dates'])==8 for c in get.call_args_list)
   espn._memory.clear()
   with patch.object(espn._cache,'read_json',return_value={'body':{'events':[]},'fetched_at':'2026-01-01T00:00:00+00:00','ttl':45}):
    get.side_effect=httpx.ConnectError('offline')

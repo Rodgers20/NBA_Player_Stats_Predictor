@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 import { AppShell, loadShell } from "@/components/shell/AppShell";
-import { CompetitionSwitcher } from "@/components/league/CompetitionSwitcher";
+import Form from "next/form";
 import { Panel } from "@/components/shell/Panel";
 import { FormBadges } from "@/components/charts/FormBadges";
 import { signed } from "@/lib/format";
@@ -26,14 +26,19 @@ export default async function TeamsPage({
         shell={shell}
         title="Teams"
         breadcrumb={`${league?.name ?? code} · ${standings.season ?? "—"} · ${standings.rows.length} teams`}
-        action={<CompetitionSwitcher leagues={shell.leagues} selected={code} />}
       >
-        <form action="/teams" className="mb-5 flex flex-wrap gap-2" role="search">
+        <header className="mb-5">
+          <p className="ql-kicker">Teams / {league?.name ?? code}</p>
+          <h2 className="ql-heading mt-1">Teams</h2>
+          <p className="ql-subtitle mt-2">Table position, form and goal difference for every club. Open one for its fixtures and squad.</p>
+        </header>
+        {/* next/form so the submit keeps the /soccer base path. */}
+        <Form action="/teams" className="mb-5 flex flex-wrap gap-2" role="search">
           <input type="hidden" name="competition" value={code} />
           <label htmlFor="team-search" className="sr-only">Search teams</label>
           <input id="team-search" name="q" type="search" defaultValue={query} placeholder="Search teams…" className="min-h-11 min-w-0 flex-1 rounded-lg border border-stroke bg-panel px-3 text-[16px]" />
-          <button className="min-h-11 rounded-lg bg-pitch px-4 text-sm font-semibold text-[#04160C]">Search</button>
-        </form>
+          <button className="ql-chip ql-chip-active min-h-11 px-4 text-sm">Search</button>
+        </Form>
         {visible.length === 0 ? (
           <Panel title="Teams">
             <p className="py-10 text-center text-[12.5px] text-ink-muted">
