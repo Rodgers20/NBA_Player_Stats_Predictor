@@ -10,12 +10,12 @@ export function NhlBoxScore({ box, game }: { box: NhlBox; game: NhlGame }) {
       <div className="overflow-x-auto"><table className="w-full min-w-[300px] text-sm">
         <thead><tr className="text-left">
           <th className="ql-data-label pb-2">Team</th>
-          {box.periods.map(p => <th key={p.period} className="ql-data-label pb-2 text-right">{p.period > 3 ? (p.period === 4 ? "OT" : "SO") : `P${p.period}`}</th>)}
+          {(box.periods ?? []).map(p => <th key={p.period} className="ql-data-label pb-2 text-right">{p.period > 3 ? (p.period === 4 ? "OT" : "SO") : `P${p.period}`}</th>)}
           <th className="ql-data-label pb-2 text-right">SOG</th>
         </tr></thead>
         <tbody className="font-mono text-xs tabular-nums">{sides.map(s => (
           <tr key={s} className="border-t border-ink/[0.06]"><td className="py-2 font-sans text-sm font-bold">{game[s].abbr}</td>
-            {box.periods.map(p => <td key={p.period} className="text-right">{p[s]}</td>)}<td className="text-right">{box.sog[s]}</td></tr>
+            {(box.periods ?? []).map(p => <td key={p.period} className="text-right">{p[s]}</td>)}<td className="text-right">{box.sog[s]}</td></tr>
         ))}</tbody>
       </table></div>
       <div className="mt-5 grid gap-5 lg:grid-cols-2">

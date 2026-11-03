@@ -27,7 +27,7 @@ export interface NhlTopProp {
 export interface NhlBoxSkater { player_id: number; name: string; pos: string; toi: string; goals: number; assists: number; points: number; sog: number; pp_goals: number }
 export interface NhlBoxGoalie { player_id: number; name: string; saves: number; shots_against: number; sv_pct: number | null; toi: string; decision: string | null; starter: boolean }
 export interface NhlBox {
-  periods: { period: number; home: number; away: number }[]; sog: { home: number; away: number };
+  periods?: { period: number; home: number; away: number }[]; sog: { home: number; away: number };
   skaters: Record<NhlSide, NhlBoxSkater[]>; goalies: Record<NhlSide, NhlBoxGoalie[]>;
 }
 export interface NhlGameDetail {
