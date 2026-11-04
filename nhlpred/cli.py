@@ -47,6 +47,16 @@ def cmd_predict(_: argparse.Namespace) -> None:
     print(f"{n} game calls, {m} prop calls logged")
 
 
+def cmd_lines(_: argparse.Namespace) -> None:
+    """Pull game lines from ESPN; non-fatal because the site works without them."""
+    from nhlpred.lines import refresh_lines
+    from nhlpred.pipeline import load
+    try:
+        print(f"{len(refresh_lines(load().games))} games with lines")
+    except Exception:
+        log.exception("ESPN lines unavailable; exporting without fresh lines")
+
+
 def cmd_export(_: argparse.Namespace) -> None:
     from nhlpred.export import export_all
     print(json.dumps(export_all(), indent=2, default=str))
@@ -64,6 +74,7 @@ def cmd_refresh(args: argparse.Namespace) -> None:
     else:
         log.info("models fresh (%s)", gm.summary_json().get("version"))
     cmd_predict(args)
+    cmd_lines(args)
     cmd_export(args)
 
 
@@ -72,6 +83,7 @@ COMMANDS = {
     "train": (cmd_train, "walk-forward backtest, then fit the production game and prop models"),
     "backtest": (cmd_backtest, "run and print the walk-forward backtests (refits models too)"),
     "predict": (cmd_predict, "log pre-game calls for games that have not started"),
+    "lines": (cmd_lines, "pull game lines (moneyline, puck line, total) from ESPN"),
     "export": (cmd_export, "write the static JSON under frontend/public/data/nhl"),
     "refresh": (cmd_refresh, "daily job: ingest --current, train if stale, predict, export"),
 }

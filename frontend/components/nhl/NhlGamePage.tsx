@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LinesPanel } from "./NhlLines";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -67,7 +68,7 @@ export function NhlGamePage() {
   const valid = /^\d{6,12}$/.test(id);
   const q = useQuery({ queryKey: ["nhl-game", id], queryFn: () => nhlApi.game(id), enabled: valid, staleTime: 120_000, retry: false });
   const [player, setPlayer] = useState<number | null>(null);
-  const back = <Link href="/nhl" className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-sec hover:text-text-pri"><ArrowLeft size={16} aria-hidden /> All games</Link>;
+  const back = <Link href="/nhl/games" className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-sec hover:text-text-pri"><ArrowLeft size={16} aria-hidden /> All games</Link>;
   if (!valid) return <div className={FRAME}>{back}<ErrorBox>That game link is not valid.</ErrorBox></div>;
   if (q.isPending) return <div className={FRAME}>{back}<Loading label="Loading game" /></div>;
   if (q.isError) return <div className={FRAME}>{back}<ErrorBox>This game isn&apos;t in the data. Game pages cover roughly a week back and a week ahead.</ErrorBox></div>;
@@ -79,6 +80,7 @@ export function NhlGamePage() {
         <Hero g={d.game} />
         {d.game.pick ? <Predictions g={d.game} /> : <p role="status" className="ql-panel p-5 text-sm text-text-sec">The model has no call for this game yet.</p>}
         {d.box && <NhlBoxScore box={d.box} game={d.game} />}
+        <LinesPanel game={d.game} />
         <Factors g={d} />
         <RecentForm g={d} />
         <div className="grid gap-4 lg:grid-cols-2"><RestGoalies g={d} /><H2H g={d} /></div>

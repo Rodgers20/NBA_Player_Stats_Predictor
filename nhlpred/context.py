@@ -37,6 +37,7 @@ class Context:
     players: pd.DataFrame                # finished skater-games, newest last
     standings: list[dict[str, Any]]
     goalie_names: dict[int, str] = field(default_factory=dict)
+    lines: dict[str, Any] = field(default_factory=dict)   # ESPN game lines by game_id
     cache: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -81,7 +82,8 @@ def load(now: datetime | None = None) -> Context:
     if not data.goalies.empty:
         names = data.goalies.sort_values("date").drop_duplicates("player_id", keep="last").set_index("player_id")["name"].to_dict()
     return Context(now, today, data, teams, frame.set_index("game_id", drop=False), _game_predictions(frame, data.games, gbundle, now),
-                   gbundle, pbundle, elo_now, proj, pprob, feat[~feat.projected], st, names)
+                   gbundle, pbundle, elo_now, proj, pprob, feat[~feat.projected], st, names,
+                   read_json(cfg.data_dir() / "lines.json", {}))
 
 
 def team_ref(ctx: Context, team_id: int) -> dict[str, Any]:

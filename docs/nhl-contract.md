@@ -38,6 +38,10 @@ every date in the export window (7 days back, 7 ahead), ascending. Use it to fin
 
 ## schedule/{YYYY-MM-DD}.json
 
+Each game also carries `lines`: ESPN's DraftKings moneyline, puck line and total, or `null` until the book posts one (about a day ahead) and for games ESPN does not match.
+`{"book","home_ml","away_ml","total","over_odds","under_odds","puck_home" (home team's line, negative = home favored),"home_spread_odds","away_spread_odds","fetched_at","open":{...first-seen prices},"market_p_home" (no-vig),"ev_home","ev_away" (model win chance at the book's price)}`.
+Re-read each run until puck drop, then frozen. ESPN has no NHL player prop lines, so props stay model-only.
+
 ```json
 {"date":"2026-11-03","generated_at":"2026-11-03T14:35Z","games":[
  {"id":2026020236,"date":"2026-11-03","start":"2026-11-04T00:00Z","status":"scheduled","game_type":"regular",

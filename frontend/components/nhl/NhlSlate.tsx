@@ -50,7 +50,7 @@ export function NhlSlate() {
 
   return (
     <div className={FRAME}>
-      <NhlHeader kicker="GAMES" title="NHL games" sub="Every game with a model win probability, projected total and the pre-game call kept for finished games. There are no sportsbook lines in this data.">
+      <NhlHeader kicker="GAMES" title="NHL games" sub="Every game with a model win probability, projected total and the pre-game call kept for finished games. Sportsbook moneyline, puck line and total come from ESPN when posted.">
         <span className="flex gap-2"><Link href="/nhl/standings" className="ql-chip">Standings</Link><Link href="/nhl/model" className="ql-chip">Model record</Link></span>
       </NhlHeader>
       {index.isError && <ErrorBox onRetry={() => void index.refetch()}>NHL data is unavailable.</ErrorBox>}

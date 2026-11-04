@@ -9,10 +9,16 @@ export interface NhlPick {
   source: "live" | "pre"; winner: NhlSide; winner_abbr: string; p_home: number; p_away: number; confidence: NhlConfidence;
   proj_total: number; proj_home: number; proj_away: number; correct: boolean | null;
 }
+export interface NhlLines {
+  book: string | null; home_ml: number | null; away_ml: number | null; total: number | null; over_odds: number | null; under_odds: number | null;
+  puck_home: number | null; home_spread_odds: number | null; away_spread_odds: number | null; fetched_at: string;
+  open: { home_ml: number | null; away_ml: number | null; total: number | null; puck_home: number | null } | null;
+  market_p_home: number | null; ev_home: number | null; ev_away: number | null;
+}
 export interface NhlGoalie { id: number; name: string; sv_pct: number | null; projected: boolean }
 export interface NhlGame {
   id: number; date: string; start: string; status: "scheduled" | "live" | "final"; game_type: string; venue: string | null;
-  home: NhlGameTeam; away: NhlGameTeam; period_type: "REG" | "OT" | "SO" | null; pick: NhlPick | null;
+  home: NhlGameTeam; away: NhlGameTeam; period_type: "REG" | "OT" | "SO" | null; pick: NhlPick | null; lines: NhlLines | null;
   goalies: { home: NhlGoalie | null; away: NhlGoalie | null } | null; props_count: number;
 }
 export interface NhlScheduleIndex { generated_at: string; days: { date: string; games: number; final: number; game_ids: number[] }[] }

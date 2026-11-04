@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BoardWinBar, TeamCell } from "@/components/games/shared/Board";
 import { NhlLogo, Mark } from "./parts";
+import { LinesStrip } from "./NhlLines";
 import { CONFIDENCE_LABEL, SIDE_COLOR, pct, statusText } from "@/lib/nhl.mjs";
 import type { NhlGame, NhlSide } from "@/lib/nhl-types";
 
@@ -40,6 +41,7 @@ export function NhlGameCard({ game }: { game: NhlGame }) {
           {game.props_count > 0 && <span>{game.props_count} props</span>}
         </p>
       </> : <p className="mt-1 text-xs text-text-sec">No model call for this game yet.</p>}
+      <LinesStrip game={game} />
     </article>
   );
 }

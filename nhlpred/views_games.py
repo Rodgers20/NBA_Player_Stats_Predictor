@@ -9,6 +9,7 @@ import pandas as pd
 
 from nhlpred import game_model as gm
 from nhlpred.context import Context, confidence, nan_to_none, team_ref
+from nhlpred.lines import ev_per_unit, no_vig_home
 from nhlpred.oddsmath import fair_american
 from nhlpred.views_props import top_props_for_game
 
@@ -40,9 +41,28 @@ def _pick(ctx: Context, g: pd.Series) -> dict[str, Any] | None:
             "proj_home": round(float(p.proj_home), 2), "proj_away": round(float(p.proj_away), 2), "correct": None if correct is None else bool(correct)}
 
 
+LINE_KEYS = ("book", "home_ml", "away_ml", "total", "over_odds", "under_odds", "puck_home", "home_spread_odds", "away_spread_odds", "fetched_at", "open")
+
+
+def _lines(ctx: Context, g: pd.Series, pick: dict[str, Any] | None) -> dict[str, Any] | None:
+    """ESPN's sportsbook line for the game, plus how the model's win chance compares with the no-vig market."""
+    row = ctx.lines.get(str(int(g.game_id)))
+    if not row:
+        return None
+    out = {k: row.get(k) for k in LINE_KEYS}
+    mp = no_vig_home(row)
+    out["market_p_home"] = None if mp is None else round(mp, 4)
+    out["ev_home"] = out["ev_away"] = None
+    if pick and mp is not None:
+        eh, ea = ev_per_unit(pick["p_home"], row.get("home_ml")), ev_per_unit(pick["p_away"], row.get("away_ml"))
+        out["ev_home"], out["ev_away"] = (None if eh is None else round(eh, 4)), (None if ea is None else round(ea, 4))
+    return out
+
+
 def game_item(ctx: Context, g: pd.Series, counts: dict[int, int]) -> dict[str, Any]:
     f = ctx.frame.loc[g.game_id]
     final = g.status == "final"
+    pick = _pick(ctx, g)
 
     def side(tid: int, abbr: str, score: Any) -> dict[str, Any]:
         return {**team_ref(ctx, tid), "record": _record(ctx, abbr), "score": None if not final else int(score)}
@@ -50,7 +70,7 @@ def game_item(ctx: Context, g: pd.Series, counts: dict[int, int]) -> dict[str, A
     return {"id": int(g.game_id), "date": g.date, "start": pd.Timestamp(g.start_utc).strftime("%Y-%m-%dT%H:%MZ"), "status": g.status,
             "game_type": "regular", "venue": g.venue,
             "home": side(g.home_id, g.home_abbr, g.home_score), "away": side(g.away_id, g.away_abbr, g.away_score),
-            "period_type": g.period_type if final else None, "pick": _pick(ctx, g),
+            "period_type": g.period_type if final else None, "pick": pick, "lines": _lines(ctx, g, pick),
             "goalies": {"home": _goalie(ctx, f, "h"), "away": _goalie(ctx, f, "a")}, "props_count": int(counts.get(int(g.game_id), 0))}
 
 
