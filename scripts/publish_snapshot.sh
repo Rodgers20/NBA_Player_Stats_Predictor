@@ -4,6 +4,10 @@
 # Scheduled by ~/Library/LaunchAgents/com.courtvision.snapshot.plist; safe to run by hand.
 set -uo pipefail
 
+# `publish_snapshot.sh late` is the night run: only college and NHL (free feeds), no NBA/WNBA history, odds or export,
+# so it spends no Odds API credits. It keeps tonight's scores and results from waiting for the 6 AM run.
+LATE=0; [ "${1:-}" = "late" ] && LATE=1
+
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 PORT=8111
 export PATH="/Library/Frameworks/Python.framework/Versions/3.12/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
@@ -31,33 +35,35 @@ trap cleanup EXIT
 cd "$REPO" || { notify "Repo not found (is the T7 drive mounted?)"; exit 1; }
 log "start"
 
-# Stale history still yields today's props, so a history failure warns instead of stopping the run.
-retry python3 scripts/refresh_nba_history.py || { log "WARNING: NBA history refresh failed"; notify "NBA history refresh failed; publishing with existing history"; }
-retry python3 scripts/refresh_wnba_history.py || log "WARNING: WNBA history refresh failed"
-# First-quarter lines feed the 1Q streaks and analysis; without them those views keep the previous quarters.
-retry python3 scripts/refresh_q1_history.py || log "WARNING: NBA first-quarter refresh failed"
-# Final team scores grade the saved game forecasts (the Model tab's live record); the season label flips in July.
-season_year=$(date +%Y); [ "$(date +%-m)" -lt 7 ] && season_year=$((season_year - 1))
-nba_season="$season_year-$(printf %02d $(( (season_year + 1) % 100 )))"
-retry python3 scripts/refresh_game_history.py --league nba --seasons "$nba_season" --timeout 30 || log "WARNING: NBA game results refresh failed; game forecasts stay ungraded"
-
 # The NBA/WNBA export swaps the whole data folder, so set the college files aside and put them back afterwards.
 cbb_keep="$(mktemp -d)"
 [ -d frontend/public/data/cbb ] && cp -R frontend/public/data/cbb "$cbb_keep/cbb"
 [ -d frontend/public/data/nhl ] && cp -R frontend/public/data/nhl "$cbb_keep/nhl"
 
-python3 -m uvicorn api.main:app --host 127.0.0.1 --port "$PORT" > "${TMPDIR:-/tmp}/courtvision-api.log" 2>&1 &
-server_pid=$!
-for _ in $(seq 1 60); do
-  curl -sf "http://127.0.0.1:$PORT/api/health" >/dev/null && break
-  sleep 2
-done
+if [ "$LATE" -eq 0 ]; then
+  # Stale history still yields today's props, so a history failure warns instead of stopping the run.
+  retry python3 scripts/refresh_nba_history.py || { log "WARNING: NBA history refresh failed"; notify "NBA history refresh failed; publishing with existing history"; }
+  retry python3 scripts/refresh_wnba_history.py || log "WARNING: WNBA history refresh failed"
+  # First-quarter lines feed the 1Q streaks and analysis; without them those views keep the previous quarters.
+  retry python3 scripts/refresh_q1_history.py || log "WARNING: NBA first-quarter refresh failed"
+  # Final team scores grade the saved game forecasts (the Model tab's live record); the season label flips in July.
+  season_year=$(date +%Y); [ "$(date +%-m)" -lt 7 ] && season_year=$((season_year - 1))
+  nba_season="$season_year-$(printf %02d $(( (season_year + 1) % 100 )))"
+  retry python3 scripts/refresh_game_history.py --league nba --seasons "$nba_season" --timeout 30 || log "WARNING: NBA game results refresh failed; game forecasts stay ungraded"
 
-if ! retry python3 scripts/export_api.py --refresh-odds --out frontend/public/data --api "http://127.0.0.1:$PORT"; then
-  notify "Export failed; the site still shows the last good snapshot"
-  exit 1
+  python3 -m uvicorn api.main:app --host 127.0.0.1 --port "$PORT" > "${TMPDIR:-/tmp}/courtvision-api.log" 2>&1 &
+  server_pid=$!
+  for _ in $(seq 1 60); do
+    curl -sf "http://127.0.0.1:$PORT/api/health" >/dev/null && break
+    sleep 2
+  done
+
+  if ! retry python3 scripts/export_api.py --refresh-odds --out frontend/public/data --api "http://127.0.0.1:$PORT"; then
+    notify "Export failed; the site still shows the last good snapshot"
+    exit 1
+  fi
+  kill "$server_pid" 2>/dev/null; server_pid=""
 fi
-kill "$server_pid" 2>/dev/null; server_pid=""
 
 # College basketball runs on free ESPN feeds and is non-fatal: if it fails the site keeps the last college files
 # (restored below) and NBA/WNBA still publish, the same way the NFL publish treats college football.
